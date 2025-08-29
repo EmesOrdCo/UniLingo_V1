@@ -29,6 +29,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { UserProfileService } from '../lib/userProfileService';
 import { supabase } from '../lib/supabase';
 import UploadProgressModal from '../components/UploadProgressModal';
+import DailyGoalsWidget from '../components/DailyGoalsWidget';
 
 const Tab = createBottomTabNavigator();
 
@@ -1625,6 +1626,9 @@ function DashboardContent() {
         backgroundColor: '#8b5cf6',
         borderRadius: 3,
       },
+      dailyGoalsSection: {
+        marginBottom: 24,
+      },
 
       signOutButton: {
         backgroundColor: '#ef4444',
@@ -2762,6 +2766,12 @@ function DashboardContent() {
               </View>
 
 
+            </View>
+
+            {/* Daily Goals Widget */}
+            <View style={styles.dailyGoalsSection}>
+              <Text style={styles.sectionTitle}>🎯 Daily Goals</Text>
+              <DailyGoalsWidget />
             </View>
           </ScrollView>
         );
