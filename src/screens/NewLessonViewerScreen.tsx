@@ -17,6 +17,8 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { LessonService, Lesson, LessonVocabulary, LessonExercise, LessonProgress } from '../lib/lessonService';
 
+import * as Speech from 'expo-speech';
+
 const { width } = Dimensions.get('window');
 
 interface LessonViewerRouteParams {
@@ -27,7 +29,7 @@ export default function NewLessonViewerScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const { lessonId } = route.params as LessonViewerRouteParams;
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
 
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [vocabulary, setVocabulary] = useState<LessonVocabulary[]>([]);
@@ -50,6 +52,7 @@ export default function NewLessonViewerScreen() {
   const [vocabularyPerformance, setVocabularyPerformance] = useState<{ [key: string]: { correct: number, incorrect: number, attempts: number } }>({});
   const [correctStreak, setCorrectStreak] = useState(0);
   const [maxStreak, setMaxStreak] = useState(0);
+  const [exercisesActuallyCompleted, setExercisesActuallyCompleted] = useState(0);
 
   useEffect(() => {
     loadLesson();
@@ -69,7 +72,46 @@ export default function NewLessonViewerScreen() {
         const vocabArray = Array.isArray(lessonData.vocabulary) ? lessonData.vocabulary : [];
         setVocabulary(vocabArray);
         setExercises(lessonData.exercises || []);
-        setMaxPossibleScore((lessonData.exercises || []).reduce((sum, ex) => sum + ex.points, 0));
+        // Calculate total questions across all exercises
+        const totalQuestions = lessonData.exercises?.reduce((total, exercise) => {
+          console.log(`🔍 Exercise ${exercise.exercise_type}:`, exercise.exercise_data);
+          
+          // Count actual questions based on exercise type and data
+          let questionCount = 0;
+          
+          if (exercise.exercise_type === 'flashcard_match' || 
+              exercise.exercise_type === 'word_scramble' ||
+              exercise.exercise_type === 'memory_game' ||
+              exercise.exercise_type === 'multiple_choice') {
+            // These exercises create one question per vocabulary item
+            questionCount = lessonData.vocabulary?.length || 0;
+            console.log(`📚 ${exercise.exercise_type}: ${questionCount} vocabulary items = ${questionCount} questions`);
+          } else if (exercise.exercise_type === 'fill_in_blank' ||
+                     exercise.exercise_type === 'typing') {
+            // These exercises have questions defined in exercise_data
+            if (exercise.exercise_data?.questions) {
+              questionCount = exercise.exercise_data.questions.length;
+              console.log(`🎯 ${exercise.exercise_type}: ${questionCount} questions from exercise_data`);
+            } else {
+              questionCount = 1; // Fallback to 1 if no questions defined
+              console.log(`🎯 ${exercise.exercise_type}: No questions defined, defaulting to 1`);
+            }
+          } else if (exercise.exercise_type === 'sentence_ordering') {
+            // Sentence ordering has one question per sentence
+            const sentences = lessonData.vocabulary?.filter(v => v.example_sentence_en) || [];
+            questionCount = sentences.length;
+            console.log(`📝 ${exercise.exercise_type}: ${questionCount} sentences = ${questionCount} questions`);
+          } else {
+            // Default: 1 question per exercise
+            questionCount = 1;
+            console.log(`🎯 ${exercise.exercise_type}: Default 1 question`);
+          }
+          
+          return total + questionCount;
+        }, 0) || 0;
+        
+        console.log(`🎯 Total questions calculated: ${totalQuestions}`);
+        setMaxPossibleScore(totalQuestions);
       } else {
         setError('Lesson not found');
       }
@@ -96,25 +138,35 @@ export default function NewLessonViewerScreen() {
     }
   };
 
-  const startLesson = () => {
+  const startLesson = async (resetProgress: boolean = false) => {
     setStartTime(new Date());
     setExerciseStartTime(new Date());
-    setCurrentExerciseIndex(0);
-    setTotalScore(0);
-    setExerciseScore(0);
     
-    // Reset enhanced tracking
-    setExerciseAttempts({});
-    setExerciseScores({});
-    setExerciseTimes({});
-    setVocabularyPerformance({});
-    setCorrectStreak(0);
-    setMaxStreak(0);
+
+    
+    if (resetProgress) {
+      // Reset everything when starting fresh
+      setCurrentExerciseIndex(0);
+      setTotalScore(0);
+      setExerciseScore(0);
+      setExercisesActuallyCompleted(0);
+      setExerciseAttempts({});
+      setExerciseScores({});
+      setExerciseTimes({});
+      setVocabularyPerformance({});
+      setCorrectStreak(0);
+      setMaxStreak(0);
+    } else {
+      // Resume from where user left off
+      setCurrentExerciseIndex(progress?.exercises_completed || 0);
+      setTotalScore(progress?.total_score || 0);
+      setExercisesActuallyCompleted(progress?.exercises_completed || 0);
+    }
     
     if (user?.id) {
       LessonService.updateLessonProgress(user.id, lessonId, {
         started_at: new Date().toISOString(),
-        total_score: 0,
+        total_score: resetProgress ? 0 : (progress?.total_score || 0),
         max_possible_score: maxPossibleScore,
         total_exercises: exercises ? exercises.length : 0,
         time_spent_seconds: 0,
@@ -153,10 +205,29 @@ export default function NewLessonViewerScreen() {
     }
   };
 
-  const completeExercise = (score: number) => {
-    const newTotalScore = totalScore + score;
-    setTotalScore(newTotalScore);
+  // Function to update score without advancing exercise
+  const updateScore = (score: number) => {
+    console.log(`🎯 updateScore called with: ${score}`);
+    console.log(`🎯 Current totalScore: ${totalScore}`);
+    console.log(`🎯 About to set totalScore to: ${totalScore + score}`);
+    
+    setTotalScore(prev => {
+      const newTotal = prev + score;
+      console.log(`🎯 setTotalScore callback: prev=${prev}, newTotal=${newTotal}`);
+      return newTotal;
+    });
+    
     setExerciseScore(score);
+    console.log(`🎯 updateScore function completed`);
+  };
+
+  const completeExercise = async (score: number) => {
+    console.log(`🎯 Exercise ${currentExerciseIndex} completed with score: ${score}`);
+    console.log(`🎯 Previous total score: ${totalScore}, New total score: ${totalScore + score}`);
+    console.log(`🎯 Score type: ${typeof score}, Score value: ${score}`);
+    
+    // Update the score first
+    updateScore(score);
 
     // Track exercise completion time and score
     if (exerciseStartTime) {
@@ -180,42 +251,90 @@ export default function NewLessonViewerScreen() {
     if (user?.id) {
       const timeSpent = startTime ? Math.floor((Date.now() - startTime.getTime()) / 1000) : 0;
       
+      // Only increment exercises_completed when exercise is actually completed with a score
+      const newExercisesCompleted = exercisesActuallyCompleted + (score > 0 ? 1 : 0);
+      setExercisesActuallyCompleted(newExercisesCompleted);
+      
+      console.log(`🎯 DEBUG: Exercise ${currentExerciseIndex} completed with score: ${score}`);
+      console.log(`🎯 DEBUG: Progress exercises_completed: ${progress?.exercises_completed || 0}`);
+      console.log(`🎯 DEBUG: Score > 0: ${score > 0}`);
+      console.log(`🎯 DEBUG: New exercises_completed: ${newExercisesCompleted}`);
+      
+
+      
       LessonService.updateLessonProgress(user.id, lessonId, {
-        total_score: newTotalScore,
-        exercise_completed: nextIndex,
+        total_score: totalScore,
+        exercises_completed: newExercisesCompleted,
         time_spent_seconds: timeSpent,
         status: nextIndex >= (exercises ? exercises.length : 0) ? 'completed' : 'in_progress'
       });
     }
 
     if (nextIndex >= (exercises ? exercises.length : 0)) {
-      // Lesson completed
-      const finalScore = Math.round((newTotalScore / maxPossibleScore) * 100);
-      Alert.alert(
-        'Lesson Complete! 🎓',
-        `Congratulations! You completed the lesson with a score of ${finalScore}%`,
-        [
-          {
-            text: 'Review Vocabulary',
-            onPress: () => setShowVocabularyModal(true)
-          },
-          {
-            text: 'Done',
-            onPress: () => navigation.goBack()
-          }
-        ]
-      );
+      // Lesson completed - automatically show vocabulary modal
+      setShowVocabularyModal(true);
     }
   };
 
   const renderExercise = (exercise: LessonExercise) => {
+    console.log(`🔍 Rendering exercise ${currentExerciseIndex}, type: ${exercise.exercise_type}`);
+    
     // Force specific exercise types for certain positions
     if (currentExerciseIndex === 1) {
-      return <FlashcardFlipExercise exercise={exercise} onComplete={completeExercise} vocabulary={vocabulary} trackAttempt={trackExerciseAttempt} />;
+              return <FlashcardFlipExercise exercise={exercise} onComplete={completeExercise} updateScore={updateScore} vocabulary={vocabulary} userProfile={profile} />;
     } else if (currentExerciseIndex === 2) {
-      return <SentenceOrderingExercise exercise={exercise} onComplete={completeExercise} vocabulary={vocabulary} trackAttempt={trackExerciseAttempt} />;
+      return (
+        <>
+          <View style={styles.headerRow}>
+            <Text style={[styles.exercisePrompt, { flex: 1, marginRight: 8 }]} numberOfLines={2}>
+              Arrange the words to form a complete sentence
+            </Text>
+            <TouchableOpacity
+              style={styles.skipToNextButtonTop}
+              onPress={() => {
+                Alert.alert(
+                  'Skip Exercise',
+                  'Are you sure you want to skip this exercise?',
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Skip', onPress: () => setCurrentExerciseIndex(prev => prev + 1) }
+                  ]
+                );
+              }}
+            >
+              <Ionicons name="play-skip-forward" size={16} color="white" />
+            </TouchableOpacity>
+          </View>
+          <SentenceOrderingExercise exercise={exercise} onComplete={completeExercise} updateScore={updateScore} vocabulary={vocabulary} />
+        </>
+      );
     } else if (currentExerciseIndex === 3) {
-      return <WordScrambleExercise exercise={exercise} onComplete={completeExercise} vocabulary={vocabulary} trackAttempt={trackExerciseAttempt} />;
+      console.log(`🎯 Exercise 3 - Adding header formatting`);
+      return (
+        <>
+          <View style={styles.headerRow}>
+            <Text style={[styles.exercisePrompt, { flex: 1, marginRight: 8 }]} numberOfLines={2}>
+              Unscramble the letters to form the correct word
+            </Text>
+            <TouchableOpacity
+              style={styles.skipToNextButtonTop}
+              onPress={() => {
+                Alert.alert(
+                  'Skip Exercise',
+                  'Are you sure you want to skip this exercise?',
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Skip', onPress: () => setCurrentExerciseIndex(prev => prev + 1) }
+                  ]
+                );
+              }}
+            >
+              <Ionicons name="play-skip-forward" size={16} color="white" />
+            </TouchableOpacity>
+          </View>
+          <WordScrambleExercise exercise={exercise} onComplete={completeExercise} updateScore={updateScore} vocabulary={vocabulary} profile={profile} />
+        </>
+      );
     }
     
     // Use the original exercise type for other positions
@@ -233,7 +352,31 @@ export default function NewLessonViewerScreen() {
       case 'memory_game':
         return <MemoryGameExercise exercise={exercise} onComplete={completeExercise} vocabulary={vocabulary} trackAttempt={trackExerciseAttempt} />;
       case 'word_scramble':
-        return <WordScrambleExercise exercise={exercise} onComplete={completeExercise} vocabulary={vocabulary} trackAttempt={trackExerciseAttempt} />;
+        return (
+          <>
+            <View style={styles.headerRow}>
+              <TouchableOpacity
+                style={styles.skipToNextButtonTop}
+                onPress={() => {
+                  Alert.alert(
+                    'Skip Exercise',
+                    'Are you sure you want to skip this exercise?',
+                    [
+                      { text: 'Cancel', style: 'cancel' },
+                      { text: 'Skip', onPress: () => setCurrentExerciseIndex(prev => prev + 1) }
+                    ]
+                  );
+                }}
+              >
+                <Ionicons name="play-skip-forward" size={16} color="white" />
+              </TouchableOpacity>
+              <Text style={[styles.exercisePrompt, { flex: 1, marginRight: 8 }]} numberOfLines={2}>
+                Unscramble the letters to form the correct word
+              </Text>
+            </View>
+            <WordScrambleExercise exercise={exercise} onComplete={completeExercise} updateScore={updateScore} vocabulary={vocabulary} trackAttempt={trackExerciseAttempt} profile={profile} />
+          </>
+        );
       case 'speed_challenge':
         return <SpeedChallengeExercise exercise={exercise} onComplete={completeExercise} vocabulary={vocabulary} trackAttempt={trackExerciseAttempt} />;
       default:
@@ -324,67 +467,211 @@ export default function NewLessonViewerScreen() {
         </View>
 
         {/* Completion Content */}
-        <View style={styles.exerciseContainer}>
+        <ScrollView style={styles.exerciseContainer} contentContainerStyle={styles.exerciseScrollContent}>
           <View style={styles.exerciseContent}>
-            <Text style={styles.exercisePrompt}>🎉 Lesson Complete! 🎉</Text>
-            <Text style={styles.resultsText}>
-              Final Score: {Math.round((totalScore / maxPossibleScore) * 100)}%
-            </Text>
-                         <Text style={styles.progressText}>
-               You've completed all {exercises.length} exercises!
-             </Text>
-             
-             <Text style={styles.progressText}>
-               💡 Tap the 📚 icon in the header to review vocabulary
-             </Text>
-             
-                           <TouchableOpacity 
-                style={styles.continueButton} 
+            {/* Success Header */}
+            <View style={styles.completionHeader}>
+              <View style={styles.completionIconContainer}>
+                <Text style={styles.completionIcon}>🎉</Text>
+              </View>
+              <Text style={styles.completionTitle}>Lesson Complete!</Text>
+              <Text style={styles.completionSubtitle}>
+                Congratulations! You've finished all {exercises.length} exercises
+              </Text>
+            </View>
+
+            {/* Score Display */}
+            <View style={styles.scoreDisplay}>
+              <Text style={styles.scoreLabel}>Final Score</Text>
+              <Text style={styles.scoreValue}>
+                {totalScore}<Text style={styles.scoreDivider}>/</Text>{maxPossibleScore}
+              </Text>
+              <Text style={styles.scoreDescription}>correct answers</Text>
+              
+              {/* Score Progress Bar */}
+              <View style={styles.scoreProgressBar}>
+                <View 
+                  style={[
+                    styles.scoreProgressFill, 
+                    { width: `${Math.max(0, Math.min(100, (totalScore / maxPossibleScore) * 100))}%` }
+                  ]} 
+                />
+              </View>
+            </View>
+
+            {/* Action Buttons */}
+            <View style={styles.completionActions}>
+              <TouchableOpacity 
+                style={[styles.completionButton, styles.primaryAction]} 
                 onPress={() => {
                   // Simply show the modal
                   setShowVocabularyModal(true);
                 }}
               >
-                <Text style={styles.continueButtonText}>📚 Review Vocabulary</Text>
+                <Ionicons name="book" size={20} color="#ffffff" />
+                <Text style={styles.completionButtonText}>Review Vocabulary</Text>
               </TouchableOpacity>
-             
-             {/* Access Review Page Button */}
-             <TouchableOpacity 
-               style={[styles.continueButton, { backgroundColor: '#10b981', marginTop: 12 }]} 
-               onPress={() => {
-                 console.log('🎯 Access review page button pressed!');
-                 console.log('🎯 Navigating to LessonReview screen');
-                 console.log('🎯 Current vocabulary state:', vocabulary);
-                 console.log('🎯 Vocabulary length:', vocabulary?.length);
-                 
-                 // Transform vocabulary data to match the expected format
-                 const reviewVocabulary = vocabulary.map(vocab => ({
-                   id: vocab.id || String(Math.random()),
-                   term: vocab.english_term,
-                   definition: vocab.definition,
-                   example: vocab.example_sentence_en,
-                   pronunciation: vocab.native_translation // Using native translation as pronunciation for now
-                 }));
-                 
-                 // Navigate to the LessonReview screen with lesson data
-                 (navigation as any).navigate('LessonReview', {
-                   lessonTitle: lesson?.title || 'Lesson',
-                   lessonSubject: lesson?.subject || 'Subject',
-                   vocabulary: reviewVocabulary,
-                   finalScore: totalScore,
-                   maxPossibleScore: maxPossibleScore
-                 });
-               }}
-             >
-               <Text style={styles.continueButtonText}>📚 Access Review Page</Text>
-             </TouchableOpacity>
-             
-             <TouchableOpacity 
-               style={styles.checkButton} 
-               onPress={() => navigation.goBack()}
-             >
-               <Text style={styles.checkButtonText}>🏠 Back to Lessons</Text>
-             </TouchableOpacity>
+              
+              {/* Access Review Page Button */}
+              <TouchableOpacity 
+                style={[styles.completionButton, styles.secondaryAction]} 
+                onPress={() => {
+                  console.log('🎯 Access review page button pressed!');
+                  console.log('🎯 Navigating to LessonReview screen');
+                  console.log('🎯 Current vocabulary state:', vocabulary);
+                  console.log('🎯 Vocabulary length:', vocabulary?.length);
+                  
+                  // Transform vocabulary data to match the expected format
+                  const reviewVocabulary = vocabulary.map(vocab => ({
+                    id: vocab.id || String(Math.random()),
+                    term: vocab.english_term,
+                    definition: vocab.definition,
+                    example: vocab.example_sentence_en,
+                    pronunciation: vocab.native_translation // Using native translation as pronunciation for now
+                  }));
+                  
+                  // Navigate to the PostLessonFeedback screen first
+                  (navigation as any).navigate('PostLessonFeedback', {
+                    lessonId: lessonId,
+                    progressId: progress?.id || '',
+                    totalScore: totalScore,
+                    maxPossibleScore: maxPossibleScore,
+                    exercisesCompleted: exercisesActuallyCompleted, // Use the accurate count
+                    totalExercises: exercises.length,
+                    timeSpentSeconds: startTime ? Math.floor((new Date().getTime() - startTime.getTime()) / 1000) : 0
+                  });
+                }}
+              >
+                <Ionicons name="star" size={20} color="#ffffff" />
+                <Text style={styles.completionButtonText}>Continue to Feedback</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[styles.completionButton, styles.warningAction]} 
+                onPress={() => {
+                  // Reset everything and restart lesson
+                  setStartTime(null);
+                  setCurrentExerciseIndex(0);
+                  setTotalScore(0);
+                  setExerciseScore(0);
+                  setExerciseAttempts({});
+                  setExerciseScores({});
+                  setExerciseTimes({});
+                  setVocabularyPerformance({});
+                  setCorrectStreak(0);
+                  setMaxStreak(0);
+                  setShowVocabularyModal(false);
+                }}
+              >
+                <Ionicons name="refresh" size={20} color="#ffffff" />
+                <Text style={styles.completionButtonText}>Restart Lesson</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[styles.completionButton, styles.neutralAction]} 
+                onPress={() => navigation.goBack()}
+              >
+                <Ionicons name="home" size={20} color="#6366f1" />
+                <Text style={[styles.completionButtonText, { color: '#6366f1' }]}>Back to Lessons</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
+  // Show lesson start screen if this is the first time or user wants to restart
+  if (currentExerciseIndex === 0 && (!startTime || !progress?.started_at)) {
+    return (
+      <SafeAreaView style={styles.container}>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color="#000" />
+          </TouchableOpacity>
+          <View style={styles.headerContent}>
+            <Text style={styles.lessonTitle}>{lesson.title}</Text>
+            <Text style={styles.subjectText}>{lesson.subject}</Text>
+          </View>
+        </View>
+
+        {/* Lesson Start Content */}
+        <View style={styles.lessonStartContainer}>
+          {/* Hero Section */}
+          <View style={styles.heroSection}>
+            <View style={styles.heroIconContainer}>
+              <Text style={styles.heroIcon}>🎯</Text>
+            </View>
+            <Text style={styles.lessonStartTitle}>Ready to Learn?</Text>
+            <Text style={styles.lessonStartSubtitle}>
+              This lesson contains <Text style={styles.highlightText}>{exercises.length} exercises</Text> with <Text style={styles.highlightText}>{maxPossibleScore} total questions</Text>
+            </Text>
+          </View>
+          
+          {/* Progress Info if exists */}
+          {progress && (progress.exercises_completed || 0) > 0 && (
+            <View style={styles.resumeInfo}>
+              <View style={styles.resumeHeader}>
+                <Ionicons name="book" size={24} color="#6366f1" />
+                <Text style={styles.resumeTitle}>Continue Learning</Text>
+              </View>
+              <View style={styles.progressStats}>
+                <View style={styles.progressStat}>
+                  <Text style={styles.progressStatValue}>{progress.exercises_completed || 0}</Text>
+                  <Text style={styles.progressStatLabel}>Exercises Completed</Text>
+                </View>
+                <View style={styles.progressDivider} />
+                <View style={styles.progressStat}>
+                  <Text style={styles.progressStatValue}>{exercises.length}</Text>
+                  <Text style={styles.progressStatLabel}>Total Exercises</Text>
+                </View>
+              </View>
+              <View style={styles.scoreProgress}>
+                <Text style={styles.scoreProgressText}>
+                  Current Score: <Text style={styles.scoreHighlight}>{progress.total_score || 0}/{maxPossibleScore}</Text>
+                </Text>
+                <View style={styles.scoreProgressBar}>
+                  <View 
+                    style={[
+                      styles.scoreProgressFill, 
+                      { width: `${Math.max(0, Math.min(100, ((progress.total_score || 0) / maxPossibleScore) * 100))}%` }
+                    ]} 
+                  />
+                </View>
+              </View>
+            </View>
+          )}
+
+          {/* Action Buttons */}
+          <View style={styles.startButtonsContainer}>
+            {progress && (progress.exercises_completed || 0) > 0 ? (
+              <>
+                <TouchableOpacity 
+                  style={[styles.startButton, styles.resumeButton]} 
+                  onPress={() => startLesson(false)}
+                >
+                  <Ionicons name="play" size={20} color="#ffffff" />
+                  <Text style={styles.startButtonText}>Resume Lesson</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={[styles.startButton, styles.restartButton]} 
+                  onPress={() => startLesson(true)}
+                >
+                  <Ionicons name="refresh" size={20} color="#ffffff" />
+                  <Text style={styles.startButtonText}>Start Fresh</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <TouchableOpacity 
+                style={styles.startButton} 
+                onPress={() => startLesson(true)}
+              >
+                <Ionicons name="rocket" size={20} color="#ffffff" />
+                <Text style={styles.startButtonText}>Start Lesson</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       </SafeAreaView>
@@ -403,25 +690,24 @@ export default function NewLessonViewerScreen() {
         </TouchableOpacity>
         <View style={styles.headerContent}>
           <Text style={styles.lessonTitle}>{lesson.title}</Text>
-          <Text style={styles.subjectText}>{lesson.subject}</Text>
         </View>
-        <TouchableOpacity onPress={() => setShowVocabularyModal(true)} style={styles.vocabularyButton}>
-          <Ionicons name="book" size={24} color="#6366f1" />
-        </TouchableOpacity>
+        <View style={styles.headerButtons}>
+          <TouchableOpacity onPress={() => setShowVocabularyModal(true)} style={styles.vocabularyButton}>
+            <Ionicons name="book" size={24} color="#6366f1" />
+          </TouchableOpacity>
+        </View>
       </View>
 
-      {/* Progress Bar */}
+      {/* Compact Progress Bar */}
       <View style={styles.progressContainer}>
         <View style={styles.progressBar}>
           <View style={[styles.progressFill, { width: `${progressPercentage}%` }]} />
         </View>
-        <Text style={styles.progressText}>Exercise {currentExerciseIndex + 1} of {exercises.length}</Text>
-      </View>
-
-      {/* Score and Progress */}
-      <View style={styles.scoreContainer}>
-        <Text style={styles.scoreText}>Score: {totalScore}/{maxPossibleScore}</Text>
-        <Text style={styles.progressText}>Progress: {Math.round(progressPercentage)}%</Text>
+        <View style={styles.progressInfo}>
+          <Text style={styles.progressText}>Exercise {currentExerciseIndex + 1} of {exercises.length}</Text>
+          <Text style={styles.progressPercentage}>{Math.round(progressPercentage)}%</Text>
+          <Text style={styles.scoreText}>Correct: {totalScore}/{maxPossibleScore}</Text>
+        </View>
       </View>
 
       {/* Exercise Content */}
@@ -454,13 +740,13 @@ export default function NewLessonViewerScreen() {
                    <View style={styles.progressSummaryRow}>
                      <Text style={styles.progressSummaryLabel}>Final Score:</Text>
                      <Text style={styles.progressSummaryValue}>
-                       {Math.round((totalScore / maxPossibleScore) * 100)}%
+                       {totalScore}/{maxPossibleScore} correct answers
                      </Text>
                    </View>
                    <View style={styles.progressSummaryRow}>
                      <Text style={styles.progressSummaryLabel}>Exercises Completed:</Text>
                      <Text style={styles.progressSummaryValue}>
-                       {progress.exercise_completed || 0} / {exercises.length}
+                       {progress.exercises_completed || 0} / {exercises.length}
                      </Text>
                    </View>
                    {progress.time_spent_seconds && (
@@ -491,8 +777,8 @@ export default function NewLessonViewerScreen() {
                    const score = exerciseScores[index];
                    const time = exerciseTimes[index];
                    const attempts = exerciseAttempts[index];
-                   const maxScore = exercises[index]?.points || 0;
-                   const percentage = maxScore > 0 ? Math.round((score / maxScore) * 100) : 0;
+                   const maxScore = 1; // Each exercise is worth 1 point
+                   const percentage = score > 0 ? 100 : 0;
                    
                    return (
                      <View key={exerciseIndex} style={styles.exerciseBreakdownItem}>
@@ -502,7 +788,7 @@ export default function NewLessonViewerScreen() {
                        <View style={styles.exerciseBreakdownRow}>
                          <Text style={styles.exerciseBreakdownLabel}>Score:</Text>
                          <Text style={styles.exerciseBreakdownValue}>
-                           {score}/{maxScore} ({percentage}%)
+                           {score === 1 ? 'Correct' : 'Incorrect'} ({percentage}%)
                          </Text>
                        </View>
                        {time && (
@@ -541,9 +827,9 @@ export default function NewLessonViewerScreen() {
                  {/* Time Efficiency */}
                  {progress?.time_spent_seconds && totalScore > 0 && (
                    <View style={styles.patternRow}>
-                     <Text style={styles.patternLabel}>⚡ Score per Minute:</Text>
+                     <Text style={styles.patternLabel}>⚡ Correct Answers per Minute:</Text>
                      <Text style={styles.patternValue}>
-                       {Math.round((totalScore / (progress.time_spent_seconds / 60)) * 10) / 10} pts/min
+                       {Math.round((totalScore / (progress.time_spent_seconds / 60)) * 10) / 10} correct/min
                      </Text>
                    </View>
                  )}
@@ -553,7 +839,7 @@ export default function NewLessonViewerScreen() {
                    <View style={styles.patternRow}>
                      <Text style={styles.patternLabel}>🎯 Overall Accuracy:</Text>
                      <Text style={styles.patternValue}>
-                       {Math.round((totalScore / maxPossibleScore) * 100)}%
+                       {totalScore}/{maxPossibleScore} correct answers
                      </Text>
                    </View>
                  )}
@@ -714,7 +1000,7 @@ const FlashcardMatchExercise = ({ exercise, onComplete, vocabulary, currentExerc
       }
     });
 
-    const score = Math.round((correct / questionsArray.length) * (exercise?.points || 0));
+    const score = correct; // Score = number of correct answers
     setCompleted(true);
     
     // Track performance for each vocabulary term
@@ -742,22 +1028,30 @@ const FlashcardMatchExercise = ({ exercise, onComplete, vocabulary, currentExerc
   }
 
     return (
-    <View style={styles.exerciseContent}>
-      {/* Skip to next button at top */}
-      <TouchableOpacity 
-        style={styles.skipToNextButtonTop} 
-        onPress={() => onComplete(0)}
-      >
-        <Text style={styles.skipToNextButtonText}>⏭️ Skip to Next Exercise</Text>
-      </TouchableOpacity>
-      
-      <Text style={styles.exercisePrompt}>
-          {currentExerciseIndex === 1 
-            ? 'Second Set: Match the English terms with their native language translations' 
-            : (exercise?.exercise_data?.prompt || 'Match the English terms with their native language translations')
-          }
-        </Text>
-      
+      <>
+        {/* Skip to next button at top */}
+        <View style={styles.headerRow}>
+          <Text style={[styles.exercisePrompt, { flex: 1, marginRight: 8 }]} numberOfLines={2}>
+              {currentExerciseIndex === 1 
+                ? 'Second Set: Match the English terms with their native language translations' 
+                : (exercise?.exercise_data?.prompt || 'Match the English terms with their native language translations')
+              }
+            </Text>
+          
+          <TouchableOpacity 
+            style={styles.skipToNextButtonTop} 
+            onPress={() => onComplete(0)}
+          >
+            <Ionicons name="play-skip-forward" size={16} color="white" />
+          </TouchableOpacity>
+        </View>
+        
+        <ScrollView 
+          style={styles.exerciseScrollContainer}
+          contentContainerStyle={styles.exerciseScrollContent}
+          showsVerticalScrollIndicator={true}
+        >
+          <View style={styles.exerciseContent}>
              {(questions || []).map((question, index) => (
          <View key={index} style={styles.questionContainer}>
            <Text style={styles.questionText}>{question.question}</Text>
@@ -796,32 +1090,29 @@ const FlashcardMatchExercise = ({ exercise, onComplete, vocabulary, currentExerc
            )}
            
            <TouchableOpacity 
-             style={[
-               styles.continueButton, 
-               !canCheckAnswers() && styles.continueButtonWarning
-             ]} 
+             style={styles.continueButton} 
              onPress={() => {
                if (!canCheckAnswers()) {
                  Alert.alert(
-                   'Unfilled Answers',
-                   'You have unfilled answers. Unfilled answers will be marked as incorrect. Do you want to continue?',
+                   'Unanswered Questions',
+                   'You have unanswered questions. Unanswered questions will be marked as incorrect. Do you want to continue?',
                    [
                      {
                        text: 'Cancel',
                        style: 'cancel'
                      },
                      {
-                       text: 'Continue Anyway',
+                       text: 'Continue',
                        onPress: () => {
-                                                  // Mark unfilled answers as incorrect and complete
-                          const newSelectedPairs = { ...selectedPairs };
-                          (questions || []).forEach((_, index) => {
-                            if (!newSelectedPairs[index]) {
-                              newSelectedPairs[index] = 'UNFILLED';
-                            }
-                          });
-                          setSelectedPairs(newSelectedPairs);
-                          checkAnswers();
+                         // Mark unfilled answers as incorrect and complete
+                         const newSelectedPairs = { ...selectedPairs };
+                         (questions || []).forEach((_, index) => {
+                           if (!newSelectedPairs[index]) {
+                             newSelectedPairs[index] = 'UNFILLED';
+                           }
+                         });
+                         setSelectedPairs(newSelectedPairs);
+                         checkAnswers();
                        }
                      }
                    ]
@@ -831,9 +1122,7 @@ const FlashcardMatchExercise = ({ exercise, onComplete, vocabulary, currentExerc
                }
              }}
            >
-             <Text style={styles.continueButtonText}>
-               {canCheckAnswers() ? 'Continue' : 'Continue (Unfilled = Incorrect)'}
-             </Text>
+             <Text style={styles.continueButtonText}>Continue</Text>
            </TouchableOpacity>
            
                      </View>
@@ -846,16 +1135,24 @@ const FlashcardMatchExercise = ({ exercise, onComplete, vocabulary, currentExerc
                selectedPairs[parseInt(key)] === (questions || [])[parseInt(key)]?.correctAnswer
              ).length / (questions || []).length) * 100)}%
            </Text>
-          <TouchableOpacity style={styles.continueButton} onPress={() => onComplete(0)}>
+          <TouchableOpacity style={styles.continueButton} onPress={() => {
+            // Calculate score again for the continue button
+            const correctCount = Object.keys(selectedPairs).filter(key => 
+              selectedPairs[parseInt(key)] === (questions || [])[parseInt(key)]?.correctAnswer
+            ).length;
+            onComplete(correctCount);
+          }}>
             <Text style={styles.continueButtonText}>Continue to Next Exercise</Text>
           </TouchableOpacity>
         </View>
       )}
-    </View>
-  );
+          </View>
+        </ScrollView>
+      </>
+    );
 };
 
-const FlashcardFlipExercise = ({ exercise, onComplete, vocabulary, trackAttempt }: { exercise: LessonExercise, onComplete: (score: number) => void, vocabulary: LessonVocabulary[], trackAttempt: (exerciseIndex: number, isCorrect: boolean, vocabularyTerm?: string) => void }) => {
+const FlashcardFlipExercise = ({ exercise, onComplete, updateScore, vocabulary, trackAttempt, userProfile }: { exercise: LessonExercise, onComplete: (score: number) => void, updateScore: (score: number) => void, vocabulary: LessonVocabulary[], trackAttempt: (exerciseIndex: number, isCorrect: boolean, vocabularyTerm?: string) => void, userProfile: any }) => {
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [completed, setCompleted] = useState(false);
@@ -873,16 +1170,18 @@ const FlashcardFlipExercise = ({ exercise, onComplete, vocabulary, trackAttempt 
       setCurrentCardIndex(currentCardIndex + 1);
       setIsFlipped(false);
     } else {
-      // All cards completed
-      const finalScore = Math.round((score / totalCards) * (exercise?.points || 0));
+      // All cards completed - don't call onComplete, just show completion
       setCompleted(true);
-      onComplete(finalScore);
     }
   };
 
   const handleScore = (correct: boolean) => {
     if (correct) {
-      setScore(score + 1);
+      const newScore = score + 1;
+      setScore(newScore);
+      // Add 1 point for each correct answer
+      console.log(`🎯 FlashcardFlip: Correct answer, calling updateScore(1)`);
+      updateScore(1);
     }
     handleNext();
   };
@@ -897,19 +1196,23 @@ const FlashcardFlipExercise = ({ exercise, onComplete, vocabulary, trackAttempt 
   }
 
   return (
-    <View style={styles.exerciseContent}>
-      {/* Skip to next button at top */}
-      <TouchableOpacity 
-        style={styles.skipToNextButtonTop} 
-        onPress={() => onComplete(0)}
-      >
-        <Text style={styles.skipToNextButtonText}>⏭️ Skip to Next Exercise</Text>
-      </TouchableOpacity>
+    <>
+      <View style={styles.headerRow}>
+        <Text style={[styles.exercisePrompt, { flex: 1, marginRight: 8 }]} numberOfLines={2}>
+          Study the flashcards: Tap to flip
+        </Text>
+        
+        <TouchableOpacity 
+          style={styles.skipToNextButtonTop} 
+          onPress={() => onComplete(0)}
+        >
+          <Ionicons name="play-skip-forward" size={16} color="white" />
+        </TouchableOpacity>
+      </View>
       
-      <Text style={styles.exercisePrompt}>Study the flashcards: Tap to flip</Text>
-      
-      {/* Progress indicator */}
-      <Text style={styles.progressText}>Card {currentCardIndex + 1} of {totalCards}</Text>
+      <View style={styles.exerciseContent}>
+        {/* Progress indicator */}
+        <Text style={styles.progressText}>Card {currentCardIndex + 1} of {totalCards}</Text>
       
       {/* Flashcard */}
       <TouchableOpacity 
@@ -917,12 +1220,28 @@ const FlashcardFlipExercise = ({ exercise, onComplete, vocabulary, trackAttempt 
         onPress={handleFlip}
         activeOpacity={0.9}
       >
-        <Text style={styles.flashcardText}>
-          {isFlipped ? currentCard.native_translation : currentCard.english_term}
-        </Text>
+                    <Text style={styles.flashcardText}>
+              {isFlipped ? currentCard.native_translation : currentCard.english_term}
+            </Text>
         <Text style={styles.flashcardHint}>
-          {isFlipped ? 'English Term' : 'Native Translation'}
+          {isFlipped ? `${userProfile?.native_language || 'Loading...'}` : 'English Term'}
         </Text>
+        
+        {/* Pronunciation Button */}
+        <TouchableOpacity 
+          style={styles.pronunciationButton}
+          onPress={() => {
+            if (isFlipped) {
+              // Pronounce the English term
+              Speech.speak(currentCard.english_term, { language: 'en-US' });
+            } else {
+              // Pronounce the native translation
+              Speech.speak(currentCard.native_translation, { language: 'auto' });
+            }
+          }}
+        >
+          <Ionicons name="volume-high" size={20} color="#6366f1" />
+        </TouchableOpacity>
       </TouchableOpacity>
 
              {/* Navigation buttons */}
@@ -931,14 +1250,14 @@ const FlashcardFlipExercise = ({ exercise, onComplete, vocabulary, trackAttempt 
            style={[styles.flashcardButton, styles.incorrectButton]} 
            onPress={() => handleScore(false)}
          >
-           <Text style={styles.flashcardButtonText}>❌ Didn't Know</Text>
+           <Text style={styles.flashcardButtonText} numberOfLines={1}>❌ Didn't Know</Text>
          </TouchableOpacity>
          
          <TouchableOpacity 
            style={[styles.flashcardButton, styles.correctButton]} 
            onPress={() => handleScore(true)}
          >
-           <Text style={styles.flashcardButtonText}>✅ Knew It</Text>
+           <Text style={styles.flashcardButtonText} numberOfLines={1}>✅ Knew It</Text>
          </TouchableOpacity>
        </View>
        
@@ -952,8 +1271,9 @@ const FlashcardFlipExercise = ({ exercise, onComplete, vocabulary, trackAttempt 
           </TouchableOpacity>
         </View>
       )}
-    </View>
-  );
+        </View>
+      </>
+    );
 };
 
 const MultipleChoiceExercise = ({ exercise, onComplete, trackAttempt }: { exercise: LessonExercise, onComplete: (score: number) => void, trackAttempt: (exerciseIndex: number, isCorrect: boolean, vocabularyTerm?: string) => void }) => {
@@ -968,7 +1288,7 @@ const MultipleChoiceExercise = ({ exercise, onComplete, trackAttempt }: { exerci
     if (!selectedAnswer) return;
     
     const isCorrect = selectedAnswer === exercise?.exercise_data?.correct_answer;
-    const score = isCorrect ? (exercise?.points || 0) : 0;
+    const score = isCorrect ? 1 : 0;
     
     setCompleted(true);
     onComplete(score);
@@ -1026,7 +1346,7 @@ const FillInBlankExercise = ({ exercise, onComplete }: { exercise: LessonExercis
     if (!selectedAnswer) return;
     
     const isCorrect = selectedAnswer === exercise?.exercise_data?.correct_answer;
-    const score = isCorrect ? (exercise?.points || 0) : 0;
+    const score = isCorrect ? 1 : 0;
     
     setCompleted(true);
     onComplete(score);
@@ -1090,7 +1410,7 @@ const TypingExercise = ({ exercise, onComplete }: { exercise: LessonExercise, on
     if (!userInput.trim()) return;
     
     const isCorrect = userInput.trim().toLowerCase() === exercise?.exercise_data?.correct_answer?.toLowerCase();
-    const score = isCorrect ? (exercise?.points || 0) : 0;
+    const score = isCorrect ? 1 : 0;
     
     setCompleted(true);
     onComplete(score);
@@ -1127,7 +1447,7 @@ const TypingExercise = ({ exercise, onComplete }: { exercise: LessonExercise, on
    );
  };
 
-const SentenceOrderingExercise = ({ exercise, onComplete, vocabulary }: { exercise: LessonExercise, onComplete: (score: number) => void, vocabulary: LessonVocabulary[] }) => {
+const SentenceOrderingExercise = ({ exercise, onComplete, updateScore, vocabulary }: { exercise: LessonExercise, onComplete: (score: number) => void, updateScore: (score: number) => void, vocabulary: LessonVocabulary[] }) => {
   const [scrambledWords, setScrambledWords] = useState<string[]>([]);
   const [selectedWords, setSelectedWords] = useState<string[]>([]);
   const [remainingWords, setRemainingWords] = useState<string[]>([]);
@@ -1136,6 +1456,7 @@ const SentenceOrderingExercise = ({ exercise, onComplete, vocabulary }: { exerci
   const [showFeedback, setShowFeedback] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
   const [showHint, setShowHint] = useState(false);
+  const [score, setScore] = useState(0);
 
   // Initialize the exercise with scrambled sentences
   useEffect(() => {
@@ -1161,6 +1482,9 @@ const SentenceOrderingExercise = ({ exercise, onComplete, vocabulary }: { exerci
     setRemainingWords(prev => prev.filter((_, i) => i !== index));
   };
 
+  // Track correct sentences for scoring
+  const [correctSentences, setCorrectSentences] = useState(0);
+
   const handleWordDeselect = (word: string, index: number) => {
     setSelectedWords(prev => prev.filter((_, i) => i !== index));
     setRemainingWords(prev => [...prev, word]);
@@ -1178,6 +1502,13 @@ const SentenceOrderingExercise = ({ exercise, onComplete, vocabulary }: { exerci
     setShowFeedback(true);
     
     if (correct) {
+      // Increment correct sentences count
+      setCorrectSentences(prev => prev + 1);
+      
+      // Add 1 point for each correct answer
+      console.log(`🎯 SentenceOrdering: Correct answer, calling updateScore(1)`);
+      updateScore(1);
+      
       // Auto-advance after 2 seconds for correct answers
       setTimeout(() => {
         if (currentSentenceIndex < vocabulary.filter(v => v.example_sentence_en).length - 1) {
@@ -1188,9 +1519,10 @@ const SentenceOrderingExercise = ({ exercise, onComplete, vocabulary }: { exerci
           setShowHint(false);
         } else {
           // All sentences completed
-          const score = Math.round((vocabulary.filter(v => v.example_sentence_en).length / vocabulary.length) * (exercise?.points || 0));
+          const finalScore = correctSentences + 1; // +1 for the current sentence
+          setScore(finalScore);
           setCompleted(true);
-          onComplete(score);
+          // Don't call onComplete automatically
         }
       }, 2000);
     }
@@ -1226,6 +1558,12 @@ const SentenceOrderingExercise = ({ exercise, onComplete, vocabulary }: { exerci
     setShowHint(!showHint);
   };
 
+  // Handle continuing to next exercise with partial credit
+  const handleContinueToNext = () => {
+    const currentScore = correctSentences; // Score = number of correct sentences so far
+    onComplete(currentScore);
+  };
+
   if (!vocabulary || vocabulary.length === 0) {
     return (
       <View style={styles.exerciseContent}>
@@ -1247,23 +1585,15 @@ const SentenceOrderingExercise = ({ exercise, onComplete, vocabulary }: { exerci
   }
 
   return (
-    <View style={styles.exerciseContent}>
-      {/* Skip to next button at top */}
-      <TouchableOpacity 
-        style={styles.skipToNextButtonTop} 
-        onPress={() => onComplete(0)}
-      >
-        <Text style={styles.skipToNextButtonText}>⏭️ Skip to Next Exercise</Text>
-      </TouchableOpacity>
-      
-      <Text style={styles.exercisePrompt}>Unscramble the sentence by arranging the words in the correct order</Text>
+    <View style={[styles.exerciseContent, { marginTop: -8 }]}>
+
       
       {/* Progress indicator */}
-      <Text style={styles.progressText}>Sentence {currentSentenceIndex + 1} of {sentences.length}</Text>
+      <Text style={[styles.progressText, { marginTop: 2, marginBottom: 6, fontSize: 11 }]}>Sentence {currentSentenceIndex + 1} of {sentences.length}</Text>
       
       {/* Selected words (user's answer) */}
-      <View style={styles.selectedWordsContainer}>
-        <Text style={styles.sectionTitle}>Your Sentence:</Text>
+      <View style={[styles.selectedWordsContainer, { marginBottom: 6 }]}>
+        <Text style={[styles.sectionTitle, { fontSize: 11, marginBottom: 2 }]}>Your Sentence:</Text>
         <View style={styles.selectedWordsList}>
           {selectedWords.map((word, index) => (
             <TouchableOpacity
@@ -1278,8 +1608,8 @@ const SentenceOrderingExercise = ({ exercise, onComplete, vocabulary }: { exerci
       </View>
 
       {/* Remaining words to choose from */}
-      <View style={styles.remainingWordsContainer}>
-        <Text style={styles.sectionTitle}>Available Words:</Text>
+      <View style={[styles.remainingWordsContainer, { marginBottom: 6 }]}>
+        <Text style={[styles.sectionTitle, { fontSize: 11, marginBottom: 2 }]}>Available Words:</Text>
         <View style={styles.remainingWordsList}>
           {remainingWords.map((word, index) => (
             <TouchableOpacity
@@ -1318,17 +1648,17 @@ const SentenceOrderingExercise = ({ exercise, onComplete, vocabulary }: { exerci
        )}
 
        {/* Action buttons */}
-       <View style={styles.sentenceButtons}>
-         <TouchableOpacity style={styles.resetButton} onPress={resetSentence}>
-           <Text style={styles.resetButtonText}>Reset</Text>
+       <View style={[styles.sentenceButtons, { marginBottom: 8, gap: 6 }]}>
+         <TouchableOpacity style={[styles.resetButton, { padding: 6, height: 28 }]} onPress={resetSentence}>
+           <Text style={[styles.resetButtonText, { fontSize: 11 }]}>Reset</Text>
          </TouchableOpacity>
          
-         <TouchableOpacity style={styles.hintButton} onPress={toggleHint}>
-           <Text style={styles.hintButtonText}>💡 Hint</Text>
+         <TouchableOpacity style={[styles.hintButton, { padding: 6, height: 28 }]} onPress={toggleHint}>
+           <Text style={[styles.hintButtonText, { fontSize: 11 }]}>💡 Hint</Text>
          </TouchableOpacity>
          
-         <TouchableOpacity style={styles.skipButton} onPress={skipSentence}>
-           <Text style={styles.skipButtonText}>⏭️ Skip</Text>
+         <TouchableOpacity style={[styles.skipButton, { padding: 6, height: 28 }]} onPress={skipSentence}>
+           <Text style={[styles.skipButtonText, { fontSize: 11 }]}>⏭️ Skip</Text>
          </TouchableOpacity>
        </View>
 
@@ -1336,12 +1666,13 @@ const SentenceOrderingExercise = ({ exercise, onComplete, vocabulary }: { exerci
         <TouchableOpacity 
           style={[
             styles.checkButton, 
-            selectedWords.length === 0 && styles.disabledButton
+            selectedWords.length === 0 && styles.disabledButton,
+            { padding: 8, height: 32 }
           ]} 
           onPress={checkSentence}
           disabled={selectedWords.length === 0}
         >
-          <Text style={styles.checkButtonText}>Check Sentence</Text>
+          <Text style={[styles.checkButtonText, { fontSize: 12 }]}>Check Sentence</Text>
         </TouchableOpacity>
         
 
@@ -1368,7 +1699,7 @@ const MemoryGameExercise = ({ exercise, onComplete, vocabulary }: { exercise: Le
   );
 };
 
-const WordScrambleExercise = ({ exercise, onComplete, vocabulary }: { exercise: LessonExercise, onComplete: (score: number) => void, vocabulary: LessonVocabulary[] }) => {
+const WordScrambleExercise = ({ exercise, onComplete, updateScore, vocabulary, profile }: { exercise: LessonExercise, onComplete: (score: number) => void, updateScore: (score: number) => void, vocabulary: LessonVocabulary[], profile: any }) => {
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
   const [scrambledWord, setScrambledWord] = useState('');
   const [userInput, setUserInput] = useState('');
@@ -1401,20 +1732,22 @@ const WordScrambleExercise = ({ exercise, onComplete, vocabulary }: { exercise: 
     setIsCorrect(correct);
     setShowFeedback(true);
     
-    if (correct) {
-      setScore(score + 1);
-      // Auto-advance after 2 seconds
-      setTimeout(() => {
-        if (currentWordIndex < vocabulary.length - 1) {
-          setCurrentWordIndex(prev => prev + 1);
-        } else {
-          // All words completed
-          const finalScore = Math.round((score + 1) / vocabulary.length * (exercise?.points || 0));
-          setCompleted(true);
-          onComplete(finalScore);
-        }
-      }, 2000);
-    }
+          if (correct) {
+        setScore(score + 1);
+        // Add 1 point for each correct answer
+        console.log(`🎯 WordScramble: Correct answer, calling updateScore(1)`);
+        updateScore(1);
+        
+        // Auto-advance after 2 seconds
+        setTimeout(() => {
+          if (currentWordIndex < vocabulary.length - 1) {
+            setCurrentWordIndex(prev => prev + 1);
+          } else {
+            // All words completed - don't call onComplete automatically
+            setCompleted(true);
+          }
+        }, 2000);
+      }
   };
 
   const handleSkip = () => {
@@ -1425,6 +1758,12 @@ const WordScrambleExercise = ({ exercise, onComplete, vocabulary }: { exercise: 
 
   const toggleHint = () => {
     setShowHint(!showHint);
+  };
+
+  // Handle continuing to next exercise with partial credit
+  const handleContinueToNext = () => {
+    // Don't call onComplete - let the parent handle progression
+    // The score has already been updated via updateScore calls
   };
 
   if (!vocabulary || vocabulary.length === 0) {
@@ -1449,15 +1788,7 @@ const WordScrambleExercise = ({ exercise, onComplete, vocabulary }: { exercise: 
 
   return (
     <View style={styles.exerciseContent}>
-      {/* Skip to next button at top */}
-      <TouchableOpacity 
-        style={styles.skipToNextButtonTop} 
-        onPress={() => onComplete(0)}
-      >
-        <Text style={styles.skipToNextButtonText}>⏭️ Skip to Next Exercise</Text>
-      </TouchableOpacity>
-      
-      <Text style={styles.exercisePrompt}>Unscramble the word</Text>
+
       
       {/* Progress indicator */}
       <Text style={styles.progressText}>Word {currentWordIndex + 1} of {totalWords}</Text>
@@ -1494,7 +1825,7 @@ const WordScrambleExercise = ({ exercise, onComplete, vocabulary }: { exercise: 
       {/* Hint display */}
       {showHint && (
         <View style={styles.hintContainer}>
-          <Text style={styles.hintTitle}>Hint (Native Translation):</Text>
+          <Text style={styles.hintTitle}>Hint ({profile?.native_language || 'Your Language'}):</Text>
           <Text style={styles.hintText}>
             {currentWord.native_translation || 'No translation available'}
           </Text>
@@ -1617,6 +1948,16 @@ const styles = StyleSheet.create({
   vocabularyButton: {
     padding: 8,
   },
+  headerButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  restartButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: '#fef3c7',
+  },
   progressContainer: {
     padding: 16,
     backgroundColor: 'white',
@@ -1637,6 +1978,18 @@ const styles = StyleSheet.create({
     marginTop: 8,
     textAlign: 'center',
   },
+  progressInfo: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 6,
+    paddingHorizontal: 4,
+  },
+  progressPercentage: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6366f1',
+  },
   scoreContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1650,26 +2003,304 @@ const styles = StyleSheet.create({
     color: '#6366f1',
     fontWeight: '600',
   },
-  exerciseContainer: {
+  lessonStartContainer: {
     flex: 1,
-    padding: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+    backgroundColor: '#f8fafc',
   },
-  exerciseContent: {
-    backgroundColor: 'white',
+  heroSection: {
+    alignItems: 'center',
+    marginBottom: 40,
+  },
+  heroIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#6366f1',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+    shadowColor: '#6366f1',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  heroIcon: {
+    fontSize: 40,
+  },
+  lessonStartTitle: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: '#1e293b',
+    marginBottom: 16,
+    textAlign: 'center',
+    letterSpacing: -0.5,
+  },
+  lessonStartSubtitle: {
+    fontSize: 18,
+    color: '#6b7280',
+    textAlign: 'center',
+    marginBottom: 32,
+    lineHeight: 26,
+    maxWidth: 300,
+  },
+  highlightText: {
+    color: '#6366f1',
+    fontWeight: '700',
+  },
+  resumeInfo: {
+    backgroundColor: '#ffffff',
+    padding: 24,
+    borderRadius: 16,
+    marginBottom: 32,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 4,
+    width: '100%',
+    maxWidth: 350,
+  },
+  resumeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  resumeTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1e293b',
+    marginLeft: 12,
+  },
+  progressStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  progressStat: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  progressStatValue: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#6366f1',
+    marginBottom: 4,
+  },
+  progressStatLabel: {
+    fontSize: 12,
+    color: '#6b7280',
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+  progressDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: '#e2e8f0',
+    marginHorizontal: 16,
+  },
+  scoreProgress: {
+    alignItems: 'center',
+  },
+  scoreProgressText: {
+    fontSize: 14,
+    color: '#6b7280',
+    marginBottom: 8,
+    fontWeight: '500',
+  },
+  scoreHighlight: {
+    color: '#6366f1',
+    fontWeight: '700',
+  },
+  scoreProgressBar: {
+    width: '100%',
+    height: 6,
+    backgroundColor: '#e2e8f0',
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  scoreProgressFill: {
+    height: '100%',
+    backgroundColor: '#6366f1',
+    borderRadius: 3,
+  },
+  // Completion Page Styles
+  completionHeader: {
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  completionIconContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#10b981',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+    shadowColor: '#10b981',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  completionIcon: {
+    fontSize: 50,
+  },
+  completionTitle: {
+    fontSize: 36,
+    fontWeight: '800',
+    color: '#1e293b',
+    marginBottom: 12,
+    textAlign: 'center',
+    letterSpacing: -0.5,
+  },
+  completionSubtitle: {
+    fontSize: 18,
+    color: '#6b7280',
+    textAlign: 'center',
+    lineHeight: 26,
+    maxWidth: 300,
+  },
+  scoreDisplay: {
+    alignItems: 'center',
+    marginBottom: 32,
+    padding: 24,
+    backgroundColor: '#f8fafc',
+    borderRadius: 16,
+    width: '100%',
+  },
+  scoreLabel: {
+    fontSize: 16,
+    color: '#6b7280',
+    marginBottom: 8,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  scoreValue: {
+    fontSize: 48,
+    fontWeight: '800',
+    color: '#1e293b',
+    marginBottom: 8,
+  },
+  scoreDivider: {
+    color: '#6366f1',
+    fontWeight: '600',
+  },
+  scoreDescription: {
+    fontSize: 16,
+    color: '#6b7280',
+    marginBottom: 20,
+    fontWeight: '500',
+  },
+  scoreProgressBar: {
+    width: '100%',
+    height: 8,
+    backgroundColor: '#e2e8f0',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  completionActions: {
+    width: '100%',
+    gap: 16,
+  },
+  completionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
     borderRadius: 12,
-    padding: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
   },
-  exercisePrompt: {
+  primaryAction: {
+    backgroundColor: '#10b981',
+  },
+  secondaryAction: {
+    backgroundColor: '#6366f1',
+  },
+  warningAction: {
+    backgroundColor: '#f59e0b',
+  },
+  neutralAction: {
+    backgroundColor: '#ffffff',
+    borderWidth: 2,
+    borderColor: '#6366f1',
+  },
+  completionButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  startButtonsContainer: {
+    width: '100%',
+    gap: 16,
+  },
+  startButton: {
+    backgroundColor: '#6366f1',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    shadowColor: '#6366f1',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  resumeButton: {
+    backgroundColor: '#10b981',
+    shadowColor: '#10b981',
+  },
+  restartButton: {
+    backgroundColor: '#f59e0b',
+    shadowColor: '#f59e0b',
+  },
+  startButtonText: {
+    color: 'white',
     fontSize: 18,
     fontWeight: '600',
-    color: '#000',
-    marginBottom: 24,
+    marginLeft: 8,
+  },
+  exerciseContainer: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: '#f8fafc',
+  },
+  exerciseContent: {
+    backgroundColor: '#ffffff',
+    borderRadius: 20,
+    padding: 28,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 6,
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
+  },
+  exercisePrompt: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1e293b',
+    marginBottom: 28,
     textAlign: 'center',
+    lineHeight: 28,
+    letterSpacing: -0.3,
   },
   questionContainer: {
     marginBottom: 24,
@@ -1883,56 +2514,73 @@ const styles = StyleSheet.create({
   },
   // Flashcard styles
   flashcard: {
-    backgroundColor: 'white',
-    borderWidth: 2,
+    backgroundColor: '#ffffff',
+    borderWidth: 3,
     borderColor: '#6366f1',
-    borderRadius: 16,
-    padding: 32,
+    borderRadius: 28,
+    padding: 48,
     marginVertical: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 200,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
+    height: 280,
+    width: '100%',
+    maxWidth: 400,
+    shadowColor: '#6366f1',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.2,
+    shadowRadius: 24,
+    elevation: 12,
   },
   flashcardText: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: '#000',
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#1e293b',
     textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
+    lineHeight: 36,
+    letterSpacing: -0.3,
   },
   flashcardHint: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: 16,
+    color: '#6b7280',
     textAlign: 'center',
     fontStyle: 'italic',
+    fontWeight: '500',
   },
   flashcardButtons: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'space-between',
     marginTop: 24,
     gap: 16,
+    width: '100%',
+    maxWidth: 400,
   },
   flashcardButton: {
     flex: 1,
     padding: 16,
-    borderRadius: 8,
+    borderRadius: 20,
     alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 8,
+    height: 52,
   },
   incorrectButton: {
     backgroundColor: '#ef4444',
+    shadowColor: '#ef4444',
   },
   correctButton: {
     backgroundColor: '#10b981',
+    shadowColor: '#10b981',
   },
   flashcardButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
+    color: '#ffffff',
+    fontSize: 18,
+    fontWeight: '700',
+    letterSpacing: -0.2,
   },
   // Sentence ordering styles
   selectedWordsContainer: {
@@ -1952,22 +2600,35 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minHeight: 50,
     padding: 16,
-    backgroundColor: '#f8f9fa',
-    borderRadius: 8,
+    backgroundColor: '#f8fafc',
+    borderRadius: 16,
     borderWidth: 2,
-    borderColor: '#e9ecef',
+    borderColor: '#e2e8f0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+    width: '100%',
+    maxWidth: 400,
   },
   selectedWordButton: {
     backgroundColor: '#6366f1',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 24,
     margin: 2,
+    shadowColor: '#6366f1',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
   },
   selectedWordText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: '600',
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: -0.2,
   },
   remainingWordsContainer: {
     marginBottom: 24,
@@ -1978,42 +2639,62 @@ const styles = StyleSheet.create({
     gap: 8,
     justifyContent: 'center',
     padding: 16,
-    backgroundColor: '#f8f9fa',
-    borderRadius: 8,
+    backgroundColor: '#f8fafc',
+    borderRadius: 16,
     borderWidth: 2,
-    borderColor: '#e9ecef',
+    borderColor: '#e2e8f0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+    width: '100%',
+    maxWidth: 400,
   },
   remainingWordButton: {
-    backgroundColor: '#e9ecef',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
+    backgroundColor: '#f1f5f9',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 24,
     margin: 2,
     borderWidth: 1,
-    borderColor: '#dee2e6',
+    borderColor: '#e2e8f0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
   },
   remainingWordText: {
-    color: '#000',
-    fontSize: 14,
-    fontWeight: '500',
+    color: '#374151',
+    fontSize: 16,
+    fontWeight: '600',
   },
   sentenceButtons: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'space-between',
     gap: 16,
     marginTop: 24,
+    width: '100%',
+    maxWidth: 400,
   },
   resetButton: {
-    backgroundColor: '#6c757d',
-    padding: 16,
-    borderRadius: 8,
+    backgroundColor: '#6b7280',
+    padding: 20,
+    borderRadius: 16,
     flex: 1,
+    shadowColor: '#6b7280',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   resetButtonText: {
-    color: 'white',
+    color: '#ffffff',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
     textAlign: 'center',
+    letterSpacing: -0.2,
   },
   disabledButton: {
     backgroundColor: '#adb5bd',
@@ -2021,48 +2702,63 @@ const styles = StyleSheet.create({
   },
   // Feedback and hint styles
   feedbackContainer: {
-    padding: 16,
-    borderRadius: 8,
-    marginVertical: 16,
+    padding: 20,
+    borderRadius: 16,
+    marginVertical: 20,
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
   correctFeedback: {
     backgroundColor: '#d1fae5',
     borderWidth: 2,
     borderColor: '#10b981',
+    shadowColor: '#10b981',
   },
   incorrectFeedback: {
     backgroundColor: '#fee2e2',
     borderWidth: 2,
     borderColor: '#ef4444',
+    shadowColor: '#ef4444',
   },
   feedbackText: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 18,
+    fontWeight: '700',
     textAlign: 'center',
+    letterSpacing: -0.2,
   },
   hintContainer: {
     backgroundColor: '#fef3c7',
     borderWidth: 2,
     borderColor: '#f59e0b',
-    borderRadius: 8,
-    padding: 16,
-    marginVertical: 16,
+    borderRadius: 16,
+    padding: 20,
+    marginVertical: 20,
+    shadowColor: '#f59e0b',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   hintTitle: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '700',
     color: '#92400e',
-    marginBottom: 8,
+    marginBottom: 12,
     textAlign: 'center',
     textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   hintText: {
-    fontSize: 16,
+    fontSize: 18,
     color: '#92400e',
     textAlign: 'center',
     fontStyle: 'italic',
-    lineHeight: 22,
+    lineHeight: 26,
+    fontWeight: '500',
   },
   hintButton: {
     backgroundColor: '#f59e0b',
@@ -2077,16 +2773,24 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   skipButton: {
-    backgroundColor: '#6b7280',
+    backgroundColor: '#f59e0b',
     padding: 16,
-    borderRadius: 8,
+    borderRadius: 20,
     flex: 1,
+    shadowColor: '#f59e0b',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+    borderWidth: 2,
+    borderColor: '#fbbf24',
   },
   skipButtonText: {
     color: 'white',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
     textAlign: 'center',
+    letterSpacing: -0.2,
   },
   // Word scramble styles
   scrambledWordContainer: {
@@ -2133,21 +2837,58 @@ const styles = StyleSheet.create({
   skipToNextButton: {
     backgroundColor: '#8b5cf6',
     padding: 16,
-    borderRadius: 8,
+    borderRadius: 20,
     marginTop: 12,
+    shadowColor: '#8b5cf6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+    borderWidth: 2,
+    borderColor: '#a78bfa',
   },
   skipToNextButtonTop: {
-    backgroundColor: '#8b5cf6',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 16,
-    alignSelf: 'flex-end',
+    backgroundColor: '#6366f1',
+    padding: 6,
+    borderRadius: 12,
+    shadowColor: '#6366f1',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#4f46e5',
   },
   skipToNextButtonText: {
     color: 'white',
-    fontSize: 16,
+    fontSize: 12,
     fontWeight: '600',
     textAlign: 'center',
+    letterSpacing: -0.1,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+  },
+  exerciseScrollContainer: {
+    flex: 1,
+  },
+  exerciseScrollContent: {
+    paddingBottom: 20,
+  },
+  pronunciationButton: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 20,
+    padding: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   // Progress summary styles
   progressSummaryContainer: {

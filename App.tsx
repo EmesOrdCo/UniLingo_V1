@@ -24,6 +24,8 @@ import ReadingAnalysisScreen from './src/screens/ReadingAnalysisScreen';
 import FeatureComingSoonScreen from './src/screens/FeatureComingSoonScreen';
 import NewLessonViewerScreen from './src/screens/NewLessonViewerScreen';
 import LessonReviewScreen from './src/screens/LessonReviewScreen';
+import PostLessonFeedbackScreen from './src/screens/PostLessonFeedbackScreen';
+import ProgressDashboardScreen from './src/screens/ProgressDashboardScreen';
 
 const Stack = createStackNavigator();
 
@@ -49,7 +51,9 @@ function MainNavigator() {
       <Stack.Screen name="ReadingAnalysis" component={ReadingAnalysisScreen} />
       <Stack.Screen name="FeatureComingSoon" component={FeatureComingSoonScreen} />
       <Stack.Screen name="NewLessonViewer" component={NewLessonViewerScreen} />
+      <Stack.Screen name="PostLessonFeedback" component={PostLessonFeedbackScreen} />
       <Stack.Screen name="LessonReview" component={LessonReviewScreen} />
+      <Stack.Screen name="ProgressDashboard" component={ProgressDashboardScreen} />
     </Stack.Navigator>
   );
 }

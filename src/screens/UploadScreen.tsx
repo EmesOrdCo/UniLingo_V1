@@ -868,11 +868,16 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: 24,
+    paddingVertical: 24,
     backgroundColor: '#ffffff',
     borderBottomWidth: 1,
     borderBottomColor: '#e2e8f0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 20,
+    elevation: 6,
   },
   backButton: {
     padding: 8,
@@ -883,10 +888,11 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 28,
+    fontWeight: '800',
     color: '#1e293b',
     flex: 1,
+    letterSpacing: -0.3,
   },
   headerSpacer: {
     width: 40,
@@ -934,9 +940,10 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   subjectValue: {
-    fontSize: 20,
-    fontWeight: '600',
+    fontSize: 24,
+    fontWeight: '700',
     color: '#1e293b',
+    letterSpacing: -0.3,
   },
   topicSection: {
     backgroundColor: '#ffffff',
@@ -952,10 +959,11 @@ const styles = StyleSheet.create({
     borderColor: '#f1f5f9',
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 24,
+    fontWeight: '700',
     color: '#1e293b',
-    marginBottom: 20,
+    marginBottom: 28,
+    letterSpacing: -0.3,
   },
   topicSelectionContainer: {
     flexDirection: 'row',

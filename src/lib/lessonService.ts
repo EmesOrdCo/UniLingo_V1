@@ -49,7 +49,7 @@ export interface LessonProgress {
   completed_at?: string;
   total_score: number;
   max_possible_score: number;
-  exercise_completed?: number;
+  exercises_completed?: number;
   total_exercises?: number;
   time_spent_seconds?: number;
   status: string;
@@ -323,9 +323,9 @@ Generate exercises to thoroughly practice ALL vocabulary items.
 Create multiple exercise sets to cover different groups of terms.
 
 EXERCISE TYPES TO INCLUDE:
-- flashcard_match → match native language terms to English translations (multiple sets)
-- multiple_choice → select correct English translation from native term (multiple questions)
-- fill_in_blank → choose the missing English word from native context (multiple sentences)
+- flashcard_match → match English to native words (multiple sets)
+- multiple_choice → select correct English translation (multiple questions)
+- fill_in_blank → choose the missing English word (multiple sentences)
 - typing → type the English word from the native translation (multiple terms)
 - sentence_ordering → arrange words to form correct English sentences
 - word_association → connect related terms
@@ -336,36 +336,6 @@ EXERCISE REQUIREMENTS:
 - Group terms logically for different exercise sets
 - Ensure every term appears in multiple exercises
 - Scale exercise count with vocabulary size
-- IMPORTANT: Questions should present native language terms, answers should be English translations
-- Users are learning English, so they should see native terms and select/type English equivalents
-
-EXERCISE DATA STRUCTURE REQUIREMENTS:
-For flashcard_match exercises, use this exact structure:
-{
-  "exercise_data": {
-    "terms": [
-      {
-        "english_term": "Heart",
-        "native_translation": "قلب"
-      }
-    ],
-    "prompt": "Match the English terms with their native language translations"
-  }
-}
-
-CRITICAL: Do NOT use "definition" field in exercises. Use ONLY:
-- "english_term" for the English medical/scientific term
-- "native_translation" for the translation in the user's native language
-
-For multiple_choice exercises, use this structure:
-{
-  "exercise_data": {
-    "question": "What is the English translation of 'قلب'?",
-    "correct_answer": "Heart",
-    "options": ["Heart", "Brain", "Lung", "Liver"],
-    "prompt": "Select the correct English translation"
-  }
-}
 
 =====================
 FINAL OUTPUT FORMAT:
@@ -553,7 +523,7 @@ Source PDF Name: ${sourcePdfName}`;
       const exerciseData = exercises.map(exercise => ({
         lesson_id: lessonId,
         exercise_type: exercise.exercise_type,
-        exercise_data: exercise.exercise_data,
+        exercises_data: exercise.exercise_data,
         order_index: exercise.order_index,
         points: exercise.points
       }));
@@ -675,7 +645,7 @@ Source PDF Name: ${sourcePdfName}`;
         const updateData: any = {};
         if (progress.total_score !== undefined) updateData.total_score = progress.total_score;
         if (progress.max_possible_score !== undefined) updateData.max_possible_score = progress.max_possible_score;
-        if (progress.exercise_completed !== undefined) updateData.exercises_completed = progress.exercise_completed;
+        if (progress.exercises_completed !== undefined) updateData.exercises_completed = progress.exercises_completed;
         if (progress.total_exercises !== undefined) updateData.total_exercises = progress.total_exercises;
         if (progress.time_spent_seconds !== undefined) updateData.time_spent_seconds = progress.time_spent_seconds;
         if (progress.status !== undefined) updateData.status = progress.status;
@@ -698,7 +668,7 @@ Source PDF Name: ${sourcePdfName}`;
             started_at: new Date().toISOString(),
             total_score: progress.total_score || 0,
             max_possible_score: progress.max_possible_score || 0,
-            exercises_completed: progress.exercise_completed || 0,
+            exercises_completed: progress.exercises_completed || 0,
             total_exercises: progress.total_exercises || 0,
             time_spent_seconds: progress.time_spent_seconds || 0,
             status: progress.status || 'in_progress'
