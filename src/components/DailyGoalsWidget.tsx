@@ -321,9 +321,8 @@ export default function DailyGoalsWidget({ onGoalCompleted }: DailyGoalsWidgetPr
           </View>
         </View>
         <View style={styles.buttonContainer}>
-          <TouchableOpacity 
-            onPress={refreshGoals} 
-            onLongPress={clearCurrentGoals}
+                    <TouchableOpacity 
+            onPress={refreshGoals}
             style={styles.refreshButton}
             activeOpacity={0.7}
           >
@@ -335,33 +334,8 @@ export default function DailyGoalsWidget({ onGoalCompleted }: DailyGoalsWidgetPr
             />
           </TouchableOpacity>
           
-          <TouchableOpacity 
-            onPress={createTestGoals} 
-            onLongPress={createAdvancedTestGoals}
-            style={styles.testButton}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="add-circle" size={20} color="#10b981" />
-          </TouchableOpacity>
           
-          {goalProgress && (
-            <TouchableOpacity 
-              onPress={testSingleGoalUpdate}
-              onLongPress={testAllGoalTypes}
-              style={styles.testUpdateButton}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="arrow-up-circle" size={20} color="#8b5cf6" />
-            </TouchableOpacity>
-          )}
-          
-
         </View>
-        
-        {/* Test Button Hint */}
-        <Text style={styles.testButtonHint}>
-          💡 Refresh (long press: clear) • Create Goals (long press: advanced) • Test Update (long press: all types)
-        </Text>
       </View>
 
       <View style={styles.goalsContainer}>
@@ -431,28 +405,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: '#f8fafc',
   },
-  testButton: {
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: '#ecfdf5',
-    borderWidth: 1,
-    borderColor: '#10b981',
-  },
-  testUpdateButton: {
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: '#f3f4f6',
-    borderWidth: 1,
-    borderColor: '#8b5cf6',
-  },
 
-  testButtonHint: {
-    fontSize: 12,
-    color: '#6b7280',
-    textAlign: 'center',
-    marginTop: 8,
-    fontStyle: 'italic',
-  },
   refreshing: {
     transform: [{ rotate: '180deg' }],
   },

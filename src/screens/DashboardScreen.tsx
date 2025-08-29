@@ -30,6 +30,7 @@ import { UserProfileService } from '../lib/userProfileService';
 import { supabase } from '../lib/supabase';
 import UploadProgressModal from '../components/UploadProgressModal';
 import DailyGoalsWidget from '../components/DailyGoalsWidget';
+import { HolisticProgressService, ProgressInsights } from '../lib/holisticProgressService';
 
 const Tab = createBottomTabNavigator();
 
@@ -1096,6 +1097,10 @@ function DashboardContent() {
   const [showTopicInput, setShowTopicInput] = useState(false);
   const [newTopicInput, setNewTopicInput] = useState('');
   
+  // Progress data state
+  const [progressData, setProgressData] = useState<ProgressInsights | null>(null);
+  const [loadingProgress, setLoadingProgress] = useState(false);
+  
   // Settings state
   const [isDarkTheme, setIsDarkTheme] = useState(false);
   const [showThemeModal, setShowThemeModal] = useState(false);
@@ -1129,6 +1134,25 @@ function DashboardContent() {
     const { width } = Dimensions.get('window');
     setScreenWidth(width || 400);
   }, []);
+
+  // Load progress data
+  useEffect(() => {
+    if (user?.id) {
+      loadProgressData();
+    }
+  }, [user?.id]);
+
+  const loadProgressData = async () => {
+    try {
+      setLoadingProgress(true);
+      const data = await HolisticProgressService.getProgressInsights(user!.id);
+      setProgressData(data);
+    } catch (error) {
+      console.error('Error loading progress data:', error);
+    } finally {
+      setLoadingProgress(false);
+    }
+  };
 
   // Fetch topics filtered by user's subject with proper card counting
   useEffect(() => {
@@ -2721,51 +2745,88 @@ function DashboardContent() {
             <View style={styles.learningInsightsSection}>
               <Text style={styles.sectionTitle}>Learning Insights</Text>
               
-              {/* Study Streak Card */}
-              <View style={styles.insightCard}>
-                <View style={styles.insightHeader}>
-                  <View style={styles.insightIconContainer}>
-                    <Ionicons name="flame" size={24} color="#ff6b35" />
-                  </View>
-                  <View style={styles.insightContent}>
-                    <Text style={styles.insightTitle}>Study Streak</Text>
-                    <Text style={styles.insightValue}>7 days</Text>
-                    <Text style={styles.insightSubtext}>Keep it up! 🔥</Text>
-                  </View>
-                </View>
-              </View>
-
-              {/* Learning Progress Card */}
-              <View style={styles.insightCard}>
-                <View style={styles.insightHeader}>
-                  <View style={styles.insightIconContainer}>
-                    <Ionicons name="trending-up" size={24} color="#10b981" />
-                  </View>
-                  <View style={styles.insightContent}>
-                    <Text style={styles.insightTitle}>This Week</Text>
-                    <Text style={styles.insightValue}>23 cards studied</Text>
-                    <Text style={styles.insightSubtext}>+15% from last week</Text>
-                  </View>
-                </View>
-              </View>
-
-              {/* Study Goal Card */}
-              <View style={styles.insightCard}>
-                <View style={styles.insightHeader}>
-                  <View style={styles.insightIconContainer}>
-                    <Ionicons name="checkmark-circle" size={24} color="#8b5cf6" />
-                  </View>
-                  <View style={styles.insightContent}>
-                    <Text style={styles.insightTitle}>Daily Goal</Text>
-                    <Text style={styles.insightValue}>12/15 cards</Text>
-                    <View style={styles.goalProgressBar}>
-                      <View style={[styles.goalProgressFill, { width: '80%' }]} />
+              {loadingProgress ? (
+                <View style={styles.insightCard}>
+                  <View style={styles.insightHeader}>
+                    <View style={styles.insightIconContainer}>
+                      <Ionicons name="hourglass" size={24} color="#6366f1" />
+                    </View>
+                    <View style={styles.insightContent}>
+                      <Text style={styles.insightTitle}>Loading...</Text>
+                      <Text style={styles.insightValue}>Fetching your progress</Text>
                     </View>
                   </View>
                 </View>
-              </View>
+              ) : progressData ? (
+                <>
+                  {/* Study Streak Card */}
+                  <View style={styles.insightCard}>
+                    <View style={styles.insightHeader}>
+                      <View style={styles.insightIconContainer}>
+                        <Ionicons name="flame" size={24} color="#ff6b35" />
+                      </View>
+                      <View style={styles.insightContent}>
+                        <Text style={styles.insightTitle}>Study Streak</Text>
+                        <Text style={styles.insightValue}>{progressData.currentStreak || 0} days</Text>
+                        <Text style={styles.insightSubtext}>
+                          {progressData.currentStreak >= 7 ? '🔥 Amazing streak!' : 
+                           progressData.currentStreak >= 3 ? '💪 Keep it up!' : 
+                           '🌟 Start building your streak!'}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
 
+                  {/* Level Progress Card */}
+                  <View style={styles.insightCard}>
+                    <View style={styles.insightHeader}>
+                      <View style={styles.insightIconContainer}>
+                        <Ionicons name="trophy" size={24} color="#f59e0b" />
+                      </View>
+                      <View style={styles.insightContent}>
+                        <Text style={styles.insightTitle}>Current Level</Text>
+                        <Text style={styles.insightValue}>{progressData.levelProgress?.currentLevel || 'Beginner'}</Text>
+                        <Text style={styles.insightSubtext}>
+                          {progressData.levelProgress?.experiencePoints || 0} XP • Next: {progressData.levelProgress?.nextLevelThreshold || 100} XP
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
 
+                  {/* Weekly Progress Card */}
+                  <View style={styles.insightCard}>
+                    <View style={styles.insightHeader}>
+                      <View style={styles.insightIconContainer}>
+                        <Ionicons name="trending-up" size={24} color="#10b981" />
+                      </View>
+                      <View style={styles.insightContent}>
+                        <Text style={styles.insightTitle}>This Week</Text>
+                        <Text style={styles.insightValue}>
+                          {progressData.weeklyProgress?.length > 0 ? 
+                           `${progressData.weeklyProgress.reduce((sum, day) => sum + (day.lessons_completed || 0), 0)} lessons` : 
+                           'No data yet'}
+                        </Text>
+                        <Text style={styles.insightSubtext}>
+                          {progressData.weeklyProgress?.length > 0 ? 'Weekly learning activity' : 'Start studying to see progress!'}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                </>
+              ) : (
+                <View style={styles.insightCard}>
+                  <View style={styles.insightHeader}>
+                    <View style={styles.insightIconContainer}>
+                      <Ionicons name="information-circle" size={24} color="#6366f1" />
+                    </View>
+                    <View style={styles.insightContent}>
+                      <Text style={styles.insightTitle}>No Progress Data</Text>
+                      <Text style={styles.insightValue}>Start learning to see insights</Text>
+                      <Text style={styles.insightSubtext}>Complete lessons, review flashcards, or play games</Text>
+                    </View>
+                  </View>
+                </View>
+              )}
             </View>
 
             {/* Daily Goals Widget */}
