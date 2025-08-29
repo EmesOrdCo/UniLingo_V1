@@ -221,7 +221,7 @@ export default function NewLessonViewerScreen() {
     console.log(`🎯 updateScore function completed`);
   };
 
-  const completeExercise = async (score: number) => {
+  const completeExercise = (score: number) => {
     console.log(`🎯 Exercise ${currentExerciseIndex} completed with score: ${score}`);
     console.log(`🎯 Previous total score: ${totalScore}, New total score: ${totalScore + score}`);
     console.log(`🎯 Score type: ${typeof score}, Score value: ${score}`);
@@ -266,13 +266,54 @@ export default function NewLessonViewerScreen() {
         total_score: totalScore,
         exercises_completed: newExercisesCompleted,
         time_spent_seconds: timeSpent,
-        status: nextIndex >= (exercises ? exercises.length : 0) ? 'completed' : 'in_progress'
+        status: nextIndex >= (exercises ? exercises.length : 0) ? 'completed' : 'in_progress',
+        completed_at: nextIndex >= (exercises ? exercises.length : 0) ? new Date().toISOString() : undefined
       });
     }
 
     if (nextIndex >= (exercises ? exercises.length : 0)) {
       // Lesson completed - automatically show vocabulary modal
       setShowVocabularyModal(true);
+      
+      // Award XP for lesson completion
+      if (user?.id) {
+        const finalScore = Math.round((totalScore / maxPossibleScore) * 100);
+        
+        // Award XP
+        import('../lib/xpService').then(({ XPService }) => {
+          XPService.awardXP(
+            user.id,
+            'lesson',
+            totalScore,
+            maxPossibleScore,
+            finalScore,
+            lesson?.title
+          ).then((xpResult) => {
+            if (xpResult) {
+              console.log('🎯 XP awarded for lesson completion:', xpResult.totalXP);
+            }
+          }).catch(error => {
+            console.error('❌ Error awarding XP for lesson:', error);
+          });
+        }).catch(error => {
+          console.error('❌ Error importing XP service:', error);
+        });
+        
+        // Update daily goals when lesson is completed
+        import('../lib/dailyGoalsService').then(({ DailyGoalsService }) => {
+          DailyGoalsService.updateGoalProgress(user.id, 'lessons_completed', 1);
+          
+          // Calculate total study time in minutes
+          const totalTimeSpent = startTime ? Math.floor((Date.now() - startTime.getTime()) / 1000 / 60) : 0;
+          if (totalTimeSpent > 0) {
+            DailyGoalsService.updateGoalProgress(user.id, 'study_time', totalTimeSpent);
+          }
+          
+          console.log('✅ Daily goals updated for lesson completion');
+        }).catch(error => {
+          console.error('❌ Failed to update daily goals:', error);
+        });
+      }
     }
   };
 

@@ -9,7 +9,6 @@ export interface DailyGoal {
   goal_date: string; // YYYY-MM-DD format
   completed: boolean;
   created_at?: string;
-  updated_at?: string;
 }
 
 export interface DailyGoalProgress {
@@ -37,7 +36,7 @@ export class DailyGoalsService {
       const defaultGoals = this.getDefaultGoalsByLevel(userLevel);
       
       // Create goals for the specified date
-      const goals: Omit<DailyGoal, 'id' | 'created_at' | 'updated_at'>[] = defaultGoals.map(goal => ({
+      const goals: Omit<DailyGoal, 'id' | 'created_at'>[] = defaultGoals.map(goal => ({
         user_id: userId,
         goal_type: goal.type,
         target_value: goal.target,
@@ -141,12 +140,13 @@ export class DailyGoalsService {
       const newProgress = goal.current_value + progress;
       const completed = newProgress >= goal.target_value;
       
+      console.log(`🎯 Updating goal ${goalType}: current=${goal.current_value} + progress=${progress} = newProgress=${newProgress}, target=${goal.target_value}, completed=${completed}`);
+      
       const { error } = await supabase
         .from('user_daily_goals')
         .update({
           current_value: newProgress,
           completed,
-          updated_at: new Date().toISOString(),
         })
         .eq('id', goal.id);
 
@@ -178,15 +178,22 @@ export class DailyGoalsService {
         overall_progress: 0,
       };
 
-      let completedGoals = 0;
-      let totalGoals = goals.length;
+      let totalProgress = 0;
+      const goalWeight = 25; // Each goal has 25% weight
 
+      console.log('🎯 Processing goals for weighted percentage calculation:');
       goals.forEach(goal => {
         const goalData = {
           target: goal.target_value,
           current: goal.current_value,
           completed: goal.completed,
         };
+
+        // Calculate progress percentage for this goal (capped at 100%)
+        const goalProgress = Math.min((goal.current_value / goal.target_value) * 100, 100);
+        const weightedProgress = (goalProgress / 100) * goalWeight;
+        
+        console.log(`🎯 Goal ${goal.goal_type}: target=${goal.target_value}, current=${goal.current_value}, progress=${goalProgress.toFixed(1)}%, weighted=${weightedProgress.toFixed(1)}%`);
 
         switch (goal.goal_type) {
           case 'study_time':
@@ -203,10 +210,11 @@ export class DailyGoalsService {
             break;
         }
 
-        if (goal.completed) completedGoals++;
+        totalProgress += weightedProgress;
       });
 
-      progress.overall_progress = Math.round((completedGoals / totalGoals) * 100);
+      progress.overall_progress = Math.round(totalProgress);
+      console.log(`🎯 Weighted percentage calculation: ${totalProgress.toFixed(1)}% = ${progress.overall_progress}%`);
       
       return progress;
     } catch (error) {
@@ -219,7 +227,8 @@ export class DailyGoalsService {
   static async hasCompletedAllGoals(userId: string): Promise<boolean> {
     try {
       const progress = await this.getTodayGoalProgress(userId);
-      return progress ? progress.overall_progress === 100 : false;
+      // With weighted progress, 100% means all goals are completed
+      return progress ? progress.overall_progress >= 100 : false;
     } catch (error) {
       console.error('Error checking goal completion:', error);
       return false;

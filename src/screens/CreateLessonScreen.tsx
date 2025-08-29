@@ -14,7 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { UploadService, UploadProgress } from '../lib/uploadService';
-import { LessonService } from '../lib/lessonService';
+import { ImprovedLessonService } from '../lib/improvedLessonService';
 import UploadProgressModal from '../components/UploadProgressModal';
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -133,11 +133,11 @@ export default function CreateLessonScreen() {
       setProgress({
         stage: 'uploading',
         progress: 50,
-        message: 'Analyzing content with AI...',
+        message: 'Analyzing content with improved AI...',
       });
 
-      // Generate lesson using AI
-      const lesson = await LessonService.generateLessonFromPDF(
+      // Generate improved lesson using AI
+      const lesson = await ImprovedLessonService.generateLessonFromPDF(
         extractedText,
         file.name,
         user.id,
@@ -159,13 +159,13 @@ export default function CreateLessonScreen() {
       // Show success message
       Alert.alert(
         'Success! 🎓',
-        `Your interactive lesson "${lesson.title}" has been created successfully!`,
+        `Your improved interactive lesson "${lesson.title}" has been created successfully!`,
         [
           {
             text: 'View Lesson',
             onPress: () => {
               setShowProgressModal(false);
-              (navigation as any).navigate('NewLessonViewer', { lessonId: lesson.id });
+              (navigation as any).navigate('ImprovedLessonViewer', { lessonId: lesson.id });
             }
           },
           {

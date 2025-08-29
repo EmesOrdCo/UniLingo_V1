@@ -16,6 +16,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { HolisticProgressService, ProgressInsights } from '../lib/holisticProgressService';
 import StudyCalendar from '../components/StudyCalendar';
 import DailyGoalsWidget from '../components/DailyGoalsWidget';
+import RecentActivitiesWidget from '../components/RecentActivitiesWidget';
 
 const { width } = Dimensions.get('window');
 
@@ -266,36 +267,7 @@ export default function ProgressDashboardScreen() {
         </View>
 
         {/* Recent Activities */}
-        <View style={styles.activitiesSection}>
-          <Text style={styles.sectionTitle}>📚 Recent Activities</Text>
-          <View style={styles.activitiesList}>
-            {progressData?.recentActivities.map((activity, index) => (
-              <View key={index} style={styles.activityCard}>
-                <View style={styles.activityIcon}>
-                  <Ionicons 
-                    name={
-                      activity.activity_type === 'lesson' ? 'book' :
-                      activity.activity_type === 'flashcard' ? 'card' :
-                      activity.activity_type === 'game' ? 'game-controller' : 'fitness'
-                    } 
-                    size={20} 
-                    color="#6366f1" 
-                  />
-                </View>
-                <View style={styles.activityInfo}>
-                  <Text style={styles.activityName}>{activity.activity_name || 'Activity'}</Text>
-                  <Text style={styles.activityDetails}>
-                    {activity.score}/{activity.max_score} • {Math.round(activity.accuracy_percentage)}% accuracy
-                  </Text>
-                  <Text style={styles.activityTime}>{formatDate(activity.completed_at.toString())}</Text>
-                </View>
-                <View style={styles.activityScore}>
-                  <Text style={styles.scoreText}>{activity.score}</Text>
-                </View>
-              </View>
-            ))}
-          </View>
-        </View>
+        <RecentActivitiesWidget />
 
         {/* Achievements */}
         {progressData?.achievements.length > 0 && (
@@ -328,6 +300,68 @@ export default function ProgressDashboardScreen() {
           </View>
         )}
 
+        {/* Flashcards Progress */}
+        <View style={styles.flashcardsSection}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>📚 Flashcards Progress</Text>
+            <TouchableOpacity 
+              style={styles.refreshButton} 
+              onPress={onRefresh}
+              disabled={refreshing}
+            >
+              <Ionicons 
+                name={refreshing ? "sync" : "refresh"} 
+                size={20} 
+                color={refreshing ? "#10b981" : "#6366f1"} 
+              />
+            </TouchableOpacity>
+          </View>
+          <View style={styles.flashcardsGrid}>
+            <View style={styles.flashcardStatCard}>
+              <View style={styles.flashcardStatIcon}>
+                <Ionicons name="book" size={24} color="#6366f1" />
+              </View>
+              <Text style={styles.flashcardStatNumber}>{progressData?.flashcardStats?.totalCards || 0}</Text>
+              <Text style={styles.flashcardStatLabel}>Total Cards</Text>
+            </View>
+            <View style={styles.flashcardStatCard}>
+              <View style={styles.flashcardStatIcon}>
+                <Ionicons name="checkmark-circle" size={24} color="#10b981" />
+              </View>
+              <Text style={styles.flashcardStatNumber}>{progressData?.flashcardStats?.masteredCards || 0}</Text>
+              <Text style={styles.flashcardStatLabel}>Mastered</Text>
+            </View>
+            <View style={styles.flashcardStatCard}>
+              <View style={styles.flashcardStatIcon}>
+                <Ionicons name="trending-up" size={24} color="#06b6d4" />
+              </View>
+              <Text style={styles.flashcardStatNumber}>{progressData?.flashcardStats?.averageAccuracy || 0}%</Text>
+              <Text style={styles.flashcardStatLabel}>Avg Accuracy</Text>
+            </View>
+            <View style={styles.flashcardStatCard}>
+              <View style={styles.flashcardStatIcon}>
+                <Ionicons name="flame" size={24} color="#f59e0b" />
+              </View>
+              <Text style={styles.flashcardStatNumber}>{progressData?.flashcardStats?.dayStreak || 0}</Text>
+              <Text style={styles.flashcardStatLabel}>Day Streak</Text>
+            </View>
+            <View style={styles.flashcardStatCard}>
+              <View style={styles.flashcardStatIcon}>
+                <Ionicons name="trophy" size={24} color="#f59e0b" />
+              </View>
+              <Text style={styles.flashcardStatNumber}>{progressData?.flashcardStats?.bestTopic || 'None'}</Text>
+              <Text style={styles.flashcardStatLabel}>Best Topic</Text>
+            </View>
+            <View style={styles.flashcardStatCard}>
+              <View style={styles.flashcardStatIcon}>
+                <Ionicons name="alert-circle" size={24} color="#ef4444" />
+              </View>
+              <Text style={styles.flashcardStatNumber}>{progressData?.flashcardStats?.weakestTopic || 'None'}</Text>
+              <Text style={styles.flashcardStatLabel}>Needs Work</Text>
+            </View>
+          </View>
+        </View>
+
         {/* Weekly Progress Chart */}
         {progressData?.weeklyProgress.length > 0 && (
           <View style={styles.chartSection}>
@@ -351,28 +385,7 @@ export default function ProgressDashboardScreen() {
           </View>
         )}
 
-        {/* Quick Actions */}
-        <View style={styles.actionsSection}>
-          <Text style={styles.sectionTitle}>⚡ Quick Actions</Text>
-          <View style={styles.actionsGrid}>
-            <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('NewLessonViewer' as never)}>
-              <Ionicons name="book" size={24} color="#6366f1" />
-              <Text style={styles.actionText}>Start Lesson</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('Study' as never)}>
-              <Ionicons name="card" size={24} color="#10b981" />
-              <Text style={styles.actionText}>Review Cards</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('Games' as never)}>
-              <Ionicons name="game-controller" size={24} color="#f59e0b" />
-              <Text style={styles.actionText}>Play Games</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.actionButton} onPress={() => navigation.navigate('Subjects' as never)}>
-              <Ionicons name="library" size={24} color="#ef4444" />
-              <Text style={styles.actionText}>Browse Subjects</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+
 
         <View style={styles.bottomSpacing} />
       </ScrollView>
@@ -629,66 +642,7 @@ const styles = StyleSheet.create({
     top: 8,
     right: 8,
   },
-  activitiesSection: {
-    backgroundColor: '#ffffff',
-    marginHorizontal: 16,
-    marginBottom: 16,
-    borderRadius: 16,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  activitiesList: {
-    gap: 12,
-  },
-  activityCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f8fafc',
-    borderRadius: 12,
-    padding: 16,
-  },
-  activityIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#eef2ff',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  activityInfo: {
-    flex: 1,
-  },
-  activityName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1e293b',
-    marginBottom: 4,
-  },
-  activityDetails: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginBottom: 4,
-  },
-  activityTime: {
-    fontSize: 12,
-    color: '#9ca3af',
-  },
-  activityScore: {
-    backgroundColor: '#6366f1',
-    borderRadius: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  scoreText: {
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '600',
-  },
+
   achievementsSection: {
     backgroundColor: '#ffffff',
     marginHorizontal: 16,
@@ -772,7 +726,9 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     textAlign: 'center',
   },
-  actionsSection: {
+
+  // Flashcards section styles
+  flashcardsSection: {
     backgroundColor: '#ffffff',
     marginHorizontal: 16,
     marginBottom: 16,
@@ -784,26 +740,56 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
   },
-  actionsGrid: {
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  refreshButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: '#f1f5f9',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  flashcardsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
+    gap: 12,
   },
-  actionButton: {
-    width: (width - 80) / 2,
+  flashcardStatCard: {
+    width: '48%',
     backgroundColor: '#f8fafc',
     borderRadius: 12,
-    padding: 20,
-    marginBottom: 12,
+    padding: 16,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
   },
-  actionText: {
-    fontSize: 14,
-    fontWeight: '500',
+  flashcardStatIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  flashcardStatNumber: {
+    fontSize: 18,
+    fontWeight: '700',
     color: '#1e293b',
-    marginTop: 8,
+    marginBottom: 4,
     textAlign: 'center',
   },
+  flashcardStatLabel: {
+    fontSize: 12,
+    color: '#6b7280',
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+
   bottomSpacing: {
     height: 40,
   },
@@ -835,3 +821,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 });
+
+
+

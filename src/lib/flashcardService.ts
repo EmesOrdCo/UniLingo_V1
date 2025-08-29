@@ -252,4 +252,114 @@ export class FlashcardService {
       throw error
     }
   }
+
+  // Track flashcard review and update daily goals
+  static async trackFlashcardReview(
+    flashcardId: string, 
+    userId: string, 
+    result: 'correct' | 'incorrect' | 'easy' | 'hard',
+    timeSpent: number = 0
+  ): Promise<void> {
+    try {
+      console.log('🎯 Starting trackFlashcardReview:', { flashcardId, userId, result, timeSpent });
+
+      // Update or create flashcard progress record (temporarily disabled until table is created)
+      try {
+        // Check if the table exists by attempting a simple query
+        const { data: tableCheck, error: tableError } = await supabase
+          .from('user_flashcard_progress')
+          .select('id')
+          .limit(1);
+        
+        if (tableError && tableError.code === 'PGRST205') {
+          console.log('ℹ️ user_flashcard_progress table not found - skipping progress tracking');
+        } else {
+          // Table exists, proceed with progress tracking
+          const { data: existingProgress } = await supabase
+            .from('user_flashcard_progress')
+            .select('id, correct_attempts, incorrect_attempts')
+            .eq('user_id', userId)
+            .eq('flashcard_id', flashcardId)
+            .maybeSingle();
+
+          if (existingProgress) {
+            // Update existing progress
+            const isCorrect = result === 'correct' || result === 'easy';
+            const updateData = {
+              correct_attempts: existingProgress.correct_attempts + (isCorrect ? 1 : 0),
+              incorrect_attempts: existingProgress.incorrect_attempts + (isCorrect ? 0 : 1),
+              last_reviewed: new Date().toISOString(),
+            };
+            
+            const { error } = await supabase
+              .from('user_flashcard_progress')
+              .update(updateData)
+              .eq('id', existingProgress.id);
+            
+            if (error) throw error;
+          } else {
+            // Create new progress record
+            const isCorrect = result === 'correct' || result === 'easy';
+            const { error } = await supabase
+              .from('user_flashcard_progress')
+              .insert({
+                user_id: userId,
+                flashcard_id: flashcardId,
+                correct_attempts: isCorrect ? 1 : 0,
+                incorrect_attempts: isCorrect ? 0 : 1,
+                last_reviewed: new Date().toISOString(),
+              });
+            
+            if (error) throw error;
+          }
+          
+          console.log('✅ Flashcard progress updated with result:', result);
+        }
+      } catch (error) {
+        console.error('❌ Failed to update flashcard progress:', error);
+      }
+
+      // Award XP for flashcard review
+      try {
+        const { XPService } = await import('./xpService');
+        const isCorrect = result === 'correct' || result === 'easy';
+        const score = isCorrect ? 1 : 0;
+        const maxScore = 1;
+        const accuracyPercentage = isCorrect ? 100 : 0;
+        
+        await XPService.awardXP(
+          userId,
+          'flashcard',
+          score,
+          maxScore,
+          accuracyPercentage,
+          'Flashcard Review'
+        );
+        console.log('✅ XP awarded for flashcard review');
+      } catch (error) {
+        console.error('❌ Failed to award XP for flashcard:', error);
+      }
+
+      // Update daily goals
+      try {
+        const { DailyGoalsService } = await import('./dailyGoalsService');
+        await DailyGoalsService.updateGoalProgress(userId, 'flashcards_reviewed', 1);
+        
+        if (timeSpent > 0) {
+          const timeInMinutes = Math.floor(timeSpent / 60);
+          if (timeInMinutes > 0) {
+            await DailyGoalsService.updateGoalProgress(userId, 'study_time', timeInMinutes);
+          }
+        }
+        
+        console.log('✅ Daily goals updated for flashcard review');
+      } catch (error) {
+        console.error('❌ Failed to update daily goals:', error);
+      }
+
+      console.log('✅ Flashcard review tracked successfully');
+    } catch (error) {
+      console.error('❌ Error in trackFlashcardReview:', error);
+    }
+  }
 }

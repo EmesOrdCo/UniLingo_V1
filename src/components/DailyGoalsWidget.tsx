@@ -35,6 +35,31 @@ export default function DailyGoalsWidget({ onGoalCompleted }: DailyGoalsWidgetPr
       const progress = await DailyGoalsService.getTodayGoalProgress(user!.id);
       setGoalProgress(progress);
       
+      // Debug logging
+      if (progress) {
+        console.log('📊 Daily Goals Progress:', {
+          study_time: progress.study_time,
+          lessons_completed: progress.lessons_completed,
+          flashcards_reviewed: progress.flashcards_reviewed,
+          games_played: progress.games_played,
+          overall_progress: progress.overall_progress
+        });
+        
+        // Calculate individual goal percentages for debugging
+        const studyTimePercent = Math.min((progress.study_time.current / progress.study_time.target) * 100, 100);
+        const lessonsPercent = Math.min((progress.lessons_completed.current / progress.lessons_completed.target) * 100, 100);
+        const flashcardsPercent = Math.min((progress.flashcards_reviewed.current / progress.flashcards_reviewed.target) * 100, 100);
+        const gamesPercent = Math.min((progress.games_played.current / progress.games_played.target) * 100, 100);
+        
+        console.log('📊 Individual Goal Percentages:', {
+          study_time: `${studyTimePercent.toFixed(1)}% (${progress.study_time.current}/${progress.study_time.target})`,
+          lessons_completed: `${lessonsPercent.toFixed(1)}% (${progress.lessons_completed.current}/${progress.lessons_completed.target})`,
+          flashcards_reviewed: `${flashcardsPercent.toFixed(1)}% (${progress.flashcards_reviewed.current}/${progress.flashcards_reviewed.target})`,
+          games_played: `${gamesPercent.toFixed(1)}% (${progress.games_played.current}/${progress.games_played.target})`,
+          total_weighted: `${progress.overall_progress}%`
+        });
+      }
+      
       // Check if all goals are completed and trigger callback
       if (progress && progress.overall_progress === 100 && onGoalCompleted) {
         onGoalCompleted();
@@ -164,14 +189,14 @@ export default function DailyGoalsWidget({ onGoalCompleted }: DailyGoalsWidgetPr
     try {
       if (!user?.id || !goalProgress) return;
       
-      console.log('🧪 Testing all goal types...');
+      console.log('🧪 Testing weighted goal calculation...');
       
-      // Test updates for all goal types
+      // Test updates for all goal types with partial progress
       const updates = [
-        { type: 'games_played' as const, progress: 1 },
-        { type: 'lessons_completed' as const, progress: 1 },
-        { type: 'flashcards_reviewed' as const, progress: 5 },
-        { type: 'study_time' as const, progress: 10 },
+        { type: 'games_played' as const, progress: 1, description: '1 game (50% of 2 game goal)' },
+        { type: 'lessons_completed' as const, progress: 1, description: '1 lesson (100% of 1 lesson goal)' },
+        { type: 'flashcards_reviewed' as const, progress: 5, description: '5 cards (50% of 10 card goal)' },
+        { type: 'study_time' as const, progress: 10, description: '10 minutes (67% of 15 min goal)' },
       ];
       
       let successCount = 0;
@@ -190,7 +215,7 @@ export default function DailyGoalsWidget({ onGoalCompleted }: DailyGoalsWidgetPr
       // Refresh the display
       await loadGoalProgress();
       
-      alert(`Tested ${successCount} goal types!\n\nThis simulates:\n• Playing a game\n• Completing a lesson\n• Reviewing 5 flashcards\n• Studying for 10 minutes\n\nCheck the progress bars!`);
+      alert(`Tested weighted goal calculation!\n\nThis simulates:\n• ${updates[0].description}\n• ${updates[1].description}\n• ${updates[2].description}\n• ${updates[3].description}\n\nExpected total: ~67% (weighted average)\n\nCheck the percentage and console logs!`);
       
     } catch (error) {
       console.error('❌ Error testing all goal types:', error);
@@ -198,7 +223,43 @@ export default function DailyGoalsWidget({ onGoalCompleted }: DailyGoalsWidgetPr
     }
   };
 
-
+  const testPartialProgress = async () => {
+    try {
+      if (!user?.id || !goalProgress) return;
+      
+      console.log('🧪 Testing partial progress calculation...');
+      
+      // Test partial progress for each goal type
+      const updates = [
+        { type: 'games_played' as const, progress: 1, description: '1/2 games (50% of goal)' },
+        { type: 'lessons_completed' as const, progress: 0, description: '0/1 lessons (0% of goal)' },
+        { type: 'flashcards_reviewed' as const, progress: 3, description: '3/10 cards (30% of goal)' },
+        { type: 'study_time' as const, progress: 5, description: '5/15 minutes (33% of goal)' },
+      ];
+      
+      let successCount = 0;
+      
+      for (const update of updates) {
+        try {
+          const success = await DailyGoalsService.updateGoalProgress(user.id, update.type, update.progress);
+          if (success) successCount++;
+        } catch (error) {
+          console.error(`Error updating ${update.type}:`, error);
+        }
+      }
+      
+      console.log(`✅ Tested ${successCount}/${updates.length} partial progress updates`);
+      
+      // Refresh the display
+      await loadGoalProgress();
+      
+      alert(`Tested partial progress!\n\nThis simulates:\n• ${updates[0].description} = 12.5% weight\n• ${updates[1].description} = 0% weight\n• ${updates[2].description} = 7.5% weight\n• ${updates[3].description} = 8.25% weight\n\nExpected total: ~28% (weighted average)\n\nCheck the percentage!`);
+      
+    } catch (error) {
+      console.error('❌ Error testing partial progress:', error);
+      alert('Failed to test partial progress. Check console for details.');
+    }
+  };
 
   const getGoalIcon = (goalType: string) => {
     switch (goalType) {
@@ -321,7 +382,7 @@ export default function DailyGoalsWidget({ onGoalCompleted }: DailyGoalsWidgetPr
           </View>
         </View>
         <View style={styles.buttonContainer}>
-                    <TouchableOpacity 
+          <TouchableOpacity 
             onPress={refreshGoals}
             style={styles.refreshButton}
             activeOpacity={0.7}
@@ -334,7 +395,17 @@ export default function DailyGoalsWidget({ onGoalCompleted }: DailyGoalsWidgetPr
             />
           </TouchableOpacity>
           
-          
+          <TouchableOpacity 
+            onPress={testAllGoalTypes}
+            style={styles.testButton}
+            activeOpacity={0.7}
+          >
+            <Ionicons 
+              name="flask" 
+              size={20} 
+              color="#f59e0b" 
+            />
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -345,10 +416,10 @@ export default function DailyGoalsWidget({ onGoalCompleted }: DailyGoalsWidgetPr
         {renderGoalItem('games_played', goalProgress.games_played)}
       </View>
 
-      {goalProgress.overall_progress === 100 && (
+      {goalProgress.overall_progress >= 100 && (
         <View style={styles.completionCelebration}>
           <Ionicons name="trophy" size={24} color="#f59e0b" />
-          <Text style={styles.completionText}>All goals completed today! 🎉</Text>
+          <Text style={styles.completionText}>Daily goals completed! 🎉</Text>
         </View>
       )}
     </View>
@@ -360,7 +431,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderRadius: 16,
     padding: 20,
-    marginHorizontal: 20,
     marginVertical: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -404,6 +474,11 @@ const styles = StyleSheet.create({
     padding: 8,
     borderRadius: 8,
     backgroundColor: '#f8fafc',
+  },
+  testButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: '#fef3c7',
   },
 
   refreshing: {

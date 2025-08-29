@@ -170,3 +170,5 @@ After implementation, you'll have:
 
 Just run the `enhanced_progress_setup.sql` file and you'll have enterprise-level learning analytics in minutes!
 
+
+

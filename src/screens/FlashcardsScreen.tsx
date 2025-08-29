@@ -17,6 +17,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { FlashcardService } from '../lib/flashcardService';
 import { UserFlashcardService } from '../lib/userFlashcardService';
+import { supabase } from '../lib/supabase';
 
 const { width } = Dimensions.get('window');
 
@@ -39,6 +40,7 @@ export default function FlashcardsScreen() {
     showAnswer: boolean;
     answers: Array<'correct' | 'incorrect' | 'easy' | 'hard'>;
     showNativeLanguage: boolean;
+    startTime: Date | null;
   }>({
     isActive: false,
     isComplete: false,
@@ -46,7 +48,8 @@ export default function FlashcardsScreen() {
     currentIndex: 0,
     showAnswer: false,
     answers: [],
-    showNativeLanguage: false
+    showNativeLanguage: false,
+    startTime: null
   });
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
@@ -66,6 +69,11 @@ export default function FlashcardsScreen() {
   const [showTopicPicker, setShowTopicPicker] = useState(false);
   const [showTopicDropdown, setShowTopicDropdown] = useState(false);
   const [showDifficultyDropdown, setShowDifficultyDropdown] = useState(false);
+  const [realFlashcardStats, setRealFlashcardStats] = useState({
+    totalCards: 0,
+    averageAccuracy: 0,
+    bestTopic: ''
+  });
 
   const { user, profile } = useAuth();
   const navigation = useNavigation();
@@ -283,6 +291,11 @@ export default function FlashcardsScreen() {
     fetchTopics();
   }, [user, profile]);
 
+  // Fetch real flashcard statistics when component mounts
+  useEffect(() => {
+    fetchRealFlashcardStats();
+  }, [user]);
+
   // Refresh topics function that can be called after creating flashcards
   const refreshTopics = async () => {
     if (!user || !profile?.subjects || profile.subjects.length === 0) {
@@ -309,6 +322,150 @@ export default function FlashcardsScreen() {
       })
     );
     console.log('✅ Topics refreshed with updated counts');
+  };
+
+  // Fetch real flashcard statistics
+  const fetchRealFlashcardStats = async () => {
+    if (!user) return;
+    
+    try {
+      // Get total cards count
+      const userFlashcards = await UserFlashcardService.getUserFlashcards({});
+      const generalFlashcards = await FlashcardService.getFlashcardsBySubject('all');
+      const totalCards = userFlashcards.length + generalFlashcards.length;
+      
+      // Calculate average accuracy from progress table
+      const { data: allProgress } = await supabase
+        .from('user_flashcard_progress')
+        .select('retention_score')
+        .eq('user_id', user.id)
+        .not('retention_score', 'is', null);
+      
+      const averageAccuracy = allProgress && allProgress.length > 0
+        ? Math.round(allProgress.reduce((sum, p) => sum + p.retention_score, 0) / allProgress.length)
+        : 0;
+      
+      // Find best topic based on accuracy
+      const topicStats = await calculateTopicPerformance(userFlashcards);
+      const bestTopic = topicStats.bestTopic || 'None';
+      
+      setRealFlashcardStats({
+        totalCards,
+        averageAccuracy,
+        bestTopic
+      });
+    } catch (error) {
+      console.error('Error fetching flashcard stats:', error);
+      setRealFlashcardStats({
+        totalCards: 0,
+        averageAccuracy: 0,
+        bestTopic: 'None'
+      });
+    }
+  };
+
+  // Calculate topic performance to find best topic
+  const calculateTopicPerformance = async (userFlashcards: any[]) => {
+    if (!user || userFlashcards.length === 0) {
+      return { bestTopic: '' };
+    }
+    
+    try {
+      // Get progress data for all user flashcards
+      const flashcardIds = userFlashcards.map(card => card.id);
+      const { data: progressData } = await supabase
+        .from('user_flashcard_progress')
+        .select('flashcard_id, retention_score')
+        .in('flashcard_id', flashcardIds)
+        .not('retention_score', 'is', null);
+      
+      if (!progressData || progressData.length === 0) {
+        return { bestTopic: '', weakestTopic: '' };
+      }
+      
+      // Group by topic and calculate average accuracy
+      const topicAccuracies: { [key: string]: { total: number; count: number; avg: number } } = {};
+      
+      userFlashcards.forEach(card => {
+        const progress = progressData.find(p => p.flashcard_id === card.id);
+        if (progress) {
+          if (!topicAccuracies[card.topic]) {
+            topicAccuracies[card.topic] = { total: 0, count: 0, avg: 0 };
+          }
+          topicAccuracies[card.topic].total += progress.retention_score;
+          topicAccuracies[card.topic].count += 1;
+        }
+      });
+      
+      // Calculate averages and find best topic
+      let bestTopic = '';
+      let bestAvg = -1;
+      
+      Object.entries(topicAccuracies).forEach(([topic, stats]) => {
+        const avg = stats.total / stats.count;
+        if (avg > bestAvg) {
+          bestAvg = avg;
+          bestTopic = topic;
+        }
+      });
+      
+      return { bestTopic };
+    } catch (error) {
+      console.error('Error calculating topic performance:', error);
+      return { bestTopic: '' };
+    }
+  };
+
+  // Update flashcard progress when user answers
+  const updateFlashcardProgress = async (flashcardId: string, answer: 'correct' | 'incorrect' | 'easy' | 'hard') => {
+    if (!user) return;
+    
+    try {
+      // Check if progress record exists
+      const { data: existingProgress } = await supabase
+        .from('user_flashcard_progress')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('flashcard_id', flashcardId)
+        .maybeSingle();
+      
+      if (existingProgress) {
+        // Update existing progress
+        const isCorrect = answer === 'correct' || answer === 'easy';
+        const updateData = {
+          correct_attempts: existingProgress.correct_attempts + (isCorrect ? 1 : 0),
+          incorrect_attempts: existingProgress.incorrect_attempts + (isCorrect ? 0 : 1),
+        };
+        
+        await supabase
+          .from('user_flashcard_progress')
+          .update(updateData)
+          .eq('id', existingProgress.id);
+      } else {
+        // Create new progress record
+        const isCorrect = answer === 'correct' || answer === 'easy';
+        await supabase
+          .from('user_flashcard_progress')
+          .insert({
+            user_id: user.id,
+            flashcard_id: flashcardId,
+            correct_attempts: isCorrect ? 1 : 0,
+            incorrect_attempts: isCorrect ? 0 : 1,
+          });
+      }
+
+      // Update daily goals for flashcard review
+      try {
+        // Estimate time spent on this card (average 5 seconds per card)
+        const timeSpentSeconds = 5;
+        await FlashcardService.trackFlashcardReview(flashcardId, user.id, answer, timeSpentSeconds);
+        console.log('✅ Daily goals updated for flashcard review');
+      } catch (error) {
+        console.error('❌ Failed to update daily goals for flashcard:', error);
+      }
+    } catch (error) {
+      console.error('Error updating flashcard progress:', error);
+    }
   };
 
      const getTopicIcon = (iconName: string) => {
@@ -439,7 +596,8 @@ export default function FlashcardsScreen() {
         currentIndex: 0,
         showAnswer: false,
         answers: [],
-        showNativeLanguage: false
+        showNativeLanguage: false,
+        startTime: new Date()
       });
     } catch (error) {
       console.error('Error starting study session:', error);
@@ -448,12 +606,18 @@ export default function FlashcardsScreen() {
   };
 
   // Handle answer selection
-  const handleAnswer = (answer: 'correct' | 'incorrect' | 'easy' | 'hard') => {
+  const handleAnswer = async (answer: 'correct' | 'incorrect' | 'easy' | 'hard') => {
     const newAnswers = [...studySession.answers, answer];
+    
+    // Update flashcard progress
+    const currentCard = studySession.flashcards[studySession.currentIndex];
+    if (currentCard && user) {
+      await updateFlashcardProgress(currentCard.id, answer);
+    }
     
     if (studySession.currentIndex + 1 >= studySession.flashcards.length) {
       // Session complete
-      endStudySession(newAnswers);
+      await endStudySession(newAnswers);
     } else {
       // Move to next card
       setStudySession(prev => ({
@@ -466,13 +630,36 @@ export default function FlashcardsScreen() {
   };
 
     // End study session and show results
-  const endStudySession = (answers: Array<'correct' | 'incorrect' | 'easy' | 'hard'>) => {
+  const endStudySession = async (answers: Array<'correct' | 'incorrect' | 'easy' | 'hard'>) => {
     setStudySession(prev => ({
       ...prev,
       isActive: false,
       isComplete: true,
       answers
     }));
+    
+    // Calculate study time and update daily goals
+    if (studySession.startTime && user) {
+      const endTime = new Date();
+      const timeSpentSeconds = Math.floor((endTime.getTime() - studySession.startTime.getTime()) / 1000);
+      const timeSpentMinutes = Math.floor(timeSpentSeconds / 60);
+      
+      console.log(`📚 Study session completed: ${timeSpentMinutes} minutes (${timeSpentSeconds} seconds)`);
+      
+      // Update daily goals for study time
+      try {
+        const { DailyGoalsService } = await import('../lib/dailyGoalsService');
+        if (timeSpentMinutes > 0) {
+          await DailyGoalsService.updateGoalProgress(user.id, 'study_time', timeSpentMinutes);
+          console.log('✅ Daily goals updated for study time');
+        }
+      } catch (error) {
+        console.error('❌ Failed to update daily goals for study time:', error);
+      }
+    }
+    
+    // Refresh flashcard statistics after study session completion
+    await fetchRealFlashcardStats();
   };
 
   // Toggle language display
@@ -595,6 +782,9 @@ export default function FlashcardsScreen() {
       
       // Refresh topics to update counts and incorporate new flashcard
       await refreshTopics();
+      
+      // Refresh flashcard statistics
+      await fetchRealFlashcardStats();
       
       // If user has a topic selected, update the study session preview
       if (selectedTopic) {
@@ -949,7 +1139,7 @@ export default function FlashcardsScreen() {
             
             <TouchableOpacity 
               style={styles.backToSetupButton}
-              onPress={() => {
+              onPress={async () => {
                 setStudySession({
                   isActive: false,
                   isComplete: false,
@@ -961,6 +1151,9 @@ export default function FlashcardsScreen() {
                 });
                 setSelectedTopic(null);
                 setSelectedDifficulty(null);
+                
+                // Refresh flashcard statistics after study session
+                await fetchRealFlashcardStats();
               }}
             >
               <Ionicons name="home" size={24} color="#6366f1" />
@@ -1494,22 +1687,22 @@ export default function FlashcardsScreen() {
               <View style={styles.statIcon}>
                 <Ionicons name="book" size={24} color="#6366f1" />
               </View>
-              <Text style={styles.statNumber}>1,247</Text>
+              <Text style={styles.statNumber}>{realFlashcardStats.totalCards}</Text>
               <Text style={styles.statLabel}>Total Cards</Text>
             </View>
             <View style={styles.statCard}>
               <View style={styles.statIcon}>
-              <Ionicons name="checkmark-circle" size={24} color="#10b981" />
+                <Ionicons name="trending-up" size={24} color="#06b6d4" />
               </View>
-              <Text style={styles.statNumber}>892</Text>
-              <Text style={styles.statLabel}>Mastered</Text>
+              <Text style={styles.statNumber}>{realFlashcardStats.averageAccuracy}%</Text>
+              <Text style={styles.statLabel}>Avg Accuracy</Text>
             </View>
             <View style={styles.statCard}>
               <View style={styles.statIcon}>
-                <Ionicons name="flame" size={24} color="#f59e0b" />
+                <Ionicons name="trophy" size={24} color="#f59e0b" />
               </View>
-              <Text style={styles.statNumber}>18</Text>
-              <Text style={styles.statLabel}>Day Streak</Text>
+              <Text style={styles.statNumber}>{realFlashcardStats.bestTopic}</Text>
+              <Text style={styles.statLabel}>Best Topic</Text>
             </View>
           </View>
         </View>

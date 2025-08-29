@@ -102,6 +102,14 @@ export interface ProgressInsights {
     nextLevelThreshold: number;
     progressPercentage: number;
   };
+  flashcardStats?: {
+    totalCards: number;
+    masteredCards: number;
+    dayStreak: number;
+    averageAccuracy: number;
+    bestTopic: string;
+    weakestTopic: string;
+  };
 }
 
 export class HolisticProgressService {
@@ -409,9 +417,12 @@ export class HolisticProgressService {
       // Calculate level progress
       const levelProgress = this.calculateLevelProgress(learningStats);
 
+      // Get flashcard statistics
+      const flashcardStats = await this.getFlashcardStats(userId);
+
       return {
         currentStreak: dailyStreak?.current_streak || 0,
-        longestStreak: dailyStreak?.longest_streak || 0,
+        longestStreak: dailyStreak?.current_streak || 0,
         todayProgress: todayProgress || null,
         weeklyProgress: weeklyProgress || [],
         monthlyProgress: monthlyProgress || [],
@@ -419,6 +430,7 @@ export class HolisticProgressService {
         upcomingGoals: todayGoals,
         achievements: achievements || [],
         levelProgress,
+        flashcardStats,
       };
     } catch (error) {
       console.error('Error fetching progress insights:', error);
@@ -605,6 +617,128 @@ export class HolisticProgressService {
     } catch (error) {
       console.error('Error initializing user progress:', error);
       return false;
+    }
+  }
+
+  // =====================================================
+  // FLASHCARD STATISTICS
+  // =====================================================
+
+  static async getFlashcardStats(userId: string) {
+    try {
+      // Get total cards count
+      const { data: userFlashcards } = await supabase
+        .from('user_flashcards')
+        .select('id, topic')
+        .eq('user_id', userId);
+      
+      const { data: generalFlashcards } = await supabase
+        .from('flashcards')
+        .select('id, topic');
+      
+      const totalCards = (userFlashcards?.length || 0) + (generalFlashcards?.length || 0);
+      
+      // Get mastered cards from progress table
+      const { data: progressData } = await supabase
+        .from('user_flashcard_progress')
+        .select('is_mastered, retention_score')
+        .eq('user_id', userId);
+      
+      const masteredCards = progressData?.filter(p => p.is_mastered)?.length || 0;
+      
+      // Calculate average accuracy
+      const validProgress = progressData?.filter(p => p.retention_score !== null) || [];
+      const averageAccuracy = validProgress.length > 0
+        ? Math.round(validProgress.reduce((sum, p) => sum + p.retention_score, 0) / validProgress.length)
+        : 0;
+      
+      // Get current streak from user_streaks table
+      const { data: streakData } = await supabase
+        .from('user_streaks')
+        .select('daily_flashcards')
+        .eq('user_id', userId)
+        .maybeSingle();
+      
+      const dayStreak = streakData?.daily_flashcards || 0;
+      
+      // Find best and weakest topics based on accuracy
+      const topicStats = await this.calculateTopicPerformance(userId, userFlashcards || []);
+      
+      return {
+        totalCards,
+        masteredCards,
+        dayStreak,
+        averageAccuracy,
+        bestTopic: topicStats.bestTopic || 'None',
+        weakestTopic: topicStats.weakestTopic || 'None',
+      };
+    } catch (error) {
+      console.error('Error fetching flashcard stats:', error);
+      return {
+        totalCards: 0,
+        masteredCards: 0,
+        dayStreak: 0,
+        averageAccuracy: 0,
+        bestTopic: 'None',
+        weakestTopic: 'None',
+      };
+    }
+  }
+
+  private static async calculateTopicPerformance(userId: string, userFlashcards: any[]) {
+    if (userFlashcards.length === 0) {
+      return { bestTopic: '', weakestTopic: '' };
+    }
+    
+    try {
+      // Get progress data for all user flashcards
+      const flashcardIds = userFlashcards.map(card => card.id);
+      const { data: progressData } = await supabase
+        .from('user_flashcard_progress')
+        .select('flashcard_id, retention_score')
+        .in('flashcard_id', flashcardIds)
+        .not('retention_score', 'is', null);
+      
+      if (!progressData || progressData.length === 0) {
+        return { bestTopic: '', weakestTopic: '' };
+      }
+      
+      // Group by topic and calculate average accuracy
+      const topicAccuracies: { [key: string]: { total: number; count: number; avg: number } } = {};
+      
+      userFlashcards.forEach(card => {
+        const progress = progressData.find(p => p.flashcard_id === card.id);
+        if (progress) {
+          if (!topicAccuracies[card.topic]) {
+            topicAccuracies[card.topic] = { total: 0, count: 0, avg: 0 };
+          }
+          topicAccuracies[card.topic].total += progress.retention_score;
+          topicAccuracies[card.topic].count += 1;
+        }
+      });
+      
+      // Calculate averages and find best/worst
+      let bestTopic = '';
+      let weakestTopic = '';
+      let bestAvg = -1;
+      let worstAvg = 101;
+      
+      Object.entries(topicAccuracies).forEach(([topic, stats]) => {
+        const avg = stats.total / stats.count;
+        if (avg > bestAvg) {
+          bestAvg = avg;
+          bestTopic = topic;
+        }
+        if (avg < worstAvg) {
+          worstAvg = avg;
+          weakestTopic = topic;
+        }
+      });
+      
+      return { bestTopic, weakestTopic };
+    } catch (error) {
+      console.error('Error calculating topic performance:', error);
+      return { bestTopic: '', weakestTopic: '' };
     }
   }
 }

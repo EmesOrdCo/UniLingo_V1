@@ -19,6 +19,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { UserFlashcardService } from '../lib/userFlashcardService';
 import { FlashcardService } from '../lib/flashcardService';
 import { FavouriteGamesService, FavouriteGame } from '../lib/favouriteGamesService';
+import { supabase } from '../lib/supabase';
 
 
 const { width } = Dimensions.get('window');
@@ -3478,6 +3479,14 @@ export default function GamesScreen() {
     timeSpent: 0,
   });
   
+  // Real game statistics state
+  const [realGameStats, setRealGameStats] = useState({
+    gamesPlayedToday: 0,
+    totalGamesPlayed: 0,
+    averageAccuracy: 0,
+    totalGamingTime: 0,
+  });
+  
   // Game state
   const [showGameModal, setShowGameModal] = useState(false);
   const [currentGame, setCurrentGame] = useState<string | null>(null);
@@ -3557,6 +3566,108 @@ export default function GamesScreen() {
     
     fetchGameData();
   }, [user, profile]);
+  
+  // Fetch real game statistics
+  useEffect(() => {
+    const fetchRealGameStats = async () => {
+      if (!user?.id) return;
+      
+      try {
+        const { data: activities } = await supabase
+          .from('user_activities')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('activity_type', 'game');
+        
+        if (activities) {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          
+          const gamesPlayedToday = activities.filter((activity: any) => {
+            const activityDate = new Date(activity.completed_at);
+            activityDate.setHours(0, 0, 0, 0);
+            return activityDate.getTime() === today.getTime();
+          }).length;
+          
+          const totalGamesPlayed = activities.length;
+          
+          const averageAccuracy = activities.length > 0 
+            ? activities.reduce((sum: number, activity: any) => sum + (activity.accuracy_percentage || 0), 0) / activities.length
+            : 0;
+          
+          const totalGamingTime = activities.reduce((sum: number, activity: any) => sum + (activity.duration_seconds || 0), 0);
+          
+          setRealGameStats({
+            gamesPlayedToday,
+            totalGamesPlayed,
+            averageAccuracy: Math.round(averageAccuracy),
+            totalGamingTime: Math.round(totalGamingTime / 60), // Convert to minutes
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching real game stats:', error);
+      }
+    };
+    
+    fetchRealGameStats();
+  }, [user]);
+
+  // Refresh game stats function
+  const refreshGameStats = async () => {
+    if (!user?.id) return;
+    
+    try {
+      console.log('🔄 Refreshing game stats for user:', user.id);
+      const { data: activities, error } = await supabase
+        .from('user_activities')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('activity_type', 'game');
+      
+      if (error) {
+        console.error('❌ Error fetching game activities:', error);
+        return;
+      }
+      
+      console.log(`📊 Found ${activities?.length || 0} game activities`);
+      
+      if (activities && activities.length > 0) {
+        console.log('📊 Sample activity:', activities[0]);
+        const totalDuration = activities.reduce((sum: number, activity: any) => sum + (activity.duration_seconds || 0), 0);
+        console.log(`📊 Total duration from activities: ${totalDuration} seconds`);
+      }
+      
+      if (activities) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        const gamesPlayedToday = activities.filter((activity: any) => {
+          const activityDate = new Date(activity.completed_at);
+          activityDate.setHours(0, 0, 0, 0);
+          return activityDate.getTime() === today.getTime();
+        }).length;
+        
+        const totalGamesPlayed = activities.length;
+        
+        const averageAccuracy = activities.length > 0 
+          ? activities.reduce((sum: number, activity: any) => sum + (activity.accuracy_percentage || 0), 0) / activities.length
+          : 0;
+        
+        const totalGamingTime = activities.reduce((sum: number, activity: any) => sum + (activity.duration_seconds || 0), 0);
+        
+        console.log(`📊 Calculated stats - Games today: ${gamesPlayedToday}, Total games: ${totalGamesPlayed}, Avg accuracy: ${averageAccuracy}%, Total time: ${totalGamingTime} seconds (${Math.round(totalGamingTime / 60)} minutes)`);
+        
+        setRealGameStats({
+          gamesPlayedToday,
+          totalGamesPlayed,
+          averageAccuracy: Math.round(averageAccuracy),
+          totalGamingTime: Math.max(1, Math.round(totalGamingTime / 60)), // Minimum 1 minute display
+        });
+      }
+    } catch (error) {
+      console.error('Error refreshing game stats:', error);
+    }
+  };
   
   // Load favourite games for the user
   const loadFavouriteGames = async () => {
@@ -3686,7 +3797,7 @@ export default function GamesScreen() {
       };
     });
     
-    setGameData({ type: 'quiz', questions, currentQuestion: 0, score: 0, languageMode });
+    setGameData({ type: 'quiz', questions, currentQuestion: 0, score: 0, languageMode, startTime: Date.now() });
     setCurrentGame('Flashcard Quiz');
     setShowQuizSetup(false);
     setShowGameModal(true);
@@ -3766,6 +3877,7 @@ export default function GamesScreen() {
       challenges: [], // Empty initially - will be populated when user selects count
       currentChallenge: 0, 
       score: 0,
+      startTime: Date.now(),
       totalAvailableCards: topicCards.length, // Total available cards count
       originalFilteredCards: topicCards // Store all filtered cards for randomization
     };
@@ -3813,7 +3925,7 @@ export default function GamesScreen() {
       return { word, hint };
     });
 
-    setGameData({ type: 'hangman', words, currentWord: 0, score: 0 });
+    setGameData({ type: 'hangman', words, currentWord: 0, score: 0, startTime: Date.now() });
     setCurrentGame('Hangman');
     setShowGameModal(true);
   };
@@ -3846,7 +3958,7 @@ export default function GamesScreen() {
       difficulty: card.difficulty || 'beginner'
     }));
 
-    setGameData({ type: 'gravity', questions, currentQuestion: 0, score: 0, languageMode: 'question' });
+    setGameData({ type: 'gravity', questions, currentQuestion: 0, score: 0, languageMode: 'question', startTime: Date.now() });
     setCurrentGame('Planet Defense');
     setShowGameModal(true);
   };
@@ -3889,7 +4001,7 @@ export default function GamesScreen() {
       difficulty: card.difficulty || 'beginner'
     }));
 
-    setGameData({ type: 'type-what-you-hear', questions, currentQuestion: 0, score: 0 });
+    setGameData({ type: 'type-what-you-hear', questions, currentQuestion: 0, score: 0, startTime: Date.now() });
     setCurrentGame('Type What You Hear');
     setShowGameModal(true);
   };
@@ -4008,6 +4120,60 @@ export default function GamesScreen() {
     setShowGameModal(false);
     setCurrentGame(null);
     setGameData(null);
+  };
+
+  // Helper function to update daily goals and award XP when games are completed
+  const updateDailyGoalsForGame = async (score: number, timeSpent?: number) => {
+    if (!user?.id) return;
+    
+    console.log(`🎮 Game completion - Score: ${score}, Time spent: ${timeSpent}ms`);
+    
+    try {
+      // Award XP for game completion (this also logs the activity)
+      try {
+        const { XPService } = await import('../lib/xpService');
+        const maxScore = 10; // Assume max score of 10 for games
+        const accuracyPercentage = Math.min(100, Math.round((score / maxScore) * 100));
+        const timeInSeconds = timeSpent ? Math.floor(timeSpent / 1000) : 60; // Convert ms to seconds, default 1 minute
+        
+        await XPService.awardXP(
+          user.id,
+          'game',
+          score,
+          maxScore,
+          accuracyPercentage,
+          'Learning Game',
+          timeInSeconds
+        );
+        console.log('✅ XP awarded for game completion');
+      } catch (error) {
+        console.error('❌ Failed to award XP for game:', error);
+      }
+      
+      const { DailyGoalsService } = await import('../lib/dailyGoalsService');
+      
+      // Update games played goal
+      await DailyGoalsService.updateGoalProgress(user.id, 'games_played', 1);
+      
+      // Update study time if provided
+      if (timeSpent && timeSpent > 0) {
+        const timeInMinutes = Math.floor(timeSpent / 1000 / 60); // Convert milliseconds to minutes
+        // Round up to 1 minute if calculated time is less than 1 minute
+        const finalTimeInMinutes = timeInMinutes > 0 ? timeInMinutes : 1;
+        await DailyGoalsService.updateGoalProgress(user.id, 'study_time', finalTimeInMinutes);
+        console.log(`⏱️ Game time tracked: ${timeInMinutes} minutes calculated, ${finalTimeInMinutes} minutes added to study time`);
+      } else {
+        console.log(`⏱️ No time spent data provided or time is 0 - adding 1 minute minimum`);
+        await DailyGoalsService.updateGoalProgress(user.id, 'study_time', 1);
+      }
+      
+      console.log('✅ Daily goals updated for game completion');
+      
+      // Refresh game stats to show updated total time
+      await refreshGameStats();
+    } catch (error) {
+      console.error('❌ Failed to update daily goals for game:', error);
+    }
   };
   
   // Auto-adjust question count when available cards change
@@ -4540,26 +4706,37 @@ export default function GamesScreen() {
         {/* Settings Section */}
 
 
-        {/* Quick Stats */}
+        {/* Real Game Statistics */}
         <View style={styles.statsSection}>
-          <Text style={styles.statsTitle}>Your Study Stats</Text>
+          <View style={styles.statsHeader}>
+            <Text style={styles.statsTitle}>🎮 Your Game Stats</Text>
+            <TouchableOpacity 
+              style={styles.refreshButton}
+              onPress={refreshGameStats}
+            >
+              <Ionicons name="refresh" size={20} color="#6366f1" />
+            </TouchableOpacity>
+          </View>
           <View style={styles.statsGrid}>
             <View style={styles.statCard}>
-              <Ionicons name="book" size={24} color="#6366f1" />
-              <Text style={styles.statNumber}>{flashcards.length}</Text>
-              <Text style={styles.statLabel} numberOfLines={2} ellipsizeMode="tail">Total Cards</Text>
+              <Ionicons name="game-controller" size={24} color="#6366f1" />
+              <Text style={styles.statNumber}>{realGameStats.gamesPlayedToday}</Text>
+              <Text style={styles.statLabel} numberOfLines={2} ellipsizeMode="tail">Games Today</Text>
             </View>
             <View style={styles.statCard}>
-              <Ionicons name="layers" size={24} color="#f59e0b" />
-              <Text style={styles.statNumber}>{topics.length}</Text>
-              <Text style={styles.statLabel} numberOfLines={2} ellipsizeMode="tail">Topics</Text>
+              <Ionicons name="trophy" size={24} color="#f59e0b" />
+              <Text style={styles.statNumber}>{realGameStats.totalGamesPlayed}</Text>
+              <Text style={styles.statLabel} numberOfLines={2} ellipsizeMode="tail">Total Games</Text>
             </View>
             <View style={styles.statCard}>
-              <Ionicons name="school" size={24} color="#10b981" />
-              <Text style={styles.statNumber}>
-                {profile?.subjects?.[0] || 'N/A'}
-              </Text>
-              <Text style={styles.statLabel}>Subject</Text>
+              <Ionicons name="checkmark-circle" size={24} color="#10b981" />
+              <Text style={styles.statNumber}>{realGameStats.averageAccuracy}%</Text>
+              <Text style={styles.statLabel}>Avg Accuracy</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Ionicons name="time" size={24} color="#ef4444" />
+              <Text style={styles.statNumber}>{realGameStats.totalGamingTime}m</Text>
+              <Text style={styles.statLabel}>Total Time</Text>
             </View>
           </View>
         </View>
@@ -4859,8 +5036,12 @@ export default function GamesScreen() {
                 <FlashcardQuizGame 
                   gameData={gameData} 
                   onClose={closeGame}
-                  onGameComplete={(score: number) => {
+                  onGameComplete={async (score: number) => {
                     console.log('Quiz completed with score:', score);
+                    // Calculate time spent
+                    const gameDuration = gameData?.startTime ? Date.now() - gameData.startTime : 0;
+                    console.log(`🎮 Quiz game - startTime: ${gameData?.startTime}, currentTime: ${Date.now()}, duration: ${gameDuration}ms`);
+                    await updateDailyGoalsForGame(score, gameDuration);
                     closeGame();
                   }}
                   userProfile={profile}
@@ -4871,8 +5052,9 @@ export default function GamesScreen() {
                 <MemoryMatchGame 
                   gameData={gameData} 
                   onClose={closeGame}
-                  onGameComplete={(moves: number, time: number) => {
+                  onGameComplete={async (moves: number, time: number) => {
                     console.log('Memory game completed:', { moves, time });
+                    await updateDailyGoalsForGame(moves, time);
                     closeGame();
                   }}
                 />
@@ -4884,10 +5066,14 @@ export default function GamesScreen() {
                   <WordScrambleGame 
                     gameData={gameData} 
                     onClose={closeGame}
-                    onGameComplete={(score: number) => {
-                      console.log('Scramble completed with score:', score);
-                      closeGame();
-                    }}
+                                      onGameComplete={async (score: number) => {
+                    console.log('Scramble completed with score:', score);
+                    // Calculate time spent
+                    const gameDuration = gameData?.startTime ? Date.now() - gameData.startTime : 0;
+                    console.log(`🎮 Scramble game - startTime: ${gameData?.startTime}, currentTime: ${Date.now()}, duration: ${gameDuration}ms`);
+                    await updateDailyGoalsForGame(score, gameDuration);
+                    closeGame();
+                  }}
                   />
                 </>
               )}
@@ -4896,8 +5082,11 @@ export default function GamesScreen() {
                 <HangmanGame 
                   gameData={gameData} 
                   onClose={closeGame}
-                  onGameComplete={(score: number) => {
+                  onGameComplete={async (score: number) => {
                     console.log('Hangman completed with score:', score);
+                    // Calculate time spent
+                    const gameDuration = gameData?.startTime ? Date.now() - gameData.startTime : 0;
+                    await updateDailyGoalsForGame(score, gameDuration);
                     closeGame();
                   }}
                 />
@@ -4907,8 +5096,11 @@ export default function GamesScreen() {
                 <GravityGame 
                   gameData={gameData} 
                   onClose={closeGame}
-                  onGameComplete={(score: number) => {
+                  onGameComplete={async (score: number) => {
                     console.log('Gravity game completed with score:', score);
+                    // Calculate time spent
+                    const gameDuration = gameData?.startTime ? Date.now() - gameData.startTime : 0;
+                    await updateDailyGoalsForGame(score, gameDuration);
                     closeGame();
                   }}
                   userProfile={profile}
@@ -4919,8 +5111,11 @@ export default function GamesScreen() {
                 <TypeWhatYouHearGame 
                   gameData={gameData} 
                   onClose={closeGame}
-                  onGameComplete={(score: number) => {
+                  onGameComplete={async (score: number) => {
                     console.log('Type What You Hear game completed with score:', score);
+                    // Calculate time spent
+                    const gameDuration = gameData?.startTime ? Date.now() - gameData.startTime : 0;
+                    await updateDailyGoalsForGame(score, gameDuration);
                     closeGame();
                   }}
                   userProfile={profile}
@@ -4931,8 +5126,11 @@ export default function GamesScreen() {
                 <SpeedChallengeGame 
                   gameData={gameData} 
                   onClose={closeGame}
-                  onGameComplete={(score: number, timeLeft: number) => {
+                  onGameComplete={async (score: number, timeLeft: number) => {
                     console.log('Speed challenge completed:', { score, timeLeft });
+                    // Calculate time spent (assuming game duration - timeLeft)
+                    const gameDuration = gameData?.startTime ? Date.now() - gameData.startTime : 0;
+                    await updateDailyGoalsForGame(score, gameDuration);
                     closeGame();
                   }}
                 />
@@ -4942,8 +5140,11 @@ export default function GamesScreen() {
                 <SentenceScrambleGame 
                   gameData={gameData} 
                   onClose={closeGame}
-                  onGameComplete={(score: number) => {
+                  onGameComplete={async (score: number) => {
                     console.log('Sentence scramble completed with score:', score);
+                    // Calculate time spent
+                    const gameDuration = gameData?.startTime ? Date.now() - gameData.startTime : 0;
+                    await updateDailyGoalsForGame(score, gameDuration);
                     closeGame();
                   }}
                 />
@@ -5202,26 +5403,38 @@ const styles = StyleSheet.create({
   gameCategory: {
     fontSize: 14,
     color: '#64748b',
-    fontWeight: '600',
-    textAlign: 'center',
     fontWeight: '500',
+    textAlign: 'center',
     backgroundColor: '#f8fafc',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
   },
   
-  // Enhanced Stats Section - Aligned with app aesthetics
+  // Stats Section Styles
   statsSection: {
     marginTop: 20,
     marginBottom: 40,
+  },
+  statsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
   },
   statsTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#1e293b',
-    marginBottom: 20,
     textAlign: 'center',
+    flex: 1,
+  },
+  refreshButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: '#f1f5f9',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
   },
   statsGrid: {
     flexDirection: 'row',
@@ -5265,6 +5478,8 @@ const styles = StyleSheet.create({
     lineHeight: 14,
     paddingVertical: 2,
   },
+  
+
   
   // Enhanced Language Mode Badge - Aligned with app aesthetics
   languageModeBadge: {

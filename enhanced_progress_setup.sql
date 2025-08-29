@@ -208,3 +208,5 @@ COMMENT ON TABLE skill_metrics IS 'Tracks cross-lesson skill development and pro
 -- All existing data and relationships remain intact.
 -- ============================================================================
 
+
+
