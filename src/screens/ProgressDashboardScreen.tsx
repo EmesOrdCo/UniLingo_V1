@@ -14,6 +14,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { HolisticProgressService, ProgressInsights } from '../lib/holisticProgressService';
+import StudyCalendar from '../components/StudyCalendar';
+import DailyGoalsWidget from '../components/DailyGoalsWidget';
 
 const { width } = Dimensions.get('window');
 
@@ -172,6 +174,17 @@ export default function ProgressDashboardScreen() {
               <Text style={styles.streakStat}>Keep it up!</Text>
             </View>
           </View>
+        </View>
+
+        {/* Study Calendar */}
+        <View style={styles.calendarSection}>
+          <Text style={styles.sectionTitle}>📅 Study Calendar</Text>
+          <StudyCalendar studyDates={[]} />
+        </View>
+
+        {/* Daily Goals Widget */}
+        <View style={styles.goalsWidgetSection}>
+          <DailyGoalsWidget />
         </View>
 
         {/* Level Progress */}
@@ -460,6 +473,28 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6b7280',
     marginBottom: 4,
+  },
+  calendarSection: {
+    backgroundColor: '#ffffff',
+    margin: 16,
+    borderRadius: 20,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  goalsWidgetSection: {
+    backgroundColor: '#ffffff',
+    margin: 16,
+    borderRadius: 20,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 4,
   },
   levelSection: {
     backgroundColor: '#ffffff',
