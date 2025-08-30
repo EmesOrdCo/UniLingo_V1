@@ -207,7 +207,7 @@ export default function StudyCalendar({ studyDates, currentMonth }: StudyCalenda
             <Text style={getDayTextStyle(day)}>{day.day}</Text>
             {day.isStudyDay && (
               <View style={styles.studyIndicator}>
-                <Ionicons name="checkmark-circle" size={8} color="#10b981" />
+                <Ionicons name="checkmark-circle" size={12} color="#ffffff" />
               </View>
             )}
           </View>
@@ -311,12 +311,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   studyDay: {
-    backgroundColor: '#d1fae5',
+    backgroundColor: '#10b981', // Changed from '#d1fae5' to solid green
     borderRadius: 20,
   },
   studyDayText: {
-    color: '#065f46',
-    fontWeight: '600',
+    color: '#ffffff', // Changed from '#065f46' to white for better contrast
+    fontWeight: '700', // Changed from '600' to '700' for better visibility
   },
   futureDay: {
     backgroundColor: '#f1f5f9',

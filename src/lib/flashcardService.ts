@@ -319,26 +319,8 @@ export class FlashcardService {
         console.error('❌ Failed to update flashcard progress:', error);
       }
 
-      // Award XP for flashcard review
-      try {
-        const { XPService } = await import('./xpService');
-        const isCorrect = result === 'correct' || result === 'easy';
-        const score = isCorrect ? 1 : 0;
-        const maxScore = 1;
-        const accuracyPercentage = isCorrect ? 100 : 0;
-        
-        await XPService.awardXP(
-          userId,
-          'flashcard',
-          score,
-          maxScore,
-          accuracyPercentage,
-          'Flashcard Review'
-        );
-        console.log('✅ XP awarded for flashcard review');
-      } catch (error) {
-        console.error('❌ Failed to award XP for flashcard:', error);
-      }
+      // Note: XP is now awarded at the session level, not per individual flashcard
+      // to avoid cluttering recent activities with individual card entries
 
       // Update daily goals
       try {

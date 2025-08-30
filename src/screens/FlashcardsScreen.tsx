@@ -653,8 +653,37 @@ export default function FlashcardsScreen() {
           await DailyGoalsService.updateGoalProgress(user.id, 'study_time', timeSpentMinutes);
           console.log('✅ Daily goals updated for study time');
         }
+        
+        // Update flashcards reviewed goal
+        await DailyGoalsService.updateGoalProgress(user.id, 'flashcards_reviewed', studySession.flashcards.length);
+        console.log('✅ Daily goals updated for flashcards reviewed');
       } catch (error) {
         console.error('❌ Failed to update daily goals for study time:', error);
+      }
+
+      // Award XP and track activity for the entire session
+      try {
+        const { HolisticProgressService } = await import('../lib/holisticProgressService');
+        const { XPService } = await import('../lib/xpService');
+        const correctAnswers = answers.filter(a => a === 'correct' || a === 'easy').length;
+        const accuracyPercentage = Math.round((correctAnswers / answers.length) * 100);
+        
+        // Award XP for the entire session (this also logs the activity)
+        await XPService.awardXP(
+          user.id,
+          'flashcard',
+          correctAnswers,
+          answers.length,
+          accuracyPercentage,
+          'Flashcard Study Session',
+          timeSpentSeconds
+        );
+        
+        // Update streak after XP award
+        HolisticProgressService.updateStreak(user.id, 'daily_study');
+        console.log('✅ XP awarded and streak updated for flashcard study');
+      } catch (error) {
+        console.error('❌ Error importing services:', error);
       }
     }
     
@@ -1685,23 +1714,39 @@ export default function FlashcardsScreen() {
           <View style={styles.statsGrid}>
             <View style={styles.statCard}>
               <View style={styles.statIcon}>
-                <Ionicons name="book" size={24} color="#6366f1" />
+                <Ionicons name="book" size={20} color="#6366f1" />
               </View>
               <Text style={styles.statNumber}>{realFlashcardStats.totalCards}</Text>
               <Text style={styles.statLabel}>Total Cards</Text>
             </View>
             <View style={styles.statCard}>
               <View style={styles.statIcon}>
-                <Ionicons name="trending-up" size={24} color="#06b6d4" />
+                <Ionicons name="trending-up" size={20} color="#06b6d4" />
               </View>
               <Text style={styles.statNumber}>{realFlashcardStats.averageAccuracy}%</Text>
               <Text style={styles.statLabel}>Avg Accuracy</Text>
             </View>
             <View style={styles.statCard}>
               <View style={styles.statIcon}>
-                <Ionicons name="trophy" size={24} color="#f59e0b" />
+                <Ionicons name="trophy" size={20} color="#f59e0b" />
               </View>
-              <Text style={styles.statNumber}>{realFlashcardStats.bestTopic}</Text>
+              <Text 
+                style={[
+                  styles.statNumber,
+                  {
+                    fontSize: realFlashcardStats.bestTopic.length > 15 ? 16 : 
+                             realFlashcardStats.bestTopic.length > 10 ? 18 : 20,
+                    lineHeight: realFlashcardStats.bestTopic.length > 15 ? 20 : 
+                               realFlashcardStats.bestTopic.length > 10 ? 22 : 24,
+                  }
+                ]}
+                numberOfLines={2}
+                ellipsizeMode="tail"
+                adjustsFontSizeToFit={true}
+                minimumFontScale={0.8}
+              >
+                {realFlashcardStats.bestTopic}
+              </Text>
               <Text style={styles.statLabel}>Best Topic</Text>
             </View>
           </View>
@@ -1914,48 +1959,55 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   statsTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 18,
+    fontWeight: '700',
     color: '#1e293b',
-    marginBottom: 24,
+    marginBottom: 20,
     textAlign: 'center',
+    letterSpacing: -0.3,
   },
   statsGrid: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 16,
+    gap: 12,
   },
   statCard: {
     flex: 1,
     backgroundColor: '#ffffff',
-    borderRadius: 16,
-    padding: 20,
+    borderRadius: 12,
+    padding: 16,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 3,
+    minHeight: 100,
+    justifyContent: 'space-between',
   },
   statIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: '#f1f5f9',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   statNumber: {
-    fontSize: 24,
-    fontWeight: 'bold',
+    fontSize: 20,
+    fontWeight: '700',
     color: '#1e293b',
-    marginBottom: 4,
+    marginBottom: 2,
+    textAlign: 'center',
+    flexShrink: 1,
   },
   statLabel: {
-    fontSize: 14,
+    fontSize: 12,
     color: '#64748b',
     textAlign: 'center',
+    fontWeight: '500',
+    lineHeight: 16,
   },
   // Study Session Styles
   startButton: {

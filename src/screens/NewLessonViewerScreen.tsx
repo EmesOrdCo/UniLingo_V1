@@ -281,13 +281,15 @@ export default function NewLessonViewerScreen() {
         
         // Award XP
         import('../lib/xpService').then(({ XPService }) => {
+          const totalTimeSpent = startTime ? Math.floor((Date.now() - startTime.getTime()) / 1000) : 0;
           XPService.awardXP(
             user.id,
             'lesson',
             totalScore,
             maxPossibleScore,
             finalScore,
-            lesson?.title
+            lesson?.title,
+            totalTimeSpent
           ).then((xpResult) => {
             if (xpResult) {
               console.log('🎯 XP awarded for lesson completion:', xpResult.totalXP);
@@ -312,6 +314,29 @@ export default function NewLessonViewerScreen() {
           console.log('✅ Daily goals updated for lesson completion');
         }).catch(error => {
           console.error('❌ Failed to update daily goals:', error);
+        });
+
+        // Track activity for streak calculation
+        import('../lib/holisticProgressService').then(({ HolisticProgressService }) => {
+          const totalTimeSpent = startTime ? Math.floor((Date.now() - startTime.getTime()) / 1000) : 0;
+          HolisticProgressService.trackActivity({
+            user_id: user.id,
+            activity_type: 'lesson',
+            activity_id: lesson?.id,
+            activity_name: lesson?.title,
+            duration_seconds: totalTimeSpent,
+            score: totalScore,
+            max_score: maxPossibleScore,
+            accuracy_percentage: Math.round((totalScore / maxPossibleScore) * 100),
+          }).then(() => {
+            // Update streak after tracking activity
+            HolisticProgressService.updateStreak(user.id, 'daily_study');
+            console.log('✅ Activity tracked and streak updated for lesson completion');
+          }).catch(error => {
+            console.error('❌ Failed to track activity:', error);
+          });
+        }).catch(error => {
+          console.error('❌ Error importing holistic progress service:', error);
         });
       }
     }

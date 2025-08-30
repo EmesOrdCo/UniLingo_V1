@@ -185,43 +185,7 @@ export default function DailyGoalsWidget({ onGoalCompleted }: DailyGoalsWidgetPr
     }
   };
 
-  const testAllGoalTypes = async () => {
-    try {
-      if (!user?.id || !goalProgress) return;
-      
-      console.log('🧪 Testing weighted goal calculation...');
-      
-      // Test updates for all goal types with partial progress
-      const updates = [
-        { type: 'games_played' as const, progress: 1, description: '1 game (50% of 2 game goal)' },
-        { type: 'lessons_completed' as const, progress: 1, description: '1 lesson (100% of 1 lesson goal)' },
-        { type: 'flashcards_reviewed' as const, progress: 5, description: '5 cards (50% of 10 card goal)' },
-        { type: 'study_time' as const, progress: 10, description: '10 minutes (67% of 15 min goal)' },
-      ];
-      
-      let successCount = 0;
-      
-      for (const update of updates) {
-        try {
-          const success = await DailyGoalsService.updateGoalProgress(user.id, update.type, update.progress);
-          if (success) successCount++;
-        } catch (error) {
-          console.error(`Error updating ${update.type}:`, error);
-        }
-      }
-      
-      console.log(`✅ Tested ${successCount}/${updates.length} goal types`);
-      
-      // Refresh the display
-      await loadGoalProgress();
-      
-      alert(`Tested weighted goal calculation!\n\nThis simulates:\n• ${updates[0].description}\n• ${updates[1].description}\n• ${updates[2].description}\n• ${updates[3].description}\n\nExpected total: ~67% (weighted average)\n\nCheck the percentage and console logs!`);
-      
-    } catch (error) {
-      console.error('❌ Error testing all goal types:', error);
-      alert('Failed to test all goal types. Check console for details.');
-    }
-  };
+
 
   const testPartialProgress = async () => {
     try {
@@ -394,18 +358,6 @@ export default function DailyGoalsWidget({ onGoalCompleted }: DailyGoalsWidgetPr
               style={refreshing ? styles.refreshing : undefined}
             />
           </TouchableOpacity>
-          
-          <TouchableOpacity 
-            onPress={testAllGoalTypes}
-            style={styles.testButton}
-            activeOpacity={0.7}
-          >
-            <Ionicons 
-              name="flask" 
-              size={20} 
-              color="#f59e0b" 
-            />
-          </TouchableOpacity>
         </View>
       </View>
 
@@ -475,11 +427,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: '#f8fafc',
   },
-  testButton: {
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: '#fef3c7',
-  },
+
 
   refreshing: {
     transform: [{ rotate: '180deg' }],

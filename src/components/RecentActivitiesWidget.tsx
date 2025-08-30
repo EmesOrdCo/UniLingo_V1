@@ -31,8 +31,10 @@ export default function RecentActivitiesWidget() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  // Single useEffect to handle all refresh scenarios
   useEffect(() => {
     if (user?.id) {
+      console.log('🔄 Initial load or user change - loading activities');
       loadRecentActivities();
     }
   }, [user?.id]);
@@ -41,6 +43,7 @@ export default function RecentActivitiesWidget() {
   useEffect(() => {
     const unsubscribe = navigation?.addListener?.('focus', () => {
       if (user?.id) {
+        console.log('🔄 Screen focused - refreshing activities');
         loadRecentActivities();
       }
     });
@@ -54,109 +57,128 @@ export default function RecentActivitiesWidget() {
       
       if (!user?.id) return;
 
-      console.log('🔄 Loading recent activities for user:', user.id);
+      console.log(`🔄 Loading recent activities for user: ${user.id}`);
       const activities: RecentActivity[] = [];
 
-      // Get recent lesson completions
+      // Get ALL activities from user_activities table (unified approach)
       try {
-        console.log('🔍 Querying lesson_progress for user:', user.id);
-        const { data: lessonProgress, error: lessonError } = await supabase
-          .from('lesson_progress')
-          .select(`
-            id,
-            lesson_id,
-            completed_at,
-            total_score,
-            max_possible_score,
-            time_spent_seconds,
-            status,
-            esp_lessons(title, subject)
-          `)
+        console.log('🔍 Querying user_activities for all activities...');
+        const { data: allActivities, error: activitiesError } = await supabase
+          .from('user_activities')
+          .select('*')
           .eq('user_id', user.id)
           .order('completed_at', { ascending: false })
-          .limit(5);
+          .limit(15); // Get more to ensure we have the most recent
 
-        console.log('🔍 Raw lesson progress data:', lessonProgress);
-        console.log('🔍 Lesson progress error:', lessonError);
+        console.log('🔍 Raw all activities data:', allActivities);
+        console.log('🔍 Activities error:', activitiesError);
 
-        if (!lessonError && lessonProgress) {
-          // Filter for completed lessons
-          const completedLessons = lessonProgress.filter(progress => 
-            progress.status === 'completed' && progress.completed_at
+        if (!activitiesError && allActivities) {
+          console.log('🔍 Processing activities:', allActivities.length);
+          
+          // First, remove duplicates from the database results
+          const uniqueDbActivities = allActivities.filter((activity, index, self) => 
+            index === self.findIndex(a => a.id === activity.id)
           );
+          console.log('🔍 After DB deduplication:', uniqueDbActivities.length, 'activities');
           
-          console.log('📚 Found completed lessons:', completedLessons.length, 'out of', lessonProgress.length, 'total');
-          
-          completedLessons.forEach(progress => {
-            const score = progress.total_score && progress.max_possible_score 
-              ? Math.round((progress.total_score / progress.max_possible_score) * 100)
-              : undefined;
+          // Process each activity based on its type
+          const processedIds = new Set();
+          uniqueDbActivities.forEach((activity, index) => {
+            if (processedIds.has(activity.id)) {
+              console.log(`⚠️ Activity ${activity.id} already processed, skipping...`);
+              return;
+            }
+            processedIds.add(activity.id);
             
-            activities.push({
-              id: progress.id,
-              type: 'lesson',
-              title: progress.esp_lessons?.title || `Lesson ${progress.lesson_id}`,
-              description: `Completed with ${score ? score + '%' : 'good'} score`,
-              timestamp: progress.completed_at,
-              score,
-              timeSpent: progress.time_spent_seconds ? Math.floor(progress.time_spent_seconds / 60) : undefined
+            console.log(`🔍 Processing activity ${index + 1}:`, {
+              id: activity.id,
+              type: activity.activity_type,
+              name: activity.activity_name,
+              score: activity.score,
+              accuracy: activity.accuracy_percentage,
+              duration: activity.duration_seconds,
+              completed: activity.completed_at
             });
+            
+            switch (activity.activity_type) {
+              case 'lesson':
+                activities.push({
+                  id: activity.id,
+                  type: 'lesson',
+                  title: activity.activity_name || 'Lesson',
+                  description: `Completed with ${activity.accuracy_percentage || 0}% accuracy`,
+                  timestamp: activity.completed_at,
+                  score: activity.accuracy_percentage,
+                  timeSpent: activity.duration_seconds ? Math.floor(activity.duration_seconds / 60) : undefined
+                });
+                console.log('✅ Added lesson activity');
+                break;
+              
+              case 'flashcard':
+                activities.push({
+                  id: activity.id,
+                  type: 'flashcard',
+                  title: 'Flashcard Review',
+                  description: `Reviewed ${activity.score || 0} flashcards`,
+                  timestamp: activity.completed_at,
+                  score: activity.accuracy_percentage,
+                  timeSpent: activity.duration_seconds ? Math.floor(activity.duration_seconds / 60) : undefined
+                });
+                console.log('✅ Added flashcard activity');
+                break;
+              
+              case 'game':
+                activities.push({
+                  id: activity.id,
+                  type: 'game',
+                  title: activity.activity_name || 'Learning Game',
+                  description: `Completed ${activity.activity_name || 'learning game'}`,
+                  timestamp: activity.completed_at,
+                  score: activity.accuracy_percentage,
+                  timeSpent: activity.duration_seconds ? Math.floor(activity.duration_seconds / 60) : undefined
+                });
+                console.log('✅ Added game activity');
+                break;
+              
+              default:
+                console.log('⚠️ Unknown activity type:', activity.activity_type);
+                break;
+            }
           });
-        } else if (lessonError) {
-          console.error('❌ Lesson progress error:', lessonError);
-        }
-
-
-      } catch (error) {
-        console.error('Error loading lesson activities:', error);
-      }
-
-      // Add flashcard study activities (simulated from daily goals data)
-      try {
-        const { DailyGoalsService } = await import('../lib/dailyGoalsService');
-        const todayGoals = await DailyGoalsService.getTodayGoals(user.id);
-        const flashcardGoal = todayGoals.find(goal => goal.goal_type === 'flashcards_reviewed');
-        
-        if (flashcardGoal && flashcardGoal.current_value > 0) {
-          activities.push({
-            id: `flashcard-${Date.now()}`,
-            type: 'flashcard',
-            title: 'Flashcard Review',
-            description: `Reviewed ${flashcardGoal.current_value} flashcards today`,
-            timestamp: new Date().toISOString(),
-            score: flashcardGoal.current_value
-          });
+        } else if (activitiesError) {
+          console.error('❌ Activities error:', activitiesError);
         }
       } catch (error) {
-        console.error('Error loading flashcard activities:', error);
-      }
-
-      // Add game activities (simulated from daily goals data)
-      try {
-        const { DailyGoalsService } = await import('../lib/dailyGoalsService');
-        const todayGoals = await DailyGoalsService.getTodayGoals(user.id);
-        const gameGoal = todayGoals.find(goal => goal.goal_type === 'games_played');
-        
-        if (gameGoal && gameGoal.current_value > 0) {
-          activities.push({
-            id: `game-${Date.now()}`,
-            type: 'game',
-            title: 'Learning Games',
-            description: `Played ${gameGoal.current_value} learning game${gameGoal.current_value > 1 ? 's' : ''} today`,
-            timestamp: new Date().toISOString(),
-            score: gameGoal.current_value
-          });
-        }
-      } catch (error) {
-        console.error('Error loading game activities:', error);
+        console.error('Error loading activities:', error);
       }
 
       // Sort all activities by timestamp (most recent first)
       activities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      console.log('📊 After sorting, activities count:', activities.length);
 
-      // Take only the 5 most recent activities
-      const finalActivities = activities.slice(0, 5);
-      console.log('📊 Found activities:', finalActivities.length, 'activities');
+      // Remove duplicates based on ID and take only the 5 most recent activities
+      const uniqueActivities = activities.filter((activity, index, self) => 
+        index === self.findIndex(a => a.id === activity.id)
+      );
+      console.log('📊 After deduplication, activities count:', uniqueActivities.length);
+
+      const finalActivities = uniqueActivities.slice(0, 3);
+      console.log('📊 Final activities to display:', finalActivities.length, 'activities');
+      
+      if (finalActivities.length > 0) {
+        finalActivities.forEach((activity, index) => {
+          console.log(`📊 Activity ${index + 1}:`, {
+            id: activity.id,
+            type: activity.type,
+            title: activity.title,
+            score: activity.score,
+            timeSpent: activity.timeSpent,
+            timestamp: activity.timestamp
+          });
+        });
+      }
+      
       setActivities(finalActivities);
 
     } catch (error) {
@@ -172,13 +194,38 @@ export default function RecentActivitiesWidget() {
     setRefreshing(false);
   };
 
-  const getActivityIcon = (type: string) => {
+  const getActivityIcon = (type: string, activityName?: string) => {
     switch (type) {
       case 'lesson':
         return 'school';
       case 'flashcard':
         return 'card';
       case 'game':
+        // Use specific game icons based on activity name
+        if (activityName) {
+          switch (activityName) {
+            case 'Quiz Game':
+              return 'help-circle';
+            case 'Memory Match':
+              return 'grid';
+            case 'Word Scramble':
+              return 'text';
+            case 'Hangman':
+              return 'game-controller';
+            case 'Speed Challenge':
+              return 'timer';
+            case 'Sentence Scramble':
+              return 'document-text';
+            case 'Planet Defense':
+              return 'planet';
+            case 'Type What You Hear':
+              return 'ear';
+            case 'Gravity Game':
+              return 'planet';
+            default:
+              return 'game-controller';
+          }
+        }
         return 'game-controller';
       case 'study':
         return 'book';
@@ -187,19 +234,72 @@ export default function RecentActivitiesWidget() {
     }
   };
 
-  const getActivityColor = (type: string) => {
+  const getActivityColor = (type: string, activityName?: string) => {
     switch (type) {
       case 'lesson':
         return '#3b82f6';
       case 'flashcard':
         return '#10b981';
       case 'game':
+        // Use specific game colors based on activity name
+        if (activityName) {
+          switch (activityName) {
+            case 'Quiz Game':
+              return '#6366f1';
+            case 'Memory Match':
+              return '#10b981';
+            case 'Word Scramble':
+              return '#16a34a';
+            case 'Hangman':
+              return '#8b5cf6';
+            case 'Speed Challenge':
+              return '#dc2626';
+            case 'Sentence Scramble':
+              return '#ec4899';
+            case 'Planet Defense':
+              return '#3b82f6';
+            case 'Type What You Hear':
+              return '#8b5cf6';
+            case 'Gravity Game':
+              return '#3b82f6';
+            default:
+              return '#f59e0b';
+          }
+        }
         return '#f59e0b';
       case 'study':
         return '#8b5cf6';
       default:
         return '#6b7280';
     }
+  };
+
+  const getGameIconBackground = (activityName?: string) => {
+    if (activityName) {
+      switch (activityName) {
+        case 'Quiz Game':
+          return '#f0f4ff';
+        case 'Memory Match':
+          return '#f0fdf4';
+        case 'Word Scramble':
+          return '#f0fdf4';
+        case 'Hangman':
+          return '#f8fafc';
+        case 'Speed Challenge':
+          return '#fef2f2';
+        case 'Sentence Scramble':
+          return '#fdf2f8';
+        case 'Planet Defense':
+          return '#dbeafe';
+        case 'Type What You Hear':
+          return '#f3e8ff';
+        case 'Gravity Game':
+          return '#dbeafe';
+        default:
+          return '#ffffff';
+      }
+    }
+    return '#ffffff';
   };
 
   const formatTimestamp = (timestamp: string) => {
@@ -261,11 +361,14 @@ export default function RecentActivitiesWidget() {
       <View style={styles.activitiesContainer}>
         {activities.map((activity, index) => (
           <View key={activity.id} style={styles.activityItem}>
-            <View style={styles.activityIconContainer}>
+            <View style={[
+              styles.activityIconContainer,
+              activity.type === 'game' && { backgroundColor: getGameIconBackground(activity.title) }
+            ]}>
               <Ionicons 
-                name={getActivityIcon(activity.type) as any} 
+                name={getActivityIcon(activity.type, activity.title) as any} 
                 size={20} 
-                color={getActivityColor(activity.type)} 
+                color={getActivityColor(activity.type, activity.title)} 
               />
             </View>
             

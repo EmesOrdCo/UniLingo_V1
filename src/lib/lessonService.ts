@@ -171,13 +171,17 @@ REQUIREMENTS:
 - Focus on terms that would be challenging for non-native English speakers
 - NO LIMITS on the number of terms - extract everything you find
 
-OUTPUT FORMAT: Return ONLY a JSON array of strings with ALL distinct terms found:
-
+CRITICAL OUTPUT REQUIREMENTS:
+- Return ONLY a valid JSON array of strings
+- Do NOT include any explanations, markdown formatting, or text outside the JSON
+- Do NOT use backticks or code blocks
+- The response must start with [ and end with ]
+- Each term must be a string in quotes
+- Example format:
 [
   "term1",
   "term2",
-  "term3",
-  ...
+  "term3"
 ]
 
 PDF Text to analyze:
@@ -219,10 +223,36 @@ Extract ALL distinct technical terms and concepts:`;
           throw new Error('No response content from OpenAI keyword extraction');
         }
         
+        console.log('🔍 DEBUG: Raw AI keyword response:', keywordContent.substring(0, 500));
+        console.log('🔍 DEBUG: Raw AI keyword response length:', keywordContent.length);
+        
         // Parse the keywords
         let allKeywords: string[] = [];
+        let usedFallback = false;
         try {
-          const keywordJson = JSON.parse(keywordContent);
+          // First, try to clean the response content
+          let cleanedKeywordContent = keywordContent.trim();
+          
+          // Remove markdown code blocks if present
+          cleanedKeywordContent = cleanedKeywordContent.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+          
+          // Remove any text before the first [
+          const firstBracket = cleanedKeywordContent.indexOf('[');
+          if (firstBracket > 0) {
+            cleanedKeywordContent = cleanedKeywordContent.substring(firstBracket);
+            console.log('🔍 DEBUG: Removed text before first bracket');
+          }
+          
+          // Remove any text after the last ]
+          const lastBracket = cleanedKeywordContent.lastIndexOf(']');
+          if (lastBracket > 0 && lastBracket < cleanedKeywordContent.length - 1) {
+            cleanedKeywordContent = cleanedKeywordContent.substring(0, lastBracket + 1);
+            console.log('🔍 DEBUG: Removed text after last bracket');
+          }
+          
+          // Try to parse the cleaned content
+          const keywordJson = JSON.parse(cleanedKeywordContent);
+          
           // Handle different possible response formats
           if (Array.isArray(keywordJson)) {
             allKeywords = keywordJson;
@@ -240,15 +270,87 @@ Extract ALL distinct technical terms and concepts:`;
               }
             }
           }
+          
+          console.log('✅ Successfully parsed keywords JSON');
+          
         } catch (parseError) {
           console.error('Failed to parse keywords:', parseError);
-          // Fallback: try to extract terms from the raw text
-          const fallbackKeywords = this.extractKeywordsFallback(pdfText);
-          allKeywords = fallbackKeywords;
+          console.log('🔍 DEBUG: Raw keyword content:', keywordContent);
+          
+          // Try multiple fallback parsing strategies
+          try {
+            // Strategy 1: Try to extract JSON using regex (more conservative)
+            const jsonMatch = keywordContent.match(/\[[\s\S]*\]/);
+            if (jsonMatch) {
+              console.log('🔍 DEBUG: Attempting regex JSON extraction...');
+              try {
+                const extractedJson = JSON.parse(jsonMatch[0]);
+                if (Array.isArray(extractedJson)) {
+                  allKeywords = extractedJson;
+                  console.log('✅ Successfully extracted JSON using regex');
+                }
+              } catch (regexParseError) {
+                console.log('🔍 DEBUG: Regex match found but JSON parse failed, trying to fix...');
+                // Try to fix common issues in the matched JSON
+                let fixedJson = jsonMatch[0];
+                fixedJson = fixedJson.replace(/,\s*]/g, ']'); // Remove trailing commas in arrays
+                fixedJson = fixedJson.replace(/,\s*}/g, '}'); // Remove trailing commas in objects
+                fixedJson = fixedJson.replace(/`/g, ''); // Remove backticks
+                fixedJson = fixedJson.replace(/\/\/.*$/gm, ''); // Remove comments
+                
+                try {
+                  const fixedExtractedJson = JSON.parse(fixedJson);
+                  if (Array.isArray(fixedExtractedJson)) {
+                    allKeywords = fixedExtractedJson;
+                    console.log('✅ Successfully extracted JSON using regex with fixes');
+                  }
+                } catch (fixedRegexError) {
+                  console.log('🔍 DEBUG: Even fixed JSON parse failed');
+                }
+              }
+            }
+          } catch (regexError) {
+            console.error('❌ Regex extraction failed:', regexError);
+          }
+          
+          // Strategy 2: Try to extract individual terms from text
+          if (allKeywords.length === 0) {
+            try {
+              const termMatches = keywordContent.match(/"([^"]+)"/g);
+              if (termMatches) {
+                allKeywords = termMatches.map(match => match.replace(/"/g, ''));
+                console.log('✅ Successfully extracted terms using quote matching');
+              }
+            } catch (quoteError) {
+              console.error('❌ Quote matching failed:', quoteError);
+            }
+          }
+          
+          // Strategy 2.5: Try to extract terms with single quotes
+          if (allKeywords.length === 0) {
+            try {
+              const singleQuoteMatches = keywordContent.match(/'([^']+)'/g);
+              if (singleQuoteMatches) {
+                allKeywords = singleQuoteMatches.map(match => match.replace(/'/g, ''));
+                console.log('✅ Successfully extracted terms using single quote matching');
+              }
+            } catch (singleQuoteError) {
+              console.error('❌ Single quote matching failed:', singleQuoteError);
+            }
+          }
+          
+          // Strategy 3: Use fallback extraction if all else fails
+          if (allKeywords.length === 0) {
+            console.log('⚠️ All parsing strategies failed, using fallback extraction...');
+            const fallbackKeywords = this.extractKeywordsFallback(pdfText);
+            allKeywords = fallbackKeywords;
+            usedFallback = true;
+          }
         }
 
         console.log(`✅ STAGE 1 COMPLETE: Extracted ${allKeywords.length} distinct keywords`);
         console.log('🔍 Sample keywords:', allKeywords.slice(0, 20));
+        console.log('🔍 DEBUG: Keywords source:', usedFallback ? 'Fallback extraction' : 'AI JSON parsing');
 
         if (allKeywords.length === 0) {
           throw new Error('No keywords could be extracted from the PDF');
@@ -270,14 +372,29 @@ INPUTS YOU WILL RECEIVE:
 - Source PDF file name
 
 =====================
-OUTPUT REQUIREMENTS:
+CRITICAL OUTPUT REQUIREMENTS:
 You must return ONLY a single JSON object with three top-level keys:
 - "lesson"
 - "vocabulary"
 - "exercises"
 
-CRITICAL: Return ONLY valid JSON. Do not include any explanations, markdown, or text outside the JSON object.
-The response must start with { and end with }.
+CRITICAL JSON FORMATTING RULES:
+- Return ONLY valid JSON - NO explanations, markdown, or text outside the JSON object
+- Do NOT use backticks or code blocks
+- Do NOT include any text before the opening { or after the closing }
+- The response must start with { and end with }
+- Ensure all strings are properly quoted
+- Ensure all arrays and objects are properly closed
+- Do NOT include trailing commas
+- Do NOT include any formatting characters like backticks or code blocks
+- The JSON must be parseable by JSON.parse()
+
+OUTPUT FORMAT:
+{
+  "lesson": { lesson object },
+  "vocabulary": [ vocabulary array ],
+  "exercises": [ exercises array ]
+}
 
 =====================
 1. LESSON OBJECT:
@@ -340,9 +457,9 @@ EXERCISE REQUIREMENTS:
 =====================
 FINAL OUTPUT FORMAT:
 {
-  "lesson": { ... },
-  "vocabulary": [ ... ],
-  "exercises": [ ... ]
+  "lesson": { lesson object },
+  "vocabulary": [ vocabulary array ],
+  "exercises": [ exercises array ]
 }
 
 =====================
@@ -371,7 +488,7 @@ Source PDF Name: ${sourcePdfName}`;
           messages: [
             {
               role: 'system',
-              content: 'You are an expert educational content designer. You MUST return ONLY valid JSON with no explanations, markdown, or text outside the JSON object. Your response must start with { and end with }.'
+              content: 'You are an expert educational content designer. You MUST return ONLY valid JSON with no explanations, markdown, or text outside the JSON object. Your response must start with { and end with }. Do NOT use backticks or code blocks.'
             },
             {
               role: 'user',
@@ -391,14 +508,17 @@ Source PDF Name: ${sourcePdfName}`;
 
         console.log('✅ STAGE 2 COMPLETE: Lesson generated successfully');
         
-        // Parse the lesson response with better error handling
+        // Parse the lesson response with comprehensive error handling
         try {
           console.log('🔍 DEBUG: Raw lesson response length:', lessonContent.length);
           console.log('🔍 DEBUG: First 500 chars of response:', lessonContent.substring(0, 500));
           console.log('🔍 DEBUG: Last 500 chars of response:', lessonContent.substring(Math.max(0, lessonContent.length - 500)));
           
-          // Try to clean the response if it has extra text
-          let cleanedContent = lessonContent;
+          // Strategy 1: Clean and parse the response
+          let cleanedContent = lessonContent.trim();
+          
+          // Remove markdown code blocks if present
+          cleanedContent = cleanedContent.replace(/```json\s*/g, '').replace(/```\s*/g, '');
           
           // Remove any text before the first {
           const firstBrace = cleanedContent.indexOf('{');
@@ -423,8 +543,9 @@ Source PDF Name: ${sourcePdfName}`;
           console.error('❌ Failed to parse lesson response:', parseError);
           const errorMessage = parseError instanceof Error ? parseError.message : String(parseError);
           console.error('🔍 DEBUG: Parse error details:', errorMessage);
+          console.log('🔍 DEBUG: Raw lesson content:', lessonContent);
           
-          // Try to extract JSON using regex as last resort
+          // Strategy 2: Try to extract JSON using regex
           try {
             const jsonMatch = lessonContent.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
@@ -434,7 +555,52 @@ Source PDF Name: ${sourcePdfName}`;
               return extractedJson as AILessonResponse;
             }
           } catch (regexError) {
-            console.error('❌ Regex extraction also failed:', regexError);
+            console.error('❌ Regex extraction failed:', regexError);
+          }
+          
+          // Strategy 3: Try to fix common JSON issues
+          try {
+            console.log('🔍 DEBUG: Attempting JSON repair...');
+            let repairedContent = lessonContent;
+            
+            // Fix common issues
+            repairedContent = repairedContent.replace(/,\s*}/g, '}'); // Remove trailing commas
+            repairedContent = repairedContent.replace(/,\s*]/g, ']'); // Remove trailing commas in arrays
+            repairedContent = repairedContent.replace(/`/g, ''); // Remove backticks
+            repairedContent = repairedContent.replace(/\\"/g, '"'); // Fix escaped quotes
+            
+            // Try to find JSON object
+            const jsonMatch = repairedContent.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+              const extractedJson = JSON.parse(jsonMatch[0]);
+              console.log('✅ Successfully parsed repaired JSON');
+              return extractedJson as AILessonResponse;
+            }
+          } catch (repairError) {
+            console.error('❌ JSON repair failed:', repairError);
+          }
+          
+          // Strategy 4: Try to extract partial data
+          try {
+            console.log('🔍 DEBUG: Attempting partial data extraction...');
+            
+            // Try to extract lesson object
+            const lessonMatch = lessonContent.match(/"lesson"\s*:\s*\{[^}]*\}/);
+            if (lessonMatch) {
+              console.log('🔍 DEBUG: Found lesson object, attempting to build minimal response...');
+              
+              // Create a minimal valid response with just the lesson object
+              const minimalResponse = {
+                lesson: JSON.parse(lessonMatch[0].replace(/"lesson"\s*:\s*/, '')),
+                vocabulary: [],
+                exercises: []
+              };
+              
+              console.log('✅ Created minimal lesson response');
+              return minimalResponse as AILessonResponse;
+            }
+          } catch (partialError) {
+            console.error('❌ Partial data extraction failed:', partialError);
           }
           
           throw new Error(`Invalid lesson response format from OpenAI: ${errorMessage}`);

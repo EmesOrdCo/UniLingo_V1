@@ -478,6 +478,7 @@ function LessonsTabWrapper() {
   const onRefresh = async () => {
     setRefreshing(true);
     await loadLessons();
+    await loadProgressData(); // Also refresh progress data to update study streak
     setRefreshing(false);
   };
   
@@ -1144,6 +1145,17 @@ function DashboardContent() {
     }
   }, [user?.id]);
 
+  // Refresh progress data when screen comes into focus
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      if (user?.id) {
+        loadProgressData();
+      }
+    });
+
+    return unsubscribe;
+  }, [navigation, user?.id]);
+
   const loadProgressData = async () => {
     try {
       setLoadingProgress(true);
@@ -1586,6 +1598,12 @@ function DashboardContent() {
       },
       insightContent: {
         flex: 1,
+      },
+      refreshButton: {
+        padding: 8,
+        borderRadius: 8,
+        backgroundColor: '#f1f5f9',
+        marginLeft: 8,
       },
       insightTitle: {
         fontSize: 14,
@@ -2690,26 +2708,6 @@ function DashboardContent() {
 
                   {/* Level Progress Widget */}
                   <LevelProgressWidget onRefresh={loadProgressData} />
-
-                  {/* Weekly Progress Card */}
-                  <View style={styles.insightCard}>
-                    <View style={styles.insightHeader}>
-                      <View style={styles.insightIconContainer}>
-                        <Ionicons name="trending-up" size={24} color="#10b981" />
-                      </View>
-                      <View style={styles.insightContent}>
-                        <Text style={styles.insightTitle}>This Week</Text>
-                        <Text style={styles.insightValue}>
-                          {progressData.weeklyProgress?.length > 0 ? 
-                           `${progressData.weeklyProgress.reduce((sum, day) => sum + (day.lessons_completed || 0), 0)} lessons` : 
-                           'No data yet'}
-                        </Text>
-                        <Text style={styles.insightSubtext}>
-                          {progressData.weeklyProgress?.length > 0 ? 'Weekly learning activity' : 'Start studying to see progress!'}
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
                 </>
               ) : (
                 <View style={styles.insightCard}>

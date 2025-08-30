@@ -94,15 +94,15 @@ export class DailyGoalsService {
   }
 
   // Get today's goals for a user
-  static async getTodayGoals(userId: string): Promise<DailyGoal[]> {
+  static async getTodayGoals(userId: string, date?: string): Promise<DailyGoal[]> {
     try {
-      const today = new Date().toISOString().split('T')[0];
+      const targetDate = date || new Date().toISOString().split('T')[0];
       
       const { data, error } = await supabase
         .from('user_daily_goals')
         .select('*')
         .eq('user_id', userId)
-        .eq('goal_date', today)
+        .eq('goal_date', targetDate)
         .order('goal_type');
 
       if (error) throw error;
@@ -247,15 +247,68 @@ export class DailyGoalsService {
 
       if (error) throw error;
 
+      if (!data || data.length === 0) {
+        return 0;
+      }
+
       let streak = 0;
       const today = new Date().toISOString().split('T')[0];
       let currentDate = new Date(today);
 
-      for (const goal of data || []) {
-        const goalDate = new Date(goal.goal_date);
-        const daysDiff = Math.floor((currentDate.getTime() - goalDate.getTime()) / (1000 * 60 * 60 * 24));
+      // Check if today's goals are completed
+      const todayGoals = data.filter(goal => goal.goal_date === today);
+      if (todayGoals.length === 0) {
+        // If no goals for today, check if we need to create them
+        const { data: existingGoals } = await supabase
+          .from('user_daily_goals')
+          .select('*')
+          .eq('user_id', userId)
+          .eq('goal_date', today);
         
-        if (daysDiff === streak) {
+        if (!existingGoals || existingGoals.length === 0) {
+          // Create today's goals
+          await this.createDailyGoals(userId, today);
+        }
+      }
+
+      // Calculate streak by checking consecutive days
+      for (let i = 0; i < 365; i++) { // Check up to a year back
+        const checkDate = new Date(today);
+        checkDate.setDate(checkDate.getDate() - i);
+        const checkDateString = checkDate.toISOString().split('T')[0];
+        
+        const dayGoals = data.filter(goal => goal.goal_date === checkDateString);
+        
+        if (dayGoals.length === 0) {
+          // No goals for this day, check if we need to create them
+          const { data: existingGoals } = await supabase
+            .from('user_daily_goals')
+            .select('*')
+            .eq('user_id', userId)
+            .eq('goal_date', checkDateString);
+          
+          if (!existingGoals || existingGoals.length === 0) {
+            // Create goals for this day
+            await this.createDailyGoals(userId, checkDateString);
+            // Re-fetch the data to include the new goals
+            const { data: updatedData } = await supabase
+              .from('user_daily_goals')
+              .select('goal_date, completed')
+              .eq('user_id', userId)
+              .eq('completed', true)
+              .order('goal_date', { ascending: false });
+            
+            if (updatedData) {
+              data = updatedData;
+            }
+          }
+        }
+        
+        // Check if all goals for this day are completed
+        const allGoalsForDay = await this.getTodayGoals(userId, checkDateString);
+        const completedGoalsForDay = allGoalsForDay.filter(goal => goal.completed);
+        
+        if (allGoalsForDay.length > 0 && completedGoalsForDay.length === allGoalsForDay.length) {
           streak++;
         } else {
           break;

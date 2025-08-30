@@ -364,34 +364,62 @@ export class HolisticProgressService {
       // Get current streak
       const dailyStreak = await this.getCurrentStreak(userId, 'daily_study');
       
-      // Get today's progress
+      // Get today's progress using the smart query function
       const today = new Date().toISOString().split('T')[0];
-      const { data: todayProgress } = await supabase
-        .from('user_progress_summary')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('summary_date', today)
-        .maybeSingle();
+      const { data: todayProgressResult } = await supabase
+        .rpc('get_daily_progress', { user_uuid: userId, target_date: today });
+      const todayProgress = todayProgressResult ? JSON.parse(todayProgressResult) : null;
 
-      // Get weekly progress (last 7 days)
+      // Get weekly progress (last 7 days) using smart queries
       const weekAgo = new Date();
       weekAgo.setDate(weekAgo.getDate() - 7);
-      const { data: weeklyProgress } = await supabase
-        .from('user_progress_summary')
-        .select('*')
-        .eq('user_id', userId)
-        .gte('summary_date', weekAgo.toISOString().split('T')[0])
-        .order('summary_date', { ascending: true });
+      const weeklyProgress: any[] = [];
+      
+      for (let i = 0; i < 7; i++) {
+        const date = new Date(weekAgo);
+        date.setDate(date.getDate() + i);
+        const dateString = date.toISOString().split('T')[0];
+        
+        const { data: dayProgress } = await supabase
+          .rpc('get_daily_progress', { user_uuid: userId, target_date: dateString });
+        
+        // Always include the day, even if no data (will have zero values)
+        if (dayProgress) {
+          weeklyProgress.push(JSON.parse(dayProgress));
+        } else {
+          // Include empty day with zero values
+          weeklyProgress.push({
+            date: dateString,
+            total_study_time_minutes: 0,
+            lessons_completed: 0,
+            flashcards_reviewed: 0,
+            games_played: 0,
+            total_score: 0,
+            average_accuracy: 0,
+            streak_maintained: false,
+            goals_achieved: 0,
+            total_goals: 0
+          });
+        }
+      }
 
-      // Get monthly progress (last 30 days)
+      // Get monthly progress (last 30 days) using smart queries
       const monthAgo = new Date();
       monthAgo.setDate(monthAgo.getDate() - 30);
-      const { data: monthlyProgress } = await supabase
-        .from('user_progress_summary')
-        .select('*')
-        .eq('user_id', userId)
-        .gte('summary_date', monthAgo.toISOString().split('T')[0])
-        .order('summary_date', { ascending: true });
+      const monthlyProgress: any[] = [];
+      
+      for (let i = 0; i < 30; i++) {
+        const date = new Date(monthAgo);
+        date.setDate(date.getDate() + i);
+        const dateString = date.toISOString().split('T')[0];
+        
+        const { data: dayProgress } = await supabase
+          .rpc('get_daily_progress', { user_uuid: userId, target_date: dateString });
+        
+        if (dayProgress) {
+          monthlyProgress.push(JSON.parse(dayProgress));
+        }
+      }
 
       // Get recent activities
       const recentActivities = await this.getRecentActivities(userId, 5);
@@ -739,6 +767,35 @@ export class HolisticProgressService {
     } catch (error) {
       console.error('Error calculating topic performance:', error);
       return { bestTopic: '', weakestTopic: '' };
+    }
+  }
+
+  // Get study dates for calendar display
+  static async getStudyDates(userId: string): Promise<string[]> {
+    try {
+      // Get unique dates from user_activities table
+      const { data: activities, error } = await supabase
+        .from('user_activities')
+        .select('completed_at')
+        .eq('user_id', userId)
+        .not('completed_at', 'is', null);
+
+      if (error) throw error;
+
+      // Extract unique dates in YYYY-MM-DD format
+      const studyDates = new Set<string>();
+      activities?.forEach(activity => {
+        if (activity.completed_at) {
+          const date = new Date(activity.completed_at);
+          const dateString = date.toISOString().split('T')[0];
+          studyDates.add(dateString);
+        }
+      });
+
+      return Array.from(studyDates).sort();
+    } catch (error) {
+      console.error('Error fetching study dates:', error);
+      return [];
     }
   }
 }

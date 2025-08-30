@@ -61,11 +61,11 @@ export default function LevelProgressWidget({ onRefresh }: LevelProgressWidgetPr
     switch (level.toLowerCase()) {
       case 'beginner': return '#10b981';
       case 'elementary': return '#3b82f6';
-      case 'intermediate': return '#8b5cf6';
-      case 'advanced': return '#f59e0b';
-      case 'expert': return '#ef4444';
-      case 'master': return '#ec4899';
-      default: return '#6366f1';
+      case 'intermediate': return '#f59e0b';
+      case 'advanced': return '#ef4444';
+      case 'expert': return '#8b5cf6';
+      case 'master': return '#f97316';
+      default: return '#6b7280';
     }
   };
 
@@ -113,39 +113,19 @@ export default function LevelProgressWidget({ onRefresh }: LevelProgressWidgetPr
           <Ionicons name={levelIcon} size={24} color={levelColor} />
           <Text style={styles.title}>Level Progress</Text>
         </View>
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity 
-            onPress={handleRefresh} 
-            style={[styles.refreshButton, refreshing && styles.refreshButtonActive]}
-            disabled={refreshing}
-          >
-            <Ionicons 
-              name={refreshing ? "sync" : "refresh"} 
-              size={20} 
-              color={refreshing ? "#10b981" : "#6366f1"} 
-            />
-          </TouchableOpacity>
-          <TouchableOpacity 
-            onPress={async () => {
-              if (user?.id) {
-                try {
-                  console.log('🧪 Testing XP award...');
-                  const result = await XPService.testAwardXP(user.id);
-                  if (result) {
-                    console.log('✅ Test XP awarded:', result.totalXP);
-                    // Refresh the display
-                    await loadLevelInfo();
-                  }
-                } catch (error) {
-                  console.error('❌ Test XP failed:', error);
-                }
-              }
-            }}
-            style={styles.testButton}
-          >
-            <Ionicons name="flask" size={16} color="#f59e0b" />
-          </TouchableOpacity>
-        </View>
+                 <View style={styles.buttonContainer}>
+           <TouchableOpacity 
+             onPress={handleRefresh} 
+             style={[styles.refreshButton, refreshing && styles.refreshButtonActive]}
+             disabled={refreshing}
+           >
+             <Ionicons 
+               name={refreshing ? "sync" : "refresh"} 
+               size={20} 
+               color={refreshing ? "#10b981" : "#6366f1"} 
+             />
+           </TouchableOpacity>
+         </View>
       </View>
 
       <View style={styles.levelInfo}>
@@ -265,9 +245,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-  },
-  testButton: {
-    padding: 4,
   },
   levelInfo: {
     flexDirection: 'row',

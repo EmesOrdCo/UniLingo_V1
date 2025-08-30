@@ -26,6 +26,7 @@ export default function ProgressDashboardScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [progressData, setProgressData] = useState<ProgressInsights | null>(null);
+  const [studyDates, setStudyDates] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -51,6 +52,10 @@ export default function ProgressDashboardScreen() {
           // Continue with empty data if initialization fails
         }
       }
+      
+      // Load study dates for calendar
+      const dates = await HolisticProgressService.getStudyDates(user!.id);
+      setStudyDates(dates);
       
       // Ensure we always have some data structure
       setProgressData(data || {
@@ -180,7 +185,7 @@ export default function ProgressDashboardScreen() {
         {/* Study Calendar */}
         <View style={styles.calendarSection}>
           <Text style={styles.sectionTitle}>📅 Study Calendar</Text>
-          <StudyCalendar studyDates={[]} />
+          <StudyCalendar studyDates={studyDates} />
         </View>
 
         {/* Daily Goals Widget */}
@@ -291,7 +296,7 @@ export default function ProgressDashboardScreen() {
                     <Text style={styles.achievementName}>{achievement.achievement_name}</Text>
                     <Text style={styles.achievementDescription}>{achievement.achievement_description}</Text>
                     <Text style={styles.achievementDate}>
-                      {formatDate(achievement.earned_at.toString())}
+                      {formatDate(achievement.earned_at?.toString() || new Date().toISOString())}
                     </Text>
                   </View>
                 </View>
@@ -362,28 +367,7 @@ export default function ProgressDashboardScreen() {
           </View>
         </View>
 
-        {/* Weekly Progress Chart */}
-        {progressData?.weeklyProgress.length > 0 && (
-          <View style={styles.chartSection}>
-            <Text style={styles.sectionTitle}>📊 Weekly Progress</Text>
-            <View style={styles.chartContainer}>
-              {progressData.weeklyProgress.map((day, index) => (
-                <View key={index} style={styles.chartBar}>
-                  <View 
-                    style={[
-                      styles.chartBarFill, 
-                      { 
-                        height: `${Math.max(10, (day.lessons_completed / 4) * 100)}%`,
-                        backgroundColor: day.lessons_completed > 0 ? '#6366f1' : '#e5e7eb'
-                      }
-                    ]} 
-                  />
-                  <Text style={styles.chartLabel}>{formatDate(day.summary_date.toString())}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-        )}
+
 
 
 
@@ -692,40 +676,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#92400e',
   },
-  chartSection: {
-    backgroundColor: '#ffffff',
-    marginHorizontal: 16,
-    marginBottom: 16,
-    borderRadius: 16,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  chartContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-around',
-    height: 120,
-    paddingTop: 20,
-  },
-  chartBar: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  chartBarFill: {
-    width: 20,
-    backgroundColor: '#6366f1',
-    borderRadius: 10,
-    marginBottom: 8,
-  },
-  chartLabel: {
-    fontSize: 10,
-    color: '#6b7280',
-    textAlign: 'center',
-  },
+
 
   // Flashcards section styles
   flashcardsSection: {

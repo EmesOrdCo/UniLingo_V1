@@ -27,28 +27,28 @@ export class XPService {
     { name: 'Master', threshold: 5000 },
   ];
 
-  // Base XP values for different activity types
+  // Base XP values for different activity types (REDUCED)
   private static readonly ACTIVITY_BASE_XP = {
-    lesson: 50,
-    flashcard: 10,
-    game: 25,
-    exercise: 15,
+    lesson: 15,
+    flashcard: 3,
+    game: 8,
+    exercise: 5,
   };
 
-  // Accuracy bonus thresholds
+  // Accuracy bonus thresholds (REDUCED)
   private static readonly ACCURACY_BONUS = {
-    90: 20, // 90%+ accuracy = 20 bonus XP
-    80: 15, // 80%+ accuracy = 15 bonus XP
-    70: 10, // 70%+ accuracy = 10 bonus XP
-    0: 5,   // Any accuracy = 5 bonus XP
+    90: 6,  // 90%+ accuracy = 6 bonus XP
+    80: 4,  // 80%+ accuracy = 4 bonus XP
+    70: 3,  // 70%+ accuracy = 3 bonus XP
+    0: 1,   // Any accuracy = 1 bonus XP
   };
 
-  // Activity type bonuses
+  // Activity type bonuses (REDUCED)
   private static readonly TYPE_BONUS = {
-    lesson: 25,
-    flashcard: 15,
-    game: 20,
-    exercise: 10,
+    lesson: 8,
+    flashcard: 5,
+    game: 6,
+    exercise: 3,
   };
 
   /**
@@ -73,8 +73,8 @@ export class XPService {
     // Activity type bonus
     const typeBonus = this.TYPE_BONUS[activityType];
 
-    // Streak bonus (max 10 XP for 7+ day streak)
-    const streakBonus = Math.min(10, Math.floor(currentStreak / 7) * 2);
+    // Streak bonus (max 3 XP for 7+ day streak) - REDUCED
+    const streakBonus = Math.min(3, Math.floor(currentStreak / 7) * 1);
 
     const totalXP = baseXP + accuracyBonus + typeBonus + streakBonus;
 
