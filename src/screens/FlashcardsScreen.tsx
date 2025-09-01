@@ -18,6 +18,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { FlashcardService } from '../lib/flashcardService';
 import { UserFlashcardService } from '../lib/userFlashcardService';
 import { supabase } from '../lib/supabase';
+import ConsistentHeader from '../components/ConsistentHeader';
+
 
 const { width } = Dimensions.get('window');
 
@@ -74,6 +76,7 @@ export default function FlashcardsScreen() {
     averageAccuracy: 0,
     bestTopic: ''
   });
+
 
   const { user, profile } = useAuth();
   const navigation = useNavigation();
@@ -1195,12 +1198,137 @@ export default function FlashcardsScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Study Setup</Text>
-        <Text style={styles.headerSubtitle}>Customize your learning experience</Text>
-      </View>
+      <ConsistentHeader 
+        pageName="Study Setup"
+      />
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Create Flashcard Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <TouchableOpacity
+              style={styles.collapsibleHeader}
+              onPress={() => setShowCreateForm(!showCreateForm)}
+            >
+              <Ionicons name="add-circle" size={24} color="#6366f1" />
+              <Text style={styles.sectionTitle}>Create Your Own</Text>
+              <Ionicons 
+                name={showCreateForm ? "chevron-up" : "chevron-down"} 
+                size={20} 
+                color="#64748b" 
+              />
+            </TouchableOpacity>
+          </View>
+          
+          {!showCreateForm ? (
+            <>
+              <Text style={styles.sectionDescription}>
+                Add new flashcards to your personal collection
+              </Text>
+              <TouchableOpacity style={styles.createButton} onPress={() => setShowCreateForm(true)}>
+                <Ionicons name="add" size={24} color="#6366f1" />
+                <Text style={styles.createButtonText}>Create New Flashcard</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity style={styles.uploadNotesButton} onPress={() => navigation.navigate('Upload' as never)}>
+                <Ionicons name="document-text" size={24} color="#10b981" />
+                <Text style={styles.uploadNotesButtonText}>Upload Notes to Create Flashcards with AI</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <View style={styles.createForm}>
+              {/* Topic selection */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Topic</Text>
+                {!showTopicInput ? (
+                  <View style={styles.createFormTopicSelectionContainer}>
+                    <TouchableOpacity
+                      style={styles.createFormTopicDropdown}
+                      onPress={() => setShowTopicPicker(!showTopicPicker)}
+                    >
+                      <Text style={styles.topicDropdownText}>
+                        {newFlashcard.topic || 'Select a topic'}
+                      </Text>
+                      <Ionicons name="chevron-down" size={20} color="#64748b" />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.newTopicButton}
+                      onPress={() => setShowTopicInput(true)}
+                    >
+                      <Ionicons name="add" size={16} color="#6366f1" />
+                      <Text style={styles.newTopicButtonText}>New Topic</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <View style={styles.newTopicInputContainer}>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Enter new topic name"
+                      value={newTopicInput}
+                      onChangeText={setNewTopicInput}
+                    />
+                    <View style={styles.newTopicActions}>
+                      <TouchableOpacity style={styles.cancelButton} onPress={() => {
+                        setShowTopicInput(false);
+                        setNewTopicInput('');
+                      }}>
+                        <Text style={styles.cancelButtonText}>Cancel</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.saveButton} onPress={createFlashcard}>
+                        <Text style={styles.saveButtonText}>Create Flashcard</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                )}
+              </View>
+            </View>
+          )}
+        </View>
+
+        {/* Your Learning Journey Section */}
+        <View style={styles.statsSection}>
+          <Text style={styles.statsTitle}>Your Learning Journey</Text>
+          <View style={styles.statsGrid}>
+            <View style={styles.statCard}>
+              <View style={styles.statIcon}>
+                <Ionicons name="book" size={20} color="#6366f1" />
+              </View>
+              <Text style={styles.statNumber}>{realFlashcardStats.totalCards}</Text>
+              <Text style={styles.statLabel}>Total Cards</Text>
+            </View>
+            <View style={styles.statCard}>
+              <View style={styles.statIcon}>
+                <Ionicons name="trending-up" size={20} color="#06b6d4" />
+              </View>
+              <Text style={styles.statNumber}>{realFlashcardStats.averageAccuracy}%</Text>
+              <Text style={styles.statLabel}>Avg Accuracy</Text>
+            </View>
+            <View style={styles.statCard}>
+              <View style={styles.statIcon}>
+                <Ionicons name="trophy" size={20} color="#f59e0b" />
+              </View>
+              <Text 
+                style={[
+                  styles.statNumber,
+                  {
+                    fontSize: realFlashcardStats.bestTopic.length > 15 ? 16 : 
+                             realFlashcardStats.bestTopic.length > 10 ? 18 : 20,
+                    lineHeight: realFlashcardStats.bestTopic.length > 15 ? 20 : 
+                               realFlashcardStats.bestTopic.length > 10 ? 22 : 24,
+                  }
+                ]}
+                numberOfLines={2}
+                ellipsizeMode="tail"
+                adjustsFontSizeToFit={true}
+                minimumFontScale={0.8}
+              >
+                {realFlashcardStats.bestTopic}
+              </Text>
+              <Text style={styles.statLabel}>Best Topic</Text>
+            </View>
+          </View>
+        </View>
+
         {/* Unified Selection Card */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
@@ -1531,227 +1659,10 @@ export default function FlashcardsScreen() {
           )}
         </View>
 
-                 {/* Create Flashcard Section */}
-         <View style={styles.section}>
-           <View style={styles.sectionHeader}>
-            <TouchableOpacity
-               style={styles.collapsibleHeader}
-               onPress={() => setShowCreateForm(!showCreateForm)}
-             >
-               <Ionicons name="add-circle" size={24} color="#6366f1" />
-               <Text style={styles.sectionTitle}>Create Your Own</Text>
-               <Ionicons 
-                 name={showCreateForm ? "chevron-up" : "chevron-down"} 
-                 size={20} 
-                 color="#64748b" 
-               />
-             </TouchableOpacity>
-              </View>
-           
-           {!showCreateForm ? (
-             <>
-               <Text style={styles.sectionDescription}>
-                 Add new flashcards to your personal collection
-               </Text>
-               <TouchableOpacity style={styles.createButton} onPress={() => setShowCreateForm(true)}>
-                 <Ionicons name="add" size={24} color="#6366f1" />
-                 <Text style={styles.createButtonText}>Create New Flashcard</Text>
-               </TouchableOpacity>
-               
-               <TouchableOpacity style={styles.uploadNotesButton} onPress={() => navigation.navigate('Upload' as never)}>
-                 <Ionicons name="document-text" size={24} color="#10b981" />
-                 <Text style={styles.uploadNotesButtonText}>Upload Notes to Create Flashcards with AI</Text>
-               </TouchableOpacity>
-             </>
-           ) : (
-             <View style={styles.createForm}>
-                {/* Topic selection */}
-                <View style={styles.inputContainer}>
-                  <Text style={styles.inputLabel}>Topic</Text>
-                                     {!showTopicInput ? (
-                     <View style={styles.createFormTopicSelectionContainer}>
-                       <TouchableOpacity
-                         style={styles.createFormTopicDropdown}
-                         onPress={() => setShowTopicPicker(!showTopicPicker)}
-                       >
-                         <Text style={styles.topicDropdownText}>
-                           {newFlashcard.topic || 'Select a topic'}
-              </Text>
-                         <Ionicons name="chevron-down" size={20} color="#64748b" />
-                       </TouchableOpacity>
-                       <TouchableOpacity
-                         style={styles.newTopicButton}
-                         onPress={() => setShowTopicInput(true)}
-                       >
-                         <Ionicons name="add" size={16} color="#6366f1" />
-                         <Text style={styles.newTopicButtonText}>New Topic</Text>
-                       </TouchableOpacity>
-                     </View>
-                   ) : (
-                    <View style={styles.newTopicInputContainer}>
-                      <TextInput
-                        style={styles.input}
-                        placeholder="Enter new topic name"
-                        value={newTopicInput}
-                        onChangeText={setNewTopicInput}
-                      />
-                      <View style={styles.newTopicActions}>
-                        <TouchableOpacity
-                          style={styles.cancelNewTopicButton}
-                          onPress={() => {
-                            setShowTopicInput(false);
-                            setNewTopicInput('');
-                          }}
-                        >
-                          <Text style={styles.cancelNewTopicButtonText}>Cancel</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          style={styles.confirmNewTopicButton}
-                          onPress={() => {
-                            if (newTopicInput.trim()) {
-                              setNewFlashcard(prev => ({ ...prev, topic: newTopicInput.trim() }));
-                              setShowTopicInput(false);
-                            }
-                          }}
-                        >
-                          <Text style={styles.confirmNewTopicButtonText}>Confirm</Text>
-                        </TouchableOpacity>
-                      </View>
-            </View>
-          )}
-          
-                                     {/* Topic dropdown options */}
-                   {!showTopicInput && showTopicPicker && (
-                     <View style={styles.topicOptionsContainer}>
-                       {topics.map((topic) => (
-          <TouchableOpacity
-                           key={topic.id}
-                           style={styles.topicOption}
-                           onPress={() => {
-                             setNewFlashcard(prev => ({ ...prev, topic: topic.name }));
-                             setShowTopicPicker(false);
-                           }}
-                         >
-                           <Text style={styles.topicOptionText}>{topic.name}</Text>
-          </TouchableOpacity>
-                       ))}
-                     </View>
-                   )}
-                 </View>
-              <TextInput
-                style={styles.input}
-                placeholder={`Front of card in English (question/term)`}
-                value={newFlashcard.front}
-                onChangeText={(text) => setNewFlashcard(prev => ({ ...prev, front: text }))}
-                multiline
-              />
-              <TextInput
-                style={styles.input}
-                placeholder={`Back of card in ${profile?.native_language || 'your native language'} (answer/definition)`}
-                value={newFlashcard.back}
-                onChangeText={(text) => setNewFlashcard(prev => ({ ...prev, back: text }))}
-                multiline
-              />
-                             <View style={styles.difficultyRow}>
-                 {['beginner', 'intermediate', 'expert'].map((diff) => (
-                   <TouchableOpacity
-                     key={diff}
-                     style={[
-                       styles.difficultyButton,
-                       newFlashcard.difficulty === diff && styles.selectedDifficultyButton,
-                       { borderColor: diff === 'beginner' ? '#10b981' : diff === 'intermediate' ? '#f59e0b' : '#ef4444' }
-                     ]}
-                     onPress={() => setNewFlashcard(prev => ({ ...prev, difficulty: diff as any }))}
-                   >
-                     <View style={[
-                       styles.difficultyButtonDot,
-                       { backgroundColor: diff === 'beginner' ? '#10b981' : diff === 'intermediate' ? '#f59e0b' : '#ef4444' }
-                     ]} />
-                     <Text style={[
-                       styles.difficultyButtonText,
-                       newFlashcard.difficulty === diff && styles.selectedDifficultyButtonText
-                     ]}>
-                       {diff === 'intermediate' ? 'Int.' : diff.charAt(0).toUpperCase() + diff.slice(1)}
-                     </Text>
-                   </TouchableOpacity>
-                 ))}
-               </View>
-              <TextInput
-                style={styles.input}
-                placeholder="Example sentence (optional)"
-                value={newFlashcard.example}
-                onChangeText={(text) => setNewFlashcard(prev => ({ ...prev, example: text }))}
-                multiline
-              />
-                             <TextInput
-                 style={styles.input}
-                 placeholder="Pronunciation (optional)"
-                 value={newFlashcard.pronunciation}
-                 onChangeText={(text) => setNewFlashcard(prev => ({ ...prev, pronunciation: text }))}
-               />
-               
-              
-              <View style={styles.formButtons}>
-                                 <TouchableOpacity style={styles.cancelButton} onPress={() => {
-                   setShowCreateForm(false);
-                   setShowTopicPicker(false);
-                   setShowTopicInput(false);
-                   setNewTopicInput('');
-                 }}>
-                   <Text style={styles.cancelButtonText}>Cancel</Text>
-                 </TouchableOpacity>
-                <TouchableOpacity style={styles.saveButton} onPress={createFlashcard}>
-                  <Text style={styles.saveButtonText}>Create Flashcard</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
-        </View>
 
-        {/* Quick Stats */}
-        <View style={styles.statsSection}>
-          <Text style={styles.statsTitle}>Your Learning Journey</Text>
-          <View style={styles.statsGrid}>
-            <View style={styles.statCard}>
-              <View style={styles.statIcon}>
-                <Ionicons name="book" size={20} color="#6366f1" />
-              </View>
-              <Text style={styles.statNumber}>{realFlashcardStats.totalCards}</Text>
-              <Text style={styles.statLabel}>Total Cards</Text>
-            </View>
-            <View style={styles.statCard}>
-              <View style={styles.statIcon}>
-                <Ionicons name="trending-up" size={20} color="#06b6d4" />
-              </View>
-              <Text style={styles.statNumber}>{realFlashcardStats.averageAccuracy}%</Text>
-              <Text style={styles.statLabel}>Avg Accuracy</Text>
-            </View>
-            <View style={styles.statCard}>
-              <View style={styles.statIcon}>
-                <Ionicons name="trophy" size={20} color="#f59e0b" />
-              </View>
-              <Text 
-                style={[
-                  styles.statNumber,
-                  {
-                    fontSize: realFlashcardStats.bestTopic.length > 15 ? 16 : 
-                             realFlashcardStats.bestTopic.length > 10 ? 18 : 20,
-                    lineHeight: realFlashcardStats.bestTopic.length > 15 ? 20 : 
-                               realFlashcardStats.bestTopic.length > 10 ? 22 : 24,
-                  }
-                ]}
-                numberOfLines={2}
-                ellipsizeMode="tail"
-                adjustsFontSizeToFit={true}
-                minimumFontScale={0.8}
-              >
-                {realFlashcardStats.bestTopic}
-              </Text>
-              <Text style={styles.statLabel}>Best Topic</Text>
-            </View>
-          </View>
-        </View>
       </ScrollView>
+      
+
     </SafeAreaView>
   );
 }

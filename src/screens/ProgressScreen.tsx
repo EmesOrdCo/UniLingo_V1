@@ -8,13 +8,17 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import ConsistentHeader from '../components/ConsistentHeader';
+
 
 export default function ProgressScreen() {
+
+
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Progress</Text>
-      </View>
+      <ConsistentHeader 
+        pageName="Progress"
+      />
       
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Overall Progress Summary */}
@@ -204,6 +208,9 @@ export default function ProgressScreen() {
           </View>
         </View>
       </ScrollView>
+      
+      {/* Profile Modal */}
+      
     </SafeAreaView>
   );
 }

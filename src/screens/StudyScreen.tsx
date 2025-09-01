@@ -10,6 +10,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import ConsistentHeader from '../components/ConsistentHeader';
+
 
 interface StudyRouteParams {
   topic?: string;
@@ -47,6 +49,7 @@ export default function StudyScreen() {
     }
   ]);
 
+
   const currentCard = studyCards[currentCardIndex];
 
   const handleNextCard = () => {
@@ -80,16 +83,20 @@ export default function StudyScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
+      {/* Consistent Header */}
+      <ConsistentHeader 
+        pageName="Study Session"
+      />
+      
+      {/* Back Button */}
+      <View style={styles.backButtonContainer}>
         <TouchableOpacity 
           style={styles.backButton} 
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} color="#1e293b" />
+          <Ionicons name="arrow-back" size={24} color="#6366f1" />
+          <Text style={styles.backButtonText}>Back</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Study Session</Text>
-        <View style={styles.headerSpacer} />
       </View>
 
       {/* Progress Indicator */}
@@ -160,6 +167,9 @@ export default function StudyScreen() {
           <Ionicons name="chevron-forward" size={24} color="#ffffff" />
         </TouchableOpacity>
       </View>
+      
+      {/* Profile Modal */}
+      
     </SafeAreaView>
   );
 }
@@ -180,7 +190,22 @@ const styles = StyleSheet.create({
     borderBottomColor: '#e2e8f0',
   },
   backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
     padding: 8,
+  },
+  backButtonContainer: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: '#ffffff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  backButtonText: {
+    color: '#6366f1',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
   },
   headerTitle: {
     fontSize: 20,
