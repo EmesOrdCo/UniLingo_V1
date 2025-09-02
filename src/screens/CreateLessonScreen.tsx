@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,33 +6,28 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
+  ActivityIndicator,
   Dimensions,
-  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
-import { UploadService, UploadProgress } from '../lib/uploadService';
-import { ImprovedLessonService } from '../lib/improvedLessonService';
-import UploadProgressModal from '../components/UploadProgressModal';
+import { LessonService } from '../lib/lessonService';
+import * as DocumentPicker from 'expo-document-picker';
+import * as FileSystem from 'expo-file-system';
 
 const { width: screenWidth } = Dimensions.get('window');
 
 export default function CreateLessonScreen() {
-  const [selectedTopic, setSelectedTopic] = useState('');
-  const [showTopicInput, setShowTopicInput] = useState(false);
-  const [newTopicInput, setNewTopicInput] = useState('');
-  const [topics, setTopics] = useState<Array<{ id: string; name: string; icon: string; color: string; count: number }>>([]);
-  const [showTopicPicker, setShowTopicPicker] = useState(false);
+  const [selectedSubject, setSelectedSubject] = useState('');
+  const [showSubjectPicker, setShowSubjectPicker] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [progress, setProgress] = useState<UploadProgress>({
-    stage: 'uploading',
+  const [progress, setProgress] = useState({
+    stage: 'ready',
     progress: 0,
     message: 'Ready to create lesson',
   });
-  const [showProgressModal, setShowProgressModal] = useState(false);
-  const [generatedLesson, setGeneratedLesson] = useState<any>(null);
   
   const navigation = useNavigation();
   const { user, profile } = useAuth();
@@ -40,56 +35,22 @@ export default function CreateLessonScreen() {
   // Get user's subject and native language from profile
   const userSubject = profile?.subjects?.[0] || 'General';
   const userNativeLanguage = profile?.native_language || 'English';
-  
-  // Ensure we have a valid native language
-  if (!userNativeLanguage || userNativeLanguage === 'English') {
-    console.warn('⚠️ Warning: userNativeLanguage is not properly set:', userNativeLanguage);
-  }
 
-  useEffect(() => {
-    fetchTopics();
-  }, []);
+  // Sample subjects
+  const subjects = [
+    'Medicine', 'Engineering', 'Law', 'Business', 'Physics', 
+    'Chemistry', 'Biology', 'Computer Science', 'Mathematics',
+    'Economics', 'Psychology', 'History', 'Literature', 'Art'
+  ];
 
-  const fetchTopics = async () => {
-    try {
-      // This would fetch topics from your existing topic system
-      // For now, using placeholder data
-      const placeholderTopics = [
-        { id: '1', name: 'Medicine', icon: 'medical', color: '#ef4444', count: 0 },
-        { id: '2', name: 'Engineering', icon: 'construct', color: '#3b82f6', count: 0 },
-        { id: '3', name: 'Law', icon: 'library', color: '#8b5cf6', count: 0 },
-        { id: '4', name: 'Business', icon: 'business', color: '#10b981', count: 0 },
-        { id: '5', name: 'Custom Topic', icon: 'add-circle', color: '#f59e0b', count: 0 },
-      ];
-      setTopics(placeholderTopics);
-    } catch (error) {
-      console.error('❌ Error fetching topics:', error);
-      setTopics([]);
-    }
-  };
-
-  const handleTopicSelect = (topic: { id: string; name: string; icon: string; color: string; count: number }) => {
-    if (topic.name === 'Custom Topic') {
-      setShowTopicInput(true);
-      setSelectedTopic('');
-    } else {
-      setSelectedTopic(topic.name);
-      setShowTopicInput(false);
-    }
-    setShowTopicPicker(false);
-  };
-
-  const handleCustomTopicSubmit = () => {
-    if (newTopicInput.trim()) {
-      setSelectedTopic(newTopicInput.trim());
-      setNewTopicInput('');
-      setShowTopicInput(false);
-    }
+  const handleSubjectSelect = (subject: string) => {
+    setSelectedSubject(subject);
+    setShowSubjectPicker(false);
   };
 
   const handleFilePick = async () => {
-    if (!selectedTopic) {
-      Alert.alert('Error', 'Please select a topic first');
+    if (!selectedSubject) {
+      Alert.alert('Error', 'Please select a subject first');
       return;
     }
 
@@ -100,7 +61,6 @@ export default function CreateLessonScreen() {
 
     try {
       setIsProcessing(true);
-      setShowProgressModal(true);
       setProgress({
         stage: 'uploading',
         progress: 10,
@@ -108,7 +68,12 @@ export default function CreateLessonScreen() {
       });
 
       // Pick PDF file
-      const fileResult = await UploadService.pickPDF();
+      const fileResult = await DocumentPicker.getDocumentAsync({
+        type: 'application/pdf',
+        copyToCacheDirectory: true,
+        multiple: false,
+      });
+
       if (!fileResult || !fileResult.assets || fileResult.assets.length === 0) {
         throw new Error('No file selected');
       }
@@ -119,39 +84,32 @@ export default function CreateLessonScreen() {
       }
 
       setProgress({
-        stage: 'uploading',
-        progress: 20,
-        message: 'Extracting text from PDF...',
+        stage: 'processing',
+        progress: 40,
+        message: 'Converting PDF to text...',
       });
 
-      // Extract text from PDF
-      const extractedText = await UploadService.extractTextFromPDF(file.uri);
-      if (!extractedText) {
-        throw new Error('Failed to extract text from PDF');
-      }
-
-      setProgress({
-        stage: 'uploading',
-        progress: 50,
-        message: 'Analyzing content with improved AI...',
-      });
-
-      // Generate improved lesson using AI
-      const lesson = await ImprovedLessonService.generateLessonFromPDF(
-        extractedText,
+      // Create lesson using AI (PDF conversion happens inside the service)
+      const lesson = await LessonService.createLessonFromPDF(
+        file.uri,
         file.name,
         user.id,
-        userNativeLanguage,
-        userSubject
+        selectedSubject,
+        userNativeLanguage
       );
 
+      setProgress({
+        stage: 'processing',
+        progress: 80,
+        message: 'Generating vocabulary with AI...',
+      });
+
       if (!lesson) {
-        throw new Error('Failed to generate lesson');
+        throw new Error('Failed to create lesson');
       }
 
-      setGeneratedLesson(lesson);
       setProgress({
-        stage: 'generating',
+        stage: 'complete',
         progress: 100,
         message: 'Lesson created successfully!',
       });
@@ -159,22 +117,19 @@ export default function CreateLessonScreen() {
       // Show success message
       Alert.alert(
         'Success! 🎓',
-        `Your improved interactive lesson "${lesson.title}" has been created successfully!`,
+        `Your lesson "${lesson.title}" has been created successfully!`,
         [
           {
-            text: 'View Lesson',
+            text: 'Start Lesson',
             onPress: () => {
-              setShowProgressModal(false);
-              (navigation as any).navigate('ImprovedLessonViewer', { lessonId: lesson.id });
+              (navigation as any).navigate('LessonViewer', { lessonId: lesson.id });
             }
           },
           {
             text: 'Create Another',
             onPress: () => {
-              setShowProgressModal(false);
-              setGeneratedLesson(null);
               setProgress({
-                stage: 'uploading',
+                stage: 'ready',
                 progress: 0,
                 message: 'Ready to create lesson',
               });
@@ -203,19 +158,6 @@ export default function CreateLessonScreen() {
     }
   };
 
-  const handleCloseProgress = () => {
-    setShowProgressModal(false);
-    setIsProcessing(false);
-    
-    if (progress.stage === 'error') {
-      setProgress({
-        stage: 'uploading',
-        progress: 0,
-        message: 'Ready to create lesson',
-      });
-    }
-  };
-
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -224,84 +166,45 @@ export default function CreateLessonScreen() {
           <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
             <Ionicons name="arrow-back" size={24} color="#6366f1" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Create Interactive Lesson</Text>
+          <Text style={styles.headerTitle}>Create New Lesson</Text>
           <View style={styles.placeholder} />
         </View>
 
         {/* Description */}
         <View style={styles.descriptionContainer}>
-          <Text style={styles.descriptionTitle}>AI-Powered English Lessons</Text>
+          <Text style={styles.descriptionTitle}>AI-Powered Vocabulary Lessons</Text>
           <Text style={styles.descriptionText}>
-            Upload your course notes and let AI create an interactive, Duolingo-style lesson 
-            that teaches English terminology from your subject. Perfect for non-native speakers 
-            learning subject-specific English vocabulary.
+            Upload your course notes and let AI create an interactive vocabulary lesson 
+            with flashcards and games. Perfect for learning subject-specific English terminology.
           </Text>
         </View>
 
-        {/* Topic Selection */}
-        <View style={styles.topicSection}>
-          <Text style={styles.sectionTitle}>Select Subject/Topic</Text>
+        {/* Subject Selection */}
+        <View style={styles.subjectSection}>
+          <Text style={styles.sectionTitle}>Select Subject</Text>
           
-          {showTopicInput ? (
-            <View style={styles.customTopicContainer}>
-              <TextInput
-                style={styles.customTopicInput}
-                value={newTopicInput}
-                onChangeText={setNewTopicInput}
-                placeholder="Enter your topic (e.g., Cardiology, Civil Law, Thermodynamics)"
-                placeholderTextColor="#9ca3af"
-              />
-              <View style={styles.customTopicButtons}>
-                <TouchableOpacity
-                  style={styles.cancelButton}
-                  onPress={() => {
-                    setShowTopicInput(false);
-                    setNewTopicInput('');
-                  }}
-                >
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.submitButton}
-                  onPress={handleCustomTopicSubmit}
-                  disabled={!newTopicInput.trim()}
-                >
-                  <Text style={styles.submitButtonText}>Submit</Text>
-                </TouchableOpacity>
-              </View>
+          <TouchableOpacity
+            style={styles.subjectPicker}
+            onPress={() => setShowSubjectPicker(!showSubjectPicker)}
+          >
+            <View style={styles.subjectPickerContent}>
+              <Ionicons name="school" size={20} color="#6366f1" />
+              <Text style={styles.subjectPickerText}>
+                {selectedSubject || 'Choose a subject'}
+              </Text>
+              <Ionicons name="chevron-down" size={20} color="#64748b" />
             </View>
-          ) : (
-            <TouchableOpacity
-              style={styles.topicPicker}
-              onPress={() => setShowTopicPicker(!showTopicPicker)}
-            >
-              <View style={styles.topicPickerContent}>
-                <Ionicons name="school" size={20} color="#6366f1" />
-                <Text style={styles.topicPickerText}>
-                  {selectedTopic || 'Choose a subject or topic'}
-                </Text>
-                <Ionicons name="chevron-down" size={20} color="#64748b" />
-              </View>
-            </TouchableOpacity>
-          )}
+          </TouchableOpacity>
 
-          {showTopicPicker && (
-            <View style={styles.topicOptions}>
-              {topics.map((topic) => (
+          {showSubjectPicker && (
+            <View style={styles.subjectOptions}>
+              {subjects.map((subject) => (
                 <TouchableOpacity
-                  key={topic.id}
-                  style={styles.topicOption}
-                  onPress={() => handleTopicSelect(topic)}
+                  key={subject}
+                  style={styles.subjectOption}
+                  onPress={() => handleSubjectSelect(subject)}
                 >
-                  <View style={styles.topicOptionContent}>
-                    <View style={[styles.topicIcon, { backgroundColor: topic.color }]}>
-                      <Ionicons name={topic.icon as any} size={20} color="#ffffff" />
-                    </View>
-                    <Text style={styles.topicOptionText}>{topic.name}</Text>
-                  </View>
-                  {topic.name !== 'Custom Topic' && (
-                    <Text style={styles.topicCount}>{topic.count} lessons</Text>
-                  )}
+                  <Text style={styles.subjectOptionText}>{subject}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -311,27 +214,37 @@ export default function CreateLessonScreen() {
         {/* Upload Area */}
         <View style={styles.uploadArea}>
           <View style={styles.uploadIcon}>
-            <Ionicons name="school" size={56} color="#6366f1" />
+            <Ionicons name="document-text" size={64} color="#6366f1" />
           </View>
-          <Text style={styles.uploadTitle}>Create Your Lesson</Text>
+          <Text style={styles.uploadTitle}>Upload Your Course Notes</Text>
           <Text style={styles.uploadSubtitle}>
-            Upload PDF course notes to generate an interactive English lesson
+            Select a PDF file containing your course material
           </Text>
           
           <TouchableOpacity
             style={[
               styles.uploadButton,
-              (!selectedTopic || isProcessing) && styles.disabledButton
+              (!selectedSubject || isProcessing) && styles.disabledButton
             ]}
             onPress={handleFilePick}
-            disabled={!selectedTopic || isProcessing}
+            disabled={!selectedSubject || isProcessing}
           >
-            <Ionicons name="document" size={22} color="#ffffff" />
+            <Ionicons name="cloud-upload" size={22} color="#ffffff" />
             <Text style={styles.uploadButtonText}>
               {isProcessing ? 'Creating Lesson...' : 'Choose PDF File'}
             </Text>
           </TouchableOpacity>
         </View>
+
+        {/* Progress Indicator */}
+        {isProcessing && (
+          <View style={styles.progressContainer}>
+            <View style={styles.progressBar}>
+              <View style={[styles.progressFill, { width: `${progress.progress}%` }]} />
+            </View>
+            <Text style={styles.progressText}>{progress.message}</Text>
+          </View>
+        )}
 
         {/* Info Section */}
         <View style={styles.infoSection}>
@@ -341,36 +254,29 @@ export default function CreateLessonScreen() {
               <View style={styles.stepNumber}>
                 <Text style={styles.stepNumberText}>1</Text>
               </View>
-              <Text style={styles.stepText}>AI analyzes your course notes</Text>
+              <Text style={styles.stepText}>AI extracts key vocabulary terms</Text>
             </View>
             <View style={styles.infoStep}>
               <View style={styles.stepNumber}>
                 <Text style={styles.stepNumberText}>2</Text>
               </View>
-              <Text style={styles.stepText}>Creates bilingual vocabulary list</Text>
+              <Text style={styles.stepText}>Creates bilingual flashcards</Text>
             </View>
             <View style={styles.infoStep}>
               <View style={styles.stepNumber}>
                 <Text style={styles.stepNumberText}>3</Text>
               </View>
-              <Text style={styles.stepText}>Generates 5+ interactive exercises</Text>
+              <Text style={styles.stepText}>Generates 3 interactive games</Text>
             </View>
             <View style={styles.infoStep}>
               <View style={styles.stepNumber}>
                 <Text style={styles.stepNumberText}>4</Text>
               </View>
-              <Text style={styles.stepText}>Track progress and master terminology</Text>
+              <Text style={styles.stepText}>Track progress and earn XP</Text>
             </View>
           </View>
         </View>
       </ScrollView>
-
-      {/* Progress Modal */}
-      <UploadProgressModal
-        visible={showProgressModal}
-        progress={progress}
-        onClose={handleCloseProgress}
-      />
     </SafeAreaView>
   );
 }
@@ -429,7 +335,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     textAlign: 'center',
   },
-  topicSection: {
+  subjectSection: {
     backgroundColor: '#ffffff',
     marginHorizontal: 20,
     marginBottom: 20,
@@ -447,7 +353,7 @@ const styles = StyleSheet.create({
     color: '#1e293b',
     marginBottom: 16,
   },
-  topicPicker: {
+  subjectPicker: {
     backgroundColor: '#f8fafc',
     borderRadius: 12,
     padding: 16,
@@ -455,93 +361,34 @@ const styles = StyleSheet.create({
     borderColor: '#e2e8f0',
     borderStyle: 'dashed',
   },
-  topicPickerContent: {
+  subjectPickerContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  topicPickerText: {
+  subjectPickerText: {
     fontSize: 16,
     color: '#64748b',
     flex: 1,
     marginLeft: 12,
   },
-  customTopicContainer: {
-    gap: 16,
-  },
-  customTopicInput: {
-    backgroundColor: '#ffffff',
-    borderWidth: 2,
-    borderColor: '#e2e8f0',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: '#1e293b',
-  },
-  customTopicButtons: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  cancelButton: {
-    flex: 1,
-    backgroundColor: '#f1f5f9',
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  cancelButtonText: {
-    color: '#64748b',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  submitButton: {
-    flex: 1,
-    backgroundColor: '#6366f1',
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  submitButtonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  topicOptions: {
+  subjectOptions: {
     marginTop: 16,
-    gap: 12,
-  },
-  topicOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#f8fafc',
-    padding: 16,
+    backgroundColor: '#ffffff',
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#e2e8f0',
+    overflow: 'hidden',
   },
-  topicOptionContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
+  subjectOption: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
   },
-  topicIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  topicOptionText: {
+  subjectOptionText: {
     fontSize: 16,
-    color: '#1e293b',
-    fontWeight: '500',
-  },
-  topicCount: {
-    fontSize: 14,
-    color: '#64748b',
+    color: '#374151',
   },
   uploadArea: {
     backgroundColor: '#ffffff',
@@ -596,6 +443,35 @@ const styles = StyleSheet.create({
     backgroundColor: '#cbd5e1',
     shadowOpacity: 0,
     elevation: 0,
+  },
+  progressContainer: {
+    backgroundColor: '#ffffff',
+    marginHorizontal: 20,
+    marginBottom: 20,
+    padding: 20,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  progressBar: {
+    height: 8,
+    backgroundColor: '#e2e8f0',
+    borderRadius: 4,
+    marginBottom: 12,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#6366f1',
+    borderRadius: 4,
+  },
+  progressText: {
+    fontSize: 14,
+    color: '#64748b',
+    textAlign: 'center',
   },
   infoSection: {
     backgroundColor: '#ffffff',

@@ -20,7 +20,8 @@ const PORT = process.env.PORT || 3001;
 
 // Middleware
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static('uploads'));
 
 // Configure multer for file uploads
@@ -51,68 +52,105 @@ const upload = multer({
   }
 });
 
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({ status: 'OK', message: 'Backend server is running' });
-});
-
-// PDF text extraction endpoint
-app.post('/api/extract-pdf-text', upload.single('pdf'), async (req, res) => {
+// Fallback PDF text extraction function
+function extractTextFromPDFBuffer(pdfBuffer) {
   try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'No PDF file uploaded' });
-    }
-
-    const filePath = req.file.path;
-    console.log('Processing PDF:', filePath);
-
-    // Call Cloudmersive API for text extraction
-    const cloudmersiveApiKey = process.env.CLOUDMERSIVE_API_KEY;
-    if (!cloudmersiveApiKey) {
-      return res.status(500).json({ error: 'Cloudmersive API key not configured' });
-    }
-
-    const FormData = require('form-data');
-    const form = new FormData();
-    form.append('inputFile', fs.createReadStream(filePath));
-
-    const response = await fetch('https://api.cloudmersive.com/convert/pdf/to/text', {
-      method: 'POST',
-      headers: {
-        'Apikey': cloudmersiveApiKey,
-        ...form.getHeaders()
-      },
-      body: form
-    });
-
-    if (!response.ok) {
-      throw new Error(`Cloudmersive API error: ${response.status} ${response.statusText}`);
-    }
-
-    const extractedText = await response.text();
+    // Convert buffer to string and look for text patterns
+    const pdfString = pdfBuffer.toString('utf8');
     
-    // Clean up uploaded file
-    fs.unlinkSync(filePath);
+    // Look for text patterns in PDF content
+    const textPatterns = [
+      /\(([^)]+)\)/g,           // Text in parentheses
+      /\[([^\]]+)\]/g,           // Text in brackets
+      /\/Text\s*\(([^)]+)\)/g,   // PDF text objects
+      /BT\s*([\s\S]*?)\s*ET/g,  // Text between BT and ET markers
+      /Tj\s*\(([^)]+)\)/g,      // Text objects
+      /stream\s*([\s\S]*?)\s*endstream/g  // Stream content
+    ];
+    
+    let extractedText = '';
+    
+    textPatterns.forEach(pattern => {
+      const matches = pdfString.match(pattern) || [];
+      matches.forEach(match => {
+        // Clean up the extracted text
+        let cleanText = match.replace(/[()\[\]]/g, '').trim();
+        cleanText = cleanText.replace(/BT|ET|Tj|stream|endstream/g, '').trim();
+        
+        if (cleanText.length > 5 && !cleanText.match(/^\d+$/)) {
+          extractedText += cleanText + ' ';
+        }
+      });
+    });
+    
+    // If no meaningful text found, throw an error
+    if (!extractedText.trim()) {
+      throw new Error('No readable text could be extracted from the PDF');
+    }
+    
+    return extractedText.trim();
+  } catch (error) {
+    console.error('Error in fallback text extraction:', error);
+    throw new Error('Failed to extract text from PDF. Please ensure the PDF contains readable text.');
+  }
+}
 
-    res.json({ 
-      success: true, 
+// Updated PDF text extraction endpoint with fallback
+app.post('/api/extract-pdf-base64', async (req, res) => {
+  try {
+    const { pdfBase64 } = req.body;
+    if (!pdfBase64) {
+      return res.status(400).json({ error: 'No PDF base64 data provided' });
+    }
+
+    const pdfBuffer = Buffer.from(pdfBase64, 'base64');
+    
+    // Write buffer to temporary file
+    const tempFilePath = path.join(__dirname, 'temp', `temp_${Date.now()}.pdf`);
+    const tempDir = path.dirname(tempFilePath);
+    if (!fs.existsSync(tempDir)) {
+      fs.mkdirSync(tempDir, { recursive: true });
+    }
+    fs.writeFileSync(tempFilePath, pdfBuffer);
+    
+    let extractedText = '';
+    let usedFallback = false;
+    
+    // Use fallback PDF text extraction directly
+    console.log('🔍 Using fallback PDF text extraction...');
+    usedFallback = true;
+    extractedText = extractTextFromPDFBuffer(pdfBuffer);
+
+    // Clean up temporary file
+    if (fs.existsSync(tempFilePath)) {
+      fs.unlinkSync(tempFilePath);
+    }
+
+    res.json({
+      success: true,
       text: extractedText,
-      filename: req.file.originalname
+      filename: 'document.pdf',
+      usedFallback: usedFallback
     });
 
   } catch (error) {
     console.error('PDF extraction error:', error);
     
-    // Clean up file if it exists
-    if (req.file && fs.existsSync(req.file.path)) {
-      fs.unlinkSync(req.file.path);
+    // Clean up temporary file if it exists
+    if (typeof tempFilePath !== 'undefined' && fs.existsSync(tempFilePath)) {
+      fs.unlinkSync(tempFilePath);
     }
     
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to extract text from PDF',
-      details: error.message 
+      details: error.message
     });
   }
+});
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ status: 'OK', message: 'Backend server is running' });
 });
 
 // Error handling middleware

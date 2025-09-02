@@ -65,7 +65,7 @@ function OverviewTab() {
   );
 }
 
-// Lessons tab component
+// Lessons tab component - placeholder for new lesson system
 function LessonsTab() {
   return (
     <SafeAreaView style={styles.container}>
@@ -129,9 +129,19 @@ export default function DashboardScreen() {
 }
 
 const styles = StyleSheet.create({
-      container: {
-        flex: 1,
-        backgroundColor: '#f8fafc',
-      },
-
+  container: {
+    flex: 1,
+    backgroundColor: '#f8fafc',
+  },
+  placeholderContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  placeholderText: {
+    fontSize: 18,
+    color: '#64748b',
+    textAlign: 'center',
+  },
 });

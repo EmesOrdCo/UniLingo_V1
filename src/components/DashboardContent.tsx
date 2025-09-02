@@ -3,7 +3,7 @@ import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import DailyGoalsWidget from './DailyGoalsWidget';
 import RecentActivitiesWidget from './RecentActivitiesWidget';
 import LevelProgressWidget from './LevelProgressWidget';
-import CreateLessonHeroCard from './CreateLessonHeroCard';
+import ConversationPracticeCard from './ConversationPracticeCard';
 
 interface DashboardContentProps {
   progressData: any;
@@ -13,8 +13,8 @@ interface DashboardContentProps {
 export default function DashboardContent({ progressData, loadingProgress }: DashboardContentProps) {
   return (
     <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-      {/* Create Lesson CTA Card */}
-      <CreateLessonHeroCard />
+      {/* Conversation Practice Card */}
+      <ConversationPracticeCard />
       
       {/* Daily Goals Widget */}
       <DailyGoalsWidget />

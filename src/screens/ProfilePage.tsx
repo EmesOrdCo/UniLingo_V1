@@ -1,17 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../contexts/AuthContext';
 import { HolisticProgressService } from '../lib/holisticProgressService';
+import { ProfilePictureService } from '../lib/profilePictureService';
+import ShareInvitationModal from '../components/ShareInvitationModal';
+import ProfileAvatar from '../components/ProfileAvatar';
+import ContactSupportModal from '../components/ContactSupportModal';
+import SubscriptionStatus from '../components/SubscriptionStatus';
 
 export default function ProfilePage() {
   const navigation = useNavigation();
   const { user, profile, signOut } = useAuth();
   const [currentStreak, setCurrentStreak] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
+  const [showShareInvitation, setShowShareInvitation] = useState(false);
+  const [showContactSupport, setShowContactSupport] = useState(false);
   const [isDarkTheme, setIsDarkTheme] = useState(false);
+  const [profileImage, setProfileImage] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchStreak = async () => {
@@ -25,8 +34,85 @@ export default function ProfilePage() {
       }
     };
 
+    const loadProfilePicture = async () => {
+      try {
+        const savedImageUri = await ProfilePictureService.loadProfilePicture();
+        if (savedImageUri) {
+          setProfileImage(savedImageUri);
+        }
+      } catch (error) {
+        console.error('Error loading profile picture:', error);
+      }
+    };
+
     fetchStreak();
+    loadProfilePicture();
   }, [user?.id]);
+
+  const pickImage = async () => {
+    try {
+      // Request permission
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (status !== 'granted') {
+        Alert.alert(
+          'Permission Required',
+          'Sorry, we need camera roll permissions to make this work!',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+
+      // Launch image picker
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1], // Square aspect ratio for profile picture
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets[0]) {
+        const imageUri = result.assets[0].uri;
+        setProfileImage(imageUri);
+        
+        // Save to persistent storage
+        try {
+          await ProfilePictureService.saveProfilePicture(imageUri);
+          Alert.alert('Success', 'Profile picture updated!');
+        } catch (error) {
+          console.error('Error saving profile picture:', error);
+          Alert.alert('Error', 'Failed to save profile picture. Please try again.');
+        }
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('Error', 'Failed to pick image. Please try again.');
+    }
+  };
+
+  const removeProfilePicture = async () => {
+    Alert.alert(
+      'Remove Profile Picture',
+      'Are you sure you want to remove your profile picture?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await ProfilePictureService.removeProfilePicture();
+              setProfileImage(null);
+              Alert.alert('Success', 'Profile picture removed!');
+            } catch (error) {
+              console.error('Error removing profile picture:', error);
+              Alert.alert('Error', 'Failed to remove profile picture. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
 
   const handleSignOut = async () => {
     Alert.alert(
@@ -59,6 +145,22 @@ export default function ProfilePage() {
       },
     },
     {
+      id: 'profile-picture',
+      title: 'Change profile picture',
+      icon: 'camera-outline',
+      onPress: () => {
+        pickImage();
+      },
+    },
+    ...(profileImage ? [{
+      id: 'remove-profile-picture',
+      title: 'Remove profile picture',
+      icon: 'trash-outline',
+      onPress: () => {
+        removeProfilePicture();
+      },
+    }] : []),
+    {
       id: 'languages',
       title: 'My languages',
       icon: 'language-outline',
@@ -79,7 +181,7 @@ export default function ProfilePage() {
       title: 'Invite friends',
       icon: 'person-add-outline',
       onPress: () => {
-        Alert.alert('Invite Friends', 'Invite friends functionality coming soon!');
+        setShowShareInvitation(true);
       },
     },
     {
@@ -87,7 +189,7 @@ export default function ProfilePage() {
       title: 'Get access',
       icon: 'lock-closed-outline',
       onPress: () => {
-        Alert.alert('Get Access', 'Access management coming soon!');
+        navigation.navigate('Paywall' as never);
       },
     },
     {
@@ -100,10 +202,26 @@ export default function ProfilePage() {
     },
     {
       id: 'support',
-      title: 'Support Chat',
+      title: 'Contact Support',
       icon: 'chatbubble-outline',
       onPress: () => {
-        Alert.alert('Support Chat', 'Live support coming soon!');
+        setShowContactSupport(true);
+      },
+    },
+    {
+      id: 'ai-chat',
+      title: 'AI Assistant',
+      icon: 'sparkles-outline',
+      onPress: () => {
+        navigation.navigate('AIChat' as never);
+      },
+    },
+    {
+      id: 'conversation-practice',
+      title: 'Conversation Practice',
+      icon: 'language-outline',
+      onPress: () => {
+        navigation.navigate('ConversationPractice' as never);
       },
     },
   ];
@@ -126,12 +244,24 @@ export default function ProfilePage() {
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* User Info Section */}
         <View style={styles.userInfoSection}>
-          <View style={styles.userAvatar}>
-            <Ionicons name="person" size={48} color="#6366f1" />
-          </View>
+                  <TouchableOpacity style={styles.userAvatarContainer} onPress={pickImage}>
+          <ProfileAvatar 
+            size={80} 
+            color="#6366f1" 
+            onPress={pickImage}
+            showCameraIcon={true}
+          />
+        </TouchableOpacity>
           <Text style={styles.userName}>{profile?.name || 'Dan'}</Text>
           <Text style={styles.userEmail}>{user?.email || 'danord180@icloud.com'}</Text>
         </View>
+
+        {/* Subscription Status */}
+        <SubscriptionStatus 
+          onUpgrade={() => {
+            navigation.navigate('Paywall' as never);
+          }}
+        />
 
         {/* Menu Items */}
         <View style={styles.menuSection}>
@@ -325,8 +455,20 @@ export default function ProfilePage() {
               </View>
             </ScrollView>
           </View>
-        </View>
+                </View>
       )}
+
+      {/* Share Invitation Modal */}
+      <ShareInvitationModal
+        visible={showShareInvitation}
+        onClose={() => setShowShareInvitation(false)}
+      />
+
+      {/* Contact Support Modal */}
+      <ContactSupportModal
+        visible={showContactSupport}
+        onClose={() => setShowContactSupport(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -374,6 +516,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
+  },
+  userAvatarContainer: {
+    position: 'relative',
+    marginBottom: 16,
+  },
+  cameraIconContainer: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: '#6366f1',
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#ffffff',
   },
   userName: {
     fontSize: 28,

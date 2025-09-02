@@ -5,6 +5,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { HolisticProgressService } from '../lib/holisticProgressService';
 import StreakDetailsModal from './StreakDetailsModal';
+import ProfileAvatar from './ProfileAvatar';
 
 interface ConsistentHeaderProps {
   pageName: string;
@@ -58,12 +59,12 @@ export default function ConsistentHeader({
           <Text style={styles.streakText}>{currentStreak}</Text>
         </TouchableOpacity>
         
-                      <TouchableOpacity 
-                style={styles.profileButton}
-                onPress={() => navigation.navigate('Profile' as never)}
-              >
-                <Ionicons name="person-circle" size={32} color="#6366f1" />
-              </TouchableOpacity>
+                              <TouchableOpacity 
+          style={styles.profileButton}
+          onPress={() => navigation.navigate('Profile' as never)}
+        >
+          <ProfileAvatar size={32} color="#6366f1" />
+        </TouchableOpacity>
       </View>
       
       {/* Streak Details Modal */}

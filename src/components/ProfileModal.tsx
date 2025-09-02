@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Modal } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Modal, Image, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../contexts/AuthContext';
 import { HolisticProgressService } from '../lib/holisticProgressService';
+import { ProfilePictureService } from '../lib/profilePictureService';
+import ProfileAvatar from './ProfileAvatar';
 
 interface ProfileModalProps {
   visible: boolean;
@@ -12,6 +15,7 @@ interface ProfileModalProps {
 export default function ProfileModal({ visible, onClose }: ProfileModalProps) {
   const { user, profile, signOut } = useAuth();
   const [currentStreak, setCurrentStreak] = useState(0);
+  const [profileImage, setProfileImage] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchStreak = async () => {
@@ -25,8 +29,61 @@ export default function ProfileModal({ visible, onClose }: ProfileModalProps) {
       }
     };
 
+    const loadProfilePicture = async () => {
+      try {
+        const savedImageUri = await ProfilePictureService.loadProfilePicture();
+        if (savedImageUri) {
+          setProfileImage(savedImageUri);
+        }
+      } catch (error) {
+        console.error('Error loading profile picture:', error);
+      }
+    };
+
     fetchStreak();
+    loadProfilePicture();
   }, [visible, user?.id]);
+
+  const pickImage = async () => {
+    try {
+      // Request permission
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (status !== 'granted') {
+        Alert.alert(
+          'Permission Required',
+          'Sorry, we need camera roll permissions to make this work!',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+
+      // Launch image picker
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1], // Square aspect ratio for profile picture
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets[0]) {
+        const imageUri = result.assets[0].uri;
+        setProfileImage(imageUri);
+        
+        // Save to persistent storage
+        try {
+          await ProfilePictureService.saveProfilePicture(imageUri);
+          Alert.alert('Success', 'Profile picture updated!');
+        } catch (error) {
+          console.error('Error saving profile picture:', error);
+          Alert.alert('Error', 'Failed to save profile picture. Please try again.');
+        }
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('Error', 'Failed to pick image. Please try again.');
+    }
+  };
 
   const handleSignOut = async () => {
     try {
@@ -54,9 +111,14 @@ export default function ProfileModal({ visible, onClose }: ProfileModalProps) {
           </View>
           
           <View style={styles.profileInfo}>
-            <View style={styles.profileAvatar}>
-              <Ionicons name="person" size={48} color="#ffffff" />
-            </View>
+                    <TouchableOpacity style={styles.profileAvatarContainer} onPress={pickImage}>
+          <ProfileAvatar 
+            size={80} 
+            color="#ffffff" 
+            onPress={pickImage}
+            showCameraIcon={true}
+          />
+        </TouchableOpacity>
             <Text style={styles.profileName}>{profile?.name || 'User Name'}</Text>
             <Text style={styles.profileEmail}>{user?.email || 'user@example.com'}</Text>
           </View>
@@ -146,6 +208,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
+  },
+  profileAvatarContainer: {
+    position: 'relative',
+    marginBottom: 16,
+  },
+  cameraIconContainer: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: '#6366f1',
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#ffffff',
   },
   profileName: {
     fontSize: 24,

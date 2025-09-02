@@ -1,9 +1,13 @@
 import { supabase } from './supabase';
-import OpenAIWithRateLimit from './openAIWithRateLimit';
+import { ENV } from './envConfig';
+import OpenAI from 'openai';
+import * as FileSystem from 'expo-file-system';
 
-// ============================================================================
-// LESSON SERVICE FOR ACTUAL DATABASE SCHEMA
-// ============================================================================
+// Initialize OpenAI client
+const openai = new OpenAI({
+  apiKey: ENV.OPENAI_API_KEY,
+  dangerouslyAllowBrowser: true,
+});
 
 export interface Lesson {
   id: string;
@@ -27,693 +31,325 @@ export interface LessonVocabulary {
   native_translation: string;
   example_sentence_en: string;
   example_sentence_native: string;
-  difficulty_rank: number; // Changed from string to number to match database schema
-  created_at: string;
-}
-
-export interface LessonExercise {
-  id: string;
-  lesson_id: string;
-  exercise_type: 'flashcard_match' | 'multiple_choice' | 'fill_in_blank' | 'typing' | 'sentence_ordering' | 'memory_game' | 'word_scramble' | 'speed_challenge';
-  exercise_data: any; // JSONB data
-  order_index: number;
-  points: number;
+  difficulty_rank: number;
   created_at: string;
 }
 
 export interface LessonProgress {
   id: string;
-  user_id: string;
   lesson_id: string;
-  started_at: string;
-  completed_at?: string;
+  user_id: string;
+  current_step: 'flashcards' | 'game1' | 'game2' | 'game3' | 'completed';
+  flashcards_completed: boolean;
+  game1_completed: boolean;
+  game2_completed: boolean;
+  game3_completed: boolean;
   total_score: number;
   max_possible_score: number;
-  exercises_completed?: number;
-  total_exercises?: number;
-  time_spent_seconds?: number;
-  status: string;
-}
-
-export interface AILessonResponse {
-  lesson: {
-    title: string;
-    subject: string;
-    source_pdf_name: string;
-    native_language: string;
-    estimated_duration: number;
-    difficulty_level: 'beginner' | 'intermediate' | 'expert';
-    status: 'ready';
-  };
-  vocabulary: Array<{
-    english_term: string;
-    definition: string;
-    native_translation: string;
-    example_sentence_en: string;
-    example_sentence_native: string;
-    difficulty_rank: string; // Keep as string in AI response, convert to number when saving to DB
-  }>;
-  exercises: Array<{
-    exercise_type: 'flashcard_match' | 'multiple_choice' | 'fill_in_blank' | 'typing' | 'sentence_ordering' | 'memory_game' | 'word_scramble' | 'speed_challenge';
-    order_index: number;
-    points: number;
-    exercise_data: any;
-  }>;
+  time_spent_seconds: number;
+  started_at: string;
+  completed_at?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export class LessonService {
   /**
-   * Convert difficulty string to number for database storage
+   * Convert PDF to text using backend server
    */
-  private static convertDifficultyToNumber(difficulty: string): number {
-    switch (difficulty.toLowerCase()) {
-      case 'beginner':
-        return 1;
-      case 'intermediate':
-        return 2;
-      case 'advanced':
-        return 3;
-      default:
-        return 1; // Default to beginner
-    }
-  }
-
-  /**
-   * Generate a lesson from PDF content using AI
-   */
-  static async generateLessonFromPDF(
-    pdfText: string,
-    sourcePdfName: string,
-    userId: string,
-    nativeLanguage: string,
-    subject: string
-  ): Promise<Lesson | null> {
+  static async convertPdfToText(pdfUri: string): Promise<string> {
     try {
-      console.log('🚀 Starting lesson generation from PDF:', sourcePdfName);
+      console.log('🔍 Converting PDF to text using backend server...');
       
-      // Call AI to generate lesson content
-      const aiResponse = await this.callAIGenerateLesson(pdfText, sourcePdfName, nativeLanguage, subject);
-      
-      if (!aiResponse) {
-        throw new Error('Failed to generate lesson content from AI');
+      // Read the PDF file as base64
+      const pdfBase64 = await FileSystem.readAsStringAsync(pdfUri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+
+      // Call backend server instead of Cloudmersive directly
+      const response = await fetch('http://192.168.1.187:3001/api/extract-pdf-base64', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          pdfBase64: pdfBase64
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.log('🔍 Error response body:', errorText);
+        throw new Error(`Backend server error: ${response.status} ${response.statusText}`);
       }
 
-      // Create lesson in database
-      const lesson = await this.createLesson(userId, aiResponse.lesson);
-      if (!lesson) {
-        throw new Error('Failed to create lesson in database');
-      }
-
-      // Create vocabulary items
-      await this.createLessonVocabulary(lesson.id, aiResponse.vocabulary);
-
-      // Create exercises
-      await this.createLessonExercises(lesson.id, aiResponse.exercises);
-
-      console.log('✅ Lesson generated successfully:', lesson.id);
-      return lesson;
+      const result = await response.json();
+      console.log('✅ Text extracted from PDF successfully via backend');
+      return result.text;
 
     } catch (error) {
-      console.error('❌ Error generating lesson from PDF:', error);
-      throw error;
+      console.error('❌ Error converting PDF to text:', error);
+      throw new Error('Failed to convert PDF to text. Please ensure the PDF contains readable text.');
     }
   }
 
   /**
-   * Call AI to generate lesson content using two-stage approach
+   * Truncate text to fit within OpenAI's token limit
    */
-  private static async callAIGenerateLesson(
+  static truncateTextForOpenAI(text: string, maxTokens: number = 10000): string {
+    // Super aggressive: only 10,000 tokens = 40,000 characters
+    const maxCharacters = maxTokens * 4;
+    
+    console.log(`🔍 AGGRESSIVE truncation: ${text.length} chars vs ${maxCharacters} limit`);
+    
+    // Always truncate for proof of concept
+    const truncated = text.substring(0, maxCharacters);
+    const lastSpaceIndex = truncated.lastIndexOf(' ');
+    
+    if (lastSpaceIndex > 0) {
+      const result = truncated.substring(0, lastSpaceIndex) + '...';
+      console.log(`✂️ AGGRESSIVE truncation: ${text.length} → ${result.length} chars`);
+      return result;
+    }
+    
+    const result = truncated + '...';
+    console.log(`✂️ AGGRESSIVE truncation: ${text.length} → ${result.length} chars`);
+    return result;
+  }
+
+  /**
+   * Extract keywords from PDF using OpenAI
+   */
+  static async extractKeywordsFromPDF(
     pdfText: string,
-    sourcePdfName: string,
-    nativeLanguage: string,
-    subject: string
-  ): Promise<AILessonResponse | null> {
+    subject: string,
+    nativeLanguage: string
+  ): Promise<string[]> {
     try {
-      const apiKey = process.env.EXPO_PUBLIC_OPENAI_API_KEY;
-      if (!apiKey) {
-        throw new Error('OpenAI API key not configured');
-      }
-
-      console.log('🔍 STAGE 1: Extracting ALL distinct keywords from PDF...');
+      console.log('🔍 Extracting keywords from PDF...');
       
-      // STAGE 1: Extract ALL distinct keywords first
-      const keywordPrompt = `You are an expert content analyzer specializing in extracting ALL distinct technical terms and key concepts from academic materials.
-
-TASK: Analyze the provided PDF text and extract EVERY distinct technical term, concept, and key word that would be valuable for language learning.
-
-REQUIREMENTS:
-- Extract ALL technical terms, anatomical terms, medical procedures, scientific concepts
-- Include both simple and complex terminology
-- Cover ALL major topics mentioned in the PDF
-- Don't skip any important concepts - be thorough and exhaustive
-- Include related terms, synonyms, and variations
-- Extract terms from every section and subsection
-- Focus on terms that would be challenging for non-native English speakers
-- NO LIMITS on the number of terms - extract everything you find
-
-CRITICAL OUTPUT REQUIREMENTS:
-- Return ONLY a valid JSON array of strings
-- Do NOT include any explanations, markdown formatting, or text outside the JSON
-- Do NOT use backticks or code blocks
-- The response must start with [ and end with ]
-- Each term must be a string in quotes
-- Example format:
-[
-  "term1",
-  "term2",
-  "term3"
-]
-
-PDF Text to analyze:
-${pdfText}
-
-Subject: ${subject}
-
-Extract ALL distinct technical terms and concepts:`;
-
-      console.log('🔍 DEBUG: Making keyword extraction API call with rate limiting...');
-      console.log('🔍 DEBUG: API Key length:', apiKey ? apiKey.length : 'undefined');
-      console.log('🔍 DEBUG: API Key starts with:', apiKey ? apiKey.substring(0, 7) + '...' : 'undefined');
+      // Truncate text to fit within OpenAI's token limit
+      const truncatedText = this.truncateTextForOpenAI(pdfText);
+      console.log(`📏 Original text length: ${pdfText.length} chars`);
+      console.log(`📏 Truncated text length: ${truncatedText.length} chars`);
       
-      // Initialize rate-limited OpenAI client
-      const openai = new OpenAIWithRateLimit({ apiKey });
-      
-      try {
-        // Use rate-limited OpenAI client for keyword extraction
-        const keywordResponse = await openai.createChatCompletion({
+      const prompt = `Extract terms: ${truncatedText}`;
+
+      const response = await openai.chat.completions.create({
           model: 'gpt-4o-mini',
           messages: [
             {
               role: 'system',
-              content: 'You are an expert content analyzer. Extract ALL distinct technical terms and return them in a JSON array format.'
+            content: 'You are an expert content analyzer. You MUST return ONLY a JSON array of strings with no explanations, markdown, or text outside the JSON. Your response must start with [ and end with ]. Do NOT use backticks, code blocks, or any markdown formatting. Return raw JSON only.'
             },
             {
               role: 'user',
-              content: keywordPrompt
+            content: prompt
             }
           ],
           max_tokens: 4000,
           temperature: 0.1,
-          priority: 1 // High priority for keyword extraction
-        });
-        
-        const keywordContent = keywordResponse.content;
-        
-        if (!keywordContent) {
-          throw new Error('No response content from OpenAI keyword extraction');
-        }
-        
-        console.log('🔍 DEBUG: Raw AI keyword response:', keywordContent.substring(0, 500));
-        console.log('🔍 DEBUG: Raw AI keyword response length:', keywordContent.length);
-        
-        // Parse the keywords
-        let allKeywords: string[] = [];
-        let usedFallback = false;
-        try {
-          // First, try to clean the response content
-          let cleanedKeywordContent = keywordContent.trim();
-          
-          // Remove markdown code blocks if present
-          cleanedKeywordContent = cleanedKeywordContent.replace(/```json\s*/g, '').replace(/```\s*/g, '');
-          
-          // Remove any text before the first [
-          const firstBracket = cleanedKeywordContent.indexOf('[');
-          if (firstBracket > 0) {
-            cleanedKeywordContent = cleanedKeywordContent.substring(firstBracket);
-            console.log('🔍 DEBUG: Removed text before first bracket');
-          }
-          
-          // Remove any text after the last ]
-          const lastBracket = cleanedKeywordContent.lastIndexOf(']');
-          if (lastBracket > 0 && lastBracket < cleanedKeywordContent.length - 1) {
-            cleanedKeywordContent = cleanedKeywordContent.substring(0, lastBracket + 1);
-            console.log('🔍 DEBUG: Removed text after last bracket');
-          }
-          
-          // Try to parse the cleaned content
-          const keywordJson = JSON.parse(cleanedKeywordContent);
-          
-          // Handle different possible response formats
-          if (Array.isArray(keywordJson)) {
-            allKeywords = keywordJson;
-          } else if (keywordJson.terms && Array.isArray(keywordJson.terms)) {
-            allKeywords = keywordJson.terms;
-          } else if (keywordJson.keywords && Array.isArray(keywordJson.keywords)) {
-            allKeywords = keywordJson.keywords;
-          } else {
-            // Try to find any array in the response
-            const values = Object.values(keywordJson);
-            for (const value of values) {
-              if (Array.isArray(value)) {
-                allKeywords = value;
-                break;
-              }
-            }
-          }
-          
-          console.log('✅ Successfully parsed keywords JSON');
-          
-        } catch (parseError) {
-          console.error('Failed to parse keywords:', parseError);
-          console.log('🔍 DEBUG: Raw keyword content:', keywordContent);
-          
-          // Try multiple fallback parsing strategies
-          try {
-            // Strategy 1: Try to extract JSON using regex (more conservative)
-            const jsonMatch = keywordContent.match(/\[[\s\S]*\]/);
-            if (jsonMatch) {
-              console.log('🔍 DEBUG: Attempting regex JSON extraction...');
-              try {
-                const extractedJson = JSON.parse(jsonMatch[0]);
-                if (Array.isArray(extractedJson)) {
-                  allKeywords = extractedJson;
-                  console.log('✅ Successfully extracted JSON using regex');
-                }
-              } catch (regexParseError) {
-                console.log('🔍 DEBUG: Regex match found but JSON parse failed, trying to fix...');
-                // Try to fix common issues in the matched JSON
-                let fixedJson = jsonMatch[0];
-                fixedJson = fixedJson.replace(/,\s*]/g, ']'); // Remove trailing commas in arrays
-                fixedJson = fixedJson.replace(/,\s*}/g, '}'); // Remove trailing commas in objects
-                fixedJson = fixedJson.replace(/`/g, ''); // Remove backticks
-                fixedJson = fixedJson.replace(/\/\/.*$/gm, ''); // Remove comments
-                
-                try {
-                  const fixedExtractedJson = JSON.parse(fixedJson);
-                  if (Array.isArray(fixedExtractedJson)) {
-                    allKeywords = fixedExtractedJson;
-                    console.log('✅ Successfully extracted JSON using regex with fixes');
-                  }
-                } catch (fixedRegexError) {
-                  console.log('🔍 DEBUG: Even fixed JSON parse failed');
-                }
-              }
-            }
-          } catch (regexError) {
-            console.error('❌ Regex extraction failed:', regexError);
-          }
-          
-          // Strategy 2: Try to extract individual terms from text
-          if (allKeywords.length === 0) {
-            try {
-              const termMatches = keywordContent.match(/"([^"]+)"/g);
-              if (termMatches) {
-                allKeywords = termMatches.map(match => match.replace(/"/g, ''));
-                console.log('✅ Successfully extracted terms using quote matching');
-              }
-            } catch (quoteError) {
-              console.error('❌ Quote matching failed:', quoteError);
-            }
-          }
-          
-          // Strategy 2.5: Try to extract terms with single quotes
-          if (allKeywords.length === 0) {
-            try {
-              const singleQuoteMatches = keywordContent.match(/'([^']+)'/g);
-              if (singleQuoteMatches) {
-                allKeywords = singleQuoteMatches.map(match => match.replace(/'/g, ''));
-                console.log('✅ Successfully extracted terms using single quote matching');
-              }
-            } catch (singleQuoteError) {
-              console.error('❌ Single quote matching failed:', singleQuoteError);
-            }
-          }
-          
-          // Strategy 3: Use fallback extraction if all else fails
-          if (allKeywords.length === 0) {
-            console.log('⚠️ All parsing strategies failed, using fallback extraction...');
-            const fallbackKeywords = this.extractKeywordsFallback(pdfText);
-            allKeywords = fallbackKeywords;
-            usedFallback = true;
-          }
-        }
+      });
 
-        console.log(`✅ STAGE 1 COMPLETE: Extracted ${allKeywords.length} distinct keywords`);
-        console.log('🔍 Sample keywords:', allKeywords.slice(0, 20));
-        console.log('🔍 DEBUG: Keywords source:', usedFallback ? 'Fallback extraction' : 'AI JSON parsing');
-
-        if (allKeywords.length === 0) {
-          throw new Error('No keywords could be extracted from the PDF');
-        }
-
-        // STAGE 2: Build comprehensive lesson using ALL extracted keywords
-        console.log('🚀 STAGE 2: Building comprehensive lesson with all keywords...');
-        
-        const lessonPrompt = `You are an AI English language lesson generator specializing in comprehensive content extraction. 
-Your task is to create an extensive, interactive, Duolingo-style lesson that teaches non-native speakers English subject-specific terminology.
-
-CRITICAL REQUIREMENT: Use ALL the provided keywords to create the most comprehensive lesson possible.
-
-=====================
-INPUTS YOU WILL RECEIVE:
-- Complete list of ALL extracted keywords from the PDF
-- User's native language
-- Subject name
-- Source PDF file name
-
-=====================
-CRITICAL OUTPUT REQUIREMENTS:
-You must return ONLY a single JSON object with three top-level keys:
-- "lesson"
-- "vocabulary"
-- "exercises"
-
-CRITICAL JSON FORMATTING RULES:
-- Return ONLY valid JSON - NO explanations, markdown, or text outside the JSON object
-- Do NOT use backticks or code blocks
-- Do NOT include any text before the opening { or after the closing }
-- The response must start with { and end with }
-- Ensure all strings are properly quoted
-- Ensure all arrays and objects are properly closed
-- Do NOT include trailing commas
-- Do NOT include any formatting characters like backticks or code blocks
-- The JSON must be parseable by JSON.parse()
-
-OUTPUT FORMAT:
-{
-  "lesson": { lesson object },
-  "vocabulary": [ vocabulary array ],
-  "exercises": [ exercises array ]
-}
-
-=====================
-1. LESSON OBJECT:
-{
-  "lesson": {
-    "title": "string (comprehensive, descriptive title covering the full scope)",
-    "subject": "string (subject name from input)",
-    "source_pdf_name": "string (filename provided)",
-    "native_language": "string (from input)",
-    "estimated_duration": "integer (minutes, scale with content - aim for 60+ minutes for comprehensive content)",
-    "difficulty_level": "beginner|intermediate|advanced",
-    "status": "ready"
-  }
-}
-
-=====================
-2. VOCABULARY LIST - USE ALL KEYWORDS:
-You MUST create vocabulary items for EVERY keyword provided. Do not skip any terms.
-
-Each vocabulary item must include:
-{
-  "vocabulary": [
-    {
-      "english_term": "string (one of the provided keywords)",
-      "definition": "string (clear, detailed English explanation)",
-      "native_translation": "string (accurate translation in user's native language)",
-      "example_sentence_en": "string (contextual example sentence)",
-      "example_sentence_native": "string (translation of example sentence)",
-      "difficulty_rank": "beginner|intermediate|advanced"
-    }
-  ]
-}
-
-VOCABULARY REQUIREMENTS:
-- Create vocabulary items for EVERY keyword provided
-- Ensure comprehensive coverage of all extracted terms
-- Provide accurate definitions and translations
-- Include contextual example sentences
-
-=====================
-3. EXERCISES ARRAY - COMPREHENSIVE PRACTICE:
-Generate exercises to thoroughly practice ALL vocabulary items.
-Create multiple exercise sets to cover different groups of terms.
-
-EXERCISE TYPES TO INCLUDE:
-- flashcard_match → match English to native words (multiple sets)
-- multiple_choice → select correct English translation (multiple questions)
-- fill_in_blank → choose the missing English word (multiple sentences)
-- typing → type the English word from the native translation (multiple terms)
-- sentence_ordering → arrange words to form correct English sentences
-- word_association → connect related terms
-- definition_matching → match terms to definitions
-
-EXERCISE REQUIREMENTS:
-- Create enough exercises to practice ALL vocabulary items
-- Group terms logically for different exercise sets
-- Ensure every term appears in multiple exercises
-- Scale exercise count with vocabulary size
-
-=====================
-FINAL OUTPUT FORMAT:
-{
-  "lesson": { lesson object },
-  "vocabulary": [ vocabulary array ],
-  "exercises": [ exercises array ]
-}
-
-=====================
-CRITICAL RULES:
-- Use EVERY keyword provided - do not skip any terms
-- Create vocabulary items for ALL extracted terms
-- Generate exercises that practice every vocabulary item
-- Scale lesson duration and exercise count with vocabulary size
-- Be comprehensive and thorough in coverage
-- Focus on effective language learning for non-native speakers
-- RETURN ONLY VALID JSON - NO EXPLANATIONS OR EXTRA TEXT
-
-Now create a comprehensive lesson using ALL these keywords:
-
-ALL EXTRACTED KEYWORDS: ${JSON.stringify(allKeywords)}
-Subject: ${subject}
-Native Language: ${nativeLanguage}
-Source PDF Name: ${sourcePdfName}`;
-
-        // Make the lesson generation request using rate-limited client
-        console.log('🔍 DEBUG: Making lesson generation API call with rate limiting...');
-        console.log('🔍 DEBUG: Lesson prompt length:', lessonPrompt.length);
-        
-        const lessonResponse = await openai.createChatCompletion({
-          model: 'gpt-4o-mini',
-          messages: [
-            {
-              role: 'system',
-              content: 'You are an expert educational content designer. You MUST return ONLY valid JSON with no explanations, markdown, or text outside the JSON object. Your response must start with { and end with }. Do NOT use backticks or code blocks.'
-            },
-            {
-              role: 'user',
-              content: lessonPrompt
-            }
-          ],
-          max_tokens: 8000,
-          temperature: 0.3,
-          priority: 1 // High priority for lesson generation
-        });
-
-        const lessonContent = lessonResponse.content;
-        
-        if (!lessonContent) {
-          throw new Error('No response content from OpenAI lesson generation');
-        }
-
-        console.log('✅ STAGE 2 COMPLETE: Lesson generated successfully');
-        
-        // Parse the lesson response with comprehensive error handling
-        try {
-          console.log('🔍 DEBUG: Raw lesson response length:', lessonContent.length);
-          console.log('🔍 DEBUG: First 500 chars of response:', lessonContent.substring(0, 500));
-          console.log('🔍 DEBUG: Last 500 chars of response:', lessonContent.substring(Math.max(0, lessonContent.length - 500)));
-          
-          // Strategy 1: Clean and parse the response
-          let cleanedContent = lessonContent.trim();
-          
-          // Remove markdown code blocks if present
-          cleanedContent = cleanedContent.replace(/```json\s*/g, '').replace(/```\s*/g, '');
-          
-          // Remove any text before the first {
-          const firstBrace = cleanedContent.indexOf('{');
-          if (firstBrace > 0) {
-            cleanedContent = cleanedContent.substring(firstBrace);
-            console.log('🔍 DEBUG: Removed text before first brace');
-          }
-          
-          // Remove any text after the last }
-          const lastBrace = cleanedContent.lastIndexOf('}');
-          if (lastBrace > 0 && lastBrace < cleanedContent.length - 1) {
-            cleanedContent = cleanedContent.substring(0, lastBrace + 1);
-            console.log('🔍 DEBUG: Removed text after last brace');
-          }
-          
-          // Try to parse the cleaned content
-          const lessonJson = JSON.parse(cleanedContent);
-          console.log('✅ Successfully parsed lesson JSON');
-          return lessonJson as AILessonResponse;
-          
-        } catch (parseError) {
-          console.error('❌ Failed to parse lesson response:', parseError);
-          const errorMessage = parseError instanceof Error ? parseError.message : String(parseError);
-          console.error('🔍 DEBUG: Parse error details:', errorMessage);
-          console.log('🔍 DEBUG: Raw lesson content:', lessonContent);
-          
-          // Strategy 2: Try to extract JSON using regex
-          try {
-            const jsonMatch = lessonContent.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-              console.log('🔍 DEBUG: Attempting regex JSON extraction...');
-              const extractedJson = JSON.parse(jsonMatch[0]);
-              console.log('✅ Successfully extracted JSON using regex');
-              return extractedJson as AILessonResponse;
-            }
-          } catch (regexError) {
-            console.error('❌ Regex extraction failed:', regexError);
-          }
-          
-          // Strategy 3: Try to fix common JSON issues
-          try {
-            console.log('🔍 DEBUG: Attempting JSON repair...');
-            let repairedContent = lessonContent;
-            
-            // Fix common issues
-            repairedContent = repairedContent.replace(/,\s*}/g, '}'); // Remove trailing commas
-            repairedContent = repairedContent.replace(/,\s*]/g, ']'); // Remove trailing commas in arrays
-            repairedContent = repairedContent.replace(/`/g, ''); // Remove backticks
-            repairedContent = repairedContent.replace(/\\"/g, '"'); // Fix escaped quotes
-            
-            // Try to find JSON object
-            const jsonMatch = repairedContent.match(/\{[\s\S]*\}/);
-            if (jsonMatch) {
-              const extractedJson = JSON.parse(jsonMatch[0]);
-              console.log('✅ Successfully parsed repaired JSON');
-              return extractedJson as AILessonResponse;
-            }
-          } catch (repairError) {
-            console.error('❌ JSON repair failed:', repairError);
-          }
-          
-          // Strategy 4: Try to extract partial data
-          try {
-            console.log('🔍 DEBUG: Attempting partial data extraction...');
-            
-            // Try to extract lesson object
-            const lessonMatch = lessonContent.match(/"lesson"\s*:\s*\{[^}]*\}/);
-            if (lessonMatch) {
-              console.log('🔍 DEBUG: Found lesson object, attempting to build minimal response...');
-              
-              // Create a minimal valid response with just the lesson object
-              const minimalResponse = {
-                lesson: JSON.parse(lessonMatch[0].replace(/"lesson"\s*:\s*/, '')),
-                vocabulary: [],
-                exercises: []
-              };
-              
-              console.log('✅ Created minimal lesson response');
-              return minimalResponse as AILessonResponse;
-            }
-          } catch (partialError) {
-            console.error('❌ Partial data extraction failed:', partialError);
-          }
-          
-          throw new Error(`Invalid lesson response format from OpenAI: ${errorMessage}`);
-        }
-        
-      } catch (error: any) {
-        console.error('❌ Error in AI lesson generation:', error);
-        
-        // Provide clearer error messages for different scenarios
-        if (error.message?.includes('quota exceeded') || error.message?.includes('billing')) {
-          throw new Error('Your OpenAI account has run out of credits. Please add more credits to continue generating lessons.');
-        } else if (error.message?.includes('Rate limit exceeded')) {
-          console.log('🚫 Rate limit detected, this will be handled by the rate limiter');
-        }
-        
-        throw error;
+      const content = response.choices[0]?.message?.content;
+      if (!content) {
+        throw new Error('No response from OpenAI');
       }
+
+      // Clean the response
+      let cleanedContent = content.trim();
+      if (cleanedContent.startsWith('```json')) {
+        cleanedContent = cleanedContent.replace(/```json\s*/, '').replace(/\s*```/, '');
+      }
+      if (cleanedContent.startsWith('```')) {
+        cleanedContent = cleanedContent.replace(/```\s*/, '').replace(/\s*```/, '');
+      }
+
+      const keywords = JSON.parse(cleanedContent);
+      
+      if (!Array.isArray(keywords)) {
+        throw new Error('Invalid response format from OpenAI');
+      }
+
+      console.log(`✅ Extracted ${keywords.length} keywords`);
+      return keywords;
+
     } catch (error) {
-      console.error('Error calling AI to generate lesson:', error);
+      console.error('❌ Error extracting keywords:', error);
       throw error;
     }
   }
 
   /**
-   * Create lesson in database
+   * Generate vocabulary from keywords using OpenAI
    */
-  private static async createLesson(userId: string, lessonData: AILessonResponse['lesson']): Promise<Lesson | null> {
+  static async generateVocabularyFromKeywords(
+    keywords: string[],
+    subject: string,
+    nativeLanguage: string
+  ): Promise<Omit<LessonVocabulary, 'id' | 'lesson_id' | 'created_at'>[]> {
     try {
-      const { data, error } = await supabase
-        .from('esp_lessons')
-        .insert([{
-          user_id: userId,
-          title: lessonData.title,
-          subject: lessonData.subject,
-          source_pdf_name: lessonData.source_pdf_name,
-          native_language: lessonData.native_language,
-          estimated_duration: lessonData.estimated_duration,
-          difficulty_level: lessonData.difficulty_level,
-          status: lessonData.status
-        }])
-        .select()
-        .single();
+      console.log('🔍 Generating vocabulary from keywords...');
+      
+      const prompt = `You are an expert language teacher creating vocabulary lessons for non-native English speakers.
 
-      if (error) throw error;
-      return data;
+TASK: Create comprehensive vocabulary entries for each provided keyword, considering the user's subject and native language.
+
+REQUIREMENTS:
+- Create vocabulary items for EVERY keyword provided
+- Provide accurate definitions and translations
+- Include contextual example sentences
+- Assign appropriate difficulty ranks (1=beginner, 2=intermediate, 3=advanced)
+- Consider the subject context for definitions
+- Ensure translations are accurate for the specified native language
+
+CRITICAL OUTPUT REQUIREMENTS:
+- Return ONLY a JSON array of objects
+- Do NOT include any explanations, markdown, or text outside the JSON
+- The response must start with [ and end with ]
+- Do NOT use backticks, code blocks, or any markdown formatting
+- Return raw, unformatted JSON only
+
+REQUIRED FORMAT:
+[
+  {
+    "english_term": "string",
+    "definition": "string",
+    "native_translation": "string",
+    "example_sentence_en": "string",
+    "example_sentence_native": "string",
+    "difficulty_rank": "number (1-3)"
+  }
+]
+
+Keywords to process:
+${JSON.stringify(keywords)}
+
+Subject: ${subject}
+Native Language: ${nativeLanguage}
+
+Create vocabulary entries for ALL keywords. Return ONLY the JSON array:`;
+        
+      const response = await openai.chat.completions.create({
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+            content: 'You are an expert language teacher. You MUST return ONLY a JSON array of objects with no explanations, markdown, or text outside the JSON. Your response must start with [ and end with ]. Do NOT use backticks, code blocks, or any markdown formatting. Return raw JSON only.'
+            },
+            {
+              role: 'user',
+            content: prompt
+            }
+          ],
+          max_tokens: 8000,
+        temperature: 0.2,
+      });
+
+      const content = response.choices[0]?.message?.content;
+      if (!content) {
+        throw new Error('No response from OpenAI');
+      }
+
+      // Clean the response
+      let cleanedContent = content.trim();
+      if (cleanedContent.startsWith('```json')) {
+        cleanedContent = cleanedContent.replace(/```json\s*/, '').replace(/\s*```/, '');
+      }
+      if (cleanedContent.startsWith('```')) {
+        cleanedContent = cleanedContent.replace(/```\s*/, '').replace(/\s*```/, '');
+      }
+
+      const vocabulary = JSON.parse(cleanedContent);
+      
+      if (!Array.isArray(vocabulary)) {
+        throw new Error('Invalid response format from OpenAI');
+      }
+
+      console.log(`✅ Generated ${vocabulary.length} vocabulary entries`);
+      return vocabulary;
 
     } catch (error) {
-      console.error('Error creating lesson:', error);
-      return null;
+      console.error('❌ Error generating vocabulary:', error);
+      throw error;
     }
   }
 
   /**
-   * Create vocabulary items for a lesson
+   * Create a new lesson from PDF
    */
-  private static async createLessonVocabulary(lessonId: string, vocabulary: AILessonResponse['vocabulary']): Promise<void> {
+  static async createLessonFromPDF(
+    pdfUri: string,
+    pdfName: string,
+    userId: string,
+    subject: string,
+    nativeLanguage: string
+  ): Promise<Lesson> {
     try {
+      console.log('🚀 Creating lesson from PDF...');
+
+      // Step 1: Convert PDF to text using Cloudmersive
+      const pdfText = await this.convertPdfToText(pdfUri);
+      
+      // Step 2: Extract keywords
+      const keywords = await this.extractKeywordsFromPDF(pdfText, subject, nativeLanguage);
+      
+      // Step 3: Generate vocabulary
+      const vocabulary = await this.generateVocabularyFromKeywords(keywords, subject, nativeLanguage);
+      
+      // Step 4: Create lesson in database
+      const lessonTitle = `${subject} Vocabulary Lesson`;
+      const estimatedDuration = Math.max(30, vocabulary.length * 2); // 2 minutes per term, minimum 30 minutes
+      
+      const { data: lesson, error: lessonError } = await supabase
+        .from('esp_lessons')
+        .insert([{
+          user_id: userId,
+          title: lessonTitle,
+          subject: subject,
+          source_pdf_name: pdfName,
+          native_language: nativeLanguage,
+          estimated_duration: estimatedDuration,
+          difficulty_level: 'intermediate',
+          status: 'ready'
+        }])
+        .select()
+        .single();
+
+      if (lessonError) throw lessonError;
+
+      // Step 5: Create vocabulary entries
       const vocabularyData = vocabulary.map(item => ({
-        lesson_id: lessonId,
+        lesson_id: lesson.id,
         english_term: item.english_term,
         definition: item.definition,
         native_translation: item.native_translation,
         example_sentence_en: item.example_sentence_en,
         example_sentence_native: item.example_sentence_native,
-        difficulty_rank: this.convertDifficultyToNumber(item.difficulty_rank)
+        difficulty_rank: item.difficulty_rank
       }));
 
-      const { error } = await supabase
+      const { error: vocabError } = await supabase
         .from('lesson_vocabulary')
         .insert(vocabularyData);
 
-      if (error) throw error;
-      console.log(`✅ Created ${vocabularyData.length} vocabulary items`);
+      if (vocabError) throw vocabError;
+
+      console.log('✅ Lesson created successfully:', lesson.id);
+      return lesson;
 
     } catch (error) {
-      console.error('Error creating lesson vocabulary:', error);
+      console.error('❌ Error creating lesson:', error);
       throw error;
     }
   }
 
   /**
-   * Create exercises for a lesson
-   */
-  private static async createLessonExercises(lessonId: string, exercises: AILessonResponse['exercises']): Promise<void> {
-    try {
-      const exerciseData = exercises.map(exercise => ({
-        lesson_id: lessonId,
-        exercise_type: exercise.exercise_type,
-        exercises_data: exercise.exercise_data,
-        order_index: exercise.order_index,
-        points: exercise.points
-      }));
-
-      const { error } = await supabase
-        .from('lesson_exercises')
-        .insert(exerciseData);
-
-      if (error) throw error;
-      console.log(`✅ Created ${exerciseData.length} exercises`);
-
-    } catch (error) {
-      console.error('Error creating lesson exercises:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get lesson by ID with all related data
+   * Get lesson by ID with vocabulary
    */
   static async getLesson(lessonId: string): Promise<{
     lesson: Lesson;
     vocabulary: LessonVocabulary[];
-    exercises: LessonExercise[];
   } | null> {
     try {
       // Get lesson
@@ -736,19 +372,9 @@ Source PDF Name: ${sourcePdfName}`;
 
       if (vocabError) throw vocabError;
 
-      // Get exercises
-      const { data: exercises, error: exerciseError } = await supabase
-        .from('lesson_exercises')
-        .select('*')
-        .eq('lesson_id', lessonId)
-        .order('order_index');
-
-      if (exerciseError) throw exerciseError;
-
       return {
         lesson,
-        vocabulary: vocabulary || [],
-        exercises: exercises || []
+        vocabulary: vocabulary || []
       };
 
     } catch (error) {
@@ -758,7 +384,7 @@ Source PDF Name: ${sourcePdfName}`;
   }
 
   /**
-   * Get lessons by user
+   * Get user's lessons
    */
   static async getUserLessons(userId: string): Promise<Lesson[]> {
     try {
@@ -778,20 +404,22 @@ Source PDF Name: ${sourcePdfName}`;
   }
 
   /**
-   * Get lesson progress for a user
+   * Get or create lesson progress
    */
-  static async getLessonProgress(userId: string, lessonId: string): Promise<LessonProgress | null> {
+  static async getLessonProgress(lessonId: string, userId: string): Promise<LessonProgress | null> {
     try {
       const { data, error } = await supabase
         .from('lesson_progress')
         .select('*')
-        .eq('user_id', userId)
         .eq('lesson_id', lessonId)
+        .eq('user_id', userId)
         .single();
 
-      if (error && error.code !== 'PGRST116') throw error;
-      return data;
+      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+        throw error;
+      }
 
+      return data;
     } catch (error) {
       console.error('Error getting lesson progress:', error);
       return null;
@@ -801,48 +429,52 @@ Source PDF Name: ${sourcePdfName}`;
   /**
    * Create or update lesson progress
    */
-  static async updateLessonProgress(userId: string, lessonId: string, progress: Partial<LessonProgress>): Promise<void> {
+  static async updateLessonProgress(
+    lessonId: string,
+    userId: string,
+    progressData: Partial<LessonProgress>
+  ): Promise<LessonProgress> {
     try {
-      // First check if progress record already exists
-      const existingProgress = await this.getLessonProgress(userId, lessonId);
+      const existingProgress = await this.getLessonProgress(lessonId, userId);
       
       if (existingProgress) {
-        // Update existing record - only update fields that exist in the schema
-        const updateData: any = {};
-        if (progress.total_score !== undefined) updateData.total_score = progress.total_score;
-        if (progress.max_possible_score !== undefined) updateData.max_possible_score = progress.max_possible_score;
-        if (progress.exercises_completed !== undefined) updateData.exercises_completed = progress.exercises_completed;
-        if (progress.total_exercises !== undefined) updateData.total_exercises = progress.total_exercises;
-        if (progress.time_spent_seconds !== undefined) updateData.time_spent_seconds = progress.time_spent_seconds;
-        if (progress.status !== undefined) updateData.status = progress.status;
-        if (progress.completed_at !== undefined) updateData.completed_at = progress.completed_at;
-        
-        const { error } = await supabase
+        // Update existing progress
+        const { data, error } = await supabase
           .from('lesson_progress')
-          .update(updateData)
-          .eq('user_id', userId)
-          .eq('lesson_id', lessonId);
+          .update({
+            ...progressData,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existingProgress.id)
+          .select()
+          .single();
 
         if (error) throw error;
+        return data;
       } else {
-        // Create new record with required fields
-        const { error } = await supabase
+        // Create new progress
+        const { data, error } = await supabase
           .from('lesson_progress')
           .insert([{
-            user_id: userId,
             lesson_id: lessonId,
+            user_id: userId,
+            current_step: 'flashcards',
+            flashcards_completed: false,
+            game1_completed: false,
+            game2_completed: false,
+            game3_completed: false,
+            total_score: 0,
+            max_possible_score: 0,
+            time_spent_seconds: 0,
             started_at: new Date().toISOString(),
-            total_score: progress.total_score || 0,
-            max_possible_score: progress.max_possible_score || 0,
-            exercises_completed: progress.exercises_completed || 0,
-            total_exercises: progress.total_exercises || 0,
-            time_spent_seconds: progress.time_spent_seconds || 0,
-            status: progress.status || 'in_progress'
-          }]);
+            ...progressData
+          }])
+          .select()
+          .single();
 
         if (error) throw error;
+        return data;
       }
-
     } catch (error) {
       console.error('Error updating lesson progress:', error);
       throw error;
@@ -850,59 +482,22 @@ Source PDF Name: ${sourcePdfName}`;
   }
 
   /**
-   * Delete lesson and all related data
+   * Complete lesson
    */
-  static async deleteLesson(lessonId: string): Promise<void> {
+  static async completeLesson(lessonId: string, userId: string, finalScore: number, maxScore: number, timeSpent: number): Promise<void> {
     try {
-      // Delete in order due to foreign key constraints
-      await supabase.from('lesson_exercises').delete().eq('lesson_id', lessonId);
-      await supabase.from('lesson_vocabulary').delete().eq('lesson_id', lessonId);
-      await supabase.from('lesson_progress').delete().eq('lesson_id', lessonId);
-      await supabase.from('esp_lessons').delete().eq('id', lessonId);
+      await this.updateLessonProgress(lessonId, userId, {
+        current_step: 'completed',
+        total_score: finalScore,
+        max_possible_score: maxScore,
+        time_spent_seconds: timeSpent,
+        completed_at: new Date().toISOString()
+      });
 
-      console.log('✅ Lesson deleted successfully');
-
+      console.log('✅ Lesson completed successfully');
     } catch (error) {
-      console.error('Error deleting lesson:', error);
+      console.error('Error completing lesson:', error);
       throw error;
     }
-  }
-
-  /**
-   * Fallback method to extract keywords if OpenAI parsing fails
-   */
-  private static extractKeywordsFallback(pdfText: string): string[] {
-    console.log('⚠️ Using fallback keyword extraction...');
-    
-    // Simple regex-based extraction for technical terms
-    const technicalTerms = new Set<string>();
-    
-    // Extract capitalized words (likely proper nouns/technical terms)
-    const capitalizedWords = pdfText.match(/\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b/g) || [];
-    capitalizedWords.forEach(word => {
-      if (word.length > 2 && !['The', 'This', 'That', 'These', 'Those', 'When', 'Where', 'Which', 'What', 'How'].includes(word)) {
-        technicalTerms.add(word.toLowerCase());
-      }
-    });
-    
-    // Extract words that appear multiple times (likely important terms)
-    const wordCounts = new Map<string, number>();
-    const words = pdfText.toLowerCase().match(/\b[a-z]{3,}\b/g) || [];
-    words.forEach(word => {
-      if (!['the', 'and', 'for', 'are', 'but', 'not', 'you', 'all', 'can', 'had', 'her', 'was', 'one', 'our', 'out', 'day', 'get', 'has', 'him', 'his', 'how', 'man', 'new', 'now', 'old', 'see', 'two', 'way', 'who', 'boy', 'did', 'its', 'let', 'put', 'say', 'she', 'too', 'use'].includes(word)) {
-        wordCounts.set(word, (wordCounts.get(word) || 0) + 1);
-      }
-    });
-    
-    // Add frequently occurring words
-    wordCounts.forEach((count, word) => {
-      if (count >= 3 && word.length >= 4) {
-        technicalTerms.add(word);
-      }
-    });
-    
-    const extractedTerms = Array.from(technicalTerms);
-    console.log(`📝 Fallback extracted ${extractedTerms.length} terms`);
-    return extractedTerms.slice(0, 100); // Limit to 100 terms max
   }
 }

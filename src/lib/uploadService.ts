@@ -2,13 +2,14 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
 import OpenAI from 'openai';
 import { UserFlashcardService } from './userFlashcardService';
+import { ENV } from './envConfig';
 
 // Initialize OpenAI client - will be created when needed
 let openai: OpenAI | null = null;
 
 function getOpenAIClient(): OpenAI {
   if (!openai) {
-    const apiKey = process.env.EXPO_PUBLIC_OPENAI_API_KEY;
+    const apiKey = ENV.OPENAI_API_KEY;
     if (!apiKey) {
       throw new Error('OpenAI API key not configured');
     }
