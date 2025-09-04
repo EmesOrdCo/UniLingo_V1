@@ -51,7 +51,7 @@ const upload = multer({
 
 // PDF text extraction endpoint removed - now handled by Zapier webhook
 
-// PDF processing endpoint using PDF.co API
+// PDF processing endpoint using local pdf-parse (replacing PDF.co API)
 app.post('/api/process-pdf', upload.single('pdf'), async (req, res) => {
   try {
     if (!req.file) {
@@ -66,34 +66,36 @@ app.post('/api/process-pdf', upload.single('pdf'), async (req, res) => {
     console.log(`📍 Path: ${req.file.path}`);
     console.log('🔥'.repeat(20) + '\n');
 
-    // Import the PDF.co service
-    const PDFcoService = require('./pdfcoService');
-    const pdfService = new PDFcoService();
-    
-    // Process the PDF using PDF.co API
-    const result = await pdfService.processPdf(req.file.path);
-    
-    console.log('\n' + '🎯'.repeat(20));
-    console.log('🎯 SENDING RESPONSE TO FRONTEND');
-    console.log('🎯'.repeat(20));
-    console.log(`✅ Success: true`);
-    console.log(`📄 Filename: ${req.file.originalname}`);
-    console.log(`📊 Pages: ${result.pageCount}`);
-    console.log(`🔢 Characters: ${result.text.length.toLocaleString()}`);
-    console.log('🎯'.repeat(20) + '\n');
+    // Read the uploaded file from disk into a buffer
+    const pdfBuffer = fs.readFileSync(req.file.path);
+    console.log('📖 PDF file read into buffer successfully');
+
+    // Use pdf-parse to extract all text from the PDF
+    const pdfParse = require('pdf-parse');
+    const pdfData = await pdfParse(pdfBuffer);
+    console.log(`📄 Extracted ${pdfData.text.length} characters from PDF`);
 
     // Clean up the uploaded file
     fs.unlinkSync(req.file.path);
     console.log('🧹 Uploaded file cleaned up');
 
+    console.log('\n' + '🎯'.repeat(20));
+    console.log('🎯 SENDING RESPONSE TO FRONTEND');
+    console.log('🎯'.repeat(20));
+    console.log(`✅ Success: true`);
+    console.log(`📄 Filename: ${req.file.originalname}`);
+    console.log(`📊 Pages: ${pdfData.numpages}`);
+    console.log(`🔢 Characters: ${pdfData.text.length.toLocaleString()}`);
+    console.log('🎯'.repeat(20) + '\n');
+
     res.json({
       success: true,
-      message: 'PDF processed successfully via PDF.co API',
+      message: 'PDF processed successfully via local pdf-parse',
       result: {
-        text: result.text,
-        pageCount: result.pageCount,
-        credits: result.credits,
-        remainingCredits: result.remainingCredits
+        text: pdfData.text,
+        pageCount: pdfData.numpages,
+        credits: 'N/A (local processing)',
+        remainingCredits: 'N/A (local processing)'
       },
       filename: req.file.originalname
     });
@@ -126,7 +128,7 @@ app.post('/api/test-processing', async (req, res) => {
     
     res.json({
       success: true,
-      message: 'PDF processing system is ready',
+      message: 'PDF processing system is ready (using local pdf-parse)',
       timestamp: new Date().toISOString()
     });
 
@@ -185,7 +187,7 @@ app.use((error, req, res, next) => {
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Backend server running on port ${PORT}`);
   console.log(`📁 Upload directory: ${path.resolve('uploads')}`);
-  console.log(`📡 PDF processing: PDF.co API`);
+  console.log(`📡 PDF processing: Local pdf-parse (replaced PDF.co API)`);
   console.log(`🌐 Network accessible at: http://192.168.1.72:${PORT}`);
   
   // Test network connectivity
