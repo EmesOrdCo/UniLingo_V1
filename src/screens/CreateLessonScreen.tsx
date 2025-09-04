@@ -13,9 +13,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
-import { LessonService } from '../lib/lessonService';
+
 import * as DocumentPicker from 'expo-document-picker';
-import * as FileSystem from 'expo-file-system';
+
+import { supabase } from '../lib/supabase';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -83,25 +84,67 @@ export default function CreateLessonScreen() {
         throw new Error('File URI not available');
       }
 
-      setProgress({
-        stage: 'processing',
-        progress: 40,
-        message: 'Converting PDF to text...',
+              setProgress({
+          stage: 'processing',
+          progress: 40,
+          message: 'Uploading PDF for processing...',
+        });
+
+      // Send PDF to Zapier webhook for text extraction
+      const formData = new FormData();
+      formData.append('pdf', {
+        uri: file.uri,
+        type: 'application/pdf',
+        name: file.name,
+      } as any);
+
+      const webhookResponse = await fetch('http://192.168.1.72:3001/api/process-pdf', {
+        method: 'POST',
+        body: formData,
       });
 
-      // Create lesson using AI (PDF conversion happens inside the service)
-      const lesson = await LessonService.createLessonFromPDF(
-        file.uri,
-        file.name,
-        user.id,
-        selectedSubject,
-        userNativeLanguage
-      );
+      if (!webhookResponse.ok) {
+        throw new Error('Failed to send PDF to webhook for processing');
+      }
+
+      const webhookResult = await webhookResponse.json();
+      console.log('✅ PDF sent to PDF.co API successfully:', webhookResult);
+
+              setProgress({
+          stage: 'processing',
+          progress: 60,
+          message: 'PDF uploaded successfully, creating lesson...',
+        });
+
+      // Create lesson with extracted text from PDF.co API
+      const lessonTitle = `${selectedSubject} Vocabulary Lesson`;
+      const estimatedDuration = 45; // Default duration
+      
+      // Extract text from the PDF.co API response
+      const extractedText = webhookResult.result?.text || 'Text extraction failed';
+      
+      const { data: lesson, error: lessonError } = await supabase
+        .from('esp_lessons')
+        .insert([{
+          user_id: user.id,
+          title: lessonTitle,
+          subject: selectedSubject,
+          source_pdf_name: file.name,
+          native_language: userNativeLanguage,
+          estimated_duration: estimatedDuration,
+          difficulty_level: 'intermediate',
+          status: 'ready',
+          content: extractedText.substring(0, 5000) // Store first 5000 chars of extracted text
+        }])
+        .select()
+        .single();
+
+      if (lessonError) throw lessonError;
 
       setProgress({
         stage: 'processing',
         progress: 80,
-        message: 'Generating vocabulary with AI...',
+        message: 'Creating lesson structure...',
       });
 
       if (!lesson) {
@@ -122,7 +165,7 @@ export default function CreateLessonScreen() {
           {
             text: 'Start Lesson',
             onPress: () => {
-              (navigation as any).navigate('LessonViewer', { lessonId: lesson.id });
+              navigation.navigate('Dashboard' as never);
             }
           },
           {
@@ -176,6 +219,9 @@ export default function CreateLessonScreen() {
           <Text style={styles.descriptionText}>
             Upload your course notes and let AI create an interactive vocabulary lesson 
             with flashcards and games. Perfect for learning subject-specific English terminology.
+          </Text>
+          <Text style={styles.webhookNote}>
+            📡 PDFs are processed via Zapier webhook for enhanced text extraction
           </Text>
         </View>
 
@@ -334,6 +380,13 @@ const styles = StyleSheet.create({
     color: '#64748b',
     lineHeight: 22,
     textAlign: 'center',
+  },
+  webhookNote: {
+    fontSize: 14,
+    color: '#8b5cf6',
+    textAlign: 'center',
+    fontStyle: 'italic',
+    marginTop: 8,
   },
   subjectSection: {
     backgroundColor: '#ffffff',

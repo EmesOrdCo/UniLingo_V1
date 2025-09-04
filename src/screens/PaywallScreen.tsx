@@ -196,6 +196,15 @@ export default function PaywallScreen({ onComplete }: PaywallScreenProps) {
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
+          <View style={styles.headerTop}>
+            <TouchableOpacity 
+              style={styles.backButton} 
+              onPress={() => navigation.navigate('Dashboard' as never)}
+            >
+              <Ionicons name="arrow-back" size={24} color="#6b7280" />
+              <Text style={styles.backButtonText}>Back to Dashboard</Text>
+            </TouchableOpacity>
+          </View>
           <Text style={styles.title}>Choose Your Plan</Text>
           <Text style={styles.subtitle}>
             Unlock your full learning potential with UniLingo
@@ -266,6 +275,25 @@ const styles = StyleSheet.create({
   header: {
     padding: 24,
     alignItems: 'center',
+  },
+  headerTop: {
+    width: '100%',
+    marginBottom: 16,
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: '#f3f4f6',
+  },
+  backButtonText: {
+    marginLeft: 8,
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#6b7280',
   },
   title: {
     fontSize: 28,

@@ -173,59 +173,9 @@ export class UploadService {
     }
   }
 
+  // PDF text extraction removed - now handled by PDF.co API
   static async extractTextFromPDF(uri: string): Promise<string> {
-    try {
-      const fileInfo = await FileSystem.getInfoAsync(uri);
-      
-      if (!fileInfo.exists) {
-        throw new Error('PDF file not found');
-      }
-
-      // For now, we'll simulate text extraction with a more realistic approach
-      // In a production app, you'd want to use a proper PDF parsing library
-      // This is a temporary solution that provides better testing
-      
-
-      
-      // Simulate processing time and return realistic sample content
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate processing
-      
-      // Return realistic academic content that would come from a PDF
-      const sampleText = `Introduction to Medical Terminology
-
-Medical terminology is the language used by healthcare professionals to describe the human body, medical conditions, and treatments. Understanding medical terminology is essential for effective communication in healthcare settings.
-
-Key Concepts:
-1. Root Words: The foundation of medical terms, often derived from Greek or Latin
-2. Prefixes: Added to the beginning of root words to modify meaning
-3. Suffixes: Added to the end of root words to indicate procedures or conditions
-
-Common Medical Prefixes:
-- "Cardio-" refers to the heart
-- "Neuro-" refers to the nervous system
-- "Hemo-" refers to blood
-- "Osteo-" refers to bones
-
-Common Medical Suffixes:
-- "-itis" indicates inflammation
-- "-ectomy" indicates surgical removal
-- "-ology" indicates the study of
-- "-pathy" indicates disease
-
-Examples of Medical Terms:
-- Cardiology: The study of the heart
-- Neurology: The study of the nervous system
-- Hematology: The study of blood
-- Osteology: The study of bones
-
-Understanding these building blocks allows healthcare professionals to break down complex medical terms and understand their meanings. This knowledge is crucial for accurate diagnosis, treatment planning, and patient communication.`;
-      
-
-      return sampleText;
-    } catch (error) {
-      console.error('Error extracting text from PDF:', error);
-      throw new Error('Failed to extract text from PDF');
-    }
+    throw new Error('PDF text extraction is now handled by PDF.co API. Please use the API-based flow.');
   }
 
   static async generateFlashcards(

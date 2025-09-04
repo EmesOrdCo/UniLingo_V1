@@ -66,30 +66,13 @@ export class LessonService {
         encoding: FileSystem.EncodingType.Base64,
       });
 
-      // Call backend server instead of Cloudmersive directly
-      const response = await fetch('http://192.168.1.187:3001/api/extract-pdf-base64', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          pdfBase64: pdfBase64
-        })
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.log('🔍 Error response body:', errorText);
-        throw new Error(`Backend server error: ${response.status} ${response.statusText}`);
-      }
-
-      const result = await response.json();
-      console.log('✅ Text extracted from PDF successfully via backend');
-      return result.text;
+      // PDF text extraction now handled by Zapier webhook
+      // This function will be updated to work with the webhook flow
+      throw new Error('PDF text extraction is now handled by Zapier webhook. Please use the webhook-based flow.');
 
     } catch (error) {
-      console.error('❌ Error converting PDF to text:', error);
-      throw new Error('Failed to convert PDF to text. Please ensure the PDF contains readable text.');
+      console.error('❌ PDF text extraction error:', error);
+      throw error; // Re-throw the original error
     }
   }
 
@@ -288,55 +271,13 @@ Create vocabulary entries for ALL keywords. Return ONLY the JSON array:`;
     try {
       console.log('🚀 Creating lesson from PDF...');
 
-      // Step 1: Convert PDF to text using Cloudmersive
-      const pdfText = await this.convertPdfToText(pdfUri);
+      // Step 1: PDF text extraction now handled by PDF.co API
+      // This function will be updated to work with the API flow
+      throw new Error('PDF text extraction is now handled by PDF.co API. Please use the API-based flow.');
       
-      // Step 2: Extract keywords
-      const keywords = await this.extractKeywordsFromPDF(pdfText, subject, nativeLanguage);
-      
-      // Step 3: Generate vocabulary
-      const vocabulary = await this.generateVocabularyFromKeywords(keywords, subject, nativeLanguage);
-      
-      // Step 4: Create lesson in database
-      const lessonTitle = `${subject} Vocabulary Lesson`;
-      const estimatedDuration = Math.max(30, vocabulary.length * 2); // 2 minutes per term, minimum 30 minutes
-      
-      const { data: lesson, error: lessonError } = await supabase
-        .from('esp_lessons')
-        .insert([{
-          user_id: userId,
-          title: lessonTitle,
-          subject: subject,
-          source_pdf_name: pdfName,
-          native_language: nativeLanguage,
-          estimated_duration: estimatedDuration,
-          difficulty_level: 'intermediate',
-          status: 'ready'
-        }])
-        .select()
-        .single();
-
-      if (lessonError) throw lessonError;
-
-      // Step 5: Create vocabulary entries
-      const vocabularyData = vocabulary.map(item => ({
-        lesson_id: lesson.id,
-        english_term: item.english_term,
-        definition: item.definition,
-        native_translation: item.native_translation,
-        example_sentence_en: item.example_sentence_en,
-        example_sentence_native: item.example_sentence_native,
-        difficulty_rank: item.difficulty_rank
-      }));
-
-      const { error: vocabError } = await supabase
-        .from('lesson_vocabulary')
-        .insert(vocabularyData);
-
-      if (vocabError) throw vocabError;
-
-      console.log('✅ Lesson created successfully:', lesson.id);
-      return lesson;
+      // This function is now deprecated - PDF processing is handled by PDF.co API
+      // and lesson creation is handled directly in the CreateLessonScreen
+      throw new Error('This function is deprecated. Use the PDF.co API flow in CreateLessonScreen.');
 
     } catch (error) {
       console.error('❌ Error creating lesson:', error);

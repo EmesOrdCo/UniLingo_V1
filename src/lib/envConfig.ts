@@ -1,16 +1,27 @@
 // Environment configuration for Expo
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 
-// Load environment variables based on platform
+// Load environment variables from Expo config
 const getEnvironmentVariable = (key: string): string | undefined => {
-  // For development, try to load from .env files
-  if (__DEV__) {
-    // In Expo, environment variables are automatically loaded
-    // but we need to ensure they're available
-    return process.env[key];
+  // Try to get from Expo config first
+  if (Constants.expoConfig?.extra) {
+    const extra = Constants.expoConfig.extra;
+    switch (key) {
+      case 'EXPO_PUBLIC_SUPABASE_URL':
+        return extra.supabaseUrl;
+      case 'EXPO_PUBLIC_SUPABASE_ANON_KEY':
+        return extra.supabaseAnonKey;
+      case 'EXPO_PUBLIC_OPENAI_API_KEY':
+        return extra.openaiApiKey;
+      case 'EXPO_PUBLIC_BACKEND_URL':
+        return extra.backendUrl;
+      default:
+        break;
+    }
   }
   
-  // For production, use the bundled environment variables
+  // Fallback to process.env
   return process.env[key];
 };
 

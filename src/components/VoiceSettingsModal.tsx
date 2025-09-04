@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { VoiceService } from '../lib/voiceService';
+import { ENV } from '../lib/envConfig';
 
 interface VoiceSettingsModalProps {
   visible: boolean;
@@ -68,7 +69,7 @@ export default function VoiceSettingsModal({
   const handlePermissionRequest = async () => {
     try {
       // For OpenAI-based voice, we just need to check API key
-      const apiKey = process.env.EXPO_PUBLIC_OPENAI_API_KEY;
+      const apiKey = ENV.OPENAI_API_KEY;
       if (apiKey && apiKey !== 'b214f483e4c5441a980832bf84db4501') {
         onVoiceToggle(true);
         Alert.alert('Success', 'OpenAI API key configured! Voice features enabled.');

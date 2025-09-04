@@ -48,7 +48,7 @@ export default function LessonsContent() {
 
   const handleLessonPress = (lesson: Lesson) => {
     // Navigate to lesson viewer
-    (navigation as any).navigate('LessonViewer', { lessonId: lesson.id });
+            navigation.navigate('Dashboard' as never);
   };
 
   const handleRefresh = () => {

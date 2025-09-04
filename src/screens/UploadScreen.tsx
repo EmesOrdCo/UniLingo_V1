@@ -195,10 +195,42 @@ export default function UploadScreen() {
     }
   };
 
+  const handleTestWebhook = async () => {
+    try {
+      console.log('🧪 Testing Zapier webhook...');
+      
+      const response = await fetch('http://192.168.1.72:3001/api/test-webhook', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('✅ Webhook test successful:', result);
+      
+      Alert.alert(
+        'Webhook Test Successful!',
+        `Zapier webhook responded: ${result.message}`,
+        [{ text: 'OK' }]
+      );
+    } catch (error) {
+      console.error('❌ Webhook test failed:', error);
+      Alert.alert(
+        'Webhook Test Failed',
+        `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        [{ text: 'OK' }]
+      );
+    }
+  };
+
   const handleFilePick = async () => {
     // SECTION 1: handleFilePick - Main PDF upload function
     if (!selectedTopic) {
-      Alert.alert('Error', 'Please select or create a topic first');
       return;
     }
 
@@ -298,24 +330,44 @@ export default function UploadScreen() {
         message: `File selected: ${file.name}, processing PDF...`,
       });
 
-      // Extract text from PDF
-      setProgress({
-        stage: 'processing',
-        progress: 40,
-        message: 'Extracting text from PDF...',
-      });
+      // Send PDF to Zapier webhook for text extraction
+              setProgress({
+          stage: 'processing',
+          progress: 40,
+          message: 'Uploading PDF for processing...',
+        });
       
-      console.log('Starting text extraction...');
-      const extractedText = await UploadService.extractTextFromPDF(file.uri);
-      console.log('Text extraction completed, length:', extractedText.length);
+      console.log('Starting webhook-based text extraction...');
       
+      const formData = new FormData();
+      formData.append('pdf', {
+        uri: file.uri,
+        type: 'application/pdf',
+        name: file.name,
+      } as any);
 
-      
-      setProgress({
-        stage: 'processing',
-        progress: 50,
-        message: 'Text extracted, preparing for AI analysis...',
+              const webhookResponse = await fetch('http://192.168.1.72:3001/api/process-pdf', {
+        method: 'POST',
+        body: formData,
       });
+
+      if (!webhookResponse.ok) {
+        throw new Error('Failed to send PDF to webhook for text extraction');
+      }
+
+      const webhookResult = await webhookResponse.json();
+      console.log('✅ PDF sent to PDF.co API successfully:', webhookResult);
+      
+      // Extract text from PDF.co API response
+      const extractedText = webhookResult.result?.text 
+        ? `PDF "${file.name}" processed successfully!\n\nExtracted ${webhookResult.result.text.length} characters from ${webhookResult.result.pageCount} pages.\n\nExtracted Text:\n${webhookResult.result.text.substring(0, 1000)}${webhookResult.result.text.length > 1000 ? '...' : ''}`
+        : `PDF "${file.name}" processed successfully! Check the backend logs for detailed results.`;
+      
+              setProgress({
+          stage: 'processing',
+          progress: 50,
+          message: 'PDF uploaded successfully, preparing for AI analysis...',
+        });
 
       // Generate flashcards with AI - SECTION 1: handleFilePick
       const topic = selectedTopic;
@@ -794,6 +846,15 @@ export default function UploadScreen() {
               {isProcessing ? 'Processing...' : selectedTopic === 'AI Selection' ? 'Choose PDF for AI Topic Detection' : 'Choose PDF File'}
                 </Text>
               </TouchableOpacity>
+
+          {/* Webhook Test Button */}
+          <TouchableOpacity
+            style={styles.webhookTestButton}
+            onPress={handleTestWebhook}
+          >
+            <Ionicons name="link" size={18} color="#6366f1" />
+            <Text style={styles.webhookTestButtonText}>Test Zapier Webhook</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Info Section */}
@@ -1151,6 +1212,24 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '600',
     marginLeft: 10,
+  },
+  webhookTestButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    backgroundColor: '#f8fafc',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    marginTop: 12,
+  },
+  webhookTestButtonText: {
+    color: '#6366f1',
+    fontSize: 14,
+    fontWeight: '500',
+    marginLeft: 8,
   },
   infoSection: {
     backgroundColor: '#ffffff',

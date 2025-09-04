@@ -1,103 +1,64 @@
-# UniLingo Website
+# UniLingo - Clean Project Structure
 
-A beautiful, responsive showcase website for the UniLingo AI-powered language learning app.
+This project has been reorganized for clarity. It is a React Native/Expo mobile application with a Node.js backend.
 
-## 🌟 Features
-
-### Design & UX
-- **Modern, responsive design** that works on all devices
-- **Smooth animations** and interactive elements
-- **Professional color scheme** with gradient backgrounds
-- **Mobile-first approach** with touch-friendly navigation
-
-### Sections
-1. **Hero Section** - Eye-catching introduction with call-to-action buttons
-2. **Features Section** - Showcases 6 key app features with icons
-3. **Screenshots Section** - Visual mockups of app screens
-4. **Pricing Section** - Three-tier pricing structure
-5. **Footer** - Contact information and links
-
-### Technical Features
-- **Pure HTML/CSS/JavaScript** - No frameworks required
-- **Font Awesome icons** for professional look
-- **CSS Grid & Flexbox** for responsive layouts
-- **Intersection Observer API** for scroll animations
-- **Smooth scrolling** navigation
-- **Mobile menu** for smaller screens
-
-## 📁 File Structure
+## Project Structure
 
 ```
-UniLingo-Website/
-├── index.html          # Main website file
-└── README.md           # This file
+UniLingo_Final/
+├── src/                    # React Native frontend source code
+│   ├── components/         # Reusable UI components
+│   ├── screens/           # App screens/pages
+│   ├── contexts/          # React contexts for state management
+│   ├── types/             # TypeScript type definitions
+│   ├── lib/               # Utility libraries and helpers
+│   └── config/            # Configuration files
+├── backend/                # Node.js backend server
+│   ├── server.js          # Main server file
+│   ├── package.json       # Backend dependencies
+│   ├── env.example        # Environment variables template
+│   └── README.md          # Backend documentation
+├── assets/                 # Static assets (images, icons, etc.)
+├── .expo/                  # Expo configuration
+├── package.json            # Frontend dependencies (React Native)
+├── app.json               # Expo app configuration
+├── tsconfig.json          # TypeScript configuration
+├── .gitignore             # Git ignore rules
+└── delete/                 # Files moved during cleanup (for reference)
 ```
 
-## 🚀 How to Use
+## Getting Started
 
-1. **Open the website**: Double-click `index.html` or open it in any web browser
-2. **Local server** (optional): Use a local server for best experience
-   ```bash
-   # Using Python
-   python -m http.server 8000
-   
-   # Using Node.js
-   npx serve .
-   
-   # Using PHP
-   php -S localhost:8000
-   ```
+### Frontend (React Native/Expo)
+```bash
+npm install
+npm start
+```
 
-## 🎨 Customization
+### Backend (Node.js)
+```bash
+cd backend
+npm install
+# Copy env.example to .env and configure
+npm start
+```
 
-### Colors
-The website uses a consistent color palette:
-- **Primary**: `#6366f1` (Indigo)
-- **Secondary**: `#8b5cf6` (Purple)
-- **Success**: `#10b981` (Green)
-- **Text**: `#1f2937` (Dark Gray)
-- **Background**: `#f8fafc` (Light Gray)
+## What Was Cleaned Up
 
-### Content
-- **App features** can be updated in the features section
-- **Pricing** can be modified in the pricing cards
-- **Contact information** is in the footer
-- **Screenshots** can be replaced with actual app images
+The following items were safely removed during reorganization:
+- ❌ Duplicate environment files (kept essential ones)
+- ❌ Scattered test files (not referenced anywhere)
+- ❌ Duplicate project structures (temp-unilingo, nested UniLingo)
+- ❌ Next.js configuration files (not needed for React Native)
+- ❌ Web-specific files (tailwind, postcss, index.html)
 
-## 📱 Responsive Design
+## What Was Preserved
 
-The website is fully responsive and works on:
-- **Desktop** (1200px+)
-- **Tablet** (768px - 1199px)
-- **Mobile** (320px - 767px)
+The following essential items were kept:
+- ✅ **Supabase Edge Functions** (used by the app)
+- ✅ **Utility Scripts** (referenced in documentation)
+- ✅ **Database Setup Files** (needed for deployment)
+- ✅ **Important Documentation** (setup guides)
+- ✅ **Environment Configuration** (working setup)
 
-## 🔧 Browser Support
-
-- **Chrome** 60+
-- **Firefox** 55+
-- **Safari** 12+
-- **Edge** 79+
-
-## 📞 Contact
-
-For support or questions about the website:
-- **Email**: unilingo.help@gmail.com
-- **Website**: Contact form in footer
-
-## 🎯 Purpose
-
-This website serves as a professional showcase for the UniLingo mobile app, highlighting:
-- **Key features** and benefits
-- **Visual design** and user interface
-- **Pricing structure** and value proposition
-- **Professional branding** and credibility
-
-Perfect for:
-- **Investor presentations**
-- **App store listings**
-- **Marketing campaigns**
-- **User acquisition**
-
----
-
-**Built with ❤️ for UniLingo**
+All essential code has been preserved and organized into a clear frontend/backend structure.
