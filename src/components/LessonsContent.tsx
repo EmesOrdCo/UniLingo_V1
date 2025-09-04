@@ -46,16 +46,17 @@ export default function LessonsContent() {
     navigation.navigate('CreateLesson' as never);
   };
 
-  const handleLessonPress = (lesson: Lesson) => {
-    // Navigate to lesson viewer
-            navigation.navigate('Dashboard' as never);
+  const handleLessonPress = async (lesson: Lesson) => {
+    // Navigate to lesson walkthrough
+    navigation.navigate('LessonWalkthrough' as never, {
+      lessonId: lesson.id,
+      lessonTitle: lesson.title
+    } as never);
   };
 
   const handleRefresh = () => {
     fetchUserLessons();
   };
-
-  // Show loading state while fetching lessons
   if (loadingLessons) {
     return (
       <View style={styles.loadingContainer}>

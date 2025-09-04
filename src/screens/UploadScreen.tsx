@@ -199,7 +199,7 @@ export default function UploadScreen() {
     try {
       console.log('🧪 Testing Zapier webhook...');
       
-      const response = await fetch('http://192.168.1.146:3001/api/test-webhook', {
+      const response = await fetch('http://192.168.1.72:3001/api/test-webhook', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -346,7 +346,7 @@ export default function UploadScreen() {
         name: file.name,
       } as any);
 
-              const webhookResponse = await fetch('http://192.168.1.146:3001/api/process-pdf', {
+              const webhookResponse = await fetch('http://192.168.1.72:3001/api/process-pdf', {
         method: 'POST',
         body: formData,
       });

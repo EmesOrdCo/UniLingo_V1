@@ -30,6 +30,7 @@ import AIChatPage from './src/screens/AIChatPage';
 import PaywallScreen from './src/screens/PaywallScreen';
 import ConversationPracticeScreen from './src/screens/ConversationPracticeScreen';
 import AssistantConfigScreen from './src/screens/AssistantConfigScreen';
+import LessonWalkthroughScreen from './src/screens/LessonWalkthroughScreen';
 
 const Stack = createStackNavigator();
 
@@ -61,6 +62,7 @@ function MainNavigator() {
       <Stack.Screen name="Paywall" component={PaywallScreen} />
       <Stack.Screen name="ConversationPractice" component={ConversationPracticeScreen} />
       <Stack.Screen name="AssistantConfig" component={AssistantConfigScreen} />
+      <Stack.Screen name="LessonWalkthrough" component={LessonWalkthroughScreen} />
     </Stack.Navigator>
   );
 }

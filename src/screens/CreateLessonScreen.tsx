@@ -98,15 +98,9 @@ export default function CreateLessonScreen() {
         name: file.name,
       } as any);
 
-      console.log('📤 Sending PDF to backend server...');
-      console.log('📁 File:', file.name);
-      console.log('📏 Size:', file.size);
-      console.log('🔗 URL: http://192.168.1.146:3001/api/process-pdf');
-
-      const webhookResponse = await fetch('http://192.168.1.146:3001/api/process-pdf', {
+      const webhookResponse = await fetch('http://192.168.1.72:3001/api/process-pdf', {
         method: 'POST',
         body: formData,
-        timeout: 30000, // 30 second timeout
       });
 
       if (!webhookResponse.ok) {

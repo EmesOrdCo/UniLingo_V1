@@ -39,18 +39,12 @@ export interface LessonProgress {
   id: string;
   lesson_id: string;
   user_id: string;
-  current_step: 'flashcards' | 'game1' | 'game2' | 'game3' | 'completed';
-  flashcards_completed: boolean;
-  game1_completed: boolean;
-  game2_completed: boolean;
-  game3_completed: boolean;
   total_score: number;
   max_possible_score: number;
   time_spent_seconds: number;
   started_at: string;
   completed_at?: string;
   created_at: string;
-  updated_at: string;
 }
 
 export class LessonService {
@@ -383,14 +377,16 @@ Create vocabulary entries for ALL keywords. Return ONLY the JSON array:`;
         const { data, error } = await supabase
           .from('lesson_progress')
           .update({
-            ...progressData,
-            updated_at: new Date().toISOString()
+            ...progressData
           })
           .eq('id', existingProgress.id)
           .select()
           .single();
 
-        if (error) throw error;
+        if (error) {
+          console.error('Error updating lesson progress:', error);
+          throw error;
+        }
         return data;
       } else {
         // Create new progress
@@ -399,11 +395,6 @@ Create vocabulary entries for ALL keywords. Return ONLY the JSON array:`;
           .insert([{
             lesson_id: lessonId,
             user_id: userId,
-            current_step: 'flashcards',
-            flashcards_completed: false,
-            game1_completed: false,
-            game2_completed: false,
-            game3_completed: false,
             total_score: 0,
             max_possible_score: 0,
             time_spent_seconds: 0,
@@ -413,7 +404,10 @@ Create vocabulary entries for ALL keywords. Return ONLY the JSON array:`;
           .select()
           .single();
 
-        if (error) throw error;
+        if (error) {
+          console.error('Error creating lesson progress:', error);
+          throw error;
+        }
         return data;
       }
     } catch (error) {
@@ -428,7 +422,6 @@ Create vocabulary entries for ALL keywords. Return ONLY the JSON array:`;
   static async completeLesson(lessonId: string, userId: string, finalScore: number, maxScore: number, timeSpent: number): Promise<void> {
     try {
       await this.updateLessonProgress(lessonId, userId, {
-        current_step: 'completed',
         total_score: finalScore,
         max_possible_score: maxScore,
         time_spent_seconds: timeSpent,
