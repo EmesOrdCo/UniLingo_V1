@@ -37,8 +37,10 @@ export default function ProfilePage() {
     };
 
     const loadProfilePicture = async () => {
+      if (!user?.id) return;
+      
       try {
-        const savedImageUri = await ProfilePictureService.loadProfilePicture();
+        const savedImageUri = await ProfilePictureService.loadProfilePicture(user.id);
         if (savedImageUri) {
           setProfileImage(savedImageUri);
         }
@@ -79,7 +81,11 @@ export default function ProfilePage() {
         
         // Save to persistent storage
         try {
-          await ProfilePictureService.saveProfilePicture(imageUri);
+          if (!user?.id) {
+            Alert.alert('Error', 'User not authenticated');
+            return;
+          }
+          await ProfilePictureService.saveProfilePicture(imageUri, user.id);
           triggerRefresh(); // Use global refresh trigger
           Alert.alert('Success', 'Profile picture updated!');
         } catch (error) {
@@ -173,19 +179,11 @@ export default function ProfilePage() {
       },
     },
     {
-      id: 'access',
-      title: 'Get access',
-      icon: 'lock-closed-outline',
-      onPress: () => {
-        navigation.navigate('Paywall' as never);
-      },
-    },
-    {
-      id: 'help',
-      title: 'Help Centre',
+      id: 'faq',
+      title: 'FAQs',
       icon: 'help-circle-outline',
       onPress: () => {
-        Alert.alert('Help Centre', 'Help and support coming soon!');
+        navigation.navigate('FAQ' as never);
       },
     },
     {
@@ -225,8 +223,8 @@ export default function ProfilePage() {
             refreshTrigger={refreshTrigger}
           />
         </TouchableOpacity>
-          <Text style={styles.userName}>{profile?.name || 'Dan'}</Text>
-          <Text style={styles.userEmail}>{user?.email || 'danord180@icloud.com'}</Text>
+          <Text style={styles.userName}>{profile?.name || user?.email?.split('@')[0] || 'User'}</Text>
+          <Text style={styles.userEmail}>{user?.email || 'No email'}</Text>
         </View>
 
         {/* Subscription Status */}
@@ -279,13 +277,10 @@ export default function ProfilePage() {
                   <View style={styles.settingLeft}>
                     <Ionicons name="mail-outline" size={24} color="#374151" />
                     <View style={styles.settingTextContainer}>
-                      <Text style={styles.settingTitle}>{user?.email || 'danord180@icloud.com'}</Text>
+                      <Text style={styles.settingTitle}>{user?.email || 'No email'}</Text>
                       <Text style={styles.settingSubtitle}>You have limited access</Text>
                     </View>
                   </View>
-                  <TouchableOpacity style={styles.getAccessButton}>
-                    <Text style={styles.getAccessButtonText}>Get access</Text>
-                  </TouchableOpacity>
                 </View>
 
                 <TouchableOpacity style={styles.settingItem} onPress={handleSignOut}>
@@ -666,17 +661,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6b7280',
     marginTop: 2,
-  },
-  getAccessButton: {
-    backgroundColor: '#6366f1',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  getAccessButtonText: {
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '500',
   },
   settingRight: {
     flexDirection: 'row',

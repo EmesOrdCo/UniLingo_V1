@@ -434,9 +434,12 @@ const styles = StyleSheet.create({
     color: '#1e293b',
   },
   refreshButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
     padding: 8,
     borderRadius: 8,
     backgroundColor: '#f8fafc',
+    gap: 6,
   },
   refreshing: {
     transform: [{ rotate: '180deg' }],

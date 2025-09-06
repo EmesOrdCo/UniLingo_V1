@@ -7,8 +7,9 @@ import {
   TouchableOpacity, 
   TextInput, 
   Alert,
-  Modal,
-  FlatList
+  FlatList,
+  Platform,
+  Modal
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -16,6 +17,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { UserProfileService } from '../lib/userProfileService';
 import { supabase } from '../lib/supabase';
+import { NotificationService } from '../lib/notificationService';
+import SubjectSelectionScreen from './SubjectSelectionScreen';
 
 // Comprehensive list of languages supported by ChatGPT/OpenAI
 const SUPPORTED_LANGUAGES = [
@@ -146,15 +149,15 @@ export default function OnboardingFlowScreen() {
   const navigation = useNavigation();
   const { user, clearNewUserFlag, refreshProfile, signUp } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
+  const [showSubjectModal, setShowSubjectModal] = useState(false);
   const [showLanguageModal, setShowLanguageModal] = useState(false);
   const [languageModalType, setLanguageModalType] = useState<'native' | 'target'>('target');
-  const [languageSearch, setLanguageSearch] = useState('');
-  const [filteredLanguages, setFilteredLanguages] = useState(SUPPORTED_LANGUAGES);
   
   // Form data
   const [formData, setFormData] = useState({
     nativeLanguage: '',
-    targetLanguage: '',
+    targetLanguage: 'English', // Hard coded to English
+    subject: '',
     proficiency: '',
     timeCommitment: '',
     wantsNotifications: true,
@@ -165,24 +168,21 @@ export default function OnboardingFlowScreen() {
     selectedPlan: '',
   });
 
-  const totalSteps = 8;
+  const totalSteps = 9;
 
-  useEffect(() => {
-    // Filter languages based on search
-    if (languageSearch.trim()) {
-      const filtered = SUPPORTED_LANGUAGES.filter(lang => 
-        lang.name.toLowerCase().includes(languageSearch.toLowerCase())
-      );
-      setFilteredLanguages(filtered);
-    } else {
-      setFilteredLanguages(SUPPORTED_LANGUAGES);
-    }
-  }, [languageSearch]);
+  // OTP verification is handled manually when user enters the code
 
   const nextStep = () => {
+    console.log('🔄 nextStep called - currentStep:', currentStep, 'totalSteps:', totalSteps);
+    console.log('📊 canProceed():', canProceed());
+    console.log('📝 formData:', formData);
+    console.log('🔢 Step calculation - currentStep:', currentStep, 'currentStep + 1:', currentStep + 1);
+    
     if (currentStep < totalSteps - 1) {
+      console.log('➡️ Moving to next step:', currentStep + 1);
       setCurrentStep(currentStep + 1);
     } else {
+      console.log('🏁 Completing onboarding');
       // Complete onboarding
       handleComplete();
     }
@@ -198,11 +198,13 @@ export default function OnboardingFlowScreen() {
     try {
       console.log('🚀 Starting onboarding completion...');
       
-      // Step 1: Send OTP to user's email
-      console.log('📝 Sending OTP to email:', formData.email);
+      // Step 1: Send OTP code to user's email
+      console.log('📝 Sending OTP code to email:', formData.email);
       const { data: otpData, error: otpError } = await supabase.auth.signInWithOtp({
         email: formData.email,
-        options: { shouldCreateUser: true }   // important for first-time users
+        options: { 
+          shouldCreateUser: true   // important for first-time users
+        }
       });
       console.log('sendEmailCode ->', { data: otpData, error: otpError });
       
@@ -211,7 +213,7 @@ export default function OnboardingFlowScreen() {
         return;
       }
 
-      console.log('✅ OTP sent successfully to:', formData.email);
+      console.log('✅ OTP code sent successfully to:', formData.email);
       
       // Show OTP input modal
       Alert.prompt(
@@ -258,8 +260,12 @@ export default function OnboardingFlowScreen() {
         name: formData.firstName,
         native_language: formData.nativeLanguage,
         target_language: formData.targetLanguage,
-        subjects: [formData.targetLanguage], // Store target language as subject
+        subjects: [formData.subject], // Store actual subject instead of target language
         level: formData.proficiency.toLowerCase() as 'beginner' | 'intermediate' | 'expert',
+        time_commit: formData.timeCommitment, // Use existing column name
+        how_did_you_hear: formData.discoverySource, // Use existing column name
+        payment_tier: formData.selectedPlan, // Use existing column name
+        wants_notifications: formData.wantsNotifications,
         created_at: new Date().toISOString(),
         last_active: new Date().toISOString(),
       });
@@ -305,6 +311,11 @@ export default function OnboardingFlowScreen() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) throw new Error('No session yet');   // prevents early write
 
+    console.log('🔍 DEBUGGING PROFILE SAVE:');
+    console.log('   User ID:', session.user.id);
+    console.log('   User Email:', session.user.email);
+    console.log('   Profile Data:', payload);
+
     const { error } = await supabase.from('users').upsert({
       id: session.user.id,
       email: session.user.email,
@@ -315,17 +326,27 @@ export default function OnboardingFlowScreen() {
   };
 
   const canProceed = () => {
-    switch (currentStep) {
-      case 0: return formData.nativeLanguage && formData.targetLanguage;
-      case 1: return formData.proficiency;
-      case 2: return formData.timeCommitment;
-      case 3: return true; // Notifications are optional
-      case 4: return formData.discoverySource;
-      case 5: return formData.firstName.trim() && formData.email.trim() && isValidEmail(formData.email) && formData.password.trim().length >= 6;
-      case 6: return formData.selectedPlan;
-      case 7: return true; // Trial confirmation
-      default: return false;
+    const result = (() => {
+      switch (currentStep) {
+        case 0: return formData.nativeLanguage && formData.targetLanguage;
+        case 1: return !!formData.subject; // Explicit boolean conversion
+        case 2: return formData.proficiency;
+        case 3: return formData.timeCommitment;
+        case 4: return true; // Notifications are optional
+        case 5: return formData.discoverySource;
+        case 6: return formData.firstName.trim() && formData.email.trim() && isValidEmail(formData.email) && formData.password.trim().length >= 6;
+        case 7: return formData.selectedPlan;
+        case 8: return true; // Trial confirmation
+        default: return false;
+      }
+    })();
+    
+    console.log('🔍 canProceed check - step:', currentStep, 'result:', result, 'type:', typeof result);
+    if (currentStep === 1) {
+      console.log('📚 Subject step - formData.subject:', formData.subject, 'boolean:', !!formData.subject);
     }
+    
+    return result;
   };
 
   const isValidEmail = (email: string) => {
@@ -339,67 +360,69 @@ export default function OnboardingFlowScreen() {
       [type === 'native' ? 'nativeLanguage' : 'targetLanguage']: language.name
     }));
     setShowLanguageModal(false);
-    setLanguageSearch('');
   };
 
-  const renderLanguageModal = () => (
-    <Modal
-      visible={showLanguageModal}
-      animationType="slide"
-      presentationStyle="pageSheet"
-    >
-      <SafeAreaView style={styles.modalContainer}>
-        <View style={styles.modalHeader}>
-          <Text style={styles.modalTitle}>
-            Select {languageModalType === 'native' ? 'Native' : 'Target'} Language
-          </Text>
-          <TouchableOpacity onPress={() => setShowLanguageModal(false)}>
-            <Ionicons name="close" size={24} color="#000" />
-          </TouchableOpacity>
-        </View>
-        
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search languages..."
-          value={languageSearch}
-          onChangeText={setLanguageSearch}
-          autoFocus
+  const renderLanguageModal = () => {
+    if (!showLanguageModal) return null;
+
+    return (
+      <View style={styles.modalOverlay}>
+        <TouchableOpacity 
+          style={styles.modalBackdrop}
+          activeOpacity={1}
+          onPress={() => setShowLanguageModal(false)}
         />
-        
-        <FlatList
-          data={filteredLanguages}
-          keyExtractor={(item) => item.code}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={[
-                styles.languageItem,
-                ((languageModalType === 'native' && formData.nativeLanguage === item.name) ||
-                 (languageModalType === 'target' && formData.targetLanguage === item.name)) && styles.languageItemSelected
-              ]}
-              onPress={() => selectLanguage(item, languageModalType)}
-            >
-              <Text style={styles.flagEmoji}>{item.flag}</Text>
-              <Text style={[
-                styles.languageName,
-                ((languageModalType === 'native' && formData.nativeLanguage === item.name) ||
-                 (languageModalType === 'target' && formData.targetLanguage === item.name)) && styles.languageNameSelected
-              ]}>
-                {item.name}
-              </Text>
-              {((languageModalType === 'native' && formData.nativeLanguage === item.name) ||
-                (languageModalType === 'target' && formData.targetLanguage === item.name)) && (
-                <Ionicons name="checkmark" size={20} color="#6366f1" />
-              )}
+        <View style={styles.modalContainer}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>
+              Select {languageModalType === 'native' ? 'Native' : 'Target'} Language
+            </Text>
+            <TouchableOpacity onPress={() => setShowLanguageModal(false)}>
+              <Ionicons name="close" size={24} color="#000" />
             </TouchableOpacity>
-          )}
-        />
-      </SafeAreaView>
-    </Modal>
-  );
+          </View>
+          
+          <View style={styles.listContainer}>
+            <FlatList
+              data={SUPPORTED_LANGUAGES}
+              keyExtractor={(item) => item.code}
+              showsVerticalScrollIndicator={true}
+              contentContainerStyle={styles.listContent}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[
+                    styles.languageItem,
+                    ((languageModalType === 'native' && formData.nativeLanguage === item.name) ||
+                     (languageModalType === 'target' && formData.targetLanguage === item.name)) && styles.languageItemSelected
+                  ]}
+                  onPress={() => selectLanguage(item, languageModalType)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.flagEmoji}>{item.flag}</Text>
+                  <Text style={[
+                    styles.languageName,
+                    ((languageModalType === 'native' && formData.nativeLanguage === item.name) ||
+                     (languageModalType === 'target' && formData.targetLanguage === item.name)) && styles.languageNameSelected
+                  ]}>
+                    {item.name}
+                  </Text>
+                  {((languageModalType === 'native' && formData.nativeLanguage === item.name) ||
+                    (languageModalType === 'target' && formData.targetLanguage === item.name)) && (
+                    <Ionicons name="checkmark" size={20} color="#6366f1" />
+                  )}
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </View>
+      </View>
+    );
+  };
 
   const renderStep = () => {
     switch (currentStep) {
       case 0: // Languages
+        console.log('🎯 Rendering Languages step - currentStep:', currentStep);
         return (
           <View style={styles.stepContainer}>
             <Text style={styles.stepTitle}>My languages</Text>
@@ -440,41 +463,69 @@ export default function OnboardingFlowScreen() {
 
             <View style={styles.languageSection}>
               <Text style={styles.sectionLabel}>I want to learn</Text>
-              <TouchableOpacity
+              <View
                 style={[
                   styles.languageCard,
-                  formData.targetLanguage && styles.languageCardSelected
+                  styles.languageCardSelected,
+                  styles.languageCardDisabled
                 ]}
-                onPress={() => {
-                  setShowLanguageModal(true);
-                  setLanguageModalType('target');
-                }}
               >
                 <View style={styles.languageCardContent}>
                   <Text style={styles.flagEmoji}>
-                    {formData.targetLanguage 
-                      ? SUPPORTED_LANGUAGES.find(lang => lang.name === formData.targetLanguage)?.flag || '🌍'
-                      : '🌍'
-                    }
+                    🇺🇸
                   </Text>
                   <Text style={[
                     styles.languageCardText,
-                    formData.targetLanguage && styles.languageCardTextSelected
+                    styles.languageCardTextSelected
                   ]}>
-                    {formData.targetLanguage || 'Select language to learn'}
+                    English
                   </Text>
-                  {formData.targetLanguage ? (
-                    <Ionicons name="checkmark" size={20} color="#6366f1" />
-                  ) : (
-                    <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
-                  )}
+                  <Ionicons name="checkmark" size={20} color="#6366f1" />
                 </View>
-              </TouchableOpacity>
+              </View>
             </View>
           </View>
         );
 
-      case 1: // Proficiency
+      case 1: // Subject Selection
+        console.log('🎯 Rendering Subject Selection step - currentStep:', currentStep);
+        return (
+          <View style={styles.stepContainer}>
+            <Text style={styles.stepTitle}>What subject are you studying?</Text>
+            <Text style={styles.stepSubtitle}>
+              Choose the subject area that best matches your studies or interests
+            </Text>
+            
+            <TouchableOpacity
+              style={[
+                styles.subjectCard,
+                formData.subject && styles.subjectCardSelected
+              ]}
+              onPress={() => setShowSubjectModal(true)}
+            >
+              <View style={styles.subjectCardContent}>
+                <Ionicons 
+                  name="school" 
+                  size={24} 
+                  color={formData.subject ? "#6366f1" : "#9ca3af"} 
+                />
+                <Text style={[
+                  styles.subjectCardText,
+                  formData.subject && styles.subjectCardTextSelected
+                ]}>
+                  {formData.subject || 'Select your subject'}
+                </Text>
+                {formData.subject ? (
+                  <Ionicons name="checkmark" size={20} color="#6366f1" />
+                ) : (
+                  <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+                )}
+              </View>
+            </TouchableOpacity>
+          </View>
+        );
+
+      case 2: // Proficiency
         return (
           <View style={styles.stepContainer}>
             <Text style={styles.stepTitle}>What's your current level?</Text>
@@ -500,7 +551,7 @@ export default function OnboardingFlowScreen() {
           </View>
         );
 
-      case 2: // Time Commitment
+      case 3: // Time Commitment
         return (
           <View style={styles.stepContainer}>
             <Text style={styles.stepTitle}>
@@ -536,7 +587,7 @@ export default function OnboardingFlowScreen() {
           </View>
         );
 
-      case 3: // Notifications
+      case 4: // Notifications
         return (
           <View style={styles.stepContainer}>
             <Text style={styles.stepTitle}>Stay motivated</Text>
@@ -548,7 +599,20 @@ export default function OnboardingFlowScreen() {
                   styles.optionButton,
                   formData.wantsNotifications && styles.optionButtonSelected
                 ]}
-                onPress={() => setFormData(prev => ({ ...prev, wantsNotifications: true }))}
+                onPress={async () => {
+                  setFormData(prev => ({ ...prev, wantsNotifications: true }));
+                  
+                  // Schedule daily notifications if user opts in
+                  try {
+                    const hasPermission = await NotificationService.requestPermissions();
+                    if (hasPermission) {
+                      await NotificationService.scheduleDailyReminder();
+                      console.log('✅ Daily notifications scheduled with random time between 1-3 PM');
+                    }
+                  } catch (error) {
+                    console.error('Error scheduling notifications:', error);
+                  }
+                }}
               >
                 <Ionicons name="notifications" size={24} color={formData.wantsNotifications ? "#fff" : "#666"} />
                 <Text style={[
@@ -564,7 +628,17 @@ export default function OnboardingFlowScreen() {
                   styles.optionButton,
                   !formData.wantsNotifications && styles.optionButtonSelected
                 ]}
-                onPress={() => setFormData(prev => ({ ...prev, wantsNotifications: false }))}
+                onPress={async () => {
+                  setFormData(prev => ({ ...prev, wantsNotifications: false }));
+                  
+                  // Cancel any scheduled notifications if user opts out
+                  try {
+                    await NotificationService.cancelDailyReminders();
+                    console.log('✅ Daily notifications cancelled');
+                  } catch (error) {
+                    console.error('Error cancelling notifications:', error);
+                  }
+                }}
               >
                 <Ionicons name="notifications-off" size={24} color={!formData.wantsNotifications ? "#fff" : "#666"} />
                 <Text style={[
@@ -578,7 +652,7 @@ export default function OnboardingFlowScreen() {
           </View>
         );
 
-      case 4: // Discovery Source
+      case 5: // Discovery Source
         return (
           <View style={styles.stepContainer}>
             <Text style={styles.stepTitle}>How did you find us?</Text>
@@ -604,7 +678,7 @@ export default function OnboardingFlowScreen() {
           </View>
         );
 
-      case 5: // Name, Email & Password
+      case 6: // Name, Email & Password
         return (
           <View style={styles.stepContainer}>
             <Text style={styles.stepTitle}>Create your account</Text>
@@ -653,7 +727,7 @@ export default function OnboardingFlowScreen() {
           </View>
         );
 
-      case 6: // Payment Plans
+      case 7: // Payment Plans
         return (
           <View style={styles.stepContainer}>
             <Text style={styles.stepTitle}>Choose your plan</Text>
@@ -730,7 +804,7 @@ export default function OnboardingFlowScreen() {
           </View>
         );
 
-      case 7: // Trial Confirmation
+      case 8: // Trial Confirmation
         return (
           <View style={styles.stepContainer}>
             <View style={styles.trialIconContainer}>
@@ -781,16 +855,20 @@ export default function OnboardingFlowScreen() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        {currentStep > 0 ? (
-          <TouchableOpacity 
-            style={styles.backButton}
-            onPress={prevStep}
-          >
-            <Ionicons name="arrow-back" size={24} color="#000" />
-          </TouchableOpacity>
-        ) : (
-          <View style={styles.placeholder} />
-        )}
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => {
+            if (currentStep === 0) {
+              // On first step, go back to landing page
+              navigation.navigate('Landing');
+            } else {
+              // On other steps, go to previous step
+              prevStep();
+            }
+          }}
+        >
+          <Ionicons name="arrow-back" size={24} color="#000" />
+        </TouchableOpacity>
         <Text style={styles.headerTitle}>Setup</Text>
         <View style={styles.placeholder} />
       </View>
@@ -826,8 +904,15 @@ export default function OnboardingFlowScreen() {
             
             <TouchableOpacity 
               style={[styles.navButton, styles.nextButton, !canProceed() && styles.navButtonDisabled]}
-              onPress={nextStep}
-              disabled={!canProceed()}
+              onPress={() => {
+                console.log('🔘 Next button pressed - step:', currentStep);
+                console.log('🔘 canProceed():', canProceed());
+                if (canProceed()) {
+                  nextStep();
+                } else {
+                  console.log('❌ Button press ignored - canProceed() is false');
+                }
+              }}
             >
               <Text style={[styles.navButtonText, styles.nextButtonText, !canProceed() && styles.navButtonTextDisabled]}>
                 {currentStep === totalSteps - 1 ? 'Complete' : 'Next'}
@@ -838,8 +923,15 @@ export default function OnboardingFlowScreen() {
         ) : (
           <TouchableOpacity 
             style={[styles.fullWidthButton, !canProceed() && styles.navButtonDisabled]}
-            onPress={nextStep}
-            disabled={!canProceed()}
+            onPress={() => {
+              console.log('🔘 Full-width Next button pressed - step:', currentStep);
+              console.log('🔘 canProceed():', canProceed());
+              if (canProceed()) {
+                nextStep();
+              } else {
+                console.log('❌ Button press ignored - canProceed() is false');
+              }
+            }}
           >
             <Text style={[styles.fullWidthButtonText, !canProceed() && styles.navButtonTextDisabled]}>
               Next
@@ -850,6 +942,28 @@ export default function OnboardingFlowScreen() {
       </View>
 
       {renderLanguageModal()}
+      
+      {/* Subject Selection Modal */}
+      {showSubjectModal && (
+        <Modal
+          visible={showSubjectModal}
+          animationType="slide"
+          presentationStyle="pageSheet"
+        >
+          <SubjectSelectionScreen
+            onSubjectSelect={(subject) => {
+              console.log('📚 Subject selected:', subject);
+              setFormData(prev => {
+                const newData = { ...prev, subject };
+                console.log('📝 Updated formData:', newData);
+                return newData;
+              });
+              setShowSubjectModal(false);
+            }}
+            selectedSubject={formData.subject}
+          />
+        </Modal>
+      )}
     </SafeAreaView>
   );
 }
@@ -933,26 +1047,6 @@ const styles = StyleSheet.create({
     color: '#1e293b',
     marginBottom: 16,
   },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f8fafc',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
-  searchIcon: {
-    marginRight: 12,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 16,
-    color: '#1e293b',
-    padding: 0,
-  },
   languageList: {
     maxHeight: 400,
     flex: 1,
@@ -970,6 +1064,9 @@ const styles = StyleSheet.create({
   languageCardSelected: {
     borderWidth: 2,
     borderColor: '#6366f1',
+  },
+  languageCardDisabled: {
+    opacity: 0.7,
   },
   languageCardContent: {
     flexDirection: 'row',
@@ -1212,9 +1309,42 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   // Modal styles
+  modalOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    zIndex: 1000,
+  },
+  modalBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
   modalContainer: {
     flex: 1,
     backgroundColor: '#fff',
+    marginTop: Platform.OS === 'ios' ? 44 : 0, // Status bar height
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 10,
+  },
+  keyboardAvoidingView: {
+    flex: 1,
+  },
+  listContainer: {
+    flex: 1,
+  },
+  listContent: {
+    paddingBottom: 20,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -1248,6 +1378,37 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   languageNameSelected: {
+    color: '#6366f1',
+    fontWeight: '600',
+  },
+  subjectCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 20,
+    marginVertical: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  subjectCardSelected: {
+    borderColor: '#6366f1',
+    backgroundColor: '#f0f4ff',
+  },
+  subjectCardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  subjectCardText: {
+    fontSize: 16,
+    color: '#64748b',
+    marginLeft: 12,
+    flex: 1,
+  },
+  subjectCardTextSelected: {
     color: '#6366f1',
     fontWeight: '600',
   },

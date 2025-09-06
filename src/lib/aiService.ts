@@ -165,7 +165,7 @@ export class AIService {
       }))
 
       const { error } = await supabase
-        .from('flashcards')
+        .from('user_flashcards')
         .insert(flashcardData)
 
       if (error) throw error

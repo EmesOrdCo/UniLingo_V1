@@ -1,5 +1,7 @@
 import OpenAI from 'openai';
 import { openAIRateLimiter } from './rateLimiter';
+import { supabase } from './supabase';
+import { SimpleTokenTracker } from './simpleTokenTracker';
 
 interface OpenAIConfig {
   apiKey: string;
@@ -67,11 +69,32 @@ class OpenAIWithRateLimit {
     const estimatedTokens = this.estimateRequestTokens(request);
     const priority = request.priority || 0;
 
+    // Get current user ID for monthly tracking
+    let userId: string | undefined;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      userId = user?.id;
+      
+      // Check if user has exceeded monthly limit
+      if (userId) {
+        const hasExceeded = await SimpleTokenTracker.hasExceededLimit(userId);
+        if (hasExceeded) {
+          throw new Error('Monthly token limit exceeded. Please wait until next month to continue using AI features.');
+        }
+        
+        // Check if it's time to reset monthly usage
+        await SimpleTokenTracker.checkAndResetIfNeeded(userId);
+      }
+    } catch (error) {
+      console.warn('⚠️ Could not get user ID for token tracking:', error);
+    }
+
     try {
       console.log('🤖 OpenAI API request queued', {
         model: request.model,
         estimatedTokens,
         priority,
+        userId,
         queueSize: openAIRateLimiter.getStatus().queueSize
       });
 
@@ -86,6 +109,15 @@ class OpenAIWithRateLimit {
             max_tokens: request.max_tokens || 1000,
             stream: request.stream || false,
           });
+
+          // Record token usage in monthly tracking (separate input/output)
+          if ('usage' in completion && completion.usage && userId) {
+            await SimpleTokenTracker.recordTokenUsage(
+              userId, 
+              completion.usage.prompt_tokens, 
+              completion.usage.completion_tokens
+            );
+          }
 
           // Update token usage in rate limiter
           if ('usage' in completion && completion.usage) {
@@ -113,7 +145,8 @@ class OpenAIWithRateLimit {
 
       console.log('✅ OpenAI API request successful', {
         contentLength: content.length,
-        tokensUsed: usage.total_tokens
+        tokensUsed: usage.total_tokens,
+        userId
       });
 
       return {

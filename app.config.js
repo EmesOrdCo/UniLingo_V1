@@ -17,7 +17,11 @@ export default {
       "**/*"
     ],
     ios: {
-      supportsTablet: true
+      supportsTablet: true,
+      infoPlist: {
+        UIBackgroundModes: ["background-fetch", "background-processing"],
+        NSUserNotificationAlertStyle: "alert"
+      }
     },
     android: {
       adaptiveIcon: {
@@ -31,7 +35,16 @@ export default {
     scheme: "unilingo",
     sdkVersion: "53.0.0",
     plugins: [
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#ffffff",
+          "sounds": ["./assets/notification-sound.wav"],
+          "mode": "production"
+        }
+      ]
     ],
     extra: {
       supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,

@@ -32,8 +32,10 @@ export default function ProfileModal({ visible, onClose }: ProfileModalProps) {
     };
 
     const loadProfilePicture = async () => {
+      if (!user?.id) return;
+      
       try {
-        const savedImageUri = await ProfilePictureService.loadProfilePicture();
+        const savedImageUri = await ProfilePictureService.loadProfilePicture(user.id);
         if (savedImageUri) {
           setProfileImage(savedImageUri);
         }
@@ -74,7 +76,11 @@ export default function ProfileModal({ visible, onClose }: ProfileModalProps) {
         
         // Save to persistent storage
         try {
-          await ProfilePictureService.saveProfilePicture(imageUri);
+          if (!user?.id) {
+            Alert.alert('Error', 'User not authenticated');
+            return;
+          }
+          await ProfilePictureService.saveProfilePicture(imageUri, user.id);
           triggerRefresh(); // Use global refresh trigger
           Alert.alert('Success', 'Profile picture updated!');
         } catch (error) {
@@ -123,8 +129,8 @@ export default function ProfileModal({ visible, onClose }: ProfileModalProps) {
             refreshTrigger={refreshTrigger}
           />
         </TouchableOpacity>
-            <Text style={styles.profileName}>{profile?.name || 'User Name'}</Text>
-            <Text style={styles.profileEmail}>{user?.email || 'user@example.com'}</Text>
+            <Text style={styles.profileName}>{profile?.name || user?.email?.split('@')[0] || 'User'}</Text>
+            <Text style={styles.profileEmail}>{user?.email || 'No email'}</Text>
           </View>
           
           <View style={styles.profileStats}>

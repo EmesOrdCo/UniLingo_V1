@@ -52,13 +52,19 @@ export default function LandingScreen() {
   }, [fadeAnim]);
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* Background Image */}
       <ImageBackground
         source={require('../../assets/study-session-bg.png')}
         style={styles.backgroundImage}
         resizeMode="cover"
       >
+        {/* Header with Brand Name */}
+        <View style={styles.header}>
+          <View style={styles.logoContainer}>
+            <Text style={styles.brandName}>UniLingo</Text>
+          </View>
+        </View>
 
         {/* Content Overlay Card */}
         <View style={styles.overlayCard}>
@@ -95,7 +101,7 @@ export default function LandingScreen() {
           </TouchableOpacity>
         </View>
       </ImageBackground>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -105,7 +111,32 @@ const styles = StyleSheet.create({
   },
   backgroundImage: {
     flex: 1,
-    justifyContent: 'flex-end',
+    justifyContent: 'space-between',
+  },
+  header: {
+    paddingTop: 20,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+  },
+  logoContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 20,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  brandName: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#6366f1',
+    fontFamily: 'serif',
+    letterSpacing: 0.5,
   },
   overlayCard: {
     backgroundColor: '#fff',

@@ -1,21 +1,23 @@
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
 import OpenAI from 'openai';
+import OpenAIWithRateLimit from './openAIWithRateLimit';
 import { UserFlashcardService } from './userFlashcardService';
 import { ENV } from './envConfig';
+import { CostEstimator } from './costEstimator';
+import { supabase } from './supabase';
 
-// Initialize OpenAI client - will be created when needed
-let openai: OpenAI | null = null;
+// Initialize OpenAI client with rate limiting - will be created when needed
+let openai: OpenAIWithRateLimit | null = null;
 
-function getOpenAIClient(): OpenAI {
+function getOpenAIClient(): OpenAIWithRateLimit {
   if (!openai) {
     const apiKey = ENV.OPENAI_API_KEY;
     if (!apiKey) {
       throw new Error('OpenAI API key not configured');
     }
-    openai = new OpenAI({
+    openai = new OpenAIWithRateLimit({
       apiKey: apiKey,
-      dangerouslyAllowBrowser: true, // For web compatibility
     });
   }
   return openai;
@@ -306,20 +308,38 @@ export class UploadService {
       console.log('Sending request to OpenAI...');
       const client = getOpenAIClient();
       
+      // Prepare messages for cost estimation
+      const messages = [
+        {
+          role: 'system',
+          content: 'You are an expert language learning content creator. You MUST create terminology flashcards with English terms on the front and native language translations on the back. NEVER put English definitions on the back - only translations. ALWAYS include simple, relevant example sentences in English that demonstrate how each term is used in context. Each example sentence MUST contain the exact front term. Keep examples straightforward with the target term as the main focus, but prioritize relevance over simplicity.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ];
+
+      // Get current user for cost estimation
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
+      // Estimate cost before making the API call
+      const costEstimate = await CostEstimator.estimateCost(user.id, messages);
+      
+      if (!costEstimate.canProceed) {
+        throw new Error(CostEstimator.getCostExceededMessage(costEstimate));
+      }
+
+      console.log('Cost estimation:', CostEstimator.getCostInfo(costEstimate));
+      
       // Add timeout to prevent hanging on AI request
       const completion = await Promise.race([
-        client.chat.completions.create({
+        client.createChatCompletion({
           model: 'gpt-4o-mini',
-          messages: [
-            {
-              role: 'system',
-              content: 'You are an expert language learning content creator. You MUST create terminology flashcards with English terms on the front and native language translations on the back. NEVER put English definitions on the back - only translations. ALWAYS include simple, relevant example sentences in English that demonstrate how each term is used in context. Each example sentence MUST contain the exact front term. Keep examples straightforward with the target term as the main focus, but prioritize relevance over simplicity.'
-            },
-            {
-              role: 'user',
-              content: prompt
-            }
-          ],
+          messages: messages,
           temperature: 0.7,
           max_tokens: 2000,
         }),
@@ -337,7 +357,7 @@ export class UploadService {
         message: topic === 'AI Selection' ? 'Processing AI response and organizing by detected topics...' : 'Processing AI response...',
       });
 
-      const responseText = completion.choices[0]?.message?.content;
+      const responseText = completion.content;
       if (!responseText) {
         throw new Error('No response from AI');
       }

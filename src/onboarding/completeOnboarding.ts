@@ -51,18 +51,18 @@ export async function completeOnboarding({
         email: data.email || null,
         native_language: data.nativeLanguage || null,
         target_language: data.targetLanguage || null,
-        proficiency_level: data.proficiency || null,
+        level: data.proficiency || null, // Use existing 'level' column
         daily_commitment_minutes: data.dailyCommitmentMinutes || null,
         age_range: data.ageRange || null,
-        discovery_source: data.discoverySource || null,
+        how_did_you_hear: data.discoverySource || null, // Use existing 'how_did_you_hear' column
         wants_notifications: data.wantsNotifications || false,
-        selected_plan_id: data.selectedPlanId || null,
+        payment_tier: data.selectedPlanId || null, // Use existing 'payment_tier' column
         has_active_subscription: data.hasActiveSubscription || false,
         updated_at: new Date().toISOString(),
       };
 
       const { error: profileError } = await supabase
-        .from('profiles')
+        .from('users')
         .upsert(profileData, { 
           onConflict: 'id',
           ignoreDuplicates: false 

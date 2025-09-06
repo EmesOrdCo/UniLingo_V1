@@ -12,6 +12,7 @@ export const languageOptions = [
 ] as const;
 
 export const targetLanguageOptions = [
+  { code: 'en-GB', label: 'English (UK)', flagEmoji: '🇬🇧' },
   { code: 'es', label: 'Spanish', flagEmoji: '🇪🇸' },
   { code: 'de', label: 'German', flagEmoji: '🇩🇪' },
   { code: 'it', label: 'Italian', flagEmoji: '🇮🇹' },

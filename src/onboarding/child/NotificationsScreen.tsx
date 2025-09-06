@@ -1,57 +1,61 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useThemeTokens } from '../../theme/useThemeTokens';
 import { Screen, OnboardingButton } from '../ui';
 import { useOnboardingStore, useOnboardingField } from '../state';
 import { validateScreen } from '../schema';
-
-// Check if expo-notifications is available
-let Notifications: any = null;
-try {
-  Notifications = require('expo-notifications');
-} catch (error) {
-  // expo-notifications not available
-}
+import { NotificationService } from '../../lib/notificationService';
 
 export function NotificationsScreen() {
   const theme = useThemeTokens();
   const navigation = useNavigation();
   const { nextStep, previousStep } = useOnboardingStore();
   const { value: wantsNotifications, setValue: setWantsNotifications } = useOnboardingField('wantsNotifications');
+  const [isLoading, setIsLoading] = useState(false);
 
   // Handle "Remind me" button
   const handleRemindMe = async () => {
     try {
-      if (Notifications) {
-        // Request permission if expo-notifications is available
-        const { status } = await Notifications.requestPermissionsAsync();
-        const granted = status === 'granted';
-        setWantsNotifications(granted);
+      setIsLoading(true);
+      
+      // Request notification permissions
+      const hasPermission = await NotificationService.requestPermissions();
+      setWantsNotifications(hasPermission);
+      
+      if (hasPermission) {
+        // Schedule daily reminder with random time between 1-3 PM
+        const scheduled = await NotificationService.scheduleDailyReminder();
         
-        if (granted) {
+        if (scheduled) {
+          Alert.alert(
+            'Notifications Enabled! 🔔',
+            'You\'ll receive daily reminders between 1-3 PM to keep your learning streak going!',
+            [{ text: 'Perfect!', onPress: () => nextStep() }]
+          );
+        } else {
           Alert.alert(
             'Notifications Enabled',
             'You\'ll receive helpful reminders to keep your learning streak going!',
             [{ text: 'Great!', onPress: () => nextStep() }]
           );
-        } else {
-          Alert.alert(
-            'Notifications Disabled',
-            'You can enable notifications later in your device settings.',
-            [{ text: 'OK', onPress: () => nextStep() }]
-          );
         }
       } else {
-        // Fallback: just set to true if expo-notifications not available
-        setWantsNotifications(true);
-        nextStep();
+        Alert.alert(
+          'Notifications Disabled',
+          'You can enable notifications later in your device settings.',
+          [{ text: 'OK', onPress: () => nextStep() }]
+        );
       }
     } catch (error) {
-      console.error('Error requesting notification permission:', error);
-      // Fallback: set to true and continue
-      setWantsNotifications(true);
-      nextStep();
+      console.error('Error setting up notifications:', error);
+      Alert.alert(
+        'Error',
+        'There was an issue setting up notifications. You can try again later.',
+        [{ text: 'OK', onPress: () => nextStep() }]
+      );
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -84,17 +88,18 @@ export function NotificationsScreen() {
         {/* Description */}
         <View style={styles.descriptionContainer}>
           <Text style={[styles.description, { color: theme.colors.textMedium }]}>
-            We'll send you friendly reminders to practice, celebrate your progress, and help you build a consistent learning habit.
+            We'll send you friendly reminders between 1-3 PM to practice, celebrate your progress, and help you build a consistent learning habit.
           </Text>
         </View>
 
         {/* Action Buttons */}
         <View style={styles.buttonContainer}>
           <OnboardingButton
-            title="Remind me"
+            title={isLoading ? "Setting up..." : "Remind me"}
             onPress={handleRemindMe}
             variant="primary"
             style={styles.primaryButton}
+            disabled={isLoading}
             accessibilityLabel="Enable notifications and continue"
             accessibilityHint="Tap to enable learning reminders"
           />

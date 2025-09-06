@@ -4,6 +4,7 @@ import DailyGoalsWidget from './DailyGoalsWidget';
 import RecentActivitiesWidget from './RecentActivitiesWidget';
 import LevelProgressWidget from './LevelProgressWidget';
 import ConversationPracticeCard from './ConversationPracticeCard';
+import AIUsageBar from './AIUsageBar';
 
 interface DashboardContentProps {
   progressData: any;
@@ -13,6 +14,9 @@ interface DashboardContentProps {
 export default function DashboardContent({ progressData, loadingProgress }: DashboardContentProps) {
   return (
     <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      {/* AI Usage Bar */}
+      <AIUsageBar />
+      
       {/* Conversation Practice Card */}
       <ConversationPracticeCard />
       

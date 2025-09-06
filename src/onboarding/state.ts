@@ -48,6 +48,9 @@ export interface OnboardingState {
   isCompleted: boolean;
   data: OnboardingData;
   
+  // SECURITY FIX: User ID for data isolation
+  userId?: string;
+  
   // Step completion tracking
   completedSteps: Set<number>;
   
@@ -65,6 +68,9 @@ export interface OnboardingState {
   reset: () => void;
   hydrateFromStorage: () => Promise<void>;
   persistToStorage: () => Promise<void>;
+  
+  // SECURITY FIX: Set user ID for data isolation
+  setUserId: (userId: string) => void;
 }
 
 // Default onboarding data
@@ -74,11 +80,18 @@ const defaultOnboardingData: OnboardingData = {
   hasActiveSubscription: false,
 };
 
+// SECURITY FIX: User-specific storage keys to prevent data mixing
+const getOnboardingDataKey = (userId?: string) => userId ? `onboarding:v1:data:${userId}` : 'onboarding:v1:data';
+const getOnboardingCompleteKey = (userId?: string) => userId ? `onboarding:v1:complete:${userId}` : 'onboarding:v1:complete';
+
 // Debounced persist function
-const debouncedPersist = debounce(async (data: OnboardingData, isCompleted: boolean) => {
+const debouncedPersist = debounce(async (data: OnboardingData, isCompleted: boolean, userId?: string) => {
   try {
-    await AsyncStorage.setItem('onboarding:v1:data', JSON.stringify(data));
-    await AsyncStorage.setItem('onboarding:v1:complete', JSON.stringify(isCompleted));
+    const dataKey = getOnboardingDataKey(userId);
+    const completeKey = getOnboardingCompleteKey(userId);
+    await AsyncStorage.setItem(dataKey, JSON.stringify(data));
+    await AsyncStorage.setItem(completeKey, JSON.stringify(isCompleted));
+    console.log('✅ Onboarding data persisted for user:', userId || 'anonymous');
   } catch (error) {
     console.error('Failed to persist onboarding data:', error);
   }
@@ -123,8 +136,11 @@ export const useOnboardingStore = create<OnboardingState>()(
             [field]: value,
           };
           
-          // Debounced persist
-          debouncedPersist(newData, state.isCompleted);
+          // Get current user ID for user-specific storage
+          const userId = state.userId;
+          
+          // Debounced persist with user ID
+          debouncedPersist(newData, state.isCompleted, userId);
           
           return { data: newData };
         });
@@ -184,36 +200,47 @@ export const useOnboardingStore = create<OnboardingState>()(
       },
       
       reset: () => {
+        const { userId } = get();
         set({
           currentStep: 0,
           isCompleted: false,
           data: defaultOnboardingData,
           completedSteps: new Set(),
         });
-        // Clear storage
-        AsyncStorage.multiRemove(['onboarding:v1:data', 'onboarding:v1:complete']);
+        // Clear user-specific storage
+        const dataKey = getOnboardingDataKey(userId);
+        const completeKey = getOnboardingCompleteKey(userId);
+        AsyncStorage.multiRemove([dataKey, completeKey]);
+      },
+      
+      // SECURITY FIX: Set user ID for data isolation
+      setUserId: (userId: string) => {
+        set({ userId });
+        console.log('🔒 Onboarding store user ID set:', userId);
       },
       
       // Storage management
       hydrateFromStorage: async () => {
         try {
-          const [dataStr, completeStr] = await AsyncStorage.multiGet([
-            'onboarding:v1:data',
-            'onboarding:v1:complete'
-          ]);
+          const { userId } = get();
+          const dataKey = getOnboardingDataKey(userId);
+          const completeKey = getOnboardingCompleteKey(userId);
+          
+          const [dataStr, completeStr] = await AsyncStorage.multiGet([dataKey, completeKey]);
           
           const data = dataStr[1] ? JSON.parse(dataStr[1]) : defaultOnboardingData;
           const isCompleted = completeStr[1] ? JSON.parse(completeStr[1]) : false;
           
           set({ data, isCompleted });
+          console.log('✅ Onboarding data hydrated for user:', userId || 'anonymous');
         } catch (error) {
           console.error('Failed to hydrate onboarding data:', error);
         }
       },
       
       persistToStorage: async () => {
-        const { data, isCompleted } = get();
-        await debouncedPersist(data, isCompleted);
+        const { data, isCompleted, userId } = get();
+        await debouncedPersist(data, isCompleted, userId);
       },
     }),
     {

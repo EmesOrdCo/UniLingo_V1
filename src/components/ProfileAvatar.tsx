@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ProfilePictureService } from '../lib/profilePictureService';
+import { useAuth } from '../contexts/AuthContext';
 
 interface ProfileAvatarProps {
   size?: number;
@@ -21,14 +22,17 @@ export default function ProfileAvatar({
   refreshTrigger = 0
 }: ProfileAvatarProps) {
   const [profileImage, setProfileImage] = useState<string | null>(null);
+  const { user } = useAuth();
 
   useEffect(() => {
     loadProfilePicture();
-  }, [refreshTrigger]);
+  }, [refreshTrigger, user?.id]);
 
   const loadProfilePicture = async () => {
+    if (!user?.id) return;
+    
     try {
-      const savedImageUri = await ProfilePictureService.loadProfilePicture();
+      const savedImageUri = await ProfilePictureService.loadProfilePicture(user.id);
       if (savedImageUri) {
         setProfileImage(savedImageUri);
       }

@@ -685,11 +685,8 @@ export class HolisticProgressService {
         .select('id, topic')
         .eq('user_id', userId);
       
-      const { data: generalFlashcards } = await supabase
-        .from('flashcards')
-        .select('id, topic');
-      
-      const totalCards = (userFlashcards?.length || 0) + (generalFlashcards?.length || 0);
+      // REMOVED: General flashcards table no longer exists
+      const totalCards = userFlashcards?.length || 0;
       
       // Get mastered cards from progress table
       const { data: progressData } = await supabase

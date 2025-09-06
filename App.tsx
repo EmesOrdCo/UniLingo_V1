@@ -1,13 +1,15 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { NavigationContainer, useNavigation } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import * as Linking from 'expo-linking';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 import { SubscriptionProvider, useSubscription } from './src/contexts/SubscriptionContext';
 import { ProfilePictureProvider } from './src/contexts/ProfilePictureContext';
 import LoadingScreen from './src/components/LoadingScreen';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
+import { NotificationService } from './src/lib/notificationService';
 
 // Import screens
 import HomeScreen from './src/screens/HomeScreen';
@@ -34,6 +36,7 @@ import AssistantConfigScreen from './src/screens/AssistantConfigScreen';
 import LessonWalkthroughScreen from './src/screens/LessonWalkthroughScreen';
 import OnboardingFlowScreen from './src/screens/OnboardingFlowScreen';
 import LandingScreen from './src/screens/LandingScreen';
+import FAQScreen from './src/screens/FAQScreen';
 
 const Stack = createStackNavigator();
 
@@ -67,6 +70,7 @@ function MainNavigator() {
       <Stack.Screen name="AssistantConfig" component={AssistantConfigScreen} />
       <Stack.Screen name="LessonWalkthrough" component={LessonWalkthroughScreen} />
       <Stack.Screen name="OnboardingFlow" component={OnboardingFlowScreen} />
+      <Stack.Screen name="FAQ" component={FAQScreen} />
     </Stack.Navigator>
   );
 }
@@ -104,6 +108,57 @@ function AuthStack() {
 }
 
 export default function App() {
+  // Setup notification listeners when app starts
+  useEffect(() => {
+    console.log('🔔 Setting up notification listeners...');
+    const cleanup = NotificationService.setupNotificationListeners();
+    
+    return () => {
+      console.log('🔔 Cleaning up notification listeners...');
+      cleanup();
+    };
+  }, []);
+
+  // Setup deep linking for magic links
+  useEffect(() => {
+    console.log('🔗 Setting up deep linking...');
+    
+    // Handle initial URL (when app is opened from a link)
+    const handleInitialURL = async () => {
+      const initialUrl = await Linking.getInitialURL();
+      if (initialUrl) {
+        console.log('🔗 Initial URL:', initialUrl);
+        handleDeepLink(initialUrl);
+      }
+    };
+
+    // Handle URL when app is already running
+    const handleUrl = (event: { url: string }) => {
+      console.log('🔗 URL received:', event.url);
+      handleDeepLink(event.url);
+    };
+
+    // Handle deep link
+    const handleDeepLink = (url: string) => {
+      console.log('🔗 Processing deep link:', url);
+      
+      if (url.startsWith('unilingo://')) {
+        console.log('✅ Magic link detected!');
+        // The magic link will be handled by Supabase auth state change
+        // No additional action needed here
+      }
+    };
+
+    // Set up listeners
+    const subscription = Linking.addEventListener('url', handleUrl);
+    handleInitialURL();
+
+    return () => {
+      console.log('🔗 Cleaning up deep linking...');
+      subscription?.remove();
+    };
+  }, []);
+
   return (
     <SafeAreaProvider>
       <AuthProvider>
@@ -137,6 +192,8 @@ function AppNavigator() {
   if (user) {
     console.log('👤 User authenticated, checking profile status...');
     console.log('📋 Profile exists:', !!profile, 'IsNewUser:', isNewUser);
+    console.log('👤 User email:', user.email);
+    console.log('📋 Profile data:', profile);
     
     // Show paywall for new users who haven't seen it yet
     if (isNewUser && !hasShownPaywall) {
@@ -179,6 +236,7 @@ function AppNavigator() {
     return <MainNavigator />;
   } else {
     console.log('❌ No user, showing AuthStack');
+    console.log('🔍 Auth state check - user:', user, 'loading:', loading);
     return <AuthStack />;
   }
 }

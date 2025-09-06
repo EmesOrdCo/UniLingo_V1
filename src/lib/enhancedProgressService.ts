@@ -449,38 +449,8 @@ export class EnhancedProgressService {
 
       if (error) throw error;
       
-      // If no exercise performance exists, create basic structure
-      if (!data || data.length === 0) {
-        // Get lesson exercises to create basic structure
-        const { data: lessonProgress } = await supabase
-          .from('lesson_progress')
-          .select('lesson_id')
-          .eq('id', progressId)
-          .single();
-
-        if (lessonProgress) {
-          const { data: lessonExercises } = await supabase
-            .from('lesson_exercises')
-            .select('*')
-            .eq('lesson_id', lessonProgress.lesson_id)
-            .order('order_index');
-
-          if (lessonExercises) {
-            return lessonExercises.map((exercise, index) => ({
-              id: `placeholder_${index}`,
-              exercise_index: index,
-              exercise_type: exercise.exercise_type,
-              score: 0,
-              max_score: 1,
-              time_spent_seconds: 0,
-              attempts: 0,
-              first_attempt_correct: false,
-              hints_used: 0,
-              difficulty_rating: 1
-            }));
-          }
-        }
-      }
+      // If no exercise performance exists, return empty array
+      // (Exercise structure is now handled by hardcoded exercise types in frontend)
 
       return data || [];
     } catch (error) {

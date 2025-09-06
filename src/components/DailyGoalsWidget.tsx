@@ -225,6 +225,7 @@ export default function DailyGoalsWidget({ onGoalCompleted }: DailyGoalsWidgetPr
     }
   };
 
+
   const getGoalIcon = (goalType: string) => {
     switch (goalType) {
       case 'study_time':
@@ -374,6 +375,7 @@ export default function DailyGoalsWidget({ onGoalCompleted }: DailyGoalsWidgetPr
           <Text style={styles.completionText}>Daily goals completed! 🎉</Text>
         </View>
       )}
+
     </View>
   );
 }

@@ -102,66 +102,22 @@ export class FlashcardService {
   }
 
   // Get all flashcards from the database (for public access)
+  // REMOVED: General flashcards table no longer exists - only user-specific flashcards
   static async getAllFlashcards(): Promise<FlashcardWithProgress[]> {
-    try {
-      console.log('📚 Fetching all flashcards from general flashcards table')
-      
-      const { data: flashcards, error } = await supabase
-        .from('flashcards')
-        .select('*')
-        .order('created_at', { ascending: false })
-
-      if (error) {
-        console.error('❌ Error fetching general flashcards:', error)
-        throw error
-      }
-
-      console.log('✅ Fetched general flashcards:', flashcards?.length || 0)
-      return flashcards || []
-    } catch (error) {
-      console.error('❌ Error in getAllFlashcards:', error)
-      throw error
-    }
+    console.log('📚 getAllFlashcards called but general flashcards table has been removed')
+    return []
   }
 
-  // Get flashcards by subject from general flashcards table
+  // REMOVED: General flashcards table no longer exists - only user-specific flashcards
   static async getFlashcardsBySubject(subject: string): Promise<FlashcardWithProgress[]> {
-    try {
-      const { data: flashcards, error } = await supabase
-        .from('flashcards')
-        .select('*')
-        .eq('subject', subject)
-        .order('topic', { ascending: true })
-
-      if (error) throw error
-      return flashcards || []
-    } catch (error) {
-      console.error('❌ Error in getFlashcardsBySubject:', error)
-      throw error
-    }
+    console.log('📚 getFlashcardsBySubject called but general flashcards table has been removed')
+    return []
   }
 
-  // Get general flashcards by subject and difficulty
+  // REMOVED: General flashcards table no longer exists - only user-specific flashcards
   static async getGeneralFlashcardsBySubjectAndDifficulty(subject: string, difficulty?: string): Promise<FlashcardWithProgress[]> {
-    try {
-      let query = supabase
-        .from('flashcards')
-        .select('*')
-        .eq('subject', subject)
-        .order('difficulty', { ascending: true })
-
-      if (difficulty && difficulty !== 'all') {
-        query = query.eq('difficulty', difficulty)
-      }
-
-      const { data: flashcards, error } = await query
-
-      if (error) throw error
-      return flashcards || []
-    } catch (error) {
-      console.error('❌ Error in getGeneralFlashcardsBySubjectAndDifficulty:', error)
-      throw error
-    }
+    console.log('📚 getGeneralFlashcardsBySubjectAndDifficulty called but general flashcards table has been removed')
+    return []
   }
 
   // Update a flashcard

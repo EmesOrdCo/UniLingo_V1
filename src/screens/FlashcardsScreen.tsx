@@ -98,13 +98,8 @@ export default function FlashcardsScreen() {
           difficulty: selectedDifficulty === 'all' ? undefined : selectedDifficulty
         });
 
-        // Get general flashcards filtered by subject and difficulty
-        const generalFlashcards = await FlashcardService.getFlashcardsBySubject(userSubject);
-        const filteredGeneral = generalFlashcards.filter(card => 
-          selectedDifficulty === 'all' || card.difficulty === selectedDifficulty
-        );
-
-        totalCount = userFlashcards.length + filteredGeneral.length;
+        // REMOVED: General flashcards table no longer exists - only use user flashcards
+        totalCount = userFlashcards.length;
       } else {
         // For specific topic, get user flashcards filtered by subject, topic, and difficulty
         const selectedTopicName = topics.find(t => t.id === selectedTopic)?.name;
@@ -116,14 +111,8 @@ export default function FlashcardsScreen() {
           difficulty: selectedDifficulty === 'all' ? undefined : selectedDifficulty
         });
 
-        // Get general flashcards filtered by subject, topic, and difficulty
-        const generalFlashcards = await FlashcardService.getFlashcardsBySubject(userSubject);
-        const filteredGeneral = generalFlashcards.filter(card => 
-          card.topic === selectedTopicName && 
-          (selectedDifficulty === 'all' || card.difficulty === selectedDifficulty)
-        );
-
-        totalCount = userFlashcards.length + filteredGeneral.length;
+        // REMOVED: General flashcards table no longer exists - only use user flashcards
+        totalCount = userFlashcards.length;
       }
 
       return totalCount;
@@ -166,12 +155,8 @@ export default function FlashcardsScreen() {
         difficulty: selectedDifficulty === 'all' ? undefined : selectedDifficulty
       });
 
-      // Get general flashcards filtered by subject, topic, and difficulty
-      const generalFlashcards = await FlashcardService.getFlashcardsBySubject(userSubject);
-      const filteredGeneral = generalFlashcards.filter(card => 
-        card.topic === topicName && 
-        (selectedDifficulty === 'all' || card.difficulty === selectedDifficulty)
-      );
+      // REMOVED: General flashcards table no longer exists - only use user flashcards
+      const filteredGeneral: any[] = [];
 
       return userFlashcards.length + filteredGeneral.length;
     } catch (error) {
@@ -239,13 +224,8 @@ export default function FlashcardsScreen() {
         const userTopics = Array.from(new Set(userFlashcards.map(card => card.topic)));
         console.log('👤 User topics found:', userTopics);
         
-        // Get general flashcards topics, filtered by subject
-        const generalFlashcards = await FlashcardService.getFlashcardsBySubject(userSubject);
-        const generalTopics = Array.from(new Set(generalFlashcards.map(card => card.topic)));
-        console.log('📚 General topics found:', generalTopics);
-        
-        // Combine and deduplicate topics
-        const allTopics = Array.from(new Set([...userTopics, ...generalTopics]));
+        // REMOVED: General flashcards table no longer exists - only use user topics
+        const allTopics = userTopics;
         console.log('🎯 Combined topics:', allTopics);
         
         if (allTopics.length === 0) {
@@ -311,7 +291,8 @@ export default function FlashcardsScreen() {
     
     // Re-fetch topics to update counts, filtered by subject
     const userFlashcards = await UserFlashcardService.getUserFlashcards({ subject: userSubject });
-    const generalFlashcards = await FlashcardService.getFlashcardsBySubject(userSubject);
+    // REMOVED: General flashcards table no longer exists - only use user flashcards
+    const generalFlashcards: any[] = [];
     
     // Update existing topics with new counts
     setTopics(prevTopics => 
@@ -334,8 +315,8 @@ export default function FlashcardsScreen() {
     try {
       // Get total cards count
       const userFlashcards = await UserFlashcardService.getUserFlashcards({});
-      const generalFlashcards = await FlashcardService.getFlashcardsBySubject('all');
-      const totalCards = userFlashcards.length + generalFlashcards.length;
+      // REMOVED: General flashcards table no longer exists - only use user flashcards
+      const totalCards = userFlashcards.length;
       
       // Calculate average accuracy from progress table
       const { data: allProgress } = await supabase
@@ -540,11 +521,8 @@ export default function FlashcardsScreen() {
         
         console.log('👤 User flashcards found:', userFlashcards.length);
         
-        // Get general flashcards by subject and difficulty
-        const generalFlashcards = await FlashcardService.getFlashcardsBySubject(userSubject);
-        const filteredGeneral = generalFlashcards.filter(card => 
-          selectedDifficulty === 'all' || card.difficulty === selectedDifficulty
-        );
+        // REMOVED: General flashcards table no longer exists - only use user flashcards
+        const filteredGeneral: any[] = [];
        
         console.log('📚 General flashcards found:', filteredGeneral.length);
         
@@ -569,12 +547,8 @@ export default function FlashcardsScreen() {
         
         console.log('👤 User flashcards found:', userFlashcards.length);
         
-        // Get general flashcards by subject, topic and difficulty
-        const generalFlashcards = await FlashcardService.getFlashcardsBySubject(userSubject);
-        const filteredGeneral = generalFlashcards.filter(card => 
-          card.topic === selectedTopicName && 
-          (selectedDifficulty === 'all' || card.difficulty === selectedDifficulty)
-        );
+        // REMOVED: General flashcards table no longer exists - only use user flashcards
+        const filteredGeneral: any[] = [];
        
         console.log('📚 General flashcards found:', filteredGeneral.length);
         

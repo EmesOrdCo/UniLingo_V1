@@ -92,22 +92,23 @@ export class UserProfileService {
         .from('users')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle(); // Use maybeSingle() instead of single() for new users
 
       if (error) {
-        if (error.code === 'PGRST116') {
-          // No rows returned - user profile doesn't exist
-          console.log('📋 No user profile found for user:', userId);
-          return null;
-        }
-        throw error;
+        console.error('❌ Error fetching user profile:', error);
+        return null;
+      }
+
+      if (!data) {
+        console.log('📋 No user profile found for user:', userId);
+        return null;
       }
 
       console.log('📋 User profile fetched successfully:', data);
       return data;
     } catch (error) {
       console.error('❌ Error fetching user profile:', error);
-      throw error;
+      return null;
     }
   }
 

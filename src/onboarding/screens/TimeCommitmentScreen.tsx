@@ -52,7 +52,7 @@ export function TimeCommitmentScreen() {
 
   return (
     <OnboardingLayout
-      title={`How much time do you want to commit to learning ${useOnboardingStore.getState().targetLanguages[0] || 'a language'}?`}
+      title={`How much time do you want to commit to learning English?`}
       subtitle="Relaxed pace or challenging? Choose a goal that feels right for you."
       onBack={previousStep}
     >

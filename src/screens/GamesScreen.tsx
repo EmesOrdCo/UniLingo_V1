@@ -20,6 +20,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { UserFlashcardService } from '../lib/userFlashcardService';
 import { FlashcardService } from '../lib/flashcardService';
 import { FavouriteGamesService, FavouriteGame } from '../lib/favouriteGamesService';
+import { GameStatisticsService } from '../lib/gameStatisticsService';
 import { supabase } from '../lib/supabase';
 import ConsistentHeader from '../components/ConsistentHeader';
 import DailyChallengeSection from '../components/DailyChallengeSection';
@@ -59,6 +60,11 @@ export default function GamesScreen() {
     totalGamesPlayed: 0,
     averageAccuracy: 0,
     totalGamingTime: 0,
+    level: 1,
+    xp: 0,
+    nextLevelXp: 100,
+    bestScore: 0,
+    averageScore: 0,
   });
   
   // Game state
@@ -143,6 +149,13 @@ export default function GamesScreen() {
     fetchGameData();
   }, [user, profile]);
 
+  // Load game statistics when user changes
+  useEffect(() => {
+    if (user?.id) {
+      loadGameStatistics();
+    }
+  }, [user?.id]);
+
   // Load favourite games
   const loadFavouriteGames = async () => {
     try {
@@ -166,6 +179,37 @@ export default function GamesScreen() {
     } catch (error) {
       console.error('❌ Error loading favourite games:', error);
     }
+  };
+
+  // Load real game statistics
+  const loadGameStatistics = async () => {
+    try {
+      if (!user?.id) return;
+      
+      console.log('🎮 Loading real game statistics...');
+      const stats = await GameStatisticsService.getGameStatistics(user.id);
+      
+      setRealGameStats({
+        gamesPlayedToday: stats.gamesPlayedToday,
+        totalGamesPlayed: stats.totalGamesPlayed,
+        averageAccuracy: stats.averageAccuracy,
+        totalGamingTime: stats.totalGamingTime,
+        level: stats.level,
+        xp: stats.xp,
+        nextLevelXp: stats.nextLevelXp,
+        bestScore: stats.bestScore,
+        averageScore: stats.averageScore,
+      });
+      
+      console.log('✅ Real game statistics loaded:', stats);
+    } catch (error) {
+      console.error('❌ Error loading game statistics:', error);
+    }
+  };
+
+  // Refresh game statistics (call this after completing a game)
+  const refreshGameStatistics = async () => {
+    await loadGameStatistics();
   };
 
   // Toggle game favourite status
@@ -474,9 +518,9 @@ export default function GamesScreen() {
             total: realGameStats.totalGamesPlayed,
             accuracyPct: realGameStats.averageAccuracy,
             totalMinutes: realGameStats.totalGamingTime,
-            level: 1,
-            xp: 40,
-            nextLevelXp: 100
+            level: realGameStats.level,
+            xp: realGameStats.xp,
+            nextLevelXp: realGameStats.nextLevelXp
           }}
         />
       </ScrollView>

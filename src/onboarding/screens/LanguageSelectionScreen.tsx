@@ -16,12 +16,16 @@ export function LanguageSelectionScreen() {
   const { value: nativeLanguage, setValue: setNativeLanguage } = useOnboardingField('nativeLanguage');
   const { value: targetLanguage, setValue: setTargetLanguage } = useOnboardingField('targetLanguage');
 
-  // Set default native language if not set
+  // Set default languages if not set
   useEffect(() => {
     if (!nativeLanguage) {
       setNativeLanguage('en-GB');
     }
-  }, [nativeLanguage, setNativeLanguage]);
+    // Hard code target language as English
+    if (!targetLanguage) {
+      setTargetLanguage('en-GB');
+    }
+  }, [nativeLanguage, setNativeLanguage, targetLanguage, setTargetLanguage]);
 
   // Check if both languages are selected
   const canContinue = !!(nativeLanguage && targetLanguage);
@@ -67,11 +71,15 @@ export function LanguageSelectionScreen() {
     leftEmoji: lang.flagEmoji,
   }));
 
-  const targetLanguageGridOptions = targetLanguageOptions.map((lang: any) => ({
-    id: lang.code,
-    title: lang.label,
-    leftEmoji: lang.flagEmoji,
-  }));
+  // Filter to only show English as the target language (hard coded)
+  const targetLanguageGridOptions = targetLanguageOptions
+    .filter(lang => lang.code === 'en-GB')
+    .map((lang: any) => ({
+      id: lang.code,
+      title: lang.label,
+      leftEmoji: lang.flagEmoji,
+      disabled: true, // Disable interaction
+    }));
 
   return (
     <Screen
@@ -80,7 +88,7 @@ export function LanguageSelectionScreen() {
       canContinue={canContinue}
       onBack={handleBack}
       onContinue={handleContinue}
-      showBackButton={false}
+      showBackButton={true}
     >
       <View style={styles.container}>
         {/* Native Language Section */}
@@ -104,8 +112,8 @@ export function LanguageSelectionScreen() {
           <OptionGrid
             options={targetLanguageGridOptions}
             selectedIds={targetLanguage ? [targetLanguage] : []}
-            onSelectionChange={handleTargetLanguageChange}
-            accessibilityLabel="Select the language you want to learn"
+            onSelectionChange={() => {}} // Disabled - hard coded to English
+            accessibilityLabel="Target language is set to English"
           />
         </View>
       </View>

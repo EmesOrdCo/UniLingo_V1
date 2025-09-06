@@ -2,7 +2,8 @@ import { supabase } from './supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system';
 
-const PROFILE_PICTURE_KEY = 'user_profile_picture';
+// SECURITY FIX: User-specific cache keys to prevent data mixing
+const getProfilePictureKey = (userId: string) => `user_profile_picture_${userId}`;
 const BUCKET_NAME = 'profile-pictures';
 
 export class SupabaseProfilePictureService {
@@ -50,8 +51,9 @@ export class SupabaseProfilePictureService {
       const publicUrl = urlData.publicUrl;
       console.log('✅ Profile picture uploaded to Supabase:', publicUrl);
       
-      // Save URL to local storage for quick access
-      await AsyncStorage.setItem(PROFILE_PICTURE_KEY, publicUrl);
+      // Save URL to local storage for quick access (user-specific)
+      const key = getProfilePictureKey(userId);
+      await AsyncStorage.setItem(key, publicUrl);
       
       return publicUrl;
     } catch (error) {
@@ -63,19 +65,22 @@ export class SupabaseProfilePictureService {
   // Get profile picture URL (from cache or Supabase)
   static async getProfilePictureUrl(userId: string): Promise<string | null> {
     try {
-      // First try to get from local cache
-      const cachedUrl = await AsyncStorage.getItem(PROFILE_PICTURE_KEY);
+      // First try to get from local cache (user-specific)
+      const key = getProfilePictureKey(userId);
+      const cachedUrl = await AsyncStorage.getItem(key);
       if (cachedUrl) {
-        console.log('📸 Profile picture loaded from cache');
+        console.log('📸 Profile picture loaded from cache for user:', userId);
         return cachedUrl;
       }
       
       // If not in cache, try to get from Supabase Storage
-      console.log('🔍 Checking Supabase Storage for profile picture...');
+      console.log('🔍 Checking Supabase Storage for profile picture of user:', userId);
+      
+      // SECURITY FIX: Use exact filename pattern instead of search
       const { data: files, error } = await supabase.storage
         .from(BUCKET_NAME)
         .list('', {
-          search: userId
+          search: `${userId}-`  // More specific search pattern
         });
       
       if (error) {
@@ -84,25 +89,28 @@ export class SupabaseProfilePictureService {
       }
       
       if (files && files.length > 0) {
-        // Get the most recent file
-        const latestFile = files.sort((a, b) => 
-          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-        )[0];
-        
-        const { data: urlData } = supabase.storage
-          .from(BUCKET_NAME)
-          .getPublicUrl(latestFile.name);
-        
-        const publicUrl = urlData.publicUrl;
-        console.log('📸 Profile picture found in Supabase Storage');
-        
-        // Cache the URL
-        await AsyncStorage.setItem(PROFILE_PICTURE_KEY, publicUrl);
-        
-        return publicUrl;
+        // Get the most recent file for this specific user
+        const userFiles = files.filter(file => file.name.startsWith(`${userId}-`));
+        if (userFiles.length > 0) {
+          const latestFile = userFiles.sort((a, b) => 
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          )[0];
+          
+          const { data: urlData } = supabase.storage
+            .from(BUCKET_NAME)
+            .getPublicUrl(latestFile.name);
+          
+          const publicUrl = urlData.publicUrl;
+          console.log('📸 Profile picture found in Supabase Storage for user:', userId);
+          
+          // Cache the URL (user-specific)
+          await AsyncStorage.setItem(key, publicUrl);
+          
+          return publicUrl;
+        }
       }
       
-      console.log('📸 No profile picture found');
+      console.log('📸 No profile picture found for user:', userId);
       return null;
     } catch (error) {
       console.error('❌ Error getting profile picture:', error);
@@ -140,8 +148,9 @@ export class SupabaseProfilePictureService {
         }
       }
       
-      // Remove from local cache
-      await AsyncStorage.removeItem(PROFILE_PICTURE_KEY);
+      // Remove from local cache (user-specific)
+      const key = getProfilePictureKey(userId);
+      await AsyncStorage.removeItem(key);
       
       console.log('✅ Profile picture deleted successfully');
       return true;
@@ -151,13 +160,26 @@ export class SupabaseProfilePictureService {
     }
   }
 
-  // Clear local cache (force fresh load from Supabase)
-  static async clearCache(): Promise<void> {
+  // Clear local cache (force fresh load from Supabase) - user-specific
+  static async clearCache(userId: string): Promise<void> {
     try {
-      await AsyncStorage.removeItem(PROFILE_PICTURE_KEY);
-      console.log('🗑️ Profile picture cache cleared');
+      const key = getProfilePictureKey(userId);
+      await AsyncStorage.removeItem(key);
+      console.log('🗑️ Profile picture cache cleared for user:', userId);
     } catch (error) {
       console.error('❌ Error clearing cache:', error);
+    }
+  }
+
+  // Clear ALL profile picture caches (for debugging)
+  static async clearAllCaches(): Promise<void> {
+    try {
+      const keys = await AsyncStorage.getAllKeys();
+      const profilePictureKeys = keys.filter(key => key.startsWith('user_profile_picture_'));
+      await AsyncStorage.multiRemove(profilePictureKeys);
+      console.log('🗑️ All profile picture caches cleared');
+    } catch (error) {
+      console.error('❌ Error clearing all profile picture caches:', error);
     }
   }
 }

@@ -1,12 +1,13 @@
 import { supabase } from './supabase';
 import { ENV } from './envConfig';
 import OpenAI from 'openai';
+import OpenAIWithRateLimit from './openAIWithRateLimit';
 import * as FileSystem from 'expo-file-system';
+import { CostEstimator } from './costEstimator';
 
-// Initialize OpenAI client
-const openai = new OpenAI({
+// Initialize OpenAI client with rate limiting
+const openai = new OpenAIWithRateLimit({
   apiKey: ENV.OPENAI_API_KEY,
-  dangerouslyAllowBrowser: true,
 });
 
 export interface Lesson {
@@ -115,23 +116,41 @@ export class LessonService {
       
       const prompt = `Extract terms: ${truncatedText}`;
 
-      const response = await openai.chat.completions.create({
+      // Prepare messages for cost estimation
+      const messages = [
+        {
+          role: 'system',
+          content: 'You are an expert content analyzer. You MUST return ONLY a JSON array of strings with no explanations, markdown, or text outside the JSON. Your response must start with [ and end with ]. Do NOT use backticks, code blocks, or any markdown formatting. Return raw JSON only.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ];
+
+      // Get current user for cost estimation
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
+      // Estimate cost before making the API call
+      const costEstimate = await CostEstimator.estimateCost(user.id, messages);
+      
+      if (!costEstimate.canProceed) {
+        throw new Error(CostEstimator.getCostExceededMessage(costEstimate));
+      }
+
+      console.log('Cost estimation:', CostEstimator.getCostInfo(costEstimate));
+
+      const response = await openai.createChatCompletion({
           model: 'gpt-4o-mini',
-          messages: [
-            {
-              role: 'system',
-            content: 'You are an expert content analyzer. You MUST return ONLY a JSON array of strings with no explanations, markdown, or text outside the JSON. Your response must start with [ and end with ]. Do NOT use backticks, code blocks, or any markdown formatting. Return raw JSON only.'
-            },
-            {
-              role: 'user',
-            content: prompt
-            }
-          ],
+          messages: messages,
           max_tokens: 4000,
           temperature: 0.1,
       });
 
-      const content = response.choices[0]?.message?.content;
+      const content = response.content;
       if (!content) {
         throw new Error('No response from OpenAI');
       }
@@ -209,24 +228,42 @@ Subject: ${subject}
 Native Language: ${nativeLanguage}
 
 Create vocabulary entries for ALL keywords. Return ONLY the JSON array:`;
+
+      // Prepare messages for cost estimation
+      const messages = [
+        {
+          role: 'system',
+          content: 'You are an expert language teacher. You MUST return ONLY a JSON array of objects with no explanations, markdown, or text outside the JSON. Your response must start with [ and end with ]. Do NOT use backticks, code blocks, or any markdown formatting. Return raw JSON only.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ];
+
+      // Get current user for cost estimation
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
+      // Estimate cost before making the API call
+      const costEstimate = await CostEstimator.estimateCost(user.id, messages);
+      
+      if (!costEstimate.canProceed) {
+        throw new Error(CostEstimator.getCostExceededMessage(costEstimate));
+      }
+
+      console.log('Cost estimation:', CostEstimator.getCostInfo(costEstimate));
         
-      const response = await openai.chat.completions.create({
+      const response = await openai.createChatCompletion({
           model: 'gpt-4o-mini',
-          messages: [
-            {
-              role: 'system',
-            content: 'You are an expert language teacher. You MUST return ONLY a JSON array of objects with no explanations, markdown, or text outside the JSON. Your response must start with [ and end with ]. Do NOT use backticks, code blocks, or any markdown formatting. Return raw JSON only.'
-            },
-            {
-              role: 'user',
-            content: prompt
-            }
-          ],
+          messages: messages,
           max_tokens: 8000,
         temperature: 0.2,
       });
 
-      const content = response.choices[0]?.message?.content;
+      const content = response.content;
       if (!content) {
         throw new Error('No response from OpenAI');
       }

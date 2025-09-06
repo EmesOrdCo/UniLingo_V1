@@ -19,17 +19,17 @@ import * as DocumentPicker from 'expo-document-picker';
 import { supabase } from '../lib/supabase';
 import { ENV } from '../lib/envConfig';
 import OpenAI from 'openai';
+import OpenAIWithRateLimit from '../lib/openAIWithRateLimit';
 
-// Initialize OpenAI client
-const openai = new OpenAI({
+// Initialize OpenAI client with rate limiting
+const openai = new OpenAIWithRateLimit({
   apiKey: ENV.OPENAI_API_KEY,
-  dangerouslyAllowBrowser: true,
 });
 
 // Function to generate specific lesson title based on PDF content
 const generateSpecificLessonTitle = async (extractedText: string, subject: string): Promise<string> => {
   try {
-    const response = await openai.chat.completions.create({
+    const response = await openai.createChatCompletion({
       model: 'gpt-4o-mini',
       messages: [
         {
@@ -56,10 +56,10 @@ Generate only the title, nothing else.`
       ],
       max_tokens: 50,
       temperature: 0.7,
+      priority: 1
     });
 
-    const title = response.choices[0]?.message?.content?.trim();
-    return title || `${subject} Terminology`;
+    return response.content.trim() || `${subject} Terminology`;
   } catch (error) {
     console.error('Error generating lesson title:', error);
     // Fallback to a more specific default
@@ -253,18 +253,14 @@ export default function CreateLessonScreen() {
           <Text style={styles.descriptionTitle}>AI-Powered Vocabulary Lessons</Text>
           <Text style={styles.descriptionText}>
             Upload your course notes and let AI create an interactive vocabulary lesson 
-            with flashcards and games. Perfect for learning subject-specific English terminology.
-          </Text>
-          <Text style={styles.webhookNote}>
-            📡 PDFs are processed via Zapier webhook for enhanced text extraction
+            tailored to your subject area.
           </Text>
         </View>
 
         {/* Subject Display */}
         <View style={styles.subjectSection}>
-          <Text style={styles.sectionTitle}>Subject</Text>
           <View style={styles.subjectDisplay}>
-            <Ionicons name="school" size={20} color="#6366f1" />
+            <Ionicons name="school" size={18} color="#6366f1" />
             <Text style={styles.subjectDisplayText}>{selectedSubject}</Text>
           </View>
         </View>
@@ -272,11 +268,11 @@ export default function CreateLessonScreen() {
         {/* Upload Area */}
         <View style={styles.uploadArea}>
           <View style={styles.uploadIcon}>
-            <Ionicons name="document-text" size={64} color="#6366f1" />
+            <Ionicons name="document-text" size={48} color="#6366f1" />
           </View>
-          <Text style={styles.uploadTitle}>Upload Your Course Notes</Text>
+          <Text style={styles.uploadTitle}>Upload Course Notes</Text>
           <Text style={styles.uploadSubtitle}>
-            Select a PDF file containing your course material
+            Select a PDF file to create your lesson
           </Text>
           
           <TouchableOpacity
@@ -287,7 +283,7 @@ export default function CreateLessonScreen() {
             onPress={handleFilePick}
             disabled={!selectedSubject || isProcessing}
           >
-            <Ionicons name="cloud-upload" size={22} color="#ffffff" />
+            <Ionicons name="cloud-upload" size={20} color="#ffffff" />
             <Text style={styles.uploadButtonText}>
               {isProcessing ? 'Creating Lesson...' : 'Choose PDF File'}
             </Text>
@@ -309,27 +305,19 @@ export default function CreateLessonScreen() {
           <Text style={styles.infoTitle}>What you'll get</Text>
           <View style={styles.infoSteps}>
             <View style={styles.infoStep}>
-              <View style={styles.stepNumber}>
-                <Text style={styles.stepNumberText}>1</Text>
-              </View>
+              <Ionicons name="flash" size={20} color="#6366f1" />
               <Text style={styles.stepText}>AI extracts key vocabulary terms</Text>
             </View>
             <View style={styles.infoStep}>
-              <View style={styles.stepNumber}>
-                <Text style={styles.stepNumberText}>2</Text>
-              </View>
-              <Text style={styles.stepText}>Creates bilingual flashcards</Text>
+              <Ionicons name="book" size={20} color="#6366f1" />
+              <Text style={styles.stepText}>Creates structured lesson content</Text>
             </View>
             <View style={styles.infoStep}>
-              <View style={styles.stepNumber}>
-                <Text style={styles.stepNumberText}>3</Text>
-              </View>
-              <Text style={styles.stepText}>Generates 3 interactive games</Text>
+              <Ionicons name="school" size={20} color="#6366f1" />
+              <Text style={styles.stepText}>Interactive learning exercises</Text>
             </View>
             <View style={styles.infoStep}>
-              <View style={styles.stepNumber}>
-                <Text style={styles.stepNumberText}>4</Text>
-              </View>
+              <Ionicons name="trending-up" size={20} color="#6366f1" />
               <Text style={styles.stepText}>Track progress and earn XP</Text>
             </View>
           </View>
@@ -371,9 +359,9 @@ const styles = StyleSheet.create({
   },
   descriptionContainer: {
     backgroundColor: '#ffffff',
-    margin: 20,
-    padding: 20,
-    borderRadius: 16,
+    margin: 16,
+    padding: 16,
+    borderRadius: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -381,31 +369,24 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   descriptionTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#1e293b',
-    marginBottom: 12,
+    marginBottom: 8,
     textAlign: 'center',
   },
   descriptionText: {
-    fontSize: 15,
-    color: '#64748b',
-    lineHeight: 22,
-    textAlign: 'center',
-  },
-  webhookNote: {
     fontSize: 14,
-    color: '#8b5cf6',
+    color: '#64748b',
+    lineHeight: 20,
     textAlign: 'center',
-    fontStyle: 'italic',
-    marginTop: 8,
   },
   subjectSection: {
     backgroundColor: '#ffffff',
-    marginHorizontal: 20,
-    marginBottom: 20,
-    padding: 20,
-    borderRadius: 16,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    padding: 12,
+    borderRadius: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -420,25 +401,25 @@ const styles = StyleSheet.create({
   },
   subjectDisplay: {
     backgroundColor: '#f8fafc',
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 8,
+    padding: 12,
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#e2e8f0',
   },
   subjectDisplayText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '500',
     color: '#1e293b',
-    marginLeft: 12,
+    marginLeft: 8,
   },
   uploadArea: {
     backgroundColor: '#ffffff',
-    marginHorizontal: 20,
-    marginBottom: 20,
-    padding: 40,
-    borderRadius: 16,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    padding: 24,
+    borderRadius: 12,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -447,29 +428,29 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   uploadIcon: {
-    marginBottom: 20,
+    marginBottom: 12,
   },
   uploadTitle: {
-    fontSize: 24,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#1e293b',
-    marginBottom: 12,
+    marginBottom: 8,
     textAlign: 'center',
   },
   uploadSubtitle: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#64748b',
     textAlign: 'center',
-    marginBottom: 32,
-    lineHeight: 24,
+    marginBottom: 20,
+    lineHeight: 20,
   },
   uploadButton: {
     backgroundColor: '#6366f1',
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 32,
-    paddingVertical: 16,
-    borderRadius: 12,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 10,
     shadowColor: '#6366f1',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -478,9 +459,9 @@ const styles = StyleSheet.create({
   },
   uploadButtonText: {
     color: '#ffffff',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
-    marginLeft: 8,
+    marginLeft: 6,
   },
   disabledButton: {
     backgroundColor: '#cbd5e1',
@@ -489,10 +470,10 @@ const styles = StyleSheet.create({
   },
   progressContainer: {
     backgroundColor: '#ffffff',
-    marginHorizontal: 20,
-    marginBottom: 20,
-    padding: 20,
-    borderRadius: 16,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    padding: 16,
+    borderRadius: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -518,10 +499,10 @@ const styles = StyleSheet.create({
   },
   infoSection: {
     backgroundColor: '#ffffff',
-    marginHorizontal: 20,
-    marginBottom: 20,
-    padding: 20,
-    borderRadius: 16,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    padding: 16,
+    borderRadius: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -529,14 +510,14 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   infoTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#1e293b',
-    marginBottom: 20,
+    marginBottom: 12,
     textAlign: 'center',
   },
   infoSteps: {
-    gap: 16,
+    gap: 10,
   },
   infoStep: {
     flexDirection: 'row',
@@ -557,8 +538,9 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   stepText: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#64748b',
     flex: 1,
+    marginLeft: 8,
   },
 });

@@ -108,17 +108,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (!error) {
+      if (!error && data.user) {
         // For sign in, we'll let fetchUserProfile handle the isNewUser flag
         // since this is an existing user, they should have a profile
-        if (user?.id) {
-          // Fetch user profile after successful sign in
-          await fetchUserProfile(user.id);
+        // Use data.user.id instead of user?.id (which is the old state)
+        try {
+          await fetchUserProfile(data.user.id);
+        } catch (profileError) {
+          console.error('❌ Error fetching profile after sign-in:', profileError);
+          // Don't fail the sign-in if profile fetch fails
         }
       }
 
@@ -153,6 +156,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     try {
+      // SECURITY FIX: Clear all user-specific data before signing out
+      if (user?.id) {
+        console.log('🔒 SECURITY: Clearing all user-specific data for user:', user.id);
+        
+        try {
+          // Use comprehensive user data isolation service
+          const { UserDataIsolationService } = await import('../lib/userDataIsolationService');
+          await UserDataIsolationService.clearUserData(user.id);
+          
+          // Also clear individual profile picture caches as backup
+          const { ProfilePictureService } = await import('../lib/profilePictureService');
+          const { SupabaseProfilePictureService } = await import('../lib/supabaseProfilePictureService');
+          const { TTLProfilePictureService } = await import('../lib/ttlProfilePictureService');
+          
+          await ProfilePictureService.clearCache(user.id);
+          await SupabaseProfilePictureService.clearCache(user.id);
+          await TTLProfilePictureService.clearCache(user.id);
+          
+          console.log('✅ All user data cleared successfully');
+        } catch (error) {
+          console.error('❌ Error clearing user data:', error);
+        }
+      }
+      
       await supabase.auth.signOut();
       setProfile(null);
       setIsNewUser(false); // Clear new user flag on sign out

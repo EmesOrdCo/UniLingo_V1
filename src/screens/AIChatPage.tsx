@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { ENV } from '../lib/envConfig';
+import OpenAIWithRateLimit from '../lib/openAIWithRateLimit';
 import { UserFlashcardService } from '../lib/userFlashcardService';
 import { FlashcardService } from '../lib/flashcardService';
 import { VoiceService } from '../lib/voiceService';
@@ -213,20 +214,18 @@ export default function AIChatPage() {
           throw new Error('OpenAI API key not properly configured. Please check your environment variables.');
         }
 
-        // Call OpenAI API
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`,
-          },
-          body: JSON.stringify({
-            model: 'gpt-3.5-turbo',
-            messages: [
-              {
-                role: 'system',
-                content: isConversationPractice 
-                  ? `You are a conversation partner for UniLingo, a language learning app. The user is practicing vocabulary from the topic: "${selectedTopic?.name}". 
+        // Use OpenAI with rate limiting
+        const openai = new OpenAIWithRateLimit({
+          apiKey: ENV.OPENAI_API_KEY,
+        });
+
+        const response = await openai.createChatCompletion({
+          model: 'gpt-3.5-turbo',
+          messages: [
+            {
+              role: 'system',
+              content: isConversationPractice 
+                ? `You are a conversation partner for UniLingo, a language learning app. The user is practicing vocabulary from the topic: "${selectedTopic?.name}". 
 
 IMPORTANT: Use the following vocabulary terms naturally in your responses to help the user practice:
 ${vocabulary.map((term: any) => `- ${term.term || term.english_term}: ${term.definition || term.translation}`).join('\n')}
@@ -240,29 +239,23 @@ Your role:
 6. Focus on practical usage of the vocabulary in real-world scenarios
 
 Be friendly, encouraging, and help the user practice using their vocabulary in context.`
-                  : 'You are a helpful AI assistant for UniLingo, a language learning app. You can help users with language learning questions, app features, study tips, and general conversation. Be friendly, encouraging, and helpful. Keep responses concise but informative.',
-              },
-              ...messages.map(msg => ({
-                role: msg.isUser ? 'user' : 'assistant',
-                content: msg.text,
-              })),
-              {
-                role: 'user',
-                content: inputText.trim(),
-              },
-            ],
-            max_tokens: 500,
-            temperature: 0.7,
-          }),
+                : 'You are a helpful AI assistant for UniLingo, a language learning app. You can help users with language learning questions, app features, study tips, and general conversation. Be friendly, encouraging, and helpful. Keep responses concise but informative.',
+            },
+            ...messages.map(msg => ({
+              role: msg.isUser ? 'user' : 'assistant',
+              content: msg.text,
+            })),
+            {
+              role: 'user',
+              content: inputText.trim(),
+            },
+          ],
+          max_tokens: 500,
+          temperature: 0.7,
+          priority: 2
         });
 
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(`OpenAI API error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`);
-        }
-
-        const data = await response.json();
-        aiResponse = data.choices[0]?.message?.content || 'Sorry, I couldn\'t process your request. Please try again.';
+        aiResponse = response.content;
       }
 
       const aiMessage: Message = {
