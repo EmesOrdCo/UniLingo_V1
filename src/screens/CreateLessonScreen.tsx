@@ -17,12 +17,59 @@ import { useAuth } from '../contexts/AuthContext';
 import * as DocumentPicker from 'expo-document-picker';
 
 import { supabase } from '../lib/supabase';
+import { ENV } from '../lib/envConfig';
+import OpenAI from 'openai';
+
+// Initialize OpenAI client
+const openai = new OpenAI({
+  apiKey: ENV.OPENAI_API_KEY,
+  dangerouslyAllowBrowser: true,
+});
+
+// Function to generate specific lesson title based on PDF content
+const generateSpecificLessonTitle = async (extractedText: string, subject: string): Promise<string> => {
+  try {
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: `You are an expert educator creating lesson titles. Generate a specific, descriptive title for a vocabulary lesson based on the PDF content provided. The title should be:
+- Specific to the actual content (not generic)
+- Descriptive of the main topic/focus
+- Professional and educational
+- 3-8 words maximum
+- Avoid generic terms like "Vocabulary Lesson" or "Medical Terms"
+
+Examples of good titles:
+- "Cardiovascular System Terminology"
+- "Pharmacology Drug Interactions"
+- "Anatomy of the Nervous System"
+- "Clinical Assessment Procedures"
+
+Generate only the title, nothing else.`
+        },
+        {
+          role: 'user',
+          content: `Subject: ${subject}\n\nPDF Content (first 2000 characters):\n${extractedText.substring(0, 2000)}`
+        }
+      ],
+      max_tokens: 50,
+      temperature: 0.7,
+    });
+
+    const title = response.choices[0]?.message?.content?.trim();
+    return title || `${subject} Terminology`;
+  } catch (error) {
+    console.error('Error generating lesson title:', error);
+    // Fallback to a more specific default
+    return `${subject} Terminology`;
+  }
+};
 
 const { width: screenWidth } = Dimensions.get('window');
 
 export default function CreateLessonScreen() {
-  const [selectedSubject, setSelectedSubject] = useState('');
-  const [showSubjectPicker, setShowSubjectPicker] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState({
     stage: 'ready',
@@ -36,25 +83,11 @@ export default function CreateLessonScreen() {
   // Get user's subject and native language from profile
   const userSubject = profile?.subjects?.[0] || 'General';
   const userNativeLanguage = profile?.native_language || 'English';
-
-  // Sample subjects
-  const subjects = [
-    'Medicine', 'Engineering', 'Law', 'Business', 'Physics', 
-    'Chemistry', 'Biology', 'Computer Science', 'Mathematics',
-    'Economics', 'Psychology', 'History', 'Literature', 'Art'
-  ];
-
-  const handleSubjectSelect = (subject: string) => {
-    setSelectedSubject(subject);
-    setShowSubjectPicker(false);
-  };
+  
+  // Use user's subject automatically
+  const selectedSubject = userSubject;
 
   const handleFilePick = async () => {
-    if (!selectedSubject) {
-      Alert.alert('Error', 'Please select a subject first');
-      return;
-    }
-
     if (!user) {
       Alert.alert('Error', 'Please log in to create lessons');
       return;
@@ -98,7 +131,7 @@ export default function CreateLessonScreen() {
         name: file.name,
       } as any);
 
-      const webhookResponse = await fetch('http://192.168.1.72:3001/api/process-pdf', {
+      const webhookResponse = await fetch('http://192.168.1.146:3001/api/process-pdf', {
         method: 'POST',
         body: formData,
       });
@@ -117,11 +150,13 @@ export default function CreateLessonScreen() {
         });
 
       // Create lesson with extracted text from PDF.co API
-      const lessonTitle = `${selectedSubject} Vocabulary Lesson`;
       const estimatedDuration = 45; // Default duration
       
       // Extract text from the PDF.co API response
       const extractedText = webhookResult.result?.text || 'Text extraction failed';
+      
+      // Generate a specific lesson title based on PDF content
+      const lessonTitle = await generateSpecificLessonTitle(extractedText, selectedSubject);
       
       const { data: lesson, error: lessonError } = await supabase
         .from('esp_lessons')
@@ -225,36 +260,13 @@ export default function CreateLessonScreen() {
           </Text>
         </View>
 
-        {/* Subject Selection */}
+        {/* Subject Display */}
         <View style={styles.subjectSection}>
-          <Text style={styles.sectionTitle}>Select Subject</Text>
-          
-          <TouchableOpacity
-            style={styles.subjectPicker}
-            onPress={() => setShowSubjectPicker(!showSubjectPicker)}
-          >
-            <View style={styles.subjectPickerContent}>
-              <Ionicons name="school" size={20} color="#6366f1" />
-              <Text style={styles.subjectPickerText}>
-                {selectedSubject || 'Choose a subject'}
-              </Text>
-              <Ionicons name="chevron-down" size={20} color="#64748b" />
-            </View>
-          </TouchableOpacity>
-
-          {showSubjectPicker && (
-            <View style={styles.subjectOptions}>
-              {subjects.map((subject) => (
-                <TouchableOpacity
-                  key={subject}
-                  style={styles.subjectOption}
-                  onPress={() => handleSubjectSelect(subject)}
-                >
-                  <Text style={styles.subjectOptionText}>{subject}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
+          <Text style={styles.sectionTitle}>Subject</Text>
+          <View style={styles.subjectDisplay}>
+            <Ionicons name="school" size={20} color="#6366f1" />
+            <Text style={styles.subjectDisplayText}>{selectedSubject}</Text>
+          </View>
         </View>
 
         {/* Upload Area */}
@@ -406,42 +418,20 @@ const styles = StyleSheet.create({
     color: '#1e293b',
     marginBottom: 16,
   },
-  subjectPicker: {
+  subjectDisplay: {
     backgroundColor: '#f8fafc',
     borderRadius: 12,
     padding: 16,
-    borderWidth: 2,
-    borderColor: '#e2e8f0',
-    borderStyle: 'dashed',
-  },
-  subjectPickerContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  subjectPickerText: {
-    fontSize: 16,
-    color: '#64748b',
-    flex: 1,
-    marginLeft: 12,
-  },
-  subjectOptions: {
-    marginTop: 16,
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
     borderWidth: 1,
     borderColor: '#e2e8f0',
-    overflow: 'hidden',
   },
-  subjectOption: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
-  },
-  subjectOptionText: {
+  subjectDisplayText: {
     fontSize: 16,
-    color: '#374151',
+    fontWeight: '500',
+    color: '#1e293b',
+    marginLeft: 12,
   },
   uploadArea: {
     backgroundColor: '#ffffff',

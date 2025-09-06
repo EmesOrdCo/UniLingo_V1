@@ -66,19 +66,19 @@ app.post('/api/process-pdf', upload.single('pdf'), async (req, res) => {
     console.log(`📍 Path: ${req.file.path}`);
     console.log('🔥'.repeat(20) + '\n');
 
-    // Import the PDF.co service
-    const PDFcoService = require('./pdfcoService');
-    const pdfService = new PDFcoService();
+    // Import pdf-parse for local PDF processing
+    const pdfParse = require('pdf-parse');
     
-    // Process the PDF using PDF.co API
-    const result = await pdfService.processPdf(req.file.path);
+    // Process the PDF locally using pdf-parse
+    const dataBuffer = fs.readFileSync(req.file.path);
+    const result = await pdfParse(dataBuffer);
     
     console.log('\n' + '🎯'.repeat(20));
     console.log('🎯 SENDING RESPONSE TO FRONTEND');
     console.log('🎯'.repeat(20));
     console.log(`✅ Success: true`);
     console.log(`📄 Filename: ${req.file.originalname}`);
-    console.log(`📊 Pages: ${result.pageCount}`);
+    console.log(`📊 Pages: ${result.numpages}`);
     console.log(`🔢 Characters: ${result.text.length.toLocaleString()}`);
     console.log('🎯'.repeat(20) + '\n');
 
@@ -88,12 +88,10 @@ app.post('/api/process-pdf', upload.single('pdf'), async (req, res) => {
 
     res.json({
       success: true,
-      message: 'PDF processed successfully via PDF.co API',
+      message: 'PDF processed successfully via local pdf-parse',
       result: {
         text: result.text,
-        pageCount: result.pageCount,
-        credits: result.credits,
-        remainingCredits: result.remainingCredits
+        pageCount: result.numpages
       },
       filename: req.file.originalname
     });

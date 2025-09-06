@@ -6,6 +6,8 @@ interface LessonWordScrambleProps {
   vocabulary: any[];
   onComplete: (score: number) => void;
   onClose: () => void;
+  onProgressUpdate?: (questionIndex: number) => void;
+  initialQuestionIndex?: number;
 }
 
 interface WordScrambleQuestion {
@@ -14,9 +16,9 @@ interface WordScrambleQuestion {
   hint: string;
 }
 
-export default function LessonWordScramble({ vocabulary, onComplete, onClose }: LessonWordScrambleProps) {
+export default function LessonWordScramble({ vocabulary, onComplete, onClose, onProgressUpdate, initialQuestionIndex = 0 }: LessonWordScrambleProps) {
   const [questions, setQuestions] = useState<WordScrambleQuestion[]>([]);
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(initialQuestionIndex);
   const [scrambledWord, setScrambledWord] = useState('');
   const [userAnswer, setUserAnswer] = useState('');
   const [score, setScore] = useState(0);
@@ -27,6 +29,13 @@ export default function LessonWordScramble({ vocabulary, onComplete, onClose }: 
   useEffect(() => {
     generateQuestions();
   }, [vocabulary]);
+
+  // Update progress when question index changes
+  useEffect(() => {
+    if (onProgressUpdate) {
+      onProgressUpdate(currentQuestionIndex);
+    }
+  }, [currentQuestionIndex, onProgressUpdate]);
 
   useEffect(() => {
     if (questions.length > 0) {
@@ -161,7 +170,15 @@ export default function LessonWordScramble({ vocabulary, onComplete, onClose }: 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+        <TouchableOpacity 
+          style={styles.closeButton} 
+          onPress={() => {
+            console.log('Close button touched in LessonWordScramble');
+            onClose();
+          }}
+          activeOpacity={0.7}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           <Ionicons name="close" size={24} color="#6366f1" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Word Scramble</Text>
@@ -260,7 +277,9 @@ const styles = StyleSheet.create({
     borderBottomColor: '#f1f5f9',
   },
   closeButton: {
-    padding: 8,
+    padding: 12,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 8,
   },
   headerTitle: {
     fontSize: 20,

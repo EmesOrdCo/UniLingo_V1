@@ -215,6 +215,16 @@ export class UploadService {
           
           CRITICAL INSTRUCTION: You MUST create terminology flashcards with English terms on the front and ${nativeLanguage} translations on the back. DO NOT put English definitions on the back.
           
+          EXAMPLE SENTENCE GUIDELINES:
+          - MANDATORY: Every flashcard MUST have an example sentence
+          - The example sentence MUST contain the exact front term
+          - Keep sentences simple and clear
+          - Make the target term the main focus of the sentence
+          - Use contextually relevant examples from the academic field
+          - Avoid overly complex medical/scientific jargon in examples
+          - Prioritize relevance over simplicity (better to be slightly complex but relevant than simple but irrelevant)
+          - Examples should help students understand how the term is used in practice
+          
           Generate flashcards in the following JSON format:
           [
             {
@@ -222,7 +232,7 @@ export class UploadService {
               "back": "${nativeLanguage} translation ONLY (no English)",
               "topic": "Detected topic name based on content analysis",
               "difficulty": "beginner|intermediate|expert",
-              "example": "Optional example sentence in English",
+              "example": "MANDATORY: Example sentence in English that MUST contain the front term",
               "pronunciation": "Optional pronunciation guide for English term",
               "tags": ["tag1", "tag2"]
             }
@@ -231,10 +241,12 @@ export class UploadService {
           Guidelines for AI Selection mode:
           - Analyze headers, section titles, and content structure
           - Identify natural topic divisions (e.g., "Introduction", "Key Concepts", "Common Prefixes", "Common Suffixes")
-          - Create 15-40 flashcards total, distributed across detected topics
+          - Create MINIMUM 10 and MAXIMUM 40 flashcards total, distributed across detected topics
+          - Each topic should have at least 3-5 flashcards, with larger topics having more
           - Focus on KEY TERMINOLOGY and IMPORTANT CONCEPTS from the text
           - Front: English term/concept (e.g., "Cardiology", "Inflammation", "Surgical removal")
           - Back: ${nativeLanguage} translation of the English term
+          - Example: MUST include a clear, simple example sentence in English that demonstrates how the term is used in context. The example MUST contain the exact front term. Keep the sentence straightforward with the target term being the main focus, but prioritize relevance over simplicity
           - Vary difficulty levels appropriately for each topic
           - Make cards suitable for language learning and terminology study
           - Ensure accuracy and educational value
@@ -254,6 +266,16 @@ export class UploadService {
           
           CRITICAL INSTRUCTION: You MUST create terminology flashcards with English terms on the front and ${nativeLanguage} translations on the back. DO NOT put English definitions on the back.
           
+          EXAMPLE SENTENCE GUIDELINES:
+          - MANDATORY: Every flashcard MUST have an example sentence
+          - The example sentence MUST contain the exact front term
+          - Keep sentences simple and clear
+          - Make the target term the main focus of the sentence
+          - Use contextually relevant examples from the academic field
+          - Avoid overly complex medical/scientific jargon in examples
+          - Prioritize relevance over simplicity (better to be slightly complex but relevant than simple but irrelevant)
+          - Examples should help students understand how the term is used in practice
+          
           Generate flashcards in the following JSON format:
           [
             {
@@ -261,17 +283,18 @@ export class UploadService {
               "back": "${nativeLanguage} translation ONLY (no English)",
               "topic": "${topic}",
               "difficulty": "beginner|intermediate|expert",
-              "example": "Optional example sentence in English",
+              "example": "MANDATORY: Example sentence in English that MUST contain the front term",
               "pronunciation": "Optional pronunciation guide for English term",
               "tags": ["tag2"]
             }
           ]
           
           Guidelines:
-          - Create 10-30 flashcards depending on content length and complexity
+          - Create MINIMUM 10 and MAXIMUM 40 flashcards depending on content length and complexity
           - Focus on KEY TERMINOLOGY and IMPORTANT CONCEPTS from the text
           - Front: English term/concept (e.g., "Cardiology", "Inflammation", "Surgical removal")
           - Back: ${nativeLanguage} translation of the English term
+          - Example: MUST include a clear, simple example sentence in English that demonstrates how the term is used in context. The example MUST contain the exact front term. Keep the sentence straightforward with the target term being the main focus, but prioritize relevance over simplicity
           - Vary difficulty levels appropriately
           - Make cards suitable for language learning and terminology study
           - Ensure accuracy and educational value
@@ -282,21 +305,28 @@ export class UploadService {
       
       console.log('Sending request to OpenAI...');
       const client = getOpenAIClient();
-      const completion = await client.chat.completions.create({
-        model: 'gpt-4o-mini',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are an expert language learning content creator. You MUST create terminology flashcards with English terms on the front and native language translations on the back. NEVER put English definitions on the back - only translations.'
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        temperature: 0.7,
-        max_tokens: 2000,
-      });
+      
+      // Add timeout to prevent hanging on AI request
+      const completion = await Promise.race([
+        client.chat.completions.create({
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are an expert language learning content creator. You MUST create terminology flashcards with English terms on the front and native language translations on the back. NEVER put English definitions on the back - only translations. ALWAYS include simple, relevant example sentences in English that demonstrate how each term is used in context. Each example sentence MUST contain the exact front term. Keep examples straightforward with the target term as the main focus, but prioritize relevance over simplicity.'
+            },
+            {
+              role: 'user',
+              content: prompt
+            }
+          ],
+          temperature: 0.7,
+          max_tokens: 2000,
+        }),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('AI request timed out after 60 seconds')), 60000)
+        )
+      ]);
       console.log('OpenAI response received');
       
 
@@ -319,11 +349,19 @@ export class UploadService {
         const jsonMatch = responseText.match(/\[[\s\S]*\]/);
         if (jsonMatch) {
           flashcards = JSON.parse(jsonMatch[0]);
+          
+          // Debug: Log examples to see what AI is generating
+          console.log('🔍 AI Generated Examples Debug:');
+          flashcards.forEach((card, index) => {
+            console.log(`Card ${index + 1}: "${card.front}"`);
+            console.log(`  Example: "${card.example || 'NO EXAMPLE PROVIDED'}"`);
+          });
         } else {
           throw new Error('Invalid JSON format in AI response');
         }
       } catch (parseError) {
         console.error('Error parsing AI response:', parseError);
+        console.error('Raw AI response:', responseText);
         throw new Error('Failed to parse AI-generated flashcards');
       }
 
@@ -376,6 +414,22 @@ export class UploadService {
       for (let i = 0; i < totalCards; i++) {
         const card = flashcards[i];
         
+        // Ensure example is not empty - if AI didn't provide one, create a simple one
+        let example = card.example || '';
+        if (!example.trim()) {
+          // Create a simple, relevant example based on the term
+          const term = card.front.toLowerCase();
+          example = `The ${term} is essential in this field.`;
+        }
+        
+        // Validate that example contains the front term
+        if (!example.toLowerCase().includes(card.front.toLowerCase())) {
+          console.warn(`⚠️ Example doesn't contain front term "${card.front}": "${example}"`);
+          // Create a corrected example
+          const term = card.front.toLowerCase();
+          example = `The ${term} is important in this field.`;
+        }
+        
         await UserFlashcardService.createUserFlashcard({
           user_id: userId,
           subject: subject,
@@ -383,7 +437,7 @@ export class UploadService {
           front: card.front,
           back: card.back,
           difficulty: card.difficulty,
-          example: card.example || '',
+          example: example,
           pronunciation: card.pronunciation || '',
           tags: card.tags || [],
           native_language: nativeLanguage

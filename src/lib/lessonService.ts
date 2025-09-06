@@ -45,6 +45,9 @@ export interface LessonProgress {
   started_at: string;
   completed_at?: string;
   created_at: string;
+  // New fields for precise resume functionality
+  current_exercise?: string; // 'flashcards', 'flashcard-quiz', etc.
+  current_question_index?: number; // Question index within the current exercise
 }
 
 export class LessonService {
@@ -428,10 +431,89 @@ Create vocabulary entries for ALL keywords. Return ONLY the JSON array:`;
         completed_at: new Date().toISOString()
       });
 
+      // Update streak for lesson completion
+      try {
+        const { HolisticProgressService } = await import('./holisticProgressService');
+        await HolisticProgressService.updateStreak(userId, 'daily_study');
+        console.log('✅ Streak updated for lesson completion');
+      } catch (streakError) {
+        console.error('❌ Error updating streak:', streakError);
+        // Don't fail lesson completion if streak update fails
+      }
+
       console.log('✅ Lesson completed successfully');
     } catch (error) {
       console.error('Error completing lesson:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Delete a lesson and all related data
+   */
+  static async deleteLesson(lessonId: string, userId: string): Promise<boolean> {
+    try {
+      console.log(`🗑️ Starting deletion of lesson ${lessonId} for user ${userId}`);
+
+      // First, verify the lesson belongs to the user
+      const { data: lesson, error: lessonError } = await supabase
+        .from('esp_lessons')
+        .select('id, user_id, title')
+        .eq('id', lessonId)
+        .eq('user_id', userId)
+        .single();
+
+      if (lessonError || !lesson) {
+        throw new Error('Lesson not found or does not belong to user');
+      }
+
+      console.log(`✅ Verified lesson ownership: "${lesson.title}"`);
+
+      // Delete in order: dependent tables first, then main table
+      
+      // 1. Delete lesson progress records
+      const { error: progressError } = await supabase
+        .from('lesson_progress')
+        .delete()
+        .eq('lesson_id', lessonId);
+
+      if (progressError) {
+        console.error('❌ Error deleting lesson progress:', progressError);
+        throw progressError;
+      }
+      console.log('✅ Deleted lesson progress records');
+
+      // 2. Delete lesson vocabulary
+      const { error: vocabError } = await supabase
+        .from('lesson_vocabulary')
+        .delete()
+        .eq('lesson_id', lessonId);
+
+      if (vocabError) {
+        console.error('❌ Error deleting lesson vocabulary:', vocabError);
+        throw vocabError;
+      }
+      console.log('✅ Deleted lesson vocabulary');
+
+      // 3. Finally, delete the main lesson record
+      const { error: lessonDeleteError } = await supabase
+        .from('esp_lessons')
+        .delete()
+        .eq('id', lessonId)
+        .eq('user_id', userId); // Double-check user ownership
+
+      if (lessonDeleteError) {
+        console.error('❌ Error deleting lesson:', lessonDeleteError);
+        throw lessonDeleteError;
+      }
+      console.log('✅ Deleted main lesson record');
+
+      console.log(`🎉 Successfully deleted lesson "${lesson.title}" and all related data`);
+      return true;
+
+    } catch (error) {
+      console.error('❌ Error deleting lesson:', error);
+      return false;
     }
   }
 }

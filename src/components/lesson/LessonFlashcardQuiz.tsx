@@ -6,6 +6,8 @@ interface LessonFlashcardQuizProps {
   vocabulary: any[];
   onComplete: (score: number) => void;
   onClose: () => void;
+  onProgressUpdate?: (questionIndex: number) => void;
+  initialQuestionIndex?: number;
 }
 
 interface QuizQuestion {
@@ -15,9 +17,9 @@ interface QuizQuestion {
   type: 'definition' | 'translation';
 }
 
-export default function LessonFlashcardQuiz({ vocabulary, onComplete, onClose }: LessonFlashcardQuizProps) {
+export default function LessonFlashcardQuiz({ vocabulary, onComplete, onClose, onProgressUpdate, initialQuestionIndex = 0 }: LessonFlashcardQuizProps) {
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
-  const [currentQuestion, setCurrentQuestion] = useState(0);
+  const [currentQuestion, setCurrentQuestion] = useState(initialQuestionIndex);
   const [score, setScore] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [showResult, setShowResult] = useState(false);
@@ -28,6 +30,13 @@ export default function LessonFlashcardQuiz({ vocabulary, onComplete, onClose }:
   useEffect(() => {
     generateQuestions();
   }, [vocabulary]);
+
+  // Update progress when question index changes
+  useEffect(() => {
+    if (onProgressUpdate) {
+      onProgressUpdate(currentQuestion);
+    }
+  }, [currentQuestion, onProgressUpdate]);
 
   const generateQuestions = () => {
     const quizQuestions: QuizQuestion[] = [];
@@ -123,7 +132,15 @@ export default function LessonFlashcardQuiz({ vocabulary, onComplete, onClose }:
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+          <TouchableOpacity 
+            style={styles.closeButton} 
+            onPress={() => {
+              console.log('Close button touched in LessonFlashcardQuiz');
+              onClose();
+            }}
+            activeOpacity={0.7}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
             <Ionicons name="close" size={24} color="#6366f1" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Quiz Complete!</Text>
@@ -322,7 +339,9 @@ const styles = StyleSheet.create({
     borderBottomColor: '#f1f5f9',
   },
   closeButton: {
-    padding: 8,
+    padding: 12,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 8,
   },
   headerTitle: {
     fontSize: 20,

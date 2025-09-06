@@ -9,6 +9,7 @@ interface ProfileAvatarProps {
   onPress?: () => void;
   showCameraIcon?: boolean;
   style?: any;
+  refreshTrigger?: number; // Add refresh trigger prop
 }
 
 export default function ProfileAvatar({ 
@@ -16,13 +17,14 @@ export default function ProfileAvatar({
   color = '#6366f1', 
   onPress, 
   showCameraIcon = false,
-  style 
+  style,
+  refreshTrigger = 0
 }: ProfileAvatarProps) {
   const [profileImage, setProfileImage] = useState<string | null>(null);
 
   useEffect(() => {
     loadProfilePicture();
-  }, []);
+  }, [refreshTrigger]);
 
   const loadProfilePicture = async () => {
     try {
@@ -75,6 +77,8 @@ const styles = StyleSheet.create({
   },
   image: {
     resizeMode: 'cover',
+    width: '100%',
+    height: '100%',
   },
   defaultAvatar: {
     justifyContent: 'center',

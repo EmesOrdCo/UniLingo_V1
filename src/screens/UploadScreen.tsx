@@ -19,6 +19,7 @@ import { FlashcardService } from '../lib/flashcardService';
 import FlashcardReviewModal from '../components/FlashcardReviewModal';
 import UploadProgressModal from '../components/UploadProgressModal';
 import { TopicEditModal } from '../components/TopicEditModal';
+import * as DocumentPicker from 'expo-document-picker';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -259,7 +260,7 @@ export default function UploadScreen() {
             { text: 'OK', style: 'default' }
           ]
         );
-      }, 600000); // 10 minute timeout to allow for AI processing
+      }, 180000); // 3 minute timeout - more reasonable for users
       
       // Update progress for file picking
       setProgress({
@@ -268,59 +269,21 @@ export default function UploadScreen() {
         message: 'Selecting PDF file...',
       });
 
-      // Pick PDF file with enhanced error handling
-      let result;
-      try {
-  
-        result = await UploadService.pickPDF();
-  
-      } catch (pickerError) {
-        console.error('PDF picker failed:', pickerError);
-        
-        // Show specific error message for picker failures
-        let pickerErrorMessage = 'Failed to select PDF file';
-        let showAlternatives = false;
-        
-        if (pickerError instanceof Error) {
-          if (pickerError.message.includes('already in use') || 
-              pickerError.message.includes('Different document picking in progress')) {
-            pickerErrorMessage = 'Document picker is busy. Please close any open file dialogs and try again.';
-            showAlternatives = true;
-          } else if (pickerError.message.includes('permission')) {
-            pickerErrorMessage = 'Permission denied. Please ensure the app has access to your files.';
-            showAlternatives = true;
-          } else {
-            pickerErrorMessage = pickerError.message;
-            showAlternatives = true;
-          }
-        }
-        
-        Alert.alert(
-          'PDF Selection Failed',
-          pickerErrorMessage,
-          [
-            { text: 'Try Again', style: 'default' },
-            { text: showAlternatives ? 'Use Alternative' : 'OK', style: 'cancel' }
-          ]
-        );
-        
-        // Close progress modal and reset state
-        setShowProgressModal(false);
-        setIsProcessing(false);
-        return;
-      }
-      
-      if (result.canceled) {
-        setIsProcessing(false);
-        setShowProgressModal(false);
-        return;
-      }
+      // Pick PDF file (same simple approach as lesson creation)
+      const fileResult = await DocumentPicker.getDocumentAsync({
+        type: 'application/pdf',
+        copyToCacheDirectory: true,
+        multiple: false,
+      });
 
-      if (!result.assets || result.assets.length === 0) {
+      if (!fileResult || !fileResult.assets || fileResult.assets.length === 0) {
         throw new Error('No file selected');
       }
 
-      const file = result.assets[0];
+      const file = fileResult.assets[0];
+      if (!file.uri) {
+        throw new Error('File URI not available');
+      }
       
 
       
@@ -330,14 +293,20 @@ export default function UploadScreen() {
         message: `File selected: ${file.name}, processing PDF...`,
       });
 
-      // Send PDF to Zapier webhook for text extraction
+      // Send PDF to backend for text extraction (same as lesson creation)
               setProgress({
           stage: 'processing',
           progress: 40,
           message: 'Uploading PDF for processing...',
         });
       
-      console.log('Starting webhook-based text extraction...');
+      console.log('Starting backend-based text extraction...');
+      console.log('📁 File details:', {
+        name: file.name,
+        size: file.size,
+        uri: file.uri,
+        type: file.mimeType
+      });
       
       const formData = new FormData();
       formData.append('pdf', {
@@ -346,22 +315,74 @@ export default function UploadScreen() {
         name: file.name,
       } as any);
 
-              const webhookResponse = await fetch('http://192.168.1.72:3001/api/process-pdf', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!webhookResponse.ok) {
-        throw new Error('Failed to send PDF to webhook for text extraction');
-      }
-
-      const webhookResult = await webhookResponse.json();
-      console.log('✅ PDF sent to PDF.co API successfully:', webhookResult);
+      console.log('📤 Sending request to backend...');
+      console.log('🌐 Backend URL: http://192.168.1.146:3001/api/process-pdf');
       
-      // Extract text from PDF.co API response
-      const extractedText = webhookResult.result?.text 
-        ? `PDF "${file.name}" processed successfully!\n\nExtracted ${webhookResult.result.text.length} characters from ${webhookResult.result.pageCount} pages.\n\nExtracted Text:\n${webhookResult.result.text.substring(0, 1000)}${webhookResult.result.text.length > 1000 ? '...' : ''}`
-        : `PDF "${file.name}" processed successfully! Check the backend logs for detailed results.`;
+      // Test backend connectivity first
+      try {
+        console.log('🔍 Testing backend connectivity...');
+        const healthResponse = await fetch('http://192.168.1.146:3001/health', {
+          method: 'GET',
+          timeout: 10000, // 10 second timeout for health check
+        });
+        console.log('✅ Backend health check passed:', healthResponse.status);
+      } catch (healthError) {
+        console.error('❌ Backend health check failed:', healthError);
+          throw new Error('Cannot connect to backend server. Please check if the backend is running on http://192.168.1.146:3001');
+      }
+      
+      // Add timeout to prevent hanging on backend request
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        console.log('⏰ Backend request timeout triggered');
+        controller.abort();
+      }, 60000); // 60 second timeout for backend
+      
+      let extractedText = '';
+      
+      try {
+        console.log('🔄 Fetch request starting...');
+        const webhookResponse = await fetch('http://192.168.1.146:3001/api/process-pdf', {
+          method: 'POST',
+          body: formData,
+          signal: controller.signal,
+        });
+        
+        clearTimeout(timeoutId); // Clear timeout if request completes
+        console.log('✅ Backend response received:', {
+          status: webhookResponse.status,
+          statusText: webhookResponse.statusText,
+          ok: webhookResponse.ok
+        });
+        
+        if (!webhookResponse.ok) {
+          throw new Error(`Backend request failed with status ${webhookResponse.status}`);
+        }
+
+        const webhookResult = await webhookResponse.json();
+        console.log('✅ PDF sent to backend successfully:', webhookResult);
+        
+        // Extract text from backend response (same as lesson creation)
+        extractedText = webhookResult.result?.text || '';
+        
+        if (!extractedText) {
+          throw new Error('No text extracted from PDF. The file might be corrupted or empty.');
+        }
+        
+        console.log(`📄 Extracted ${extractedText.length} characters from ${webhookResult.result?.pageCount || 'unknown'} pages`);
+        
+      } catch (fetchError) {
+        clearTimeout(timeoutId);
+        console.error('❌ Backend fetch error:', fetchError);
+        
+        if (fetchError.name === 'AbortError') {
+          throw new Error('Backend request timed out after 60 seconds. Please try again with a smaller file.');
+        } else if (fetchError.message.includes('Network request failed')) {
+          throw new Error('Cannot connect to backend server. Please check your internet connection and try again.');
+        } else {
+          throw fetchError;
+        }
+      }
       
               setProgress({
           stage: 'processing',
@@ -391,9 +412,19 @@ export default function UploadScreen() {
       setProgress({
         stage: 'generating',
         progress: 70,
-        message: 'AI is now analyzing your content and creating terminology flashcards...',
+        message: 'AI is analyzing your content... This may take 30-60 seconds.',
         cardsGenerated: 0,
       });
+      
+      // Add progress updates during AI processing
+      const startTime = Date.now();
+      const progressInterval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        setProgress(prev => ({
+          ...prev,
+          message: `AI is analyzing your content... This may take 30-60 seconds. (${elapsed}s elapsed)`
+        }));
+      }, 5000); // Update every 5 seconds
       
       const flashcards = await UploadService.generateFlashcards(
         extractedText,
@@ -406,6 +437,8 @@ export default function UploadScreen() {
           setProgress(progressUpdate);
         }
       );
+      
+      clearInterval(progressInterval); // Clear progress updates when done
       console.log('🔍 AI flashcard generation completed, count:', flashcards.length);
       console.log('🔍 Generated flashcards:', flashcards.slice(0, 3)); // Log first 3 cards
       
@@ -475,7 +508,13 @@ export default function UploadScreen() {
       // Show user-friendly error message
       let errorMessage = 'An unexpected error occurred';
       if (error instanceof Error) {
-        errorMessage = error.message;
+        if (error.name === 'AbortError') {
+          errorMessage = 'Backend request timed out. Please try again with a smaller file.';
+        } else if (error.message.includes('timed out')) {
+          errorMessage = 'AI processing timed out. Please try again with a smaller file.';
+        } else {
+          errorMessage = error.message;
+        }
       } else if (typeof error === 'string') {
         errorMessage = error;
       }

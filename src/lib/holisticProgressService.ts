@@ -231,11 +231,13 @@ export class HolisticProgressService {
             })
             .eq('id', currentStreak.id);
         } else if (daysSinceLastActivity > 1) {
-          // Reset streak
+          // Start new streak (1) if more than 1 day has passed
+          // Preserve the longest streak from previous streak
           await supabase
             .from('user_streaks')
             .update({
               current_streak: 1,
+              longest_streak: currentStreak.longest_streak, // Preserve longest streak
               last_activity_date: today,
               updated_at: new Date().toISOString(),
             })
@@ -272,6 +274,29 @@ export class HolisticProgressService {
         .maybeSingle(); // Use maybeSingle() instead of single() to handle no rows
 
       if (error) throw error;
+      
+      if (!data) {
+        return null;
+      }
+
+      // Calculate the actual current streak based on last activity date
+      const today = new Date().toISOString().split('T')[0];
+      const lastActivity = data.last_activity_date;
+      
+      if (!lastActivity) {
+        return { ...data, current_streak: 0 };
+      }
+
+      const daysSinceLastActivity = Math.floor(
+        (new Date(today).getTime() - new Date(lastActivity).getTime()) / (1000 * 60 * 60 * 24)
+      );
+
+      // If more than 1 day has passed since last activity, streak should be 0
+      if (daysSinceLastActivity > 1) {
+        return { ...data, current_streak: 0 };
+      }
+
+      // If last activity was today or yesterday, return the stored streak
       return data;
     } catch (error) {
       console.error('Error fetching current streak:', error);

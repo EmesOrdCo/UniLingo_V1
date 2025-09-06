@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../contexts/AuthContext';
+import { useProfilePicture } from '../contexts/ProfilePictureContext';
 import { HolisticProgressService } from '../lib/holisticProgressService';
 import { ProfilePictureService } from '../lib/profilePictureService';
 import ShareInvitationModal from '../components/ShareInvitationModal';
@@ -15,6 +16,7 @@ import SubscriptionStatus from '../components/SubscriptionStatus';
 export default function ProfilePage() {
   const navigation = useNavigation();
   const { user, profile, signOut } = useAuth();
+  const { triggerRefresh, refreshTrigger } = useProfilePicture();
   const [currentStreak, setCurrentStreak] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
   const [showShareInvitation, setShowShareInvitation] = useState(false);
@@ -78,6 +80,7 @@ export default function ProfilePage() {
         // Save to persistent storage
         try {
           await ProfilePictureService.saveProfilePicture(imageUri);
+          triggerRefresh(); // Use global refresh trigger
           Alert.alert('Success', 'Profile picture updated!');
         } catch (error) {
           console.error('Error saving profile picture:', error);
@@ -103,6 +106,7 @@ export default function ProfilePage() {
             try {
               await ProfilePictureService.removeProfilePicture();
               setProfileImage(null);
+              triggerRefresh(); // Use global refresh trigger
               Alert.alert('Success', 'Profile picture removed!');
             } catch (error) {
               console.error('Error removing profile picture:', error);
@@ -161,22 +165,6 @@ export default function ProfilePage() {
       },
     }] : []),
     {
-      id: 'languages',
-      title: 'My languages',
-      icon: 'language-outline',
-      onPress: () => {
-        Alert.alert('Languages', 'Language settings coming soon!');
-      },
-    },
-    {
-      id: 'appearance',
-      title: 'Appearance',
-      icon: 'contrast-outline',
-      onPress: () => {
-        Alert.alert('Appearance', 'Appearance settings coming soon!');
-      },
-    },
-    {
       id: 'invite',
       title: 'Invite friends',
       icon: 'person-add-outline',
@@ -208,22 +196,6 @@ export default function ProfilePage() {
         setShowContactSupport(true);
       },
     },
-    {
-      id: 'ai-chat',
-      title: 'AI Assistant',
-      icon: 'sparkles-outline',
-      onPress: () => {
-        navigation.navigate('AIChat' as never);
-      },
-    },
-    {
-      id: 'conversation-practice',
-      title: 'Conversation Practice',
-      icon: 'language-outline',
-      onPress: () => {
-        navigation.navigate('ConversationPractice' as never);
-      },
-    },
   ];
 
   return (
@@ -250,6 +222,7 @@ export default function ProfilePage() {
             color="#6366f1" 
             onPress={pickImage}
             showCameraIcon={true}
+            refreshTrigger={refreshTrigger}
           />
         </TouchableOpacity>
           <Text style={styles.userName}>{profile?.name || 'Dan'}</Text>

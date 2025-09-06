@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 import { SubscriptionProvider, useSubscription } from './src/contexts/SubscriptionContext';
+import { ProfilePictureProvider } from './src/contexts/ProfilePictureContext';
 import LoadingScreen from './src/components/LoadingScreen';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 
@@ -87,12 +88,14 @@ export default function App() {
     <SafeAreaProvider>
       <AuthProvider>
         <SubscriptionProvider>
-          <NavigationContainer>
-            <ErrorBoundary>
-              <AppNavigator />
-              <StatusBar style="auto" />
-            </ErrorBoundary>
-          </NavigationContainer>
+          <ProfilePictureProvider>
+            <NavigationContainer>
+              <ErrorBoundary>
+                <AppNavigator />
+                <StatusBar style="auto" />
+              </ErrorBoundary>
+            </NavigationContainer>
+          </ProfilePictureProvider>
         </SubscriptionProvider>
       </AuthProvider>
     </SafeAreaProvider>

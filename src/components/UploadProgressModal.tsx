@@ -131,13 +131,27 @@ export default function UploadProgressModal({
         solution: 'Please check your OpenAI API key configuration and try again.',
         icon: 'key-outline'
       };
-          } else if (message.includes('Failed to generate flashcards with AI')) {
-        return {
-          title: 'AI Generation Failed',
-          description: 'The AI service encountered an error while generating flashcards.',
-          solution: 'Please check your internet connection and try again. If the problem persists, contact support.',
-          icon: 'cloud-offline-outline'
-        };
+    } else if (message.includes('timed out')) {
+      return {
+        title: 'Processing Timeout',
+        description: 'The upload process timed out. This can happen with large files or slow connections.',
+        solution: 'Try uploading a smaller PDF file or check your internet connection.',
+        icon: 'time-outline'
+      };
+    } else if (message.includes('Backend request timed out')) {
+      return {
+        title: 'Backend Timeout',
+        description: 'The backend server took too long to process your PDF.',
+        solution: 'Try uploading a smaller PDF file or try again in a few minutes.',
+        icon: 'server-outline'
+      };
+    } else if (message.includes('AI processing timed out')) {
+      return {
+        title: 'AI Processing Timeout',
+        description: 'The AI service took too long to generate flashcards.',
+        solution: 'Try uploading a smaller PDF file or try again in a few minutes.',
+        icon: 'sparkles-outline'
+      };
       } else {
         return {
           title: 'Unexpected Error',

@@ -779,8 +779,8 @@ export default function FlashcardsScreen() {
 
   // Create new flashcard
   const createFlashcard = async () => {
-    if (!user || !newFlashcard.topic || !newFlashcard.front || !newFlashcard.back) {
-      Alert.alert('Error', 'Please fill in all required fields.');
+    if (!user || !newFlashcard.topic || !newFlashcard.front || !newFlashcard.back || !newFlashcard.example) {
+      Alert.alert('Error', 'Please fill in all required fields including the example.');
       return;
     }
     
@@ -1274,12 +1274,137 @@ export default function FlashcardsScreen() {
                       }}>
                         <Text style={styles.cancelButtonText}>Cancel</Text>
                       </TouchableOpacity>
-                      <TouchableOpacity style={styles.saveButton} onPress={createFlashcard}>
-                        <Text style={styles.saveButtonText}>Create Flashcard</Text>
+                      <TouchableOpacity style={styles.confirmButton} onPress={() => {
+                        if (newTopicInput.trim()) {
+                          setNewFlashcard(prev => ({ ...prev, topic: newTopicInput.trim() }));
+                          setShowTopicInput(false);
+                          setNewTopicInput('');
+                        }
+                      }}>
+                        <Text style={styles.confirmButtonText}>Use New Topic</Text>
                       </TouchableOpacity>
                     </View>
                   </View>
                 )}
+                
+                {/* Topic dropdown options */}
+                {!showTopicInput && showTopicPicker && (
+                  <ScrollView style={styles.topicOptionsContainer}>
+                    {(topics || []).map((topic) => (
+                      <TouchableOpacity
+                        key={topic.id}
+                        style={styles.topicOption}
+                        onPress={() => {
+                          setNewFlashcard(prev => ({ ...prev, topic: topic.name }));
+                          setShowTopicPicker(false);
+                        }}
+                      >
+                        <Text style={styles.topicOptionText}>{topic.name}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                )}
+              </View>
+
+              {/* Front Text Input */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Front (Question/Term) *</Text>
+                <TextInput
+                  style={[styles.input, styles.textArea]}
+                  value={newFlashcard.front}
+                  onChangeText={(text) => setNewFlashcard(prev => ({ ...prev, front: text }))}
+                  placeholder="Enter the question or term"
+                  multiline
+                  numberOfLines={3}
+                />
+              </View>
+
+              {/* Back Text Input */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Back (Answer/Definition) *</Text>
+                <TextInput
+                  style={[styles.input, styles.textArea]}
+                  value={newFlashcard.back}
+                  onChangeText={(text) => setNewFlashcard(prev => ({ ...prev, back: text }))}
+                  placeholder="Enter the answer or definition"
+                  multiline
+                  numberOfLines={3}
+                />
+              </View>
+
+              {/* Example Input */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Example *</Text>
+                <TextInput
+                  style={[styles.input, styles.textArea]}
+                  value={newFlashcard.example}
+                  onChangeText={(text) => setNewFlashcard(prev => ({ ...prev, example: text }))}
+                  placeholder="Provide an example sentence using the front term"
+                  multiline
+                  numberOfLines={2}
+                />
+              </View>
+
+              {/* Pronunciation Input */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Pronunciation (Optional)</Text>
+                <TextInput
+                  style={styles.input}
+                  value={newFlashcard.pronunciation}
+                  onChangeText={(text) => setNewFlashcard(prev => ({ ...prev, pronunciation: text }))}
+                  placeholder="e.g., /kɑːrˈdiːə/ for 'cardiac'"
+                />
+              </View>
+
+              {/* Difficulty Selection */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Difficulty Level *</Text>
+                <View style={styles.difficultyContainer}>
+                  {['beginner', 'intermediate', 'expert'].map((level) => (
+                    <TouchableOpacity
+                      key={level}
+                      style={[
+                        styles.difficultyButton,
+                        newFlashcard.difficulty === level && styles.selectedDifficulty,
+                        { borderColor: level === 'beginner' ? '#10b981' : level === 'intermediate' ? '#f59e0b' : '#ef4444' }
+                      ]}
+                      onPress={() => setNewFlashcard(prev => ({ ...prev, difficulty: level as 'beginner' | 'intermediate' | 'expert' }))}
+                    >
+                      <Text style={[
+                        styles.difficultyText,
+                        newFlashcard.difficulty === level && styles.selectedDifficultyText,
+                        { color: newFlashcard.difficulty === level ? '#ffffff' : level === 'beginner' ? '#10b981' : level === 'intermediate' ? '#f59e0b' : '#ef4444' }
+                      ]}>
+                        {level.charAt(0).toUpperCase() + level.slice(1)}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              {/* Action Buttons */}
+              <View style={styles.formActions}>
+                <TouchableOpacity style={styles.cancelFormButton} onPress={() => {
+                  setShowCreateForm(false);
+                  setNewFlashcard({
+                    topic: '',
+                    front: '',
+                    back: '',
+                    difficulty: 'beginner',
+                    example: '',
+                    pronunciation: '',
+                    tags: [],
+                    native_language: 'english'
+                  });
+                  setShowTopicInput(false);
+                  setNewTopicInput('');
+                  setShowTopicPicker(false);
+                }}>
+                  <Text style={styles.cancelFormButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.saveButton} onPress={createFlashcard}>
+                  <Text style={styles.saveButtonText}>Create Flashcard</Text>
+                </TouchableOpacity>
               </View>
             </View>
           )}
@@ -2080,6 +2205,61 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  // Additional form styles
+  textArea: {
+    height: 80,
+    textAlignVertical: 'top',
+  },
+  formActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginTop: 20,
+  },
+  cancelFormButton: {
+    flex: 1,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    backgroundColor: '#f8fafc',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#e2e8f0',
+  },
+  cancelFormButtonText: {
+    color: '#64748b',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  confirmButton: {
+    flex: 1,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    backgroundColor: '#10b981',
+    alignItems: 'center',
+  },
+  confirmButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  difficultyContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  difficultyText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  selectedDifficulty: {
+    backgroundColor: '#6366f1',
+    borderColor: '#6366f1',
+  },
+  selectedDifficultyText: {
+    color: '#ffffff',
   },
   // Study Session View Styles
   studyHeader: {

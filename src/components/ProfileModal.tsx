@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Modal, Image, Alert } from 'r
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../contexts/AuthContext';
+import { useProfilePicture } from '../contexts/ProfilePictureContext';
 import { HolisticProgressService } from '../lib/holisticProgressService';
 import { ProfilePictureService } from '../lib/profilePictureService';
 import ProfileAvatar from './ProfileAvatar';
@@ -14,6 +15,7 @@ interface ProfileModalProps {
 
 export default function ProfileModal({ visible, onClose }: ProfileModalProps) {
   const { user, profile, signOut } = useAuth();
+  const { triggerRefresh, refreshTrigger } = useProfilePicture();
   const [currentStreak, setCurrentStreak] = useState(0);
   const [profileImage, setProfileImage] = useState<string | null>(null);
 
@@ -73,6 +75,7 @@ export default function ProfileModal({ visible, onClose }: ProfileModalProps) {
         // Save to persistent storage
         try {
           await ProfilePictureService.saveProfilePicture(imageUri);
+          triggerRefresh(); // Use global refresh trigger
           Alert.alert('Success', 'Profile picture updated!');
         } catch (error) {
           console.error('Error saving profile picture:', error);
@@ -117,6 +120,7 @@ export default function ProfileModal({ visible, onClose }: ProfileModalProps) {
             color="#ffffff" 
             onPress={pickImage}
             showCameraIcon={true}
+            refreshTrigger={refreshTrigger}
           />
         </TouchableOpacity>
             <Text style={styles.profileName}>{profile?.name || 'User Name'}</Text>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { XPService, LevelInfo } from '../lib/xpService';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -10,6 +11,7 @@ interface LevelProgressWidgetProps {
 
 export default function LevelProgressWidget({ onRefresh }: LevelProgressWidgetProps) {
   const { user } = useAuth();
+  const navigation = useNavigation();
   const [levelInfo, setLevelInfo] = useState<LevelInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -51,6 +53,10 @@ export default function LevelProgressWidget({ onRefresh }: LevelProgressWidgetPr
     } finally {
       setRefreshing(false);
     }
+  };
+
+  const handleNavigateToProgress = () => {
+    navigation.navigate('ProgressDashboard' as never);
   };
 
   useEffect(() => {
@@ -113,19 +119,29 @@ export default function LevelProgressWidget({ onRefresh }: LevelProgressWidgetPr
           <Ionicons name={levelIcon} size={24} color={levelColor} />
           <Text style={styles.title}>Level Progress</Text>
         </View>
-                 <View style={styles.buttonContainer}>
-           <TouchableOpacity 
-             onPress={handleRefresh} 
-             style={[styles.refreshButton, refreshing && styles.refreshButtonActive]}
-             disabled={refreshing}
-           >
-             <Ionicons 
-               name={refreshing ? "sync" : "refresh"} 
-               size={20} 
-               color={refreshing ? "#10b981" : "#6366f1"} 
-             />
-           </TouchableOpacity>
-         </View>
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity 
+            onPress={handleRefresh} 
+            style={[styles.refreshButton, refreshing && styles.refreshButtonActive]}
+            disabled={refreshing}
+          >
+            <Ionicons 
+              name={refreshing ? "sync" : "refresh"} 
+              size={20} 
+              color={refreshing ? "#10b981" : "#6366f1"} 
+            />
+          </TouchableOpacity>
+          <TouchableOpacity 
+            onPress={handleNavigateToProgress} 
+            style={styles.navigateButton}
+          >
+            <Ionicons 
+              name="arrow-forward" 
+              size={20} 
+              color="#6366f1" 
+            />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <View style={styles.levelInfo}>
@@ -240,6 +256,9 @@ const styles = StyleSheet.create({
   },
   refreshButtonActive: {
     opacity: 0.7,
+  },
+  navigateButton: {
+    padding: 4,
   },
   buttonContainer: {
     flexDirection: 'row',

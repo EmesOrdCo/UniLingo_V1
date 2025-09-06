@@ -36,8 +36,8 @@ export default function CreateFlashcardScreen() {
   const { user, profile } = useAuth();
 
   const handleSave = async () => {
-    if (!frontText.trim() || !backText.trim() || !subject.trim() || !topic.trim()) {
-      Alert.alert('Error', 'Please fill in all required fields');
+    if (!frontText.trim() || !backText.trim() || !subject.trim() || !topic.trim() || !example.trim()) {
+      Alert.alert('Error', 'Please fill in all required fields including the example.');
       return;
     }
 
@@ -92,7 +92,7 @@ export default function CreateFlashcardScreen() {
     }
   };
 
-  const isFormValid = frontText.trim() && backText.trim() && subject.trim() && topic.trim();
+  const isFormValid = frontText.trim() && backText.trim() && subject.trim() && topic.trim() && example.trim();
 
   return (
     <SafeAreaView style={styles.container}>
@@ -186,12 +186,12 @@ export default function CreateFlashcardScreen() {
 
           {/* Example Input */}
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Example (Optional)</Text>
+            <Text style={styles.label}>Example *</Text>
             <TextInput
               style={[styles.input, styles.textArea]}
               value={example}
               onChangeText={setExample}
-              placeholder="Provide an example sentence or usage"
+              placeholder="Provide an example sentence using the front term"
               multiline
               numberOfLines={3}
             />

@@ -200,6 +200,16 @@ export class XPService {
       // Log the activity
       await this.logActivity(userId, activityType, score, maxScore, accuracyPercentage, xpCalculation.totalXP, activityName, durationSeconds);
 
+      // Update streak for any activity completion
+      try {
+        const { HolisticProgressService } = await import('./holisticProgressService');
+        await HolisticProgressService.updateStreak(userId, 'daily_study');
+        console.log('✅ Streak updated for activity completion');
+      } catch (streakError) {
+        console.error('❌ Error updating streak:', streakError);
+        // Don't fail the XP award if streak update fails
+      }
+
       console.log('✅ XP awarded successfully:', xpCalculation.totalXP);
       return xpCalculation;
     } catch (error) {

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Animated, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -6,17 +6,26 @@ interface LessonFlashcardsProps {
   vocabulary: any[];
   onComplete: (score: number) => void;
   onClose: () => void;
+  onProgressUpdate?: (questionIndex: number) => void;
+  initialQuestionIndex?: number;
 }
 
 const { width: screenWidth } = Dimensions.get('window');
 
-export default function LessonFlashcards({ vocabulary, onComplete, onClose }: LessonFlashcardsProps) {
-  const [currentIndex, setCurrentIndex] = useState(0);
+export default function LessonFlashcards({ vocabulary, onComplete, onClose, onProgressUpdate, initialQuestionIndex = 0 }: LessonFlashcardsProps) {
+  const [currentIndex, setCurrentIndex] = useState(initialQuestionIndex);
   const [isFlipped, setIsFlipped] = useState(false);
   const [viewedCards, setViewedCards] = useState<Set<number>>(new Set());
   const flipAnimation = useRef(new Animated.Value(0)).current;
 
   const currentCard = vocabulary[currentIndex];
+
+  // Update progress when card index changes
+  useEffect(() => {
+    if (onProgressUpdate) {
+      onProgressUpdate(currentIndex);
+    }
+  }, [currentIndex, onProgressUpdate]);
 
   const flipCard = () => {
     const toValue = isFlipped ? 0 : 1;
@@ -77,7 +86,15 @@ export default function LessonFlashcards({ vocabulary, onComplete, onClose }: Le
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+        <TouchableOpacity 
+          style={styles.closeButton} 
+          onPress={() => {
+            console.log('Close button touched in LessonFlashcards');
+            onClose();
+          }}
+          activeOpacity={0.7}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
           <Ionicons name="close" size={24} color="#6366f1" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Flashcards</Text>
@@ -179,7 +196,9 @@ const styles = StyleSheet.create({
     borderBottomColor: '#f1f5f9',
   },
   closeButton: {
-    padding: 8,
+    padding: 12,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 8,
   },
   headerTitle: {
     fontSize: 20,

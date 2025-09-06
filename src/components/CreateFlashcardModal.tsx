@@ -30,7 +30,7 @@ export default function CreateFlashcardModal({
   const [newTopicInput, setNewTopicInput] = useState('');
 
   const handleSubmit = () => {
-    if (newFlashcard.topic && newFlashcard.front && newFlashcard.back) {
+    if (newFlashcard.topic && newFlashcard.front && newFlashcard.back && newFlashcard.example) {
       onSubmit(newFlashcard);
       onClose();
       // Reset form
@@ -158,7 +158,7 @@ export default function CreateFlashcardModal({
           
           <TextInput
             style={styles.input}
-            placeholder="Example sentence (optional)"
+            placeholder="Example sentence using the front term (required)"
             value={newFlashcard.example}
             onChangeText={(text) => setNewFlashcard(prev => ({ ...prev, example: text }))}
             multiline

@@ -48,14 +48,62 @@ export default function LessonsContent() {
 
   const handleLessonPress = async (lesson: Lesson) => {
     // Navigate to lesson walkthrough
-    navigation.navigate('LessonWalkthrough' as never, {
+    (navigation as any).navigate('LessonWalkthrough', {
       lessonId: lesson.id,
       lessonTitle: lesson.title
-    } as never);
+    });
+  };
+
+  const handleDeleteLesson = async (lesson: Lesson) => {
+    Alert.alert(
+      'Delete Lesson',
+      `Are you sure you want to delete "${lesson.title}"? This action cannot be undone and will remove all lesson data including vocabulary and progress.`,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const success = await LessonService.deleteLesson(lesson.id, user!.id);
+              if (success) {
+                Alert.alert('Success', 'Lesson deleted successfully!');
+                // Refresh the lessons list
+                fetchUserLessons();
+              } else {
+                Alert.alert('Error', 'Failed to delete lesson. Please try again.');
+              }
+            } catch (error) {
+              console.error('Error deleting lesson:', error);
+              Alert.alert('Error', 'Failed to delete lesson. Please try again.');
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleRefresh = () => {
     fetchUserLessons();
+  };
+
+  // Helper function to get subject-specific colors
+  const getSubjectColor = (subject: string) => {
+    const colors: { [key: string]: string } = {
+      'Mathematics': '#6366f1',
+      'Science': '#10b981',
+      'History': '#f59e0b',
+      'Literature': '#ef4444',
+      'Language': '#8b5cf6',
+      'Art': '#ec4899',
+      'Music': '#06b6d4',
+      'Geography': '#84cc16',
+      'default': '#6366f1'
+    };
+    return colors[subject] || colors.default;
   };
   if (loadingLessons) {
     return (
@@ -69,12 +117,6 @@ export default function LessonsContent() {
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Header with refresh button */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>My Lessons</Text>
-        <TouchableOpacity style={styles.refreshButton} onPress={handleRefresh}>
-          <Ionicons name="refresh" size={20} color="#6366f1" />
-        </TouchableOpacity>
-      </View>
 
       {lessons.length === 0 ? (
         <View style={styles.emptyContainer}>
@@ -115,7 +157,7 @@ export default function LessonsContent() {
         <View style={styles.lessonsContainer}>
           {/* Lessons Header */}
           <View style={styles.lessonsHeader}>
-            <Text style={styles.lessonsTitle}>Your Lessons ({lessons.length})</Text>
+            <Text style={styles.lessonsTitle}>{lessons.length} lessons created</Text>
             <TouchableOpacity 
               style={styles.addLessonButton}
               onPress={handleCreateLesson}
@@ -125,49 +167,68 @@ export default function LessonsContent() {
             </TouchableOpacity>
           </View>
 
-          {lessons.map((lesson) => (
+          {lessons.map((lesson, index) => (
             <TouchableOpacity
               key={lesson.id}
               style={styles.lessonCard}
               onPress={() => handleLessonPress(lesson)}
+              activeOpacity={0.7}
             >
-              {/* Lesson Header */}
+              {/* Delete Button - Top Right */}
+              <TouchableOpacity
+                style={styles.deleteButton}
+                onPress={() => handleDeleteLesson(lesson)}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="trash-outline" size={16} color="#ef4444" />
+              </TouchableOpacity>
+
+              {/* Lesson Header with Icon */}
               <View style={styles.lessonHeader}>
+                <View style={styles.lessonIconContainer}>
+                  <View style={[
+                    styles.lessonIcon,
+                    { backgroundColor: getSubjectColor(lesson.subject) }
+                  ]}>
+                    <Ionicons name="book-outline" size={20} color="#ffffff" />
+                  </View>
+                </View>
                 <View style={styles.lessonInfo}>
                   <Text style={styles.lessonTitle} numberOfLines={2}>
                     {lesson.title}
                   </Text>
-                  <Text style={styles.lessonSubject}>{lesson.subject}</Text>
                   <Text style={styles.lessonDate}>
                     Created {new Date(lesson.created_at).toLocaleDateString()}
                   </Text>
                 </View>
-                <View style={styles.lessonStatus}>
-                  <View style={[
-                    styles.statusBadge,
-                    lesson.status === 'ready' ? styles.statusReady : styles.statusDraft
-                  ]}>
-                    <Text style={styles.statusText}>
-                      {lesson.status === 'ready' ? 'Ready' : 'Draft'}
-                    </Text>
-                  </View>
-                </View>
               </View>
               
-              {/* Lesson Details */}
+              {/* Lesson Details - Single Line */}
               <View style={styles.lessonDetails}>
                 <View style={styles.detailItem}>
-                  <Ionicons name="time-outline" size={16} color="#64748b" />
+                  <Ionicons name="time-outline" size={14} color="#6366f1" />
                   <Text style={styles.detailText}>{lesson.estimated_duration} min</Text>
                 </View>
+                <View style={styles.detailSeparator} />
                 <View style={styles.detailItem}>
-                  <Ionicons name="school-outline" size={16} color="#64748b" />
+                  <Ionicons name="trending-up-outline" size={14} color="#6366f1" />
                   <Text style={styles.detailText}>{lesson.difficulty_level}</Text>
                 </View>
+                <View style={styles.detailSeparator} />
                 <View style={styles.detailItem}>
-                  <Ionicons name="document-outline" size={16} color="#64748b" />
-                  <Text style={styles.detailText}>{lesson.source_pdf_name}</Text>
+                  <Ionicons name="document-text-outline" size={14} color="#6366f1" />
+                  <Text style={styles.detailText} numberOfLines={1}>
+                    {lesson.source_pdf_name}
+                  </Text>
                 </View>
+              </View>
+
+              {/* Progress Bar Placeholder */}
+              <View style={styles.progressContainer}>
+                <View style={styles.progressBar}>
+                  <View style={[styles.progressFill, { width: '0%' }]} />
+                </View>
+                <Text style={styles.progressText}>Not started</Text>
               </View>
             </TouchableOpacity>
           ))}
@@ -191,24 +252,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#64748b',
     marginTop: 12,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#1e293b',
-  },
-  refreshButton: {
-    padding: 8,
   },
   emptyContainer: {
     alignItems: 'center',
@@ -255,10 +298,6 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginBottom: 16,
   },
-  lessonIconContainer: {
-    alignItems: 'center',
-    marginBottom: 16,
-  },
   mainCreateButton: {
     backgroundColor: '#6366f1',
     flexDirection: 'row',
@@ -276,7 +315,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   lessonsContainer: {
-    padding: 20,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
   },
   lessonsHeader: {
     flexDirection: 'row',
@@ -306,74 +346,113 @@ const styles = StyleSheet.create({
   lessonCard: {
     backgroundColor: '#ffffff',
     borderRadius: 16,
-    padding: 20,
     marginBottom: 16,
+    padding: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.06,
     shadowRadius: 8,
     elevation: 3,
     borderWidth: 1,
     borderColor: '#f1f5f9',
+    position: 'relative',
+  },
+  deleteButton: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#fef2f2',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1,
   },
   lessonHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'flex-start',
     marginBottom: 16,
   },
+  lessonIconContainer: {
+    marginRight: 12,
+  },
+  lessonIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 1,
+  },
   lessonInfo: {
     flex: 1,
-    marginRight: 16,
+    marginRight: 48, // Space for delete button
   },
   lessonTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#1e293b',
     marginBottom: 4,
-  },
-  lessonSubject: {
-    fontSize: 14,
-    color: '#64748b',
+    lineHeight: 24,
   },
   lessonDate: {
     fontSize: 12,
-    color: '#9ca3af',
-    marginTop: 2,
-  },
-  lessonStatus: {
-    marginTop: 2,
-  },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  statusReady: {
-    backgroundColor: '#dcfce7',
-  },
-  statusDraft: {
-    backgroundColor: '#fef3c7',
-  },
-  statusText: {
-    fontSize: 12,
+    color: '#94a3b8',
     fontWeight: '500',
   },
   lessonDetails: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+    paddingHorizontal: 4,
+  },
+  detailItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    justifyContent: 'center',
+  },
+  detailSeparator: {
+    width: 1,
+    height: 16,
+    backgroundColor: '#e2e8f0',
+    marginHorizontal: 8,
+  },
+  detailText: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: '#64748b',
+    marginLeft: 4,
+    flex: 1,
+    textAlign: 'center',
+  },
+  progressContainer: {
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: '#f1f5f9',
   },
-  detailItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
+  progressBar: {
+    height: 8,
+    backgroundColor: '#f1f5f9',
+    borderRadius: 4,
+    marginBottom: 6,
+    overflow: 'hidden',
   },
-  detailText: {
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#6366f1',
+    borderRadius: 4,
+  },
+  progressText: {
     fontSize: 12,
+    fontWeight: '500',
     color: '#64748b',
+    textAlign: 'center',
   },
 });
