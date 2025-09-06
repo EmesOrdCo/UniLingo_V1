@@ -15,53 +15,114 @@ import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { UserProfileService } from '../lib/userProfileService';
+import { supabase } from '../lib/supabase';
 
-// OpenAI supported languages (subset of most common ones)
+// Comprehensive list of languages supported by ChatGPT/OpenAI
 const SUPPORTED_LANGUAGES = [
-  { code: 'en', name: 'English' },
-  { code: 'es', name: 'Spanish' },
-  { code: 'fr', name: 'French' },
-  { code: 'de', name: 'German' },
-  { code: 'it', name: 'Italian' },
-  { code: 'pt', name: 'Portuguese' },
-  { code: 'ru', name: 'Russian' },
-  { code: 'ja', name: 'Japanese' },
-  { code: 'ko', name: 'Korean' },
-  { code: 'zh', name: 'Chinese' },
-  { code: 'ar', name: 'Arabic' },
-  { code: 'hi', name: 'Hindi' },
-  { code: 'nl', name: 'Dutch' },
-  { code: 'sv', name: 'Swedish' },
-  { code: 'da', name: 'Danish' },
-  { code: 'no', name: 'Norwegian' },
-  { code: 'fi', name: 'Finnish' },
-  { code: 'pl', name: 'Polish' },
-  { code: 'tr', name: 'Turkish' },
-  { code: 'he', name: 'Hebrew' },
-  { code: 'th', name: 'Thai' },
-  { code: 'vi', name: 'Vietnamese' },
-  { code: 'id', name: 'Indonesian' },
-  { code: 'ms', name: 'Malay' },
-  { code: 'tl', name: 'Filipino' },
-  { code: 'uk', name: 'Ukrainian' },
-  { code: 'cs', name: 'Czech' },
-  { code: 'hu', name: 'Hungarian' },
-  { code: 'ro', name: 'Romanian' },
-  { code: 'bg', name: 'Bulgarian' },
-  { code: 'hr', name: 'Croatian' },
-  { code: 'sk', name: 'Slovak' },
-  { code: 'sl', name: 'Slovenian' },
-  { code: 'et', name: 'Estonian' },
-  { code: 'lv', name: 'Latvian' },
-  { code: 'lt', name: 'Lithuanian' },
-  { code: 'el', name: 'Greek' },
-  { code: 'is', name: 'Icelandic' },
-  { code: 'ga', name: 'Irish' },
-  { code: 'cy', name: 'Welsh' },
-  { code: 'mt', name: 'Maltese' },
-  { code: 'eu', name: 'Basque' },
-  { code: 'ca', name: 'Catalan' },
-  { code: 'gl', name: 'Galician' },
+  { code: 'af', name: 'Afrikaans', flag: '🇿🇦' },
+  { code: 'sq', name: 'Albanian', flag: '🇦🇱' },
+  { code: 'am', name: 'Amharic', flag: '🇪🇹' },
+  { code: 'ar', name: 'Arabic', flag: '🇸🇦' },
+  { code: 'hy', name: 'Armenian', flag: '🇦🇲' },
+  { code: 'az', name: 'Azerbaijani', flag: '🇦🇿' },
+  { code: 'eu', name: 'Basque', flag: '🇪🇸' },
+  { code: 'be', name: 'Belarusian', flag: '🇧🇾' },
+  { code: 'bn', name: 'Bengali', flag: '🇧🇩' },
+  { code: 'bs', name: 'Bosnian', flag: '🇧🇦' },
+  { code: 'bg', name: 'Bulgarian', flag: '🇧🇬' },
+  { code: 'ca', name: 'Catalan', flag: '🇪🇸' },
+  { code: 'ceb', name: 'Cebuano', flag: '🇵🇭' },
+  { code: 'ny', name: 'Chichewa', flag: '🇲🇼' },
+  { code: 'zh', name: 'Chinese (Simplified)', flag: '🇨🇳' },
+  { code: 'zh-tw', name: 'Chinese (Traditional)', flag: '🇹🇼' },
+  { code: 'co', name: 'Corsican', flag: '🇫🇷' },
+  { code: 'hr', name: 'Croatian', flag: '🇭🇷' },
+  { code: 'cs', name: 'Czech', flag: '🇨🇿' },
+  { code: 'da', name: 'Danish', flag: '🇩🇰' },
+  { code: 'nl', name: 'Dutch', flag: '🇳🇱' },
+  { code: 'en', name: 'English', flag: '🇺🇸' },
+  { code: 'eo', name: 'Esperanto', flag: '🌍' },
+  { code: 'et', name: 'Estonian', flag: '🇪🇪' },
+  { code: 'tl', name: 'Filipino', flag: '🇵🇭' },
+  { code: 'fi', name: 'Finnish', flag: '🇫🇮' },
+  { code: 'fr', name: 'French', flag: '🇫🇷' },
+  { code: 'fy', name: 'Frisian', flag: '🇳🇱' },
+  { code: 'gl', name: 'Galician', flag: '🇪🇸' },
+  { code: 'ka', name: 'Georgian', flag: '🇬🇪' },
+  { code: 'de', name: 'German', flag: '🇩🇪' },
+  { code: 'el', name: 'Greek', flag: '🇬🇷' },
+  { code: 'gu', name: 'Gujarati', flag: '🇮🇳' },
+  { code: 'ht', name: 'Haitian Creole', flag: '🇭🇹' },
+  { code: 'ha', name: 'Hausa', flag: '🇳🇬' },
+  { code: 'haw', name: 'Hawaiian', flag: '🇺🇸' },
+  { code: 'iw', name: 'Hebrew', flag: '🇮🇱' },
+  { code: 'hi', name: 'Hindi', flag: '🇮🇳' },
+  { code: 'hmn', name: 'Hmong', flag: '🇱🇦' },
+  { code: 'hu', name: 'Hungarian', flag: '🇭🇺' },
+  { code: 'is', name: 'Icelandic', flag: '🇮🇸' },
+  { code: 'ig', name: 'Igbo', flag: '🇳🇬' },
+  { code: 'id', name: 'Indonesian', flag: '🇮🇩' },
+  { code: 'ga', name: 'Irish', flag: '🇮🇪' },
+  { code: 'it', name: 'Italian', flag: '🇮🇹' },
+  { code: 'ja', name: 'Japanese', flag: '🇯🇵' },
+  { code: 'jw', name: 'Javanese', flag: '🇮🇩' },
+  { code: 'kn', name: 'Kannada', flag: '🇮🇳' },
+  { code: 'kk', name: 'Kazakh', flag: '🇰🇿' },
+  { code: 'km', name: 'Khmer', flag: '🇰🇭' },
+  { code: 'ko', name: 'Korean', flag: '🇰🇷' },
+  { code: 'ku', name: 'Kurdish (Kurmanji)', flag: '🇮🇶' },
+  { code: 'ky', name: 'Kyrgyz', flag: '🇰🇬' },
+  { code: 'lo', name: 'Lao', flag: '🇱🇦' },
+  { code: 'la', name: 'Latin', flag: '🏛️' },
+  { code: 'lv', name: 'Latvian', flag: '🇱🇻' },
+  { code: 'lt', name: 'Lithuanian', flag: '🇱🇹' },
+  { code: 'lb', name: 'Luxembourgish', flag: '🇱🇺' },
+  { code: 'mk', name: 'Macedonian', flag: '🇲🇰' },
+  { code: 'mg', name: 'Malagasy', flag: '🇲🇬' },
+  { code: 'ms', name: 'Malay', flag: '🇲🇾' },
+  { code: 'ml', name: 'Malayalam', flag: '🇮🇳' },
+  { code: 'mt', name: 'Maltese', flag: '🇲🇹' },
+  { code: 'mi', name: 'Maori', flag: '🇳🇿' },
+  { code: 'mr', name: 'Marathi', flag: '🇮🇳' },
+  { code: 'mn', name: 'Mongolian', flag: '🇲🇳' },
+  { code: 'my', name: 'Myanmar (Burmese)', flag: '🇲🇲' },
+  { code: 'ne', name: 'Nepali', flag: '🇳🇵' },
+  { code: 'no', name: 'Norwegian', flag: '🇳🇴' },
+  { code: 'ps', name: 'Pashto', flag: '🇦🇫' },
+  { code: 'fa', name: 'Persian', flag: '🇮🇷' },
+  { code: 'pl', name: 'Polish', flag: '🇵🇱' },
+  { code: 'pt', name: 'Portuguese', flag: '🇵🇹' },
+  { code: 'ma', name: 'Punjabi', flag: '🇮🇳' },
+  { code: 'ro', name: 'Romanian', flag: '🇷🇴' },
+  { code: 'ru', name: 'Russian', flag: '🇷🇺' },
+  { code: 'sm', name: 'Samoan', flag: '🇼🇸' },
+  { code: 'gd', name: 'Scots Gaelic', flag: '🏴󠁧󠁢󠁳󠁣󠁴󠁿' },
+  { code: 'sr', name: 'Serbian', flag: '🇷🇸' },
+  { code: 'st', name: 'Sesotho', flag: '🇱🇸' },
+  { code: 'sn', name: 'Shona', flag: '🇿🇼' },
+  { code: 'sd', name: 'Sindhi', flag: '🇵🇰' },
+  { code: 'si', name: 'Sinhala', flag: '🇱🇰' },
+  { code: 'sk', name: 'Slovak', flag: '🇸🇰' },
+  { code: 'sl', name: 'Slovenian', flag: '🇸🇮' },
+  { code: 'so', name: 'Somali', flag: '🇸🇴' },
+  { code: 'es', name: 'Spanish', flag: '🇪🇸' },
+  { code: 'su', name: 'Sundanese', flag: '🇮🇩' },
+  { code: 'sw', name: 'Swahili', flag: '🇹🇿' },
+  { code: 'sv', name: 'Swedish', flag: '🇸🇪' },
+  { code: 'tg', name: 'Tajik', flag: '🇹🇯' },
+  { code: 'ta', name: 'Tamil', flag: '🇮🇳' },
+  { code: 'te', name: 'Telugu', flag: '🇮🇳' },
+  { code: 'th', name: 'Thai', flag: '🇹🇭' },
+  { code: 'tr', name: 'Turkish', flag: '🇹🇷' },
+  { code: 'uk', name: 'Ukrainian', flag: '🇺🇦' },
+  { code: 'ur', name: 'Urdu', flag: '🇵🇰' },
+  { code: 'uz', name: 'Uzbek', flag: '🇺🇿' },
+  { code: 'vi', name: 'Vietnamese', flag: '🇻🇳' },
+  { code: 'cy', name: 'Welsh', flag: '🏴󠁧󠁢󠁷󠁬󠁳󠁿' },
+  { code: 'xh', name: 'Xhosa', flag: '🇿🇦' },
+  { code: 'yi', name: 'Yiddish', flag: '🇮🇱' },
+  { code: 'yo', name: 'Yoruba', flag: '🇳🇬' },
+  { code: 'zu', name: 'Zulu', flag: '🇿🇦' },
 ];
 
 const DISCOVERY_SOURCES = [
@@ -86,6 +147,7 @@ export default function OnboardingFlowScreen() {
   const { user, clearNewUserFlag, refreshProfile, signUp } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
   const [showLanguageModal, setShowLanguageModal] = useState(false);
+  const [languageModalType, setLanguageModalType] = useState<'native' | 'target'>('target');
   const [languageSearch, setLanguageSearch] = useState('');
   const [filteredLanguages, setFilteredLanguages] = useState(SUPPORTED_LANGUAGES);
   
@@ -134,76 +196,122 @@ export default function OnboardingFlowScreen() {
 
   const handleComplete = async () => {
     try {
-      // First, create the user account with email and password
-      const { error: signUpError } = await signUp(formData.email, formData.password);
+      console.log('🚀 Starting onboarding completion...');
       
-      if (signUpError) {
-        Alert.alert('Error', signUpError.message || 'Failed to create account. Please try again.');
+      // Step 1: Send OTP to user's email
+      console.log('📝 Sending OTP to email:', formData.email);
+      const { data: otpData, error: otpError } = await supabase.auth.signInWithOtp({
+        email: formData.email,
+        options: { shouldCreateUser: true }   // important for first-time users
+      });
+      console.log('sendEmailCode ->', { data: otpData, error: otpError });
+      
+      if (otpError) {
+        Alert.alert('Error', otpError.message || 'Failed to send OTP. Please try again.');
         return;
       }
 
-      // Wait a moment for the auth state to update
-      setTimeout(async () => {
-        try {
-          // Create user profile with onboarding data
-          const profileData = {
-            id: user?.id || '', // This will be set by the auth context
-            email: formData.email,
-            name: formData.firstName,
-            native_language: formData.nativeLanguage,
-            target_language: formData.targetLanguage,
-            proficiency_level: formData.proficiency,
-            daily_commitment_minutes: parseInt(formData.timeCommitment.split(' ')[0]) || null,
-            wants_notifications: formData.wantsNotifications,
-            discovery_source: formData.discoverySource,
-            selected_plan_id: formData.selectedPlan,
-            has_active_subscription: false, // Will be updated after payment
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          };
-
-          console.log('💾 Saving user profile:', profileData);
-          
-          // Save profile to Supabase
-          await UserProfileService.createUserProfile(profileData);
-          
-          // Clear the new user flag
-          clearNewUserFlag();
-          
-          // Refresh the profile in auth context
-          await refreshProfile();
-          
-          Alert.alert(
-            'Welcome to UniLingo!',
-            `Hi ${formData.firstName}! Your account has been created successfully.`,
-            [
-              {
-                text: 'Get Started',
-                onPress: () => {
-                  // Navigation will be handled automatically by AppNavigator
-                  // since the new user flag is cleared and profile exists
-                }
+      console.log('✅ OTP sent successfully to:', formData.email);
+      
+      // Show OTP input modal
+      Alert.prompt(
+        'Enter Verification Code',
+        `We've sent a 6-digit code to ${formData.email}. Please enter it below:`,
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel'
+          },
+          {
+            text: 'Verify',
+            onPress: async (otpCode) => {
+              if (!otpCode || otpCode.length !== 6) {
+                Alert.alert('Error', 'Please enter a valid 6-digit code.');
+                return;
               }
-            ]
-          );
-        } catch (error) {
-          console.error('❌ Error saving profile:', error);
-          Alert.alert(
-            'Error',
-            'Account created but failed to save profile. Please try again.',
-            [{ text: 'OK' }]
-          );
-        }
-      }, 1000);
+              
+              // Verify the OTP code
+              await verifyOTPAndCompleteOnboarding(otpCode, formData);
+            }
+          }
+        ],
+        'plain-text',
+        '',
+        'numeric'
+      );
       
     } catch (error) {
-      console.error('❌ Error completing onboarding:', error);
-      Alert.alert(
-        'Error',
-        'Failed to create your account. Please try again.',
-        [{ text: 'OK' }]
-      );
+      console.error('❌ Error sending OTP:', error);
+      Alert.alert('Error', 'Failed to send verification code. Please try again.');
     }
+  };
+
+  const verifyOTPAndCompleteOnboarding = async (otpCode: string, formData: any) => {
+    try {
+      console.log('🔐 Verifying OTP code...');
+      
+      // Step 1: Verify the OTP code and get session
+      const session = await verifyEmailCode(formData.email, otpCode);
+      
+      // Step 2: Now save the user profile (session exists)
+      await upsertProfile({
+        name: formData.firstName,
+        native_language: formData.nativeLanguage,
+        target_language: formData.targetLanguage,
+        subjects: [formData.targetLanguage], // Store target language as subject
+        level: formData.proficiency.toLowerCase() as 'beginner' | 'intermediate' | 'expert',
+        created_at: new Date().toISOString(),
+        last_active: new Date().toISOString(),
+      });
+      
+      // Clear the new user flag
+      clearNewUserFlag();
+      
+      // Refresh the profile in auth context
+      await refreshProfile();
+      
+      Alert.alert(
+        'Welcome to UniLingo! 🎉',
+        `Hi ${formData.firstName}! Your account has been created successfully.`,
+        [
+          {
+            text: 'Get Started',
+            onPress: () => {
+              // Navigation will be handled automatically by AppNavigator
+              // since the new user flag is cleared and profile exists
+            }
+          }
+        ]
+      );
+      
+    } catch (error) {
+      console.error('❌ Error verifying OTP:', error);
+      Alert.alert('Error', 'Verification failed. Please try again.');
+    }
+  };
+
+  const verifyEmailCode = async (email: string, code: string) => {
+    const { data, error } = await supabase.auth.verifyOtp({
+      type: 'email',
+      email,
+      token: code.trim(),
+    });
+    console.log('verifyEmailCode ->', { session: !!data?.session, error });
+    if (error) throw error;
+    return data.session;
+  };
+
+  const upsertProfile = async (payload: Record<string, any>) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) throw new Error('No session yet');   // prevents early write
+
+    const { error } = await supabase.from('users').upsert({
+      id: session.user.id,
+      email: session.user.email,
+      ...payload,
+    });
+    console.log('upsertProfile ->', { error });
+    if (error) throw error;
   };
 
   const canProceed = () => {
@@ -242,7 +350,9 @@ export default function OnboardingFlowScreen() {
     >
       <SafeAreaView style={styles.modalContainer}>
         <View style={styles.modalHeader}>
-          <Text style={styles.modalTitle}>Select Language</Text>
+          <Text style={styles.modalTitle}>
+            Select {languageModalType === 'native' ? 'Native' : 'Target'} Language
+          </Text>
           <TouchableOpacity onPress={() => setShowLanguageModal(false)}>
             <Ionicons name="close" size={24} color="#000" />
           </TouchableOpacity>
@@ -261,10 +371,25 @@ export default function OnboardingFlowScreen() {
           keyExtractor={(item) => item.code}
           renderItem={({ item }) => (
             <TouchableOpacity
-              style={styles.languageItem}
-              onPress={() => selectLanguage(item, 'target')}
+              style={[
+                styles.languageItem,
+                ((languageModalType === 'native' && formData.nativeLanguage === item.name) ||
+                 (languageModalType === 'target' && formData.targetLanguage === item.name)) && styles.languageItemSelected
+              ]}
+              onPress={() => selectLanguage(item, languageModalType)}
             >
-              <Text style={styles.languageName}>{item.name}</Text>
+              <Text style={styles.flagEmoji}>{item.flag}</Text>
+              <Text style={[
+                styles.languageName,
+                ((languageModalType === 'native' && formData.nativeLanguage === item.name) ||
+                 (languageModalType === 'target' && formData.targetLanguage === item.name)) && styles.languageNameSelected
+              ]}>
+                {item.name}
+              </Text>
+              {((languageModalType === 'native' && formData.nativeLanguage === item.name) ||
+                (languageModalType === 'target' && formData.targetLanguage === item.name)) && (
+                <Ionicons name="checkmark" size={20} color="#6366f1" />
+              )}
             </TouchableOpacity>
           )}
         />
@@ -282,64 +407,69 @@ export default function OnboardingFlowScreen() {
             <View style={styles.languageSection}>
               <Text style={styles.sectionLabel}>I speak...</Text>
               <TouchableOpacity
-                style={styles.languageCard}
+                style={[
+                  styles.languageCard,
+                  formData.nativeLanguage && styles.languageCardSelected
+                ]}
                 onPress={() => {
-                  // For native language, we'll use a simple picker
-                  Alert.alert(
-                    'Native Language',
-                    'Select your native language',
-                    SUPPORTED_LANGUAGES.slice(0, 10).map(lang => ({
-                      text: lang.name,
-                      onPress: () => setFormData(prev => ({ ...prev, nativeLanguage: lang.name }))
-                    }))
-                  );
+                  setShowLanguageModal(true);
+                  setLanguageModalType('native');
                 }}
               >
                 <View style={styles.languageCardContent}>
-                  <Text style={styles.flagEmoji}>🇬🇧</Text>
-                  <Text style={styles.languageCardText}>
-                    {formData.nativeLanguage || 'British English'}
+                  <Text style={styles.flagEmoji}>
+                    {formData.nativeLanguage 
+                      ? SUPPORTED_LANGUAGES.find(lang => lang.name === formData.nativeLanguage)?.flag || '🇬🇧'
+                      : '🇬🇧'
+                    }
                   </Text>
-                  <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+                  <Text style={[
+                    styles.languageCardText,
+                    formData.nativeLanguage && styles.languageCardTextSelected
+                  ]}>
+                    {formData.nativeLanguage || 'Select your native language'}
+                  </Text>
+                  {formData.nativeLanguage ? (
+                    <Ionicons name="checkmark" size={20} color="#6366f1" />
+                  ) : (
+                    <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+                  )}
                 </View>
               </TouchableOpacity>
             </View>
 
             <View style={styles.languageSection}>
               <Text style={styles.sectionLabel}>I want to learn</Text>
-              <ScrollView style={styles.languageList} showsVerticalScrollIndicator={false}>
-                {[
-                  { name: 'Spanish', flag: '🇪🇸' },
-                  { name: 'German', flag: '🇩🇪' },
-                  { name: 'Italian', flag: '🇮🇹' },
-                  { name: 'French', flag: '🇫🇷' },
-                  { name: 'Portuguese', flag: '🇵🇹' },
-                  { name: 'Swedish', flag: '🇸🇪' },
-                  { name: 'Turkish', flag: '🇹🇷' },
-                ].map((language) => (
-                  <TouchableOpacity
-                    key={language.name}
-                    style={[
-                      styles.languageCard,
-                      formData.targetLanguage === language.name && styles.languageCardSelected
-                    ]}
-                    onPress={() => setFormData(prev => ({ ...prev, targetLanguage: language.name }))}
-                  >
-                    <View style={styles.languageCardContent}>
-                      <Text style={styles.flagEmoji}>{language.flag}</Text>
-                      <Text style={[
-                        styles.languageCardText,
-                        formData.targetLanguage === language.name && styles.languageCardTextSelected
-                      ]}>
-                        {language.name}
-                      </Text>
-                      {formData.targetLanguage === language.name && (
-                        <Ionicons name="checkmark" size={20} color="#6366f1" />
-                      )}
-                    </View>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
+              <TouchableOpacity
+                style={[
+                  styles.languageCard,
+                  formData.targetLanguage && styles.languageCardSelected
+                ]}
+                onPress={() => {
+                  setShowLanguageModal(true);
+                  setLanguageModalType('target');
+                }}
+              >
+                <View style={styles.languageCardContent}>
+                  <Text style={styles.flagEmoji}>
+                    {formData.targetLanguage 
+                      ? SUPPORTED_LANGUAGES.find(lang => lang.name === formData.targetLanguage)?.flag || '🌍'
+                      : '🌍'
+                    }
+                  </Text>
+                  <Text style={[
+                    styles.languageCardText,
+                    formData.targetLanguage && styles.languageCardTextSelected
+                  ]}>
+                    {formData.targetLanguage || 'Select language to learn'}
+                  </Text>
+                  {formData.targetLanguage ? (
+                    <Ionicons name="checkmark" size={20} color="#6366f1" />
+                  ) : (
+                    <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+                  )}
+                </View>
+              </TouchableOpacity>
             </View>
           </View>
         );
@@ -803,8 +933,29 @@ const styles = StyleSheet.create({
     color: '#1e293b',
     marginBottom: 16,
   },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f8fafc',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  searchIcon: {
+    marginRight: 12,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#1e293b',
+    padding: 0,
+  },
   languageList: {
-    maxHeight: 300,
+    maxHeight: 400,
+    flex: 1,
   },
   languageCard: {
     backgroundColor: '#fff',
@@ -1079,20 +1230,25 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#1e293b',
   },
-  searchInput: {
-    padding: 16,
-    backgroundColor: '#f8fafc',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
-    fontSize: 16,
-  },
   languageItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#f1f5f9',
   },
+  languageItemSelected: {
+    backgroundColor: '#f0f4ff',
+    borderBottomColor: '#e0e7ff',
+  },
   languageName: {
     fontSize: 16,
     color: '#1e293b',
+    marginLeft: 12,
+    flex: 1,
+  },
+  languageNameSelected: {
+    color: '#6366f1',
+    fontWeight: '600',
   },
 });

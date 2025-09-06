@@ -1,84 +1,106 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-} from 'react-native';
-import { OnboardingLayout } from '../components/OnboardingLayout';
-import { OnboardingButton } from '../components/OnboardingButton';
-import { OnboardingOption } from '../components/OnboardingOption';
+import React from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { useThemeTokens } from '../../theme/useThemeTokens';
-import { useOnboardingStore } from '../state';
-import { LEVEL_OPTIONS, validateStep } from '../schema';
+import { Screen, RadioRow } from '../ui';
+import { useOnboardingStore, useOnboardingField } from '../state';
+import { proficiencyOptions } from '../constants';
+import { validateScreen } from '../schema';
 
 export function CurrentLevelScreen() {
   const theme = useThemeTokens();
-  const { currentLevel, updateField, nextStep, previousStep, markStepCompleted } = useOnboardingStore();
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const navigation = useNavigation();
+  const { nextStep, previousStep } = useOnboardingStore();
+  const { value: proficiency, setValue: setProficiency } = useOnboardingField('proficiency');
 
-  const handleLevelSelect = (level: string) => {
-    updateField('currentLevel', level);
-    setErrors({});
+  // Check if proficiency is selected
+  const canContinue = !!proficiency;
+
+  // Handle proficiency selection
+  const handleProficiencyChange = (level: 'none' | 'basic' | 'advanced') => {
+    setProficiency(level);
   };
 
+  // Handle continue
   const handleContinue = () => {
-    const validation = validateStep(3, {
-      currentLevel,
-    });
+    if (canContinue) {
+      // Validate the current data
+      const validation = validateScreen('current-level', {
+        proficiency,
+      });
 
-    if (!validation.success) {
-      setErrors(validation.errors || {});
-      return;
+      if (validation.valid) {
+        nextStep();
+      }
     }
-
-    markStepCompleted(3);
-    nextStep();
   };
 
-  const styles = StyleSheet.create({
-    optionsContainer: {
-      marginBottom: theme.spacing.xl,
-    },
-    errorText: {
-      fontSize: theme.fonts.sizes.sm,
-      color: theme.colors.status.error,
-      marginTop: theme.spacing.sm,
-      textAlign: 'center',
-    },
-    continueButton: {
-      marginTop: theme.spacing.xl,
-    },
-  });
-
-  const targetLanguage = useOnboardingStore.getState().targetLanguages[0] || 'Spanish';
+  // Handle back
+  const handleBack = () => {
+    previousStep();
+  };
 
   return (
-    <OnboardingLayout
-      title={`How much ${targetLanguage} do you already know?`}
-      onBack={previousStep}
+    <Screen
+      title="How much do you already know?"
+      subtitle="This helps us personalize your learning path"
+      canContinue={canContinue}
+      onBack={handleBack}
+      onContinue={handleContinue}
     >
-      <View style={styles.optionsContainer}>
-        {LEVEL_OPTIONS.map((option) => (
-          <OnboardingOption
-            key={option}
-            title={option}
-            isSelected={currentLevel === option}
-            onPress={() => handleLevelSelect(option)}
-          />
+      <View style={styles.container}>
+        {proficiencyOptions.map((option) => (
+          <View key={option.key} style={styles.optionContainer}>
+            <RadioRow
+              title={option.label}
+              selected={proficiency === option.key}
+              onPress={() => handleProficiencyChange(option.key as 'none' | 'basic' | 'advanced')}
+              style={styles.radioRow}
+              accessibilityLabel={`${option.label} proficiency level`}
+              accessibilityHint={
+                proficiency === option.key
+                  ? 'Currently selected'
+                  : 'Tap to select this proficiency level'
+              }
+            />
+          </View>
         ))}
+
+        {/* Helper Text */}
+        {!proficiency && (
+          <View style={styles.helperContainer}>
+            <Text style={[styles.helperText, { color: theme.colors.text.secondary }]}>
+              Select your current level to continue
+            </Text>
+          </View>
+        )}
       </View>
-
-      {errors.currentLevel && (
-        <Text style={styles.errorText}>{errors.currentLevel}</Text>
-      )}
-
-      <OnboardingButton
-        title="Continue"
-        onPress={handleContinue}
-        disabled={!currentLevel}
-        style={styles.continueButton}
-      />
-    </OnboardingLayout>
+    </Screen>
   );
 }
 
+const styles = StyleSheet.create({
+  container: {
+    gap: 16,
+  },
+  optionContainer: {
+    backgroundColor: 'transparent',
+  },
+  radioRow: {
+    minHeight: 64,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  helperContainer: {
+    alignItems: 'center',
+    paddingVertical: 16,
+  },
+  helperText: {
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+});

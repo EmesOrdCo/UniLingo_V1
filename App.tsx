@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, useNavigation } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -61,12 +61,27 @@ function MainNavigator() {
       <Stack.Screen name="Profile" component={ProfilePage} />
       <Stack.Screen name="CreateLesson" component={CreateLessonScreen} />
       <Stack.Screen name="AIChat" component={AIChatPage} />
-      <Stack.Screen name="Paywall" component={PaywallScreen} />
+      <Stack.Screen name="Paywall" component={PaywallScreenWrapper} />
       <Stack.Screen name="ConversationPractice" component={ConversationPracticeScreen} />
       <Stack.Screen name="AssistantConfig" component={AssistantConfigScreen} />
       <Stack.Screen name="LessonWalkthrough" component={LessonWalkthroughScreen} />
       <Stack.Screen name="OnboardingFlow" component={OnboardingFlowScreen} />
     </Stack.Navigator>
+  );
+}
+
+
+// Paywall screen component for navigation
+function PaywallScreenWrapper() {
+  const navigation = useNavigation();
+  
+  return (
+    <PaywallScreen
+      onComplete={() => {
+        // Navigate back to previous screen
+        navigation.goBack();
+      }}
+    />
   );
 }
 
@@ -82,6 +97,7 @@ function AuthStack() {
       <Stack.Screen name="Home" component={HomeScreen} />
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Register" component={RegisterScreen} />
+      <Stack.Screen name="OnboardingFlow" component={OnboardingFlowScreen} />
     </Stack.Navigator>
   );
 }
@@ -105,7 +121,7 @@ export default function App() {
 
 // App navigator that handles auth state and profile completion
 function AppNavigator() {
-  const { user, loading, profile, profileLoading, isNewUser } = useAuth();
+  const { user, loading, profile, profileLoading, isNewUser, clearNewUserFlag, refreshProfile } = useAuth();
   const { hasShownPaywall, setHasShownPaywall } = useSubscription();
 
   console.log('🧭 AppNavigator - Loading:', loading, 'User:', user ? user.email : 'No user', 'Profile:', profile ? 'Complete' : 'Incomplete', 'IsNewUser:', isNewUser, 'HasShownPaywall:', hasShownPaywall);
@@ -123,11 +139,21 @@ function AppNavigator() {
     if (isNewUser && !hasShownPaywall) {
       console.log('💰 New user, showing paywall...');
       return (
-        <PaywallScreen
-          onComplete={() => {
-            setHasShownPaywall(true);
+        <Stack.Navigator
+          screenOptions={{
+            headerShown: false,
           }}
-        />
+        >
+          <Stack.Screen name="Paywall">
+            {() => (
+              <PaywallScreen
+                onComplete={() => {
+                  setHasShownPaywall(true);
+                }}
+              />
+            )}
+          </Stack.Screen>
+        </Stack.Navigator>
       );
     }
     

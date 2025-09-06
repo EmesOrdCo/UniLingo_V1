@@ -53,9 +53,9 @@ export default function LandingScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Background Image Placeholder */}
+      {/* Background Image */}
       <ImageBackground
-        source={{ uri: 'https://via.placeholder.com/400x800/f5f5f5/cccccc?text=Put+Image+Here+Later' }}
+        source={require('../../assets/study-session-bg.png')}
         style={styles.backgroundImage}
         resizeMode="cover"
       >
@@ -79,7 +79,7 @@ export default function LandingScreen() {
           
           <TouchableOpacity 
             style={styles.ctaButton}
-            onPress={() => navigation.navigate('Register' as never)}
+            onPress={() => navigation.navigate('OnboardingFlow' as never)}
           >
             <Text style={styles.ctaButtonText}>Start Learning Today</Text>
             <Ionicons name="arrow-forward" size={20} color="#fff" />
@@ -93,13 +93,6 @@ export default function LandingScreen() {
               Already have an account? <Text style={styles.loginLinkBold}>Log in</Text>
             </Text>
           </TouchableOpacity>
-        </View>
-
-        {/* Progress Dots */}
-        <View style={styles.progressDots}>
-          <View style={[styles.dot, styles.dotActive]} />
-          <View style={styles.dot} />
-          <View style={styles.dot} />
         </View>
       </ImageBackground>
     </View>
@@ -169,7 +162,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#f97316',
+    backgroundColor: '#6366f1',
     paddingHorizontal: 32,
     paddingVertical: 16,
     borderRadius: 12,
@@ -190,23 +183,5 @@ const styles = StyleSheet.create({
   loginLinkBold: {
     fontWeight: '600',
     textDecorationLine: 'underline',
-  },
-  progressDots: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#fff',
-    opacity: 0.5,
-  },
-  dotActive: {
-    backgroundColor: '#f97316',
-    opacity: 1,
   },
 });

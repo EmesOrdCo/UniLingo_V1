@@ -20,4 +20,3 @@ export const getBackendUrl = (endpoint: string = '') => {
 export const getPdfProcessingUrl = () => {
   return getBackendUrl(BACKEND_CONFIG.ENDPOINTS.PROCESS_PDF);
 };
-

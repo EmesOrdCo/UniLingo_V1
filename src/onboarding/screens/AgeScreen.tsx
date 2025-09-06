@@ -1,82 +1,106 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-} from 'react-native';
-import { OnboardingLayout } from '../components/OnboardingLayout';
-import { OnboardingButton } from '../components/OnboardingButton';
-import { OnboardingOption } from '../components/OnboardingOption';
+import React from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { useThemeTokens } from '../../theme/useThemeTokens';
-import { useOnboardingStore } from '../state';
-import { AGE_OPTIONS, validateStep } from '../schema';
+import { Screen, RadioRow } from '../ui';
+import { useOnboardingStore, useOnboardingField } from '../state';
+import { ageRanges } from '../constants';
+import { validateScreen } from '../schema';
 
 export function AgeScreen() {
   const theme = useThemeTokens();
-  const { age, updateField, nextStep, previousStep, markStepCompleted } = useOnboardingStore();
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const navigation = useNavigation();
+  const { nextStep, previousStep } = useOnboardingStore();
+  const { value: ageRange, setValue: setAgeRange } = useOnboardingField('ageRange');
 
-  const handleAgeSelect = (selectedAge: string) => {
-    updateField('age', selectedAge);
-    setErrors({});
+  // Check if age range is selected
+  const canContinue = !!ageRange;
+
+  // Handle age range selection
+  const handleAgeRangeChange = (range: string) => {
+    setAgeRange(range as any);
   };
 
+  // Handle continue
   const handleContinue = () => {
-    const validation = validateStep(2, {
-      age,
-    });
+    if (canContinue) {
+      // Validate the current data
+      const validation = validateScreen('age', {
+        ageRange,
+      });
 
-    if (!validation.success) {
-      setErrors(validation.errors || {});
-      return;
+      if (validation.valid) {
+        nextStep();
+      }
     }
-
-    markStepCompleted(2);
-    nextStep();
   };
 
-  const styles = StyleSheet.create({
-    optionsContainer: {
-      marginBottom: theme.spacing.xl,
-    },
-    errorText: {
-      fontSize: theme.fonts.sizes.sm,
-      color: theme.colors.status.error,
-      marginTop: theme.spacing.sm,
-      textAlign: 'center',
-    },
-    continueButton: {
-      marginTop: theme.spacing.xl,
-    },
-  });
+  // Handle back
+  const handleBack = () => {
+    previousStep();
+  };
 
   return (
-    <OnboardingLayout
+    <Screen
       title="How old are you?"
-      onBack={previousStep}
+      subtitle="This helps us personalize your learning experience"
+      canContinue={canContinue}
+      onBack={handleBack}
+      onContinue={handleContinue}
     >
-      <View style={styles.optionsContainer}>
-        {AGE_OPTIONS.map((option) => (
-          <OnboardingOption
-            key={option}
-            title={option}
-            isSelected={age === option}
-            onPress={() => handleAgeSelect(option)}
-          />
+      <View style={styles.container}>
+        {ageRanges.map((range) => (
+          <View key={range.key} style={styles.optionContainer}>
+            <RadioRow
+              title={range.label}
+              selected={ageRange === range.key}
+              onPress={() => handleAgeRangeChange(range.key)}
+              style={styles.radioRow}
+              accessibilityLabel={`Age range: ${range.label}`}
+              accessibilityHint={
+                ageRange === range.key
+                  ? 'Currently selected'
+                  : 'Tap to select this age range'
+              }
+            />
+          </View>
         ))}
+
+        {/* Helper Text */}
+        {!ageRange && (
+          <View style={styles.helperContainer}>
+            <Text style={[styles.helperText, { color: theme.colors.text.secondary }]}>
+              Select your age range to continue
+            </Text>
+          </View>
+        )}
       </View>
-
-      {errors.age && (
-        <Text style={styles.errorText}>{errors.age}</Text>
-      )}
-
-      <OnboardingButton
-        title="Continue"
-        onPress={handleContinue}
-        disabled={!age}
-        style={styles.continueButton}
-      />
-    </OnboardingLayout>
+    </Screen>
   );
 }
 
+const styles = StyleSheet.create({
+  container: {
+    gap: 12,
+  },
+  optionContainer: {
+    backgroundColor: 'transparent',
+  },
+  radioRow: {
+    minHeight: 56,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  helperContainer: {
+    alignItems: 'center',
+    paddingVertical: 16,
+  },
+  helperText: {
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+});

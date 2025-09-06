@@ -1,107 +1,126 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-} from 'react-native';
-import { OnboardingLayout } from '../components/OnboardingLayout';
-import { OnboardingButton } from '../components/OnboardingButton';
-import { OnboardingOption } from '../components/OnboardingOption';
+import React from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { useThemeTokens } from '../../theme/useThemeTokens';
-import { useOnboardingStore } from '../state';
-import { LEARNING_GOALS_OPTIONS, validateStep } from '../schema';
+import { Screen, OptionGrid } from '../ui';
+import { useOnboardingStore, useOnboardingGoals } from '../state';
+import { goals } from '../constants';
+import { validateScreen } from '../schema';
 
 export function LearningGoalsScreen() {
   const theme = useThemeTokens();
-  const { learningGoals, updateField, nextStep, previousStep, markStepCompleted } = useOnboardingStore();
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const navigation = useNavigation();
+  const { nextStep, previousStep } = useOnboardingStore();
+  const { goals: selectedGoals, toggleGoal, canAddMore } = useOnboardingGoals();
 
-  const handleGoalToggle = (goal: string) => {
-    const currentGoals = learningGoals;
-    const isSelected = currentGoals.includes(goal);
+  // Check if at least one goal is selected
+  const canContinue = selectedGoals.length >= 1;
+
+  // Handle goal selection
+  const handleGoalChange = (selectedIds: string[]) => {
+    // Find the goal that was just toggled
+    const currentGoals = selectedGoals;
+    const newGoal = selectedIds.find(id => !currentGoals.includes(id));
+    const removedGoal = currentGoals.find(id => !selectedIds.includes(id));
     
-    let newGoals: string[];
-    if (isSelected) {
-      newGoals = currentGoals.filter(g => g !== goal);
-    } else {
-      if (currentGoals.length >= 3) {
-        return; // Max 3 goals
-      }
-      newGoals = [...currentGoals, goal];
+    if (newGoal) {
+      toggleGoal(newGoal);
+    } else if (removedGoal) {
+      toggleGoal(removedGoal);
     }
-    
-    updateField('learningGoals', newGoals);
-    setErrors({});
   };
 
+  // Handle continue
   const handleContinue = () => {
-    const validation = validateStep(4, {
-      learningGoals,
-    });
+    if (canContinue) {
+      // Validate the current data
+      const validation = validateScreen('learning-goals', {
+        goals: selectedGoals,
+      });
 
-    if (!validation.success) {
-      setErrors(validation.errors || {});
-      return;
+      if (validation.valid) {
+        nextStep();
+      }
     }
-
-    markStepCompleted(4);
-    nextStep();
   };
 
-  const styles = StyleSheet.create({
-    instructions: {
-      fontSize: theme.fonts.sizes.md,
-      color: theme.colors.text.secondary,
-      textAlign: 'center',
-      marginBottom: theme.spacing.xl,
-      paddingHorizontal: theme.spacing.md,
-    },
-    optionsContainer: {
-      marginBottom: theme.spacing.xl,
-    },
-    errorText: {
-      fontSize: theme.fonts.sizes.sm,
-      color: theme.colors.status.error,
-      marginTop: theme.spacing.sm,
-      textAlign: 'center',
-    },
-    continueButton: {
-      marginTop: theme.spacing.xl,
-    },
-  });
+  // Handle back
+  const handleBack = () => {
+    previousStep();
+  };
+
+  // Convert goals to grid format
+  const goalOptions = goals.map(goal => ({
+    id: goal.key,
+    title: goal.label,
+    disabled: !canAddMore && !selectedGoals.includes(goal.key),
+  }));
 
   return (
-    <OnboardingLayout
-      title="What would you like to be able to do in Spanish?"
-      onBack={previousStep}
+    <Screen
+      title="What do you want to achieve?"
+      subtitle="Select up to 3 goals that matter most to you"
+      canContinue={canContinue}
+      onBack={handleBack}
+      onContinue={handleContinue}
     >
-      <Text style={styles.instructions}>Select a maximum of 3 goals.</Text>
-      
-      <ScrollView showsVerticalScrollIndicator={false}>
-        <View style={styles.optionsContainer}>
-          {LEARNING_GOALS_OPTIONS.map((goal) => (
-            <OnboardingOption
-              key={goal}
-              title={goal}
-              isSelected={learningGoals.includes(goal)}
-              onPress={() => handleGoalToggle(goal)}
-            />
-          ))}
+      <View style={styles.container}>
+        {/* Counter */}
+        <View style={styles.counterContainer}>
+          <Text style={[styles.counter, { color: theme.colors.text.secondary }]}>
+            {selectedGoals.length}/3 selected
+          </Text>
         </View>
 
-        {errors.learningGoals && (
-          <Text style={styles.errorText}>{errors.learningGoals}</Text>
+        {/* Goals Grid */}
+        <OptionGrid
+          options={goalOptions}
+          selectedIds={selectedGoals}
+          multiSelect={true}
+          onSelectionChange={handleGoalChange}
+          accessibilityLabel="Select your learning goals"
+        />
+
+        {/* Helper Text */}
+        {selectedGoals.length === 0 && (
+          <View style={styles.helperContainer}>
+            <Text style={[styles.helperText, { color: theme.colors.text.secondary }]}>
+              Choose at least one goal to continue
+            </Text>
+          </View>
         )}
 
-        <OnboardingButton
-          title="Continue"
-          onPress={handleContinue}
-          disabled={learningGoals.length === 0}
-          style={styles.continueButton}
-        />
-      </ScrollView>
-    </OnboardingLayout>
+        {selectedGoals.length === 3 && (
+          <View style={styles.helperContainer}>
+            <Text style={[styles.helperText, { color: theme.colors.primary }]}>
+              Great! You've selected 3 goals. You can deselect any to choose different ones.
+            </Text>
+          </View>
+        )}
+      </View>
+    </Screen>
   );
 }
 
+const styles = StyleSheet.create({
+  container: {
+    gap: 24,
+  },
+  counterContainer: {
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  counter: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  helperContainer: {
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  helperText: {
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+});

@@ -1,202 +1,128 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { OnboardingLayout } from '../components/OnboardingLayout';
-import { OnboardingButton } from '../components/OnboardingButton';
-import { OnboardingOption } from '../components/OnboardingOption';
+import React, { useEffect } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { useThemeTokens } from '../../theme/useThemeTokens';
-import { useOnboardingStore } from '../state';
-import { LANGUAGE_OPTIONS, validateStep } from '../schema';
+import { Screen, OptionGrid } from '../ui';
+import { useOnboardingStore, useOnboardingField } from '../state';
+import { languageOptions, targetLanguageOptions } from '../constants';
+import { validateScreen } from '../schema';
 
 export function LanguageSelectionScreen() {
   const theme = useThemeTokens();
-  const { nativeLanguage, targetLanguages, updateField, nextStep, markStepCompleted } = useOnboardingStore();
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const navigation = useNavigation();
+  const { nextStep, previousStep } = useOnboardingStore();
+  
+  // Get current values from store
+  const { value: nativeLanguage, setValue: setNativeLanguage } = useOnboardingField('nativeLanguage');
+  const { value: targetLanguage, setValue: setTargetLanguage } = useOnboardingField('targetLanguage');
 
-  const handleNativeLanguageSelect = (language: string) => {
-    updateField('nativeLanguage', language);
-    setErrors({});
-  };
-
-  const handleTargetLanguageToggle = (language: string) => {
-    const currentTargets = targetLanguages;
-    const isSelected = currentTargets.includes(language);
-    
-    let newTargets: string[];
-    if (isSelected) {
-      newTargets = currentTargets.filter(lang => lang !== language);
-    } else {
-      if (currentTargets.length >= 3) {
-        return; // Max 3 languages
-      }
-      newTargets = [...currentTargets, language];
+  // Set default native language if not set
+  useEffect(() => {
+    if (!nativeLanguage) {
+      setNativeLanguage('en-GB');
     }
-    
-    updateField('targetLanguages', newTargets);
-    setErrors({});
+  }, [nativeLanguage, setNativeLanguage]);
+
+  // Check if both languages are selected
+  const canContinue = !!(nativeLanguage && targetLanguage);
+
+  // Handle native language selection
+  const handleNativeLanguageChange = (selectedIds: string[]) => {
+    if (selectedIds.length > 0) {
+      setNativeLanguage(selectedIds[0]);
+    }
   };
 
+  // Handle target language selection
+  const handleTargetLanguageChange = (selectedIds: string[]) => {
+    if (selectedIds.length > 0) {
+      setTargetLanguage(selectedIds[0]);
+    }
+  };
+
+  // Handle continue
   const handleContinue = () => {
-    const validation = validateStep(0, {
-      nativeLanguage,
-      targetLanguages,
-    });
+    if (canContinue) {
+      // Validate the current data
+      const validation = validateScreen('language-selection', {
+        nativeLanguage,
+        targetLanguage,
+      });
 
-    if (!validation.success) {
-      setErrors(validation.errors || {});
-      return;
+      if (validation.valid) {
+        nextStep();
+      }
     }
-
-    markStepCompleted(0);
-    nextStep();
   };
 
-  const styles = StyleSheet.create({
-    section: {
-      marginBottom: theme.spacing.xl,
-    },
-    sectionTitle: {
-      fontSize: theme.fonts.sizes.lg,
-      fontWeight: theme.fonts.weights.semibold,
-      color: theme.colors.text.primary,
-      marginBottom: theme.spacing.md,
-    },
-    languageGrid: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      justifyContent: 'space-between',
-    },
-    languageOption: {
-      width: '48%',
-      backgroundColor: theme.colors.background.primary,
-      borderRadius: theme.radius.md,
-      borderWidth: 2,
-      borderColor: theme.colors.border.primary,
-      padding: theme.spacing.md,
-      marginBottom: theme.spacing.sm,
-      alignItems: 'center',
-      flexDirection: 'row',
-    },
-    selectedLanguageOption: {
-      borderColor: theme.colors.primary,
-      backgroundColor: `${theme.colors.primary}10`,
-    },
-    languageFlag: {
-      width: 24,
-      height: 24,
-      borderRadius: 12,
-      marginRight: theme.spacing.sm,
-      backgroundColor: theme.colors.background.secondary,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    languageText: {
-      fontSize: theme.fonts.sizes.sm,
-      fontWeight: theme.fonts.weights.medium,
-      color: theme.colors.text.primary,
-      flex: 1,
-    },
-    errorText: {
-      fontSize: theme.fonts.sizes.sm,
-      color: theme.colors.status.error,
-      marginTop: theme.spacing.sm,
-      textAlign: 'center',
-    },
-    continueButton: {
-      marginTop: theme.spacing.xl,
-    },
-  });
+  // Handle back
+  const handleBack = () => {
+    previousStep();
+  };
+
+  // Convert language options to grid format
+  const nativeLanguageOptions = languageOptions.map(lang => ({
+    id: lang.code,
+    title: lang.label,
+    leftEmoji: lang.flagEmoji,
+  }));
+
+  const targetLanguageGridOptions = targetLanguageOptions.map((lang: any) => ({
+    id: lang.code,
+    title: lang.label,
+    leftEmoji: lang.flagEmoji,
+  }));
 
   return (
-    <OnboardingLayout
-      title="My languages"
+    <Screen
+      title="What languages do you speak?"
+      subtitle="This helps us personalize your learning experience"
+      canContinue={canContinue}
+      onBack={handleBack}
+      onContinue={handleContinue}
       showBackButton={false}
     >
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <View style={styles.container}>
+        {/* Native Language Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>I speak...</Text>
-          <View style={styles.languageGrid}>
-            {LANGUAGE_OPTIONS.map((language) => (
-              <TouchableOpacity
-                key={language}
-                style={[
-                  styles.languageOption,
-                  nativeLanguage === language && styles.selectedLanguageOption,
-                ]}
-                onPress={() => handleNativeLanguageSelect(language)}
-              >
-                <View style={styles.languageFlag}>
-                  <Ionicons
-                    name="flag"
-                    size={16}
-                    color={nativeLanguage === language ? theme.colors.primary : theme.colors.text.secondary}
-                  />
-                </View>
-                <Text style={styles.languageText}>{language}</Text>
-                {nativeLanguage === language && (
-                  <Ionicons
-                    name="checkmark"
-                    size={16}
-                    color={theme.colors.primary}
-                  />
-                )}
-              </TouchableOpacity>
-            ))}
-          </View>
-          {errors.nativeLanguage && (
-            <Text style={styles.errorText}>{errors.nativeLanguage}</Text>
-          )}
+          <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>
+            I speak...
+          </Text>
+          <OptionGrid
+            options={nativeLanguageOptions}
+            selectedIds={nativeLanguage ? [nativeLanguage] : []}
+            onSelectionChange={handleNativeLanguageChange}
+            accessibilityLabel="Select your native language"
+          />
         </View>
 
+        {/* Target Language Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>I want to learn</Text>
-          <View style={styles.languageGrid}>
-            {LANGUAGE_OPTIONS.filter(lang => lang !== nativeLanguage).map((language) => (
-              <TouchableOpacity
-                key={language}
-                style={[
-                  styles.languageOption,
-                  targetLanguages.includes(language) && styles.selectedLanguageOption,
-                ]}
-                onPress={() => handleTargetLanguageToggle(language)}
-              >
-                <View style={styles.languageFlag}>
-                  <Ionicons
-                    name="flag"
-                    size={16}
-                    color={targetLanguages.includes(language) ? theme.colors.primary : theme.colors.text.secondary}
-                  />
-                </View>
-                <Text style={styles.languageText}>{language}</Text>
-                {targetLanguages.includes(language) && (
-                  <Ionicons
-                    name="checkmark"
-                    size={16}
-                    color={theme.colors.primary}
-                  />
-                )}
-              </TouchableOpacity>
-            ))}
-          </View>
-          {errors.targetLanguages && (
-            <Text style={styles.errorText}>{errors.targetLanguages}</Text>
-          )}
+          <Text style={[styles.sectionTitle, { color: theme.colors.text.primary }]}>
+            I want to learn...
+          </Text>
+          <OptionGrid
+            options={targetLanguageGridOptions}
+            selectedIds={targetLanguage ? [targetLanguage] : []}
+            onSelectionChange={handleTargetLanguageChange}
+            accessibilityLabel="Select the language you want to learn"
+          />
         </View>
-
-        <OnboardingButton
-          title="Continue"
-          onPress={handleContinue}
-          disabled={!nativeLanguage || targetLanguages.length === 0}
-          style={styles.continueButton}
-        />
-      </ScrollView>
-    </OnboardingLayout>
+      </View>
+    </Screen>
   );
 }
 
+const styles = StyleSheet.create({
+  container: {
+    gap: 32,
+  },
+  section: {
+    gap: 16,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    lineHeight: 24,
+  },
+});
