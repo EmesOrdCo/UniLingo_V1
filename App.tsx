@@ -31,6 +31,8 @@ import PaywallScreen from './src/screens/PaywallScreen';
 import ConversationPracticeScreen from './src/screens/ConversationPracticeScreen';
 import AssistantConfigScreen from './src/screens/AssistantConfigScreen';
 import LessonWalkthroughScreen from './src/screens/LessonWalkthroughScreen';
+import OnboardingFlowScreen from './src/screens/OnboardingFlowScreen';
+import LandingScreen from './src/screens/LandingScreen';
 
 const Stack = createStackNavigator();
 
@@ -63,6 +65,7 @@ function MainNavigator() {
       <Stack.Screen name="ConversationPractice" component={ConversationPracticeScreen} />
       <Stack.Screen name="AssistantConfig" component={AssistantConfigScreen} />
       <Stack.Screen name="LessonWalkthrough" component={LessonWalkthroughScreen} />
+      <Stack.Screen name="OnboardingFlow" component={OnboardingFlowScreen} />
     </Stack.Navigator>
   );
 }
@@ -75,6 +78,7 @@ function AuthStack() {
         headerShown: false,
       }}
     >
+      <Stack.Screen name="Landing" component={LandingScreen} />
       <Stack.Screen name="Home" component={HomeScreen} />
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Register" component={RegisterScreen} />
@@ -127,16 +131,16 @@ function AppNavigator() {
       );
     }
     
-    // Only show ProfileSetup for new users who just signed up
+    // Show onboarding flow for new users who just signed up
     if (isNewUser && !profile) {
-      console.log('📋 New user authenticated but profile incomplete, showing ProfileSetup');
+      console.log('📋 New user authenticated, showing onboarding flow');
       return (
         <Stack.Navigator
           screenOptions={{
             headerShown: false,
           }}
         >
-          <Stack.Screen name="ProfileSetup" component={ProfileSetupScreen} />
+          <Stack.Screen name="OnboardingFlow" component={OnboardingFlowScreen} />
         </Stack.Navigator>
       );
     }

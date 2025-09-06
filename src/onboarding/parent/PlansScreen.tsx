@@ -1,0 +1,304 @@
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, Alert, Linking } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { useThemeTokens } from '../../theme/useThemeTokens';
+import { Screen, CardOption, OnboardingButton } from '../ui';
+import { useOnboardingStore, useOnboardingField } from '../state';
+import { createBillingClient, Plan } from '../../billing/BillingClient';
+
+export function PlansScreen() {
+  const theme = useThemeTokens();
+  const navigation = useNavigation();
+  const { nextStep, previousStep, completeOnboarding } = useOnboardingStore();
+  const { value: selectedPlanId, setValue: setSelectedPlanId } = useOnboardingField('selectedPlanId');
+  
+  const [plans, setPlans] = useState<Plan[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [restoring, setRestoring] = useState(false);
+
+  // Set default plan
+  useEffect(() => {
+    if (!selectedPlanId) {
+      setSelectedPlanId('annual');
+    }
+  }, [selectedPlanId, setSelectedPlanId]);
+
+  // Load plans
+  useEffect(() => {
+    const loadPlans = async () => {
+      try {
+        const billingClient = createBillingClient();
+        const availablePlans = await billingClient.getAvailablePlans();
+        setPlans(availablePlans);
+      } catch (error) {
+        console.error('Failed to load plans:', error);
+      }
+    };
+    loadPlans();
+  }, []);
+
+  // Handle plan selection
+  const handlePlanSelect = (planId: Plan['id']) => {
+    setSelectedPlanId(planId);
+  };
+
+  // Handle subscribe
+  const handleSubscribe = async () => {
+    if (!selectedPlanId) return;
+
+    const selectedPlan = plans.find(p => p.id === selectedPlanId);
+    if (!selectedPlan) return;
+
+    setLoading(true);
+
+    try {
+      const billingClient = createBillingClient();
+      const result = await billingClient.purchase(selectedPlanId);
+
+      if (result.ok && result.entitlementActive) {
+        // Purchase successful
+        if (selectedPlan.trial) {
+          // Has trial - go to trial offer screen
+          nextStep();
+        } else {
+          // No trial - complete onboarding
+          completeOnboarding();
+        }
+      } else {
+        // Purchase failed
+        Alert.alert(
+          'Purchase Failed',
+          result.message || 'Unable to complete purchase. Please try again.',
+          [{ text: 'OK' }]
+        );
+      }
+    } catch (error) {
+      console.error('Purchase error:', error);
+      Alert.alert(
+        'Error',
+        'Something went wrong. Please try again.',
+        [{ text: 'OK' }]
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle restore purchases
+  const handleRestorePurchases = async () => {
+    setRestoring(true);
+
+    try {
+      const billingClient = createBillingClient();
+      const result = await billingClient.restorePurchases();
+
+      if (result.entitlementActive) {
+        Alert.alert(
+          'Purchases Restored',
+          'Your previous purchases have been restored successfully!',
+          [{ text: 'Great!', onPress: () => completeOnboarding() }]
+        );
+      } else {
+        Alert.alert(
+          'No Purchases Found',
+          'We couldn\'t find any previous purchases to restore.',
+          [{ text: 'OK' }]
+        );
+      }
+    } catch (error) {
+      console.error('Restore error:', error);
+      Alert.alert(
+        'Error',
+        'Failed to restore purchases. Please try again.',
+        [{ text: 'OK' }]
+      );
+    } finally {
+      setRestoring(false);
+    }
+  };
+
+  // Handle show all plans (placeholder)
+  const handleShowAllPlans = () => {
+    // For now, just show an alert
+    Alert.alert(
+      'All Plans',
+      'Annual and Lifetime plans are currently available.',
+      [{ text: 'OK' }]
+    );
+  };
+
+  const selectedPlan = plans.find(p => p.id === selectedPlanId);
+
+  return (
+    <Screen
+      title="Please select a subscription"
+      subtitle="Choose the plan that works best for you"
+      canContinue={!!selectedPlanId}
+      onBack={previousStep}
+      onContinue={handleSubscribe}
+      continueText={loading ? 'Processing...' : 'Subscribe now'}
+    >
+      <View style={styles.container}>
+        {/* Checklist */}
+        <View style={styles.checklistContainer}>
+          <View style={styles.checklistItem}>
+            <Text style={styles.checkmark}>✓</Text>
+            <Text style={[styles.checklistText, { color: theme.colors.textDark }]}>
+              Access to all lessons and games
+            </Text>
+          </View>
+          <View style={styles.checklistItem}>
+            <Text style={styles.checkmark}>✓</Text>
+            <Text style={[styles.checklistText, { color: theme.colors.textDark }]}>
+              Personalized learning path
+            </Text>
+          </View>
+          <View style={styles.checklistItem}>
+            <Text style={styles.checkmark}>✓</Text>
+            <Text style={[styles.checklistText, { color: theme.colors.textDark }]}>
+              Progress tracking and analytics
+            </Text>
+          </View>
+        </View>
+
+        {/* Plan Cards */}
+        <View style={styles.plansContainer}>
+          {plans.map((plan) => (
+            <View key={plan.id} style={styles.planCard}>
+              <CardOption
+                title={plan.title}
+                subtitle={plan.priceText}
+                selected={selectedPlanId === plan.id}
+                onPress={() => handlePlanSelect(plan.id)}
+                rightIcon="checkbox"
+                style={[
+                  styles.planOption,
+                  selectedPlanId === plan.id && {
+                    borderColor: theme.colors.accent,
+                    borderWidth: 2,
+                  },
+                ]}
+              />
+              
+              {plan.badge && (
+                <View style={[styles.badge, { backgroundColor: theme.colors.accent }]}>
+                  <Text style={[styles.badgeText, { color: theme.colors.surface }]}>
+                    {plan.badge}
+                  </Text>
+                </View>
+              )}
+              
+              {plan.subText && (
+                <Text style={[styles.subText, { color: theme.colors.textMedium }]}>
+                  {plan.subText}
+                </Text>
+              )}
+            </View>
+          ))}
+        </View>
+
+        {/* Show All Plans Link */}
+        <View style={styles.linkContainer}>
+          <Text
+            style={[styles.linkText, { color: theme.colors.primary }]}
+            onPress={handleShowAllPlans}
+          >
+            Show all plans
+          </Text>
+        </View>
+
+        {/* Restore Purchases */}
+        <View style={styles.restoreContainer}>
+          <Text
+            style={[styles.restoreText, { color: theme.colors.textMedium }]}
+            onPress={restoring ? undefined : handleRestorePurchases}
+          >
+            {restoring ? 'Restoring...' : 'Restore purchases'}
+          </Text>
+        </View>
+
+        {/* Legal Footer */}
+        <View style={styles.legalContainer}>
+          <Text style={[styles.legalText, { color: theme.colors.textLight }]}>
+            By subscribing, you agree to our Terms of Service and Privacy Policy. 
+            Subscriptions automatically renew unless cancelled at least 24 hours before the end of the current period.
+          </Text>
+        </View>
+      </View>
+    </Screen>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    gap: 24,
+  },
+  checklistContainer: {
+    gap: 12,
+  },
+  checklistItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  checkmark: {
+    fontSize: 16,
+    color: '#22c55e',
+    fontWeight: '600',
+  },
+  checklistText: {
+    fontSize: 16,
+    lineHeight: 22,
+    flex: 1,
+  },
+  plansContainer: {
+    gap: 16,
+  },
+  planCard: {
+    position: 'relative',
+  },
+  planOption: {
+    minHeight: 80,
+  },
+  badge: {
+    position: 'absolute',
+    top: -8,
+    right: 16,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  badgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  subText: {
+    fontSize: 14,
+    marginTop: 8,
+    marginLeft: 16,
+  },
+  linkContainer: {
+    alignItems: 'center',
+  },
+  linkText: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  restoreContainer: {
+    alignItems: 'center',
+  },
+  restoreText: {
+    fontSize: 14,
+    textDecorationLine: 'underline',
+  },
+  legalContainer: {
+    paddingHorizontal: 8,
+  },
+  legalText: {
+    fontSize: 12,
+    lineHeight: 16,
+    textAlign: 'center',
+  },
+});
+

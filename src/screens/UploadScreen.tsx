@@ -19,6 +19,7 @@ import { FlashcardService } from '../lib/flashcardService';
 import FlashcardReviewModal from '../components/FlashcardReviewModal';
 import UploadProgressModal from '../components/UploadProgressModal';
 import { TopicEditModal } from '../components/TopicEditModal';
+import { getPdfProcessingUrl } from '../config/backendConfig';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -346,7 +347,7 @@ export default function UploadScreen() {
         name: file.name,
       } as any);
 
-              const webhookResponse = await fetch('http://192.168.1.72:3001/api/process-pdf', {
+              const webhookResponse = await fetch(getPdfProcessingUrl(), {
         method: 'POST',
         body: formData,
       });

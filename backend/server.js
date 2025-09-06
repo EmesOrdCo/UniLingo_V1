@@ -4,6 +4,8 @@ const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
 const NetworkLogger = require('./networkLogger');
+const getLocalIP = require('./getLocalIP');
+const updateFrontendConfig = require('./updateFrontendConfig');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 console.log('🔍 Debug - Current directory:', __dirname);
@@ -11,6 +13,7 @@ console.log('🔍 Debug - .env file path:', path.join(__dirname, '.env'));
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+const LOCAL_IP = getLocalIP();
 const networkLogger = new NetworkLogger();
 
 // Middleware
@@ -183,10 +186,13 @@ app.use((error, req, res, next) => {
 
 // Start server
 app.listen(PORT, '0.0.0.0', () => {
+  // Update frontend configuration with current IP
+  updateFrontendConfig();
+  
   console.log(`🚀 Backend server running on port ${PORT}`);
   console.log(`📁 Upload directory: ${path.resolve('uploads')}`);
   console.log(`📡 PDF processing: PDF.co API`);
-  console.log(`🌐 Network accessible at: http://192.168.1.72:${PORT}`);
+  console.log(`🌐 Network accessible at: http://${LOCAL_IP}:${PORT}`);
   
   // Test network connectivity
   console.log('\n🔍 Testing network connectivity...');

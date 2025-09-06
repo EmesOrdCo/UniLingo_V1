@@ -224,6 +224,14 @@ export default function ProfilePage() {
         navigation.navigate('ConversationPractice' as never);
       },
     },
+    {
+      id: 'test-onboarding',
+      title: 'Test Onboarding',
+      icon: 'rocket-outline',
+      onPress: () => {
+        navigation.navigate('OnboardingFlow' as never);
+      },
+    },
   ];
 
   return (
