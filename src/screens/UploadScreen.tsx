@@ -20,6 +20,7 @@ import FlashcardReviewModal from '../components/FlashcardReviewModal';
 import UploadProgressModal from '../components/UploadProgressModal';
 import { TopicEditModal } from '../components/TopicEditModal';
 import * as DocumentPicker from 'expo-document-picker';
+import { getPdfProcessingUrl } from '../config/backendConfig';
 
 const { width: screenWidth } = Dimensions.get('window');
 

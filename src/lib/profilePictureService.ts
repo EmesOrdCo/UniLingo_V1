@@ -47,4 +47,15 @@ export class ProfilePictureService {
       return false;
     }
   }
+
+  // Clear profile picture cache (useful for debugging or forcing refresh)
+  static async clearCache(): Promise<void> {
+    try {
+      await AsyncStorage.removeItem(PROFILE_PICTURE_KEY);
+      console.log('🗑️ Profile picture cache cleared');
+    } catch (error) {
+      console.error('❌ Error clearing profile picture cache:', error);
+      throw error;
+    }
+  }
 }

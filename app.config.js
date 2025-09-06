@@ -28,6 +28,7 @@ export default {
     web: {
       favicon: "./assets/favicon.png"
     },
+    scheme: "unilingo",
     sdkVersion: "53.0.0",
     plugins: [
       "expo-web-browser"

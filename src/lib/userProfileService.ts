@@ -4,26 +4,53 @@ export interface UserProfile {
   id: string;
   email: string;
   name: string;
-  native_language: string; // Matches actual database column name
+  native_language: string;
   target_language: string;
-  subjects: string[]; // This will contain the single learning area
-  level: 'beginner' | 'intermediate' | 'expert';
+  proficiency_level: 'Beginner' | 'Intermediate' | 'Advanced';
+  daily_commitment_minutes: number | null;
+  wants_notifications: boolean;
+  discovery_source: string | null;
+  selected_plan_id: string | null;
+  has_active_subscription: boolean;
+  subjects: string[]; // Legacy field for backward compatibility
+  level: 'beginner' | 'intermediate' | 'expert'; // Legacy field
   created_at: string;
+  updated_at: string;
   last_active: string;
 }
 
 export interface CreateProfileData {
-  name: string; // Added name field
-  native_language: string; // Matches actual database column name
-  learning_area: string; // Changed from study_subject
-  proficiency_level: 'beginner' | 'intermediate' | 'expert';
+  id?: string;
+  email: string;
+  name: string;
+  native_language: string;
+  target_language: string;
+  proficiency_level: 'Beginner' | 'Intermediate' | 'Advanced';
+  daily_commitment_minutes?: number | null;
+  wants_notifications?: boolean;
+  discovery_source?: string | null;
+  selected_plan_id?: string | null;
+  has_active_subscription?: boolean;
+  // Legacy fields for backward compatibility
+  learning_area?: string;
+  subjects?: string[];
+  level?: 'beginner' | 'intermediate' | 'expert';
 }
 
 export interface UpdateProfileData {
-  name?: string; // Add name field for updates
-  native_language?: string; // Matches actual database column name
-  learning_area?: string; // Changed from study_subject
-  proficiency_level?: 'beginner' | 'intermediate' | 'expert';
+  name?: string;
+  native_language?: string;
+  target_language?: string;
+  proficiency_level?: 'Beginner' | 'Intermediate' | 'Advanced';
+  daily_commitment_minutes?: number | null;
+  wants_notifications?: boolean;
+  discovery_source?: string | null;
+  selected_plan_id?: string | null;
+  has_active_subscription?: boolean;
+  // Legacy fields for backward compatibility
+  learning_area?: string;
+  subjects?: string[];
+  level?: 'beginner' | 'intermediate' | 'expert';
 }
 
 export class UserProfileService {
@@ -87,24 +114,25 @@ export class UserProfileService {
   /**
    * Create a new user profile
    */
-  static async createUserProfile(userId: string, profileData: CreateProfileData): Promise<UserProfile> {
+  static async createUserProfile(profileData: CreateProfileData): Promise<UserProfile> {
     try {
-      console.log('📝 Creating user profile for:', userId, 'with data:', profileData);
+      console.log('📝 Creating user profile with data:', profileData);
       
-      // First, get the user's email from auth
+      // Get the current user from auth
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       if (authError || !user) {
         throw new Error('User not authenticated');
       }
 
       const insertData = {
-        id: userId,
-        email: user.email,
-        name: profileData.name, // Use the name from profile data
-        native_language: profileData.native_language, // Map to database column
-        target_language: 'en', // Default to English
-        subjects: [profileData.learning_area], // Store single learning area as array
-        level: profileData.proficiency_level,
+        id: profileData.id || user.id,
+        email: profileData.email || user.email,
+        name: profileData.name,
+        native_language: profileData.native_language,
+        target_language: profileData.target_language,
+        // Only include fields that definitely exist in your database
+        subjects: profileData.subjects || (profileData.learning_area ? [profileData.learning_area] : []),
+        level: profileData.level || profileData.proficiency_level?.toLowerCase() as 'beginner' | 'intermediate' | 'expert',
         created_at: new Date().toISOString(),
         last_active: new Date().toISOString(),
       };
@@ -137,22 +165,58 @@ export class UserProfileService {
     try {
       const updateData: any = {};
       
-      if (profileData.name) {
+      if (profileData.name !== undefined) {
         updateData.name = profileData.name;
       }
       
-      if (profileData.native_language) {
+      if (profileData.native_language !== undefined) {
         updateData.native_language = profileData.native_language;
       }
       
-      if (profileData.learning_area) {
+      if (profileData.target_language !== undefined) {
+        updateData.target_language = profileData.target_language;
+      }
+      
+      if (profileData.proficiency_level !== undefined) {
+        updateData.proficiency_level = profileData.proficiency_level;
+        // Also update legacy level field for backward compatibility
+        updateData.level = profileData.proficiency_level.toLowerCase();
+      }
+      
+      if (profileData.daily_commitment_minutes !== undefined) {
+        updateData.daily_commitment_minutes = profileData.daily_commitment_minutes;
+      }
+      
+      if (profileData.wants_notifications !== undefined) {
+        updateData.wants_notifications = profileData.wants_notifications;
+      }
+      
+      if (profileData.discovery_source !== undefined) {
+        updateData.discovery_source = profileData.discovery_source;
+      }
+      
+      if (profileData.selected_plan_id !== undefined) {
+        updateData.selected_plan_id = profileData.selected_plan_id;
+      }
+      
+      if (profileData.has_active_subscription !== undefined) {
+        updateData.has_active_subscription = profileData.has_active_subscription;
+      }
+      
+      // Legacy field handling
+      if (profileData.learning_area !== undefined) {
         updateData.subjects = [profileData.learning_area];
       }
       
-      if (profileData.proficiency_level) {
-        updateData.level = profileData.proficiency_level;
+      if (profileData.subjects !== undefined) {
+        updateData.subjects = profileData.subjects;
       }
       
+      if (profileData.level !== undefined) {
+        updateData.level = profileData.level;
+      }
+      
+      updateData.updated_at = new Date().toISOString();
       updateData.last_active = new Date().toISOString();
 
       const { data, error } = await supabase
@@ -193,12 +257,88 @@ export class UserProfileService {
   }
 
   /**
+   * Track onboarding step completion
+   */
+  static async trackOnboardingStep(userId: string, stepName: string, stepData?: any): Promise<void> {
+    try {
+      const { error } = await supabase
+        .from('onboarding_progress')
+        .insert({
+          user_id: userId,
+          step_name: stepName,
+          step_data: stepData || null,
+        });
+
+      if (error) {
+        console.error('❌ Error tracking onboarding step:', error);
+        throw error;
+      }
+
+      console.log('✅ Onboarding step tracked:', stepName);
+    } catch (error) {
+      console.error('❌ Error tracking onboarding step:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get onboarding completion status
+   */
+  static async getOnboardingStatus(userId: string): Promise<{
+    hasProfile: boolean;
+    isComplete: boolean;
+    completedSteps: string[];
+    profile?: UserProfile;
+  }> {
+    try {
+      // Get user profile
+      const profile = await this.getUserProfile(userId);
+      
+      // Get completed onboarding steps
+      const { data: steps, error: stepsError } = await supabase
+        .from('onboarding_progress')
+        .select('step_name')
+        .eq('user_id', userId);
+
+      if (stepsError) {
+        console.error('❌ Error fetching onboarding steps:', stepsError);
+        throw stepsError;
+      }
+
+      const completedSteps = steps?.map(step => step.step_name) || [];
+      
+      // Check if onboarding is complete
+      const isComplete = !!(
+        profile &&
+        profile.native_language &&
+        profile.target_language &&
+        profile.proficiency_level &&
+        profile.name
+      );
+
+      return {
+        hasProfile: profile !== null,
+        isComplete,
+        completedSteps,
+        profile: profile || undefined,
+      };
+    } catch (error) {
+      console.error('❌ Error getting onboarding status:', error);
+      return {
+        hasProfile: false,
+        isComplete: false,
+        completedSteps: [],
+      };
+    }
+  }
+
+  /**
    * Check if user has completed profile setup
    */
   static async hasCompletedProfile(userId: string): Promise<boolean> {
     try {
-      const profile = await this.getUserProfile(userId);
-      return profile !== null;
+      const status = await this.getOnboardingStatus(userId);
+      return status.isComplete;
     } catch (error) {
       console.error('❌ Error checking profile completion:', error);
       return false;
