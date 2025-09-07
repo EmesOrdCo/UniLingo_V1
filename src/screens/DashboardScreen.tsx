@@ -103,6 +103,11 @@ function TabNavigator() {
         },
         tabBarActiveTintColor: '#6366f1',
         tabBarInactiveTintColor: 'gray',
+        tabBarLabelStyle: {
+          marginTop: -4,
+          fontSize: 12,
+          fontWeight: '500',
+        },
         tabBarStyle: {
           backgroundColor: '#f8fafc',
           paddingBottom: 8,
