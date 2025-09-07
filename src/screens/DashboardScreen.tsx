@@ -110,8 +110,8 @@ function TabNavigator() {
         },
         tabBarStyle: {
           backgroundColor: '#f8fafc',
-          paddingBottom: 8,
-          paddingTop: 8,
+          paddingBottom: 4,
+          paddingTop: 12,
           height: 70,
         },
         headerShown: false,
