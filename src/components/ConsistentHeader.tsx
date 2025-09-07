@@ -102,8 +102,8 @@ const styles = StyleSheet.create({
     fontFamily: 'System',
   },
   pageNameText: {
-    fontSize: 24,
-    fontWeight: '600',
+    fontSize: 28,
+    fontWeight: '700',
     color: '#1f2937',
     fontFamily: 'System',
   },

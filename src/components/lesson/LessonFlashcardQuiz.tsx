@@ -350,8 +350,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: '600',
+    fontSize: 28,
+    fontWeight: '700',
     color: '#1e293b',
   },
   placeholder: {

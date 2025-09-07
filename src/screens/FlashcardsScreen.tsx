@@ -1926,8 +1926,8 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   headerTitle: {
-    fontSize: 36,
-    fontWeight: '800',
+    fontSize: 28,
+    fontWeight: '700',
     color: '#1e293b',
     marginBottom: 12,
     letterSpacing: -0.5,

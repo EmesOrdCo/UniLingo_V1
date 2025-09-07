@@ -391,7 +391,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8fafc',
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 28,
     fontWeight: '700',
     color: '#1e293b',
   },

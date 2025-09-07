@@ -177,8 +177,8 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     flex: 1,
-    fontSize: 24,
-    fontWeight: 'bold',
+    fontSize: 28,
+    fontWeight: '700',
     color: '#1e293b',
     textAlign: 'center',
     marginRight: 40, // Compensate for back button width

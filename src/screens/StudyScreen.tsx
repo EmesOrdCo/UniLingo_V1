@@ -204,8 +204,8 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 28,
+    fontWeight: '700',
     color: '#1e293b',
   },
   headerSpacer: {

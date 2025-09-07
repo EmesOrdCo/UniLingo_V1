@@ -105,8 +105,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#f1f5f9',
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 28,
+    fontWeight: '700',
     color: '#1e293b',
   },
   placeholder: {

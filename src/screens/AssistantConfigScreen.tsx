@@ -285,8 +285,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: '600',
+    fontSize: 28,
+    fontWeight: '700',
     color: '#111827',
   },
   headerSubtitle: {
