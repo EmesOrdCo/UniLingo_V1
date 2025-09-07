@@ -35,7 +35,7 @@ class OpenAIWithRateLimit {
   constructor(config: OpenAIConfig) {
     this.config = {
       maxRetries: 3,
-      timeout: 60000,
+      timeout: 300000, // Increased to 5 minutes for complex operations
       ...config
     };
 

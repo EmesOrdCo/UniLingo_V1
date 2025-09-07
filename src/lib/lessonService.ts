@@ -77,24 +77,29 @@ export class LessonService {
   /**
    * Truncate text to fit within OpenAI's token limit
    */
-  static truncateTextForOpenAI(text: string, maxTokens: number = 10000): string {
-    // Super aggressive: only 10,000 tokens = 40,000 characters
+  static truncateTextForOpenAI(text: string, maxTokens: number = 50000): string {
+    // Increased limit: 50,000 tokens = 200,000 characters
     const maxCharacters = maxTokens * 4;
     
-    console.log(`🔍 AGGRESSIVE truncation: ${text.length} chars vs ${maxCharacters} limit`);
+    console.log(`🔍 Text length: ${text.length} chars vs ${maxCharacters} limit`);
     
-    // Always truncate for proof of concept
+    // Only truncate if necessary
+    if (text.length <= maxCharacters) {
+      console.log(`✅ Text within limit, no truncation needed`);
+      return text;
+    }
+    
     const truncated = text.substring(0, maxCharacters);
     const lastSpaceIndex = truncated.lastIndexOf(' ');
     
     if (lastSpaceIndex > 0) {
       const result = truncated.substring(0, lastSpaceIndex) + '...';
-      console.log(`✂️ AGGRESSIVE truncation: ${text.length} → ${result.length} chars`);
+      console.log(`✂️ Truncated: ${text.length} → ${result.length} chars`);
       return result;
     }
     
     const result = truncated + '...';
-    console.log(`✂️ AGGRESSIVE truncation: ${text.length} → ${result.length} chars`);
+    console.log(`✂️ Truncated: ${text.length} → ${result.length} chars`);
     return result;
   }
 
@@ -180,7 +185,179 @@ export class LessonService {
   }
 
   /**
-   * Generate vocabulary from keywords using OpenAI
+   * Group keywords into topics and generate topic names
+   */
+  static async groupKeywordsIntoTopic(
+    keywords: string[],
+    subject: string
+  ): Promise<Array<{ topicName: string; keywords: string[] }>> {
+    try {
+      console.log('🔍 Grouping keywords into topics...');
+      
+      const prompt = `Group these keywords into logical topics for ${subject} lessons. Each topic should have 15-20 keywords (maximum 20). Return ONLY a JSON array:
+
+Keywords: ${keywords.join(', ')}
+
+Format:
+[{"topicName": "Topic Name", "keywords": ["keyword1", "keyword2", ...]}]
+
+Requirements:
+- Each topic should have 15-20 keywords (max 20)
+- Group related keywords together
+- Create meaningful topic names based on the keywords
+- Ensure all keywords are included in exactly one topic
+- Return ONLY the JSON array:`;
+
+      // Prepare messages for cost estimation
+      const messages = [
+        {
+          role: 'system',
+          content: 'You are an expert educational content organizer. You MUST return ONLY a JSON array of objects with no explanations, markdown, or text outside the JSON. Your response must start with [ and end with ]. Do NOT use backticks, code blocks, or any markdown formatting. Return raw JSON only.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ];
+
+      // Get current user for cost estimation
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
+      // Estimate cost before making the API call
+      const costEstimate = await CostEstimator.estimateCost(user.id, messages);
+      
+      if (!costEstimate.canProceed) {
+        throw new Error(CostEstimator.getCostExceededMessage(costEstimate));
+      }
+
+      console.log('Cost estimation:', CostEstimator.getCostInfo(costEstimate));
+        
+      const response = await openai.createChatCompletion({
+          model: 'gpt-4o-mini',
+          messages: messages,
+          max_tokens: 8000,
+          temperature: 0.2,
+      });
+
+      const content = response.content;
+      if (!content) {
+        throw new Error('No response from OpenAI');
+      }
+
+      // Clean the response
+      let cleanedContent = content.trim();
+      if (cleanedContent.startsWith('```json')) {
+        cleanedContent = cleanedContent.replace(/```json\s*/, '').replace(/\s*```/, '');
+      }
+      if (cleanedContent.startsWith('```')) {
+        cleanedContent = cleanedContent.replace(/```\s*/, '').replace(/\s*```/, '');
+      }
+
+      const topics = JSON.parse(cleanedContent);
+      
+      if (!Array.isArray(topics)) {
+        throw new Error('Invalid response format from OpenAI');
+      }
+
+      console.log(`✅ Grouped keywords into ${topics.length} topics`);
+      return topics;
+
+    } catch (error) {
+      console.error('❌ Error grouping keywords:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Generate vocabulary from multiple topics using OpenAI
+   */
+  static async generateVocabularyFromTopics(
+    topics: Array<{ topicName: string; keywords: string[] }>,
+    subject: string,
+    nativeLanguage: string
+  ): Promise<Array<{ topicName: string; vocabulary: Omit<LessonVocabulary, 'id' | 'lesson_id' | 'created_at'>[] }>> {
+    try {
+      console.log('🔍 Generating vocabulary from topics...');
+      
+      const prompt = `Create vocabulary entries for these topic groups. Return ONLY a JSON array:
+
+Topics: ${topics.map(topic => `${topic.topicName}: ${topic.keywords.join(', ')}`).join('\n')}
+Subject: ${subject}
+Language: ${nativeLanguage}
+
+Format:
+[{"topicName": "Topic Name", "vocabulary": [{"english_term": "word", "definition": "meaning", "native_translation": "translation", "example_sentence_en": "example", "example_sentence_native": "translated example", "difficulty_rank": 2}]}]
+
+Return ONLY the JSON array:`;
+
+      // Prepare messages for cost estimation
+      const messages = [
+        {
+          role: 'system',
+          content: 'You are an expert language teacher. You MUST return ONLY a JSON array of objects with no explanations, markdown, or text outside the JSON. Your response must start with [ and end with ]. Do NOT use backticks, code blocks, or any markdown formatting. Return raw JSON only.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ];
+
+      // Get current user for cost estimation
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
+      // Estimate cost before making the API call
+      const costEstimate = await CostEstimator.estimateCost(user.id, messages);
+      
+      if (!costEstimate.canProceed) {
+        throw new Error(CostEstimator.getCostExceededMessage(costEstimate));
+      }
+
+      console.log('Cost estimation:', CostEstimator.getCostInfo(costEstimate));
+        
+      const response = await openai.createChatCompletion({
+          model: 'gpt-4o-mini',
+          messages: messages,
+          max_tokens: 12000, // Increased for multiple topics
+          temperature: 0.2,
+      });
+
+      const content = response.content;
+      if (!content) {
+        throw new Error('No response from OpenAI');
+      }
+
+      // Clean the response
+      let cleanedContent = content.trim();
+      if (cleanedContent.startsWith('```json')) {
+        cleanedContent = cleanedContent.replace(/```json\s*/, '').replace(/\s*```/, '');
+      }
+      if (cleanedContent.startsWith('```')) {
+        cleanedContent = cleanedContent.replace(/```\s*/, '').replace(/\s*```/, '');
+      }
+
+      const topicVocabulary = JSON.parse(cleanedContent);
+      
+      if (!Array.isArray(topicVocabulary)) {
+        throw new Error('Invalid response format from OpenAI');
+      }
+
+      console.log(`✅ Generated vocabulary for ${topicVocabulary.length} topics`);
+      return topicVocabulary;
+
+    } catch (error) {
+      console.error('❌ Error generating vocabulary from topics:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Generate vocabulary from keywords using OpenAI (legacy method for single topic)
    */
   static async generateVocabularyFromKeywords(
     keywords: string[],
@@ -192,7 +369,7 @@ export class LessonService {
       
       const prompt = `Create vocabulary entries for these keywords. Return ONLY a JSON array:
 
-Keywords: ${keywords.slice(0, 10).join(', ')} ${keywords.length > 10 ? `(+${keywords.length - 10} more)` : ''}
+Keywords: ${keywords.join(', ')}
 Subject: ${subject}
 Language: ${nativeLanguage}
 

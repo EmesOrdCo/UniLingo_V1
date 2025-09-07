@@ -60,7 +60,7 @@ export class CostEstimator {
       
       // Get current spending and remaining budget
       const currentSpending = await SimpleTokenTracker.getSpendingInDollars(userId);
-      const remainingBudget = Math.max(0, 1.35 - currentSpending);
+      const remainingBudget = Math.max(0, 5.00 - currentSpending);
       
       // Check if we can proceed
       const canProceed = estimatedCost <= remainingBudget;

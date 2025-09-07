@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 
-const SPENDING_LIMIT = 1.35; // $1.35 limit
+const SPENDING_LIMIT = 5.00; // $5.00 limit
 const INPUT_TOKEN_COST = 0.60; // $0.60 per 1M input tokens
 const OUTPUT_TOKEN_COST = 2.40; // $2.40 per 1M output tokens
 
