@@ -20,7 +20,7 @@ import FlashcardReviewModal from '../components/FlashcardReviewModal';
 import UploadProgressModal from '../components/UploadProgressModal';
 import { TopicEditModal } from '../components/TopicEditModal';
 import * as DocumentPicker from 'expo-document-picker';
-import { getPdfProcessingUrl } from '../config/backendConfig';
+import { getPdfProcessingUrl, getBackendUrl, BACKEND_CONFIG } from '../config/backendConfig';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -42,6 +42,9 @@ export default function UploadScreen() {
   const [showTopicEditModal, setShowTopicEditModal] = useState(false);
   const [editableFlashcards, setEditableFlashcards] = useState<GeneratedFlashcard[]>([]);
   const [uniqueTopics, setUniqueTopics] = useState<string[]>([]);
+  
+  // Study Configuration state
+  const [showNativeLanguage, setShowNativeLanguage] = useState(false);
 
   
   // Use ref to ensure we always have the latest generatedFlashcards value
@@ -197,38 +200,6 @@ export default function UploadScreen() {
     }
   };
 
-  const handleTestWebhook = async () => {
-    try {
-      console.log('🧪 Testing Zapier webhook...');
-      
-      const response = await fetch('http://192.168.1.72:3001/api/test-webhook', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
-      console.log('✅ Webhook test successful:', result);
-      
-      Alert.alert(
-        'Webhook Test Successful!',
-        `Zapier webhook responded: ${result.message}`,
-        [{ text: 'OK' }]
-      );
-    } catch (error) {
-      console.error('❌ Webhook test failed:', error);
-      Alert.alert(
-        'Webhook Test Failed',
-        `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        [{ text: 'OK' }]
-      );
-    }
-  };
 
   const handleFilePick = async () => {
     // SECTION 1: handleFilePick - Main PDF upload function
@@ -317,19 +288,33 @@ export default function UploadScreen() {
       } as any);
 
       console.log('📤 Sending request to backend...');
-      console.log('🌐 Backend URL: http://192.168.1.146:3001/api/process-pdf');
+      console.log('🌐 Backend URL:', getPdfProcessingUrl());
       
       // Test backend connectivity first
       try {
         console.log('🔍 Testing backend connectivity...');
-        const healthResponse = await fetch('http://192.168.1.146:3001/health', {
+        const healthController = new AbortController();
+        const healthTimeout = setTimeout(() => healthController.abort(), 10000);
+        
+        const healthResponse = await fetch(getBackendUrl(BACKEND_CONFIG.ENDPOINTS.HEALTH), {
           method: 'GET',
-          timeout: 10000, // 10 second timeout for health check
+          signal: healthController.signal,
         });
+        
+        clearTimeout(healthTimeout);
         console.log('✅ Backend health check passed:', healthResponse.status);
       } catch (healthError) {
         console.error('❌ Backend health check failed:', healthError);
-          throw new Error('Cannot connect to backend server. Please check if the backend is running on http://192.168.1.146:3001');
+        clearTimeout(safetyTimeout);
+        setIsProcessing(false);
+        setShowProgressModal(false);
+        
+        Alert.alert(
+          'Backend Server Not Available',
+          `The backend server is not running or not accessible. Please make sure the backend server is started on ${BACKEND_CONFIG.BASE_URL}`,
+          [{ text: 'OK' }]
+        );
+        return;
       }
       
       // Add timeout to prevent hanging on backend request
@@ -343,7 +328,7 @@ export default function UploadScreen() {
       
       try {
         console.log('🔄 Fetch request starting...');
-        const webhookResponse = await fetch('http://192.168.1.146:3001/api/process-pdf', {
+        const webhookResponse = await fetch(getPdfProcessingUrl(), {
           method: 'POST',
           body: formData,
           signal: controller.signal,
@@ -374,15 +359,30 @@ export default function UploadScreen() {
         
       } catch (fetchError) {
         clearTimeout(timeoutId);
+        clearTimeout(safetyTimeout);
         console.error('❌ Backend fetch error:', fetchError);
         
+        setIsProcessing(false);
+        setShowProgressModal(false);
+        
+        let errorMessage = 'An error occurred while processing the PDF.';
+        
         if (fetchError.name === 'AbortError') {
-          throw new Error('Backend request timed out after 60 seconds. Please try again with a smaller file.');
+          errorMessage = 'Backend request timed out after 60 seconds. Please try again with a smaller file.';
         } else if (fetchError.message.includes('Network request failed')) {
-          throw new Error('Cannot connect to backend server. Please check your internet connection and try again.');
+          errorMessage = 'Network error. Please check your internet connection and try again.';
+        } else if (fetchError.message.includes('Cannot connect')) {
+          errorMessage = 'Cannot connect to backend server. Please make sure the backend is running.';
         } else {
-          throw fetchError;
+          errorMessage = `Backend error: ${fetchError.message}`;
         }
+        
+        Alert.alert(
+          'Upload Failed',
+          errorMessage,
+          [{ text: 'OK' }]
+        );
+        return;
       }
       
               setProgress({
@@ -432,6 +432,7 @@ export default function UploadScreen() {
         userSubject,
         topic,
         userNativeLanguage,
+        showNativeLanguage,
         (progressUpdate) => {
           console.log('🔍 Progress update from AI:', progressUpdate);
           console.log('🔍 Progress cardsGenerated:', progressUpdate.cardsGenerated);
@@ -465,6 +466,7 @@ export default function UploadScreen() {
           user.id,
           userSubject,
           userNativeLanguage,
+          showNativeLanguage,
           (progressUpdate) => setProgress(progressUpdate)
         );
       }
@@ -559,6 +561,7 @@ export default function UploadScreen() {
           user.id,
           userSubject,
           userNativeLanguage,
+          showNativeLanguage,
           (progressUpdate) => setProgress(progressUpdate)
         );
         
@@ -697,7 +700,7 @@ export default function UploadScreen() {
   // The error boundary in App.tsx should catch most errors
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity 
@@ -721,7 +724,7 @@ export default function UploadScreen() {
         >
           <Ionicons name="arrow-back" size={24} color="#1e293b" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Upload Notes</Text>
+        <Text style={styles.headerTitle}>Study Configuration</Text>
         <TouchableOpacity 
           style={styles.emergencyButton} 
           onPress={emergencyReset}
@@ -861,7 +864,45 @@ export default function UploadScreen() {
           </View>
         )}
 
+        {/* Study Configuration Section */}
+        <View style={styles.studyConfigSection}>
+          <View style={styles.studyConfigHeader}>
+            <Ionicons name="settings" size={24} color="#6366f1" />
+            <Text style={styles.studyConfigTitle}>Study Configuration</Text>
+          </View>
+          <Text style={styles.studyConfigDescription}>
+            Configure your study session preferences
+          </Text>
+          
+          <View style={styles.studyConfigCard}>
+            {/* Language Preference */}
+            <View style={styles.fullWidthLanguageOptions}>
+              <TouchableOpacity 
+                style={[
+                  styles.fullWidthLanguageOption, 
+                  !showNativeLanguage && styles.selectedFullWidthLanguageOption
+                ]}
+                onPress={() => setShowNativeLanguage(false)}
+              >
+                <Ionicons name="flag" size={16} color="#3b82f6" />
+                <Text style={styles.fullWidthLanguageOptionText}>English Front</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[
+                  styles.fullWidthLanguageOption, 
+                  showNativeLanguage && styles.selectedFullWidthLanguageOption
+                ]}
+                onPress={() => setShowNativeLanguage(true)}
+              >
+                <Ionicons name="globe" size={16} color="#10b981" />
+                <Text style={styles.fullWidthLanguageOptionText}>
+                  {profile?.native_language || 'Native'} Front
+                </Text>
+              </TouchableOpacity>
+            </View>
 
+          </View>
+        </View>
 
         {/* Upload Area */}
         <View style={styles.uploadArea}>
@@ -887,14 +928,6 @@ export default function UploadScreen() {
                 </Text>
               </TouchableOpacity>
 
-          {/* Webhook Test Button */}
-          <TouchableOpacity
-            style={styles.webhookTestButton}
-            onPress={handleTestWebhook}
-          >
-            <Ionicons name="link" size={18} color="#6366f1" />
-            <Text style={styles.webhookTestButtonText}>Test Zapier Webhook</Text>
-          </TouchableOpacity>
         </View>
 
         {/* Info Section */}
@@ -971,9 +1004,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 24,
     paddingVertical: 24,
-    backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
+    backgroundColor: '#f8fafc',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.12,
@@ -1003,7 +1034,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   subjectCard: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
     borderRadius: 20,
     padding: 24,
     marginBottom: 32,
@@ -1047,7 +1078,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.3,
   },
   topicSection: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
     borderRadius: 20,
     padding: 28,
     marginBottom: 32,
@@ -1081,7 +1112,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#e2e8f0',
     borderRadius: 16,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -1123,7 +1154,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 18,
     fontSize: 16,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -1173,7 +1204,7 @@ const styles = StyleSheet.create({
   topicOptionsContainer: {
     maxHeight: 200,
     marginTop: 16,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
     borderRadius: 16,
     borderWidth: 2,
     borderColor: '#e2e8f0',
@@ -1186,8 +1217,6 @@ const styles = StyleSheet.create({
   topicOption: {
     paddingVertical: 16,
     paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
   },
   topicOptionText: {
     fontSize: 16,
@@ -1195,7 +1224,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   uploadArea: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
     borderRadius: 20,
     padding: 40,
     alignItems: 'center',
@@ -1253,26 +1282,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginLeft: 10,
   },
-  webhookTestButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    backgroundColor: '#f8fafc',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    marginTop: 12,
-  },
-  webhookTestButtonText: {
-    color: '#6366f1',
-    fontSize: 14,
-    fontWeight: '500',
-    marginLeft: 8,
-  },
   infoSection: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
     borderRadius: 20,
     padding: 32,
     marginBottom: 32,
@@ -1379,6 +1390,73 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#374151',
     fontWeight: '500',
+  },
+  
+  // Study Configuration Styles
+  studyConfigSection: {
+    backgroundColor: '#f8fafc',
+    borderRadius: 20,
+    padding: 28,
+    marginBottom: 32,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 8,
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
+  },
+  studyConfigHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  studyConfigTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#1e293b',
+    marginLeft: 12,
+    letterSpacing: -0.3,
+  },
+  studyConfigDescription: {
+    fontSize: 16,
+    color: '#64748b',
+    marginBottom: 24,
+    lineHeight: 22,
+  },
+  studyConfigCard: {
+    backgroundColor: '#f8fafc',
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    gap: 16,
+  },
+  fullWidthLanguageOptions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  fullWidthLanguageOption: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    backgroundColor: '#f8fafc',
+    borderWidth: 2,
+    borderColor: '#e2e8f0',
+  },
+  selectedFullWidthLanguageOption: {
+    backgroundColor: '#f0f9ff',
+    borderColor: '#3b82f6',
+  },
+  fullWidthLanguageOptionText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#1e293b',
+    marginLeft: 8,
   },
 
 });

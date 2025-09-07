@@ -69,7 +69,7 @@ export default function MemoryGameScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header with back button */}
       <View style={styles.header}>
         <TouchableOpacity 
@@ -139,9 +139,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
+    backgroundColor: '#f8fafc',
   },
   backButton: {
     padding: 8,
@@ -165,7 +163,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     width: '100%',
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
     borderRadius: 12,
     padding: 16,
     marginBottom: 24,
@@ -210,7 +208,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   cardFlipped: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
     borderWidth: 2,
     borderColor: '#6366f1',
   },

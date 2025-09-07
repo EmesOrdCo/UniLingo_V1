@@ -95,7 +95,7 @@ export default function CreateFlashcardScreen() {
   const isFormValid = frontText.trim() && backText.trim() && subject.trim() && topic.trim() && example.trim();
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header with back button */}
       <View style={styles.header}>
         <TouchableOpacity 
@@ -250,9 +250,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 24,
     paddingVertical: 24,
-    backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
+    backgroundColor: '#f8fafc',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.12,
@@ -278,7 +276,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   form: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
     borderRadius: 28,
     padding: 32,
     shadowColor: '#000',
@@ -305,7 +303,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 20,
     fontSize: 16,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,

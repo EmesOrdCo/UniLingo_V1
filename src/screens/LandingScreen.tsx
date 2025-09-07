@@ -52,7 +52,7 @@ export default function LandingScreen() {
   }, [fadeAnim]);
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {/* Background Image */}
       <ImageBackground
         source={require('../../assets/study-session-bg.png')}

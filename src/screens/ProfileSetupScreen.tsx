@@ -105,7 +105,7 @@ export default function ProfileSetupScreen() {
   const isFormComplete = name && learningLanguage && learningArea && proficiencyLevel;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
@@ -312,7 +312,7 @@ const styles = StyleSheet.create({
   },
   optionButton: {
     width: '48%',
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 8,
@@ -337,7 +337,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   levelButton: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
     padding: 16,
     borderRadius: 12,
     borderWidth: 2,
@@ -425,7 +425,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   textInput: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
     borderRadius: 12,
     paddingVertical: 14,
     paddingHorizontal: 16,

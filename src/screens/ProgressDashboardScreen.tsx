@@ -123,7 +123,7 @@ export default function ProgressDashboardScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#6366f1" />
           <Text style={styles.loadingText}>Loading your progress...</Text>
@@ -133,7 +133,7 @@ export default function ProgressDashboardScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
@@ -388,9 +388,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
+    backgroundColor: '#f8fafc',
   },
   headerTitle: {
     fontSize: 20,
@@ -419,7 +417,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   streakSection: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
     margin: 16,
     borderRadius: 20,
     padding: 24,
@@ -472,7 +470,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   calendarSection: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
     margin: 16,
     borderRadius: 20,
     padding: 24,
@@ -483,7 +481,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   goalsWidgetSection: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
     margin: 16,
     borderRadius: 20,
     padding: 24,
@@ -494,7 +492,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   levelSection: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
     marginHorizontal: 16,
     marginBottom: 16,
     borderRadius: 16,
@@ -549,7 +547,7 @@ const styles = StyleSheet.create({
     color: '#6b7280',
   },
   goalsSection: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
     marginHorizontal: 16,
     marginBottom: 16,
     borderRadius: 16,
@@ -628,7 +626,7 @@ const styles = StyleSheet.create({
   },
 
   achievementsSection: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
     marginHorizontal: 16,
     marginBottom: 16,
     borderRadius: 16,
@@ -680,7 +678,7 @@ const styles = StyleSheet.create({
 
   // Flashcards section styles
   flashcardsSection: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
     marginHorizontal: 16,
     marginBottom: 16,
     borderRadius: 16,

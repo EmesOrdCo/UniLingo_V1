@@ -197,7 +197,7 @@ export default function ProfilePage() {
   ];
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerContent}>
@@ -333,15 +333,11 @@ export default function ProfilePage() {
                   <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.settingItem}>
-                  <View style={styles.settingLeft}>
-                    <Ionicons name="mic-outline" size={24} color="#374151" />
-                    <Text style={styles.settingTitle}>Audio recordings</Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
-                </TouchableOpacity>
 
-                <View style={styles.settingItem}>
+                <TouchableOpacity 
+                  style={styles.settingItem}
+                  onPress={() => Alert.alert('Coming Soon', 'Sound effects will be available in a future update.')}
+                >
                   <View style={styles.settingLeft}>
                     <Ionicons name="volume-high-outline" size={24} color="#374151" />
                     <Text style={styles.settingTitle}>Sound effects</Text>
@@ -349,7 +345,7 @@ export default function ProfilePage() {
                   <TouchableOpacity style={styles.toggleButton}>
                     <View style={styles.toggleCircle} />
                   </TouchableOpacity>
-                </View>
+                </TouchableOpacity>
 
                 <View style={styles.settingItem}>
                   <View style={styles.settingLeft}>
@@ -361,27 +357,29 @@ export default function ProfilePage() {
                   </TouchableOpacity>
                 </View>
 
-                <View style={styles.settingItem}>
-                  <View style={styles.settingLeft}>
-                    <Ionicons name="play-outline" size={24} color="#374151" />
-                    <Text style={styles.settingTitle}>Automatically advance to the next exercise</Text>
-                  </View>
-                  <TouchableOpacity style={styles.toggleButton}>
-                    <View style={styles.toggleCircle} />
-                  </TouchableOpacity>
-                </View>
               </View>
 
               {/* About Section */}
               <View style={styles.settingsSection}>
                 <Text style={styles.sectionHeader}>About</Text>
                 
+                <TouchableOpacity 
+                  style={styles.settingItem}
+                  onPress={() => navigation.navigate('TermsAndConditions' as never)}
+                >
+                  <View style={styles.settingLeft}>
+                    <Ionicons name="document-text-outline" size={24} color="#374151" />
+                    <Text style={styles.settingTitle}>Terms and Conditions</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+                </TouchableOpacity>
+
                 <View style={styles.settingItem}>
                   <View style={styles.settingLeft}>
                     <Ionicons name="information-circle-outline" size={24} color="#374151" />
                     <Text style={styles.settingTitle}>Version</Text>
                   </View>
-                  <Text style={styles.settingValue}>21.81.1 (73610)</Text>
+                  <Text style={styles.settingValue}>1.0</Text>
                 </View>
 
                 <TouchableOpacity style={styles.settingItem}>
@@ -409,18 +407,6 @@ export default function ProfilePage() {
                 </TouchableOpacity>
               </View>
 
-              {/* Subscriptions Section */}
-              <View style={styles.settingsSection}>
-                <Text style={styles.sectionHeader}>Subscriptions</Text>
-                
-                <TouchableOpacity style={styles.settingItem}>
-                  <View style={styles.settingLeft}>
-                    <Ionicons name="refresh-outline" size={24} color="#374151" />
-                    <Text style={styles.settingTitle}>Restore purchases</Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
-                </TouchableOpacity>
-              </View>
             </ScrollView>
           </View>
                 </View>
@@ -444,7 +430,7 @@ export default function ProfilePage() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
   },
   header: {
     flexDirection: 'row',
@@ -452,8 +438,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
   },
   headerContent: {
     flex: 1,
@@ -473,8 +457,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 32,
     paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
   },
   userAvatar: {
     width: 80,
@@ -523,8 +505,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
   },
   menuItemLeft: {
     flexDirection: 'row',
@@ -568,7 +548,7 @@ const styles = StyleSheet.create({
     zIndex: 1000,
   },
   settingsModal: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
     borderRadius: 20,
     width: '90%',
     maxWidth: 400,
@@ -585,8 +565,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
   },
   settingsTitle: {
     fontSize: 20,
@@ -601,8 +579,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
   },
   settingLeft: {
     flexDirection: 'row',
@@ -633,7 +609,7 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,

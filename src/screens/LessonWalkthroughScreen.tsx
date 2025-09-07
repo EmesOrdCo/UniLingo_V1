@@ -797,9 +797,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
+    backgroundColor: '#f8fafc',
   },
   backButton: {
     padding: 8,
@@ -894,7 +892,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   completionContent: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
     borderRadius: 20,
     padding: 32,
     alignItems: 'center',
@@ -986,7 +984,7 @@ const styles = StyleSheet.create({
   flowExercise: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
     borderRadius: 16,
     padding: 20,
     shadowColor: '#000',
@@ -1131,7 +1129,7 @@ const styles = StyleSheet.create({
   },
   restartButton: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
     borderRadius: 12,
     paddingVertical: 16,
     paddingHorizontal: 24,

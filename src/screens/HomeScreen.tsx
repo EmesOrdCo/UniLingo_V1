@@ -52,9 +52,7 @@ export default function HomeScreen() {
         alignItems: 'center',
         paddingHorizontal: 24,
         paddingVertical: 24,
-        backgroundColor: '#ffffff',
-        borderBottomWidth: 1,
-        borderBottomColor: '#e2e8f0',
+        backgroundColor: '#f8fafc',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 6 },
         shadowOpacity: 0.12,
@@ -181,7 +179,7 @@ export default function HomeScreen() {
       },
       subjectCard: {
         width: calculateWidth(safeScreenWidth),
-        backgroundColor: '#ffffff',
+        backgroundColor: '#f8fafc',
         padding: 16,
         borderRadius: 12,
         alignItems: 'center',
@@ -215,7 +213,7 @@ export default function HomeScreen() {
       },
       featureCard: {
         flexDirection: 'row',
-        backgroundColor: '#ffffff',
+        backgroundColor: '#f8fafc',
         padding: 16,
         borderRadius: 12,
         alignItems: 'flex-start',
@@ -305,7 +303,7 @@ export default function HomeScreen() {
         lineHeight: 24,
       },
       ctaButtonLarge: {
-        backgroundColor: '#ffffff',
+        backgroundColor: '#f8fafc',
         paddingHorizontal: 32,
         paddingVertical: 16,
         borderRadius: 12,
@@ -376,7 +374,7 @@ export default function HomeScreen() {
   ];
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
       
       {/* Header */}

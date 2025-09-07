@@ -47,7 +47,7 @@ function OverviewTab() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
 
       {/* Consistent Header */}
@@ -68,7 +68,7 @@ function OverviewTab() {
 // Lessons tab component - placeholder for new lesson system
 function LessonsTab() {
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
       
       <ConsistentHeader 
@@ -104,9 +104,7 @@ function TabNavigator() {
         tabBarActiveTintColor: '#6366f1',
         tabBarInactiveTintColor: 'gray',
         tabBarStyle: {
-          backgroundColor: '#ffffff',
-          borderTopWidth: 1,
-          borderTopColor: '#e5e7eb',
+          backgroundColor: '#f8fafc',
           paddingBottom: 5,
           paddingTop: 5,
           height: 60,

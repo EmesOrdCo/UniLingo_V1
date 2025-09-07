@@ -96,20 +96,15 @@ export default function GamesScreen() {
         const userSubject = profile.subjects[0];
         console.log('🎮 Fetching game data for subject:', userSubject);
         
-        // Get user's flashcards
-        const userFlashcards = await UserFlashcardService.getUserFlashcards();
-        const userCards = userFlashcards.filter((card: any) => 
-          card.subject && card.subject.toLowerCase() === userSubject.toLowerCase()
-        );
+        // Get user's flashcards filtered by subject
+        const userFlashcards = await UserFlashcardService.getUserFlashcards({ subject: userSubject });
+        const userCards = userFlashcards;
         
-        // Get general flashcards
-        const generalFlashcards = await FlashcardService.getAllFlashcards();
-        const generalCards = generalFlashcards.filter((card: any) => 
-          card.subject && card.subject.toLowerCase() === userSubject.toLowerCase()
-        );
+        // REMOVED: General flashcards table no longer exists - only use user flashcards
+        const generalCards: any[] = [];
         
-        // Combine and filter valid cards
-        const allCards = [...userCards, ...generalCards].filter(card => 
+        // Filter valid cards
+        const allCards = userCards.filter(card => 
           card.front && card.back && card.topic
         );
         
@@ -129,15 +124,12 @@ export default function GamesScreen() {
           totalCards: allCards.length,
           topics: uniqueTopics.length,
           userCards: userCards.length,
-          generalCards: generalCards.length
+          generalCards: 0 // General flashcards table no longer exists
         });
         
-        // Log sample cards from each source
+        // Log sample cards
         if (userCards.length > 0) {
           console.log('📝 Sample user card:', userCards[0]);
-        }
-        if (generalCards.length > 0) {
-          console.log('📝 Sample general card:', generalCards[0]);
         }
         
       } catch (error) {
@@ -444,7 +436,7 @@ export default function GamesScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <ConsistentHeader 
         pageName="Games"
       />
@@ -737,7 +729,7 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -745,8 +737,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
   },
   closeButton: {
     padding: 8,
@@ -791,7 +781,7 @@ const styles = StyleSheet.create({
   },
   dropdownMenu: {
     marginTop: 8,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#e2e8f0',
@@ -804,8 +794,6 @@ const styles = StyleSheet.create({
   dropdownItem: {
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
   },
   dropdownItemText: {
     fontSize: 16,
@@ -872,7 +860,7 @@ const styles = StyleSheet.create({
   },
   gameModalContainer: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
   },
   gameModalHeader: {
     flexDirection: 'row',
@@ -880,8 +868,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
   },
   gameModalTitle: {
     fontSize: 18,

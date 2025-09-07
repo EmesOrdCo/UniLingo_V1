@@ -185,6 +185,7 @@ export class UploadService {
     subject: string,
     topic: string,
     nativeLanguage: string,
+    showNativeLanguage: boolean = false,
     onProgress?: (progress: UploadProgress) => void
   ): Promise<GeneratedFlashcard[]> {
     try {
@@ -309,10 +310,14 @@ export class UploadService {
       const client = getOpenAIClient();
       
       // Prepare messages for cost estimation
+      const systemPrompt = showNativeLanguage 
+        ? `You are an expert language learning content creator. You MUST create terminology flashcards with ${nativeLanguage} terms on the front and English translations on the back. NEVER put ${nativeLanguage} definitions on the back - only English translations. ALWAYS include simple, relevant example sentences in ${nativeLanguage} that demonstrate how each term is used in context. Each example sentence MUST contain the exact front term. Keep examples straightforward with the target term as the main focus, but prioritize relevance over simplicity.`
+        : `You are an expert language learning content creator. You MUST create terminology flashcards with English terms on the front and ${nativeLanguage} translations on the back. NEVER put English definitions on the back - only ${nativeLanguage} translations. ALWAYS include simple, relevant example sentences in English that demonstrate how each term is used in context. Each example sentence MUST contain the exact front term. Keep examples straightforward with the target term as the main focus, but prioritize relevance over simplicity.`;
+
       const messages = [
         {
           role: 'system',
-          content: 'You are an expert language learning content creator. You MUST create terminology flashcards with English terms on the front and native language translations on the back. NEVER put English definitions on the back - only translations. ALWAYS include simple, relevant example sentences in English that demonstrate how each term is used in context. Each example sentence MUST contain the exact front term. Keep examples straightforward with the target term as the main focus, but prioritize relevance over simplicity.'
+          content: systemPrompt
         },
         {
           role: 'user',
@@ -420,6 +425,7 @@ export class UploadService {
     userId: string,
     subject: string,
     nativeLanguage: string,
+    showNativeLanguage: boolean = false,
     onProgress?: (progress: UploadProgress) => void
   ): Promise<void> {
     try {
@@ -460,7 +466,8 @@ export class UploadService {
           example: example,
           pronunciation: card.pronunciation || '',
           tags: card.tags || [],
-          native_language: nativeLanguage
+          native_language: nativeLanguage,
+          show_native_language: showNativeLanguage
         });
 
         const progress = Math.round(((i + 1) / totalCards) * 100);
