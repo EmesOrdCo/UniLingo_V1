@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -34,21 +35,143 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       console.log('🚀 Starting login process...');
+      
+      // First try password authentication
       const { error } = await signIn(email, password);
       
       if (error) {
-        console.error('❌ Login failed:', error.message);
-        Alert.alert('Login Failed', error.message || 'Invalid email or password');
+        console.log('❌ Password login failed, trying OTP method...');
+        
+        // If password fails, try OTP method for users created with magic links
+        try {
+          const { data: otpData, error: otpError } = await supabase.auth.signInWithOtp({
+            email: email,
+            options: { 
+              shouldCreateUser: false // Don't create new users, only sign in existing ones
+            }
+          });
+          
+          if (otpError) {
+            console.error('❌ OTP login failed:', otpError.message);
+            Alert.alert('Login Failed', 'Invalid email or password. If you signed up with a magic link, please check your email for the verification code.');
+            return;
+          }
+          
+          console.log('✅ OTP code sent successfully to:', email);
+          
+          // Show OTP input modal with password setup option
+          Alert.prompt(
+            'Enter Verification Code',
+            `We've sent a 6-digit code to ${email}. After verification, you can set up a password for easier future sign-ins.`,
+            [
+              {
+                text: 'Cancel',
+                style: 'cancel'
+              },
+              {
+                text: 'Verify',
+                onPress: async (otpCode) => {
+                  if (!otpCode || otpCode.length !== 6) {
+                    Alert.alert('Error', 'Please enter a valid 6-digit code.');
+                    return;
+                  }
+                  
+                  // Verify the OTP code and set up password
+                  await verifyOTPAndSetupPassword(email, otpCode);
+                }
+              }
+            ],
+            'plain-text',
+            '',
+            'numeric'
+          );
+          
+        } catch (otpError) {
+          console.error('❌ OTP error:', otpError);
+          Alert.alert('Login Failed', 'Invalid email or password. Please try again.');
+        }
       } else {
-        console.log('✅ Login successful!');
+        console.log('✅ Password login successful!');
         // Navigation will be handled by AuthContext automatically
-        // No need to show success alert as the app will navigate to dashboard
       }
     } catch (error) {
       console.error('💥 Login error:', error);
       Alert.alert('Error', 'An unexpected error occurred. Please try again.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const verifyOTPAndSetupPassword = async (email: string, otpCode: string) => {
+    try {
+      console.log('🔐 Verifying OTP code and setting up password...');
+      
+      const { data, error } = await supabase.auth.verifyOtp({
+        type: 'email',
+        email,
+        token: otpCode.trim(),
+      });
+      
+      if (error) {
+        console.error('❌ OTP verification failed:', error);
+        Alert.alert('Verification Failed', 'Invalid code. Please try again.');
+        return;
+      }
+      
+      console.log('✅ OTP verification successful!');
+      
+      // Now prompt user to set up a password for future logins
+      Alert.prompt(
+        'Set Up Password',
+        'Please create a password for easier future sign-ins:',
+        [
+          {
+            text: 'Set Password',
+            onPress: async (newPassword) => {
+              if (!newPassword || newPassword.length < 6) {
+                Alert.alert('Error', 'Password must be at least 6 characters long.');
+                return;
+              }
+              
+              await setupPasswordForUser(newPassword);
+            }
+          }
+        ],
+        'secure-text',
+        '',
+        'default'
+      );
+      
+    } catch (error) {
+      console.error('❌ OTP verification error:', error);
+      Alert.alert('Error', 'Verification failed. Please try again.');
+    }
+  };
+
+  const setupPasswordForUser = async (newPassword: string) => {
+    try {
+      console.log('🔑 Setting up password for user...');
+      
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+      
+      if (error) {
+        console.error('❌ Password setup failed:', error);
+        Alert.alert('Error', 'Failed to set up password. You can still sign in with verification codes.');
+        return;
+      }
+      
+      console.log('✅ Password set up successfully!');
+      Alert.alert(
+        'Password Set Up!',
+        'Your password has been set up successfully. You can now sign in with your email and password.',
+        [{ text: 'OK' }]
+      );
+      
+    } catch (error) {
+      console.error('❌ Password setup error:', error);
+      Alert.alert('Error', 'Failed to set up password. You can still sign in with verification codes.');
     }
   };
 
@@ -135,6 +258,10 @@ export default function LoginScreen() {
             >
               <Text style={styles.forgotPasswordText}>Forgot password?</Text>
             </TouchableOpacity>
+            
+            <Text style={styles.helpText}>
+              If you signed up with a magic link, we'll send you a verification code and help you set up a password.
+            </Text>
 
             <TouchableOpacity
               style={[styles.loginButton, loading && styles.loginButtonDisabled]}
@@ -262,6 +389,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6366f1',
     fontWeight: '500',
+  },
+  helpText: {
+    color: '#64748b',
+    fontSize: 12,
+    textAlign: 'center',
+    marginBottom: 16,
+    fontStyle: 'italic',
   },
   loginButton: {
     borderRadius: 12,

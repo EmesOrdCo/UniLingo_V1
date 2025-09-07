@@ -29,7 +29,7 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
   // Generate questions from vocabulary
   React.useEffect(() => {
     const generatedQuestions: FillInTheBlankQuestion[] = vocabulary
-      .filter(item => item.example_sentence_en && item.keywords)
+      .filter(item => item && item.example_sentence_en && item.keywords && item.definition)
       .map(item => ({
         id: item.id,
         sentence: item.example_sentence_en,

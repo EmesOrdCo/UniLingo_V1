@@ -175,9 +175,9 @@ export class UploadService {
     }
   }
 
-  // PDF text extraction removed - now handled by PDF.co API
+  // PDF text extraction removed - now handled by backend API
   static async extractTextFromPDF(uri: string): Promise<string> {
-    throw new Error('PDF text extraction is now handled by PDF.co API. Please use the API-based flow.');
+    throw new Error('PDF text extraction is handled by backend API. Please use the API-based flow.');
   }
 
   static async generateFlashcards(

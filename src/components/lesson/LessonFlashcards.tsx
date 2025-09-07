@@ -18,6 +18,18 @@ export default function LessonFlashcards({ vocabulary, onComplete, onClose, onPr
   const [viewedCards, setViewedCards] = useState<Set<number>>(new Set());
   const flipAnimation = useRef(new Animated.Value(0)).current;
 
+  // Safety check for vocabulary data
+  if (!vocabulary || vocabulary.length === 0) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.errorText}>No vocabulary data available</Text>
+        <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+          <Text style={styles.closeButtonText}>Close</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   const currentCard = vocabulary[currentIndex];
 
   // Update progress when card index changes
@@ -117,7 +129,7 @@ export default function LessonFlashcards({ vocabulary, onComplete, onClose, onPr
           <Animated.View style={[styles.cardFace, styles.cardFront, frontAnimatedStyle]}>
             <View style={styles.cardContent}>
               <Text style={styles.cardTitle}>Term</Text>
-              <Text style={styles.cardText}>{currentCard.keywords}</Text>
+              <Text style={styles.cardText}>{currentCard?.keywords || 'No term available'}</Text>
               <View style={styles.flipHint}>
                 <Ionicons name="sync" size={16} color="#64748b" />
                 <Text style={styles.flipHintText}>Tap to flip</Text>
@@ -128,9 +140,9 @@ export default function LessonFlashcards({ vocabulary, onComplete, onClose, onPr
           <Animated.View style={[styles.cardFace, styles.cardBack, backAnimatedStyle]}>
             <View style={styles.cardContent}>
               <Text style={styles.cardTitle}>Definition</Text>
-              <Text style={styles.cardText}>{currentCard.definition}</Text>
-              <Text style={styles.translationText}>Translation: {currentCard.native_translation}</Text>
-              {currentCard.example_sentence_en && (
+              <Text style={styles.cardText}>{currentCard?.definition || 'No definition available'}</Text>
+              <Text style={styles.translationText}>Translation: {currentCard?.native_translation || 'No translation available'}</Text>
+              {currentCard?.example_sentence_en && (
                 <Text style={styles.exampleText}>Example: {currentCard.example_sentence_en}</Text>
               )}
               <View style={styles.flipHint}>
@@ -358,5 +370,23 @@ const styles = StyleSheet.create({
   },
   indicatorViewed: {
     backgroundColor: '#10b981',
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#ef4444',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  closeButton: {
+    backgroundColor: '#6366f1',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    alignSelf: 'center',
+  },
+  closeButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

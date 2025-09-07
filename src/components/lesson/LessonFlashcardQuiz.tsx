@@ -42,10 +42,16 @@ export default function LessonFlashcardQuiz({ vocabulary, onComplete, onClose, o
     const quizQuestions: QuizQuestion[] = [];
     
     vocabulary.forEach((vocab) => {
+      // Safety check to ensure vocab exists and has required properties
+      if (!vocab || !vocab.keywords || !vocab.definition || !vocab.native_translation) {
+        console.warn('Skipping invalid vocabulary item:', vocab);
+        return;
+      }
+      
       // Create definition question
       const definitionOptions = [vocab.definition];
       const otherDefinitions = vocabulary
-        .filter(v => v.id !== vocab.id)
+        .filter(v => v.id !== vocab.id && v.definition)
         .map(v => v.definition)
         .sort(() => Math.random() - 0.5)
         .slice(0, 3);
@@ -63,7 +69,7 @@ export default function LessonFlashcardQuiz({ vocabulary, onComplete, onClose, o
       // Create translation question
       const translationOptions = [vocab.native_translation];
       const otherTranslations = vocabulary
-        .filter(v => v.id !== vocab.id)
+        .filter(v => v.id !== vocab.id && v.native_translation)
         .map(v => v.native_translation)
         .sort(() => Math.random() - 0.5)
         .slice(0, 3);

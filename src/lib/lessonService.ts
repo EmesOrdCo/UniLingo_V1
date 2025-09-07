@@ -190,44 +190,16 @@ export class LessonService {
     try {
       console.log('🔍 Generating vocabulary from keywords...');
       
-      const prompt = `You are an expert language teacher creating vocabulary lessons for non-native English speakers.
+      const prompt = `Create vocabulary entries for these keywords. Return ONLY a JSON array:
 
-TASK: Create comprehensive vocabulary entries for each provided keyword, considering the user's subject and native language.
-
-REQUIREMENTS:
-- Create vocabulary items for EVERY keyword provided
-- Provide accurate definitions and translations
-- Include contextual example sentences
-- Assign appropriate difficulty ranks (1=beginner, 2=intermediate, 3=advanced)
-- Consider the subject context for definitions
-- Ensure translations are accurate for the specified native language
-
-CRITICAL OUTPUT REQUIREMENTS:
-- Return ONLY a JSON array of objects
-- Do NOT include any explanations, markdown, or text outside the JSON
-- The response must start with [ and end with ]
-- Do NOT use backticks, code blocks, or any markdown formatting
-- Return raw, unformatted JSON only
-
-REQUIRED FORMAT:
-[
-  {
-    "english_term": "string",
-    "definition": "string",
-    "native_translation": "string",
-    "example_sentence_en": "string",
-    "example_sentence_native": "string",
-    "difficulty_rank": "number (1-3)"
-  }
-]
-
-Keywords to process:
-${JSON.stringify(keywords)}
-
+Keywords: ${keywords.slice(0, 10).join(', ')} ${keywords.length > 10 ? `(+${keywords.length - 10} more)` : ''}
 Subject: ${subject}
-Native Language: ${nativeLanguage}
+Language: ${nativeLanguage}
 
-Create vocabulary entries for ALL keywords. Return ONLY the JSON array:`;
+Format:
+[{"english_term": "word", "definition": "meaning", "native_translation": "translation", "example_sentence_en": "example", "example_sentence_native": "translated example", "difficulty_rank": 2}]
+
+Return ONLY the JSON array:`;
 
       // Prepare messages for cost estimation
       const messages = [
@@ -305,13 +277,13 @@ Create vocabulary entries for ALL keywords. Return ONLY the JSON array:`;
     try {
       console.log('🚀 Creating lesson from PDF...');
 
-      // Step 1: PDF text extraction now handled by PDF.co API
+      // Step 1: PDF text extraction handled by backend API
       // This function will be updated to work with the API flow
-      throw new Error('PDF text extraction is now handled by PDF.co API. Please use the API-based flow.');
+      throw new Error('PDF text extraction is handled by backend API. Please use the API-based flow.');
       
-      // This function is now deprecated - PDF processing is handled by PDF.co API
+      // This function is now deprecated - PDF processing is handled by backend API
       // and lesson creation is handled directly in the CreateLessonScreen
-      throw new Error('This function is deprecated. Use the PDF.co API flow in CreateLessonScreen.');
+      throw new Error('This function is deprecated. Use the backend API flow in CreateLessonScreen.');
 
     } catch (error) {
       console.error('❌ Error creating lesson:', error);
@@ -347,9 +319,12 @@ Create vocabulary entries for ALL keywords. Return ONLY the JSON array:`;
 
       if (vocabError) throw vocabError;
 
+      // Vocabulary data is already in the correct format (keywords field)
+      const mappedVocabulary = vocabulary || [];
+
       return {
         lesson,
-        vocabulary: vocabulary || []
+        vocabulary: mappedVocabulary
       };
 
     } catch (error) {

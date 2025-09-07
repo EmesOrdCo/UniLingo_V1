@@ -29,18 +29,68 @@ UniLingo_Final/
 
 ## Getting Started
 
-### Frontend (React Native/Expo)
+### Quick Setup (Recommended)
 ```bash
-npm install
-npm start
+# Run the automated setup script
+node setup.js
 ```
 
-### Backend (Node.js)
+### Manual Setup
+
+#### 1. Install Dependencies
 ```bash
+# Install frontend dependencies
+npm install
+
+# Install backend dependencies
 cd backend
 npm install
-# Copy env.example to .env and configure
+cd ..
+```
+
+#### 2. Configure Environment
+```bash
+# Create frontend .env file with your Supabase credentials
+cp .env.example .env
+
+# Create backend .env file with your API keys
+cd backend
+cp env.example .env
+cd ..
+```
+
+#### 3. Detect IP Address (Important!)
+```bash
+# Auto-detect your local IP and update frontend config
+node detect-ip.js
+```
+
+#### 4. Start the Application
+```bash
+# Terminal 1: Start backend server
+cd backend
 npm start
+
+# Terminal 2: Start frontend
+npx expo start
+```
+
+### Troubleshooting
+
+#### Connection Issues
+If you're having trouble connecting to the backend:
+```bash
+# Re-detect your IP address
+node detect-ip.js
+```
+
+#### Manual IP Configuration
+If automatic IP detection fails, manually edit `src/config/backendConfig.ts`:
+```typescript
+export const BACKEND_CONFIG = {
+  BASE_URL: 'http://YOUR_LOCAL_IP:3001',
+  // ... rest of config
+};
 ```
 
 ## What Was Cleaned Up

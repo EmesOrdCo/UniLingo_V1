@@ -47,6 +47,12 @@ export default function LessonWordScramble({ vocabulary, onComplete, onClose, on
     const scrambleQuestions: WordScrambleQuestion[] = [];
     
     vocabulary.forEach((vocab) => {
+      // Safety check to ensure vocab exists and has required properties
+      if (!vocab || !vocab.keywords || !vocab.definition) {
+        console.warn('Skipping invalid vocabulary item:', vocab);
+        return;
+      }
+      
       const word = vocab.keywords;
       const scrambled = word.split('').sort(() => Math.random() - 0.5).join('');
       

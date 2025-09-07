@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { LessonService, Lesson } from '../lib/lessonService';
 
@@ -12,10 +12,12 @@ export default function LessonsContent() {
   const navigation = useNavigation();
   const { user } = useAuth();
 
-  // Fetch user's lessons on component mount
-  useEffect(() => {
-    fetchUserLessons();
-  }, []);
+  // Fetch user's lessons when component comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchUserLessons();
+    }, [user])
+  );
 
   const fetchUserLessons = async () => {
     if (!user) {
@@ -158,13 +160,26 @@ export default function LessonsContent() {
           {/* Lessons Header */}
           <View style={styles.lessonsHeader}>
             <Text style={styles.lessonsTitle}>{lessons.length} lessons created</Text>
-            <TouchableOpacity 
-              style={styles.addLessonButton}
-              onPress={handleCreateLesson}
-            >
-              <Ionicons name="add" size={20} color="#ffffff" />
-              <Text style={styles.addLessonButtonText}>New Lesson</Text>
-            </TouchableOpacity>
+            <View style={styles.headerButtons}>
+              <TouchableOpacity 
+                style={styles.refreshButton}
+                onPress={fetchUserLessons}
+                disabled={loadingLessons}
+              >
+                <Ionicons 
+                  name="refresh" 
+                  size={16} 
+                  color={loadingLessons ? "#94a3b8" : "#6366f1"} 
+                />
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.addLessonButton}
+                onPress={handleCreateLesson}
+              >
+                <Ionicons name="add" size={20} color="#ffffff" />
+                <Text style={styles.addLessonButtonText}>New Lesson</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           {lessons.map((lesson, index) => (
@@ -323,6 +338,18 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 20,
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  refreshButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
   },
   lessonsTitle: {
     fontSize: 18,

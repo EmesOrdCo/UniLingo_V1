@@ -17,55 +17,7 @@ import { useAuth } from '../contexts/AuthContext';
 import * as DocumentPicker from 'expo-document-picker';
 
 import { supabase } from '../lib/supabase';
-import { ENV } from '../lib/envConfig';
-import OpenAI from 'openai';
-import OpenAIWithRateLimit from '../lib/openAIWithRateLimit';
-
-// Initialize OpenAI client with rate limiting
-const openai = new OpenAIWithRateLimit({
-  apiKey: ENV.OPENAI_API_KEY,
-});
-
-// Function to generate specific lesson title based on PDF content
-const generateSpecificLessonTitle = async (extractedText: string, subject: string): Promise<string> => {
-  try {
-    const response = await openai.createChatCompletion({
-      model: 'gpt-4o-mini',
-      messages: [
-        {
-          role: 'system',
-          content: `You are an expert educator creating lesson titles. Generate a specific, descriptive title for a vocabulary lesson based on the PDF content provided. The title should be:
-- Specific to the actual content (not generic)
-- Descriptive of the main topic/focus
-- Professional and educational
-- 3-8 words maximum
-- Avoid generic terms like "Vocabulary Lesson" or "Medical Terms"
-
-Examples of good titles:
-- "Cardiovascular System Terminology"
-- "Pharmacology Drug Interactions"
-- "Anatomy of the Nervous System"
-- "Clinical Assessment Procedures"
-
-Generate only the title, nothing else.`
-        },
-        {
-          role: 'user',
-          content: `Subject: ${subject}\n\nPDF Content (first 2000 characters):\n${extractedText.substring(0, 2000)}`
-        }
-      ],
-      max_tokens: 50,
-      temperature: 0.7,
-      priority: 1
-    });
-
-    return response.content.trim() || `${subject} Terminology`;
-  } catch (error) {
-    console.error('Error generating lesson title:', error);
-    // Fallback to a more specific default
-    return `${subject} Terminology`;
-  }
-};
+import { LessonService } from '../lib/lessonService';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -141,7 +93,7 @@ export default function CreateLessonScreen() {
       }
 
       const webhookResult = await webhookResponse.json();
-      console.log('✅ PDF sent to PDF.co API successfully:', webhookResult);
+      console.log('✅ PDF sent to backend API successfully:', webhookResult);
 
               setProgress({
           stage: 'processing',
@@ -149,14 +101,14 @@ export default function CreateLessonScreen() {
           message: 'PDF uploaded successfully, creating lesson...',
         });
 
-      // Create lesson with extracted text from PDF.co API
+      // Create lesson with extracted text from backend API
       const estimatedDuration = 45; // Default duration
       
-      // Extract text from the PDF.co API response
+      // Extract text from the backend API response
       const extractedText = webhookResult.result?.text || 'Text extraction failed';
       
-      // Generate a specific lesson title based on PDF content
-      const lessonTitle = await generateSpecificLessonTitle(extractedText, selectedSubject);
+      // Generate a simple lesson title based on subject
+      const lessonTitle = `${selectedSubject} Terminology`;
       
       const { data: lesson, error: lessonError } = await supabase
         .from('esp_lessons')
@@ -168,8 +120,7 @@ export default function CreateLessonScreen() {
           native_language: userNativeLanguage,
           estimated_duration: estimatedDuration,
           difficulty_level: 'intermediate',
-          status: 'ready',
-          content: extractedText.substring(0, 5000) // Store first 5000 chars of extracted text
+          status: 'ready'
         }])
         .select()
         .single();
@@ -184,6 +135,62 @@ export default function CreateLessonScreen() {
 
       if (!lesson) {
         throw new Error('Failed to create lesson');
+      }
+
+      setProgress({
+        stage: 'processing',
+        progress: 80,
+        message: 'Creating lesson structure...',
+      });
+
+      // Generate vocabulary for the lesson
+      setProgress({
+        stage: 'processing',
+        progress: 85,
+        message: 'Generating vocabulary...',
+      });
+
+      try {
+        console.log('🔍 Extracting keywords from PDF text...');
+        const keywords = await LessonService.extractKeywordsFromPDF(
+          extractedText,
+          selectedSubject,
+          userNativeLanguage
+        );
+        
+        console.log('📚 Generating vocabulary from keywords...');
+        const vocabularyData = await LessonService.generateVocabularyFromKeywords(
+          keywords,
+          selectedSubject,
+          userNativeLanguage
+        );
+
+        // Store vocabulary in the database
+        console.log('💾 Storing vocabulary in database...');
+        const vocabularyWithLessonId = vocabularyData.map(vocab => ({
+          lesson_id: lesson.id,
+          keywords: vocab.english_term, // Map english_term to keywords for database
+          definition: vocab.definition,
+          native_translation: vocab.native_translation,
+          example_sentence_en: vocab.example_sentence_en,
+          example_sentence_native: vocab.example_sentence_native,
+          difficulty_rank: vocab.difficulty_rank
+        }));
+
+        const { error: vocabError } = await supabase
+          .from('lesson_vocabulary')
+          .insert(vocabularyWithLessonId);
+
+        if (vocabError) {
+          console.error('❌ Error storing vocabulary:', vocabError);
+          throw new Error('Failed to store lesson vocabulary');
+        }
+
+        console.log(`✅ Successfully stored ${vocabularyData.length} vocabulary items`);
+      } catch (vocabError) {
+        console.error('❌ Error generating vocabulary:', vocabError);
+        // Don't fail the entire lesson creation if vocabulary generation fails
+        console.log('⚠️ Continuing without vocabulary - lesson created but no exercises available');
       }
 
       setProgress({
