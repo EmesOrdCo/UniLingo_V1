@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions, TextInput, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 interface GravityGameProps {
@@ -15,48 +15,130 @@ const GravityGame: React.FC<GravityGameProps> = ({ gameData, onClose, onGameComp
   const [lives, setLives] = useState(3);
   const [gameOver, setGameOver] = useState(false);
   const [gameComplete, setGameComplete] = useState(false);
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [userInput, setUserInput] = useState('');
+  const [meteors, setMeteors] = useState<any[]>([]);
+  const [currentWave, setCurrentWave] = useState(1);
+  const [gameSpeed, setGameSpeed] = useState(3000); // Initial meteor spawn interval
+  const [meteorSpeed, setMeteorSpeed] = useState(2); // Initial meteor fall speed
 
   // Use ref to capture final score and prevent multiple calls
   const finalScoreRef = useRef<number>(0);
   const completionCalledRef = useRef<boolean>(false);
+  const meteorSpawnInterval = useRef<NodeJS.Timeout | null>(null);
+  const meteorMoveInterval = useRef<NodeJS.Timeout | null>(null);
+  const gameStartTime = useRef<number>(Date.now());
 
+  // Game completion effect
   useEffect(() => {
     if ((gameComplete || gameOver) && !completionCalledRef.current) {
-      console.log('🪐 Gravity Game calling onGameComplete with:', {
+      console.log('🪐 Planet Defence calling onGameComplete with:', {
         score: finalScoreRef.current
       });
       completionCalledRef.current = true;
       onGameComplete(finalScoreRef.current);
     }
-  }, [gameComplete, gameOver]); // Only depend on gameComplete and gameOver to avoid multiple calls
+  }, [gameComplete, gameOver]);
 
-  const handleCorrectAnswer = () => {
-    setScore(score + 1);
-    if (currentQuestionIndex < gameData.questions.length - 1) {
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
-    } else {
-      // Capture final score before completing game
-      finalScoreRef.current = score + 1; // +1 because we just scored
-      setGameComplete(true);
+  // Start game when component mounts
+  useEffect(() => {
+    startGame();
+    return () => {
+      if (meteorSpawnInterval.current) clearInterval(meteorSpawnInterval.current);
+      if (meteorMoveInterval.current) clearInterval(meteorMoveInterval.current);
+    };
+  }, []);
+
+  const startGame = () => {
+    gameStartTime.current = Date.now();
+    
+    // Spawn meteors periodically
+    meteorSpawnInterval.current = setInterval(() => {
+      spawnMeteor();
+    }, gameSpeed);
+
+    // Move meteors down
+    meteorMoveInterval.current = setInterval(() => {
+      moveMeteors();
+    }, 50); // Update every 50ms for smooth movement
+  };
+
+  const spawnMeteor = () => {
+    if (gameData.questions && gameData.questions.length > 0) {
+      const randomQuestion = gameData.questions[Math.floor(Math.random() * gameData.questions.length)];
+      const newMeteor = {
+        id: Date.now() + Math.random(),
+        question: randomQuestion.question,
+        correctAnswer: randomQuestion.correctAnswer,
+        x: Math.random() * (width - 100) + 50, // Random x position
+        y: -50, // Start above screen
+        speed: meteorSpeed,
+        destroyed: false
+      };
+      
+      setMeteors(prev => [...prev, newMeteor]);
     }
   };
 
-  const handleWrongAnswer = () => {
-    const newLives = lives - 1;
-    setLives(newLives);
-    
-    if (newLives <= 0) {
-      // Capture final score before game over
-      finalScoreRef.current = score;
-      setGameOver(true);
-    } else if (currentQuestionIndex < gameData.questions.length - 1) {
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
-    } else {
-      // Capture final score before completing game
-      finalScoreRef.current = score;
-      setGameComplete(true);
-    }
+  const moveMeteors = () => {
+    setMeteors(prev => {
+      const updatedMeteors = prev.map(meteor => ({
+        ...meteor,
+        y: meteor.y + meteor.speed
+      }));
+
+      // Check for meteors that hit the planet (bottom of screen)
+      const hitMeteors = updatedMeteors.filter(meteor => meteor.y > height - 200 && !meteor.destroyed);
+      
+      if (hitMeteors.length > 0) {
+        // Reduce lives for each meteor that hits
+        const newLives = lives - hitMeteors.length;
+        setLives(newLives);
+        
+        if (newLives <= 0) {
+          finalScoreRef.current = score;
+          setGameOver(true);
+          if (meteorSpawnInterval.current) clearInterval(meteorSpawnInterval.current);
+          if (meteorMoveInterval.current) clearInterval(meteorMoveInterval.current);
+        }
+      }
+
+      // Remove meteors that are off screen or destroyed
+      return updatedMeteors.filter(meteor => meteor.y < height + 100 && !meteor.destroyed);
+    });
+  };
+
+  const handleInputSubmit = () => {
+    if (!userInput.trim()) return;
+
+    const input = userInput.toLowerCase().trim();
+    let meteorDestroyed = false;
+
+    setMeteors(prev => {
+      return prev.map(meteor => {
+        if (!meteor.destroyed && meteor.correctAnswer.toLowerCase().trim() === input) {
+          meteorDestroyed = true;
+          setScore(score + 1);
+          
+          // Increase difficulty every 5 meteors destroyed
+          if ((score + 1) % 5 === 0) {
+            setCurrentWave(prev => prev + 1);
+            setGameSpeed(prev => Math.max(1000, prev - 200)); // Faster spawning
+            setMeteorSpeed(prev => Math.min(6, prev + 0.5)); // Faster falling
+          }
+          
+          return { ...meteor, destroyed: true };
+        }
+        return meteor;
+      });
+    });
+
+    setUserInput('');
+  };
+
+  const destroyMeteor = (meteorId: number) => {
+    setMeteors(prev => prev.map(meteor => 
+      meteor.id === meteorId ? { ...meteor, destroyed: true } : meteor
+    ));
   };
 
   const resetGame = () => {
@@ -64,9 +146,20 @@ const GravityGame: React.FC<GravityGameProps> = ({ gameData, onClose, onGameComp
     setLives(3);
     setGameOver(false);
     setGameComplete(false);
-    setCurrentQuestionIndex(0);
-    finalScoreRef.current = 0; // Reset the ref as well
-    completionCalledRef.current = false; // Reset completion called flag
+    setUserInput('');
+    setMeteors([]);
+    setCurrentWave(1);
+    setGameSpeed(3000);
+    setMeteorSpeed(2);
+    finalScoreRef.current = 0;
+    completionCalledRef.current = false;
+    
+    // Clear intervals
+    if (meteorSpawnInterval.current) clearInterval(meteorSpawnInterval.current);
+    if (meteorMoveInterval.current) clearInterval(meteorMoveInterval.current);
+    
+    // Restart game
+    startGame();
   };
 
   const handleReturnToMenu = () => {
@@ -77,17 +170,17 @@ const GravityGame: React.FC<GravityGameProps> = ({ gameData, onClose, onGameComp
     return (
       <View style={styles.gameContainer}>
         <View style={styles.completionContainer}>
-          <Text style={styles.completionTitle}>🎉 Gravity Game Complete!</Text>
-          <Text style={styles.completionSubtitle}>Great job!</Text>
+          <Text style={styles.completionTitle}>🎉 Planet Defence Complete!</Text>
+          <Text style={styles.completionSubtitle}>Great job defending the planet!</Text>
           
           <View style={styles.statsContainer}>
             <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Score</Text>
-              <Text style={styles.statValue}>{score}/{gameData.questions.length}</Text>
+              <Text style={styles.statLabel}>Meteors Destroyed</Text>
+              <Text style={styles.statValue}>{score}</Text>
             </View>
             <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Percentage</Text>
-              <Text style={styles.statValue}>{Math.round((score / gameData.questions.length) * 100)}%</Text>
+              <Text style={styles.statLabel}>Wave Reached</Text>
+              <Text style={styles.statValue}>{currentWave}</Text>
             </View>
           </View>
           
@@ -109,17 +202,17 @@ const GravityGame: React.FC<GravityGameProps> = ({ gameData, onClose, onGameComp
     return (
       <View style={styles.gameContainer}>
         <View style={styles.completionContainer}>
-          <Text style={styles.completionTitle}>💥 Gravity Game Over!</Text>
-          <Text style={styles.completionSubtitle}>Better luck next time!</Text>
+          <Text style={styles.completionTitle}>💥 Planet Destroyed!</Text>
+          <Text style={styles.completionSubtitle}>The meteors got through!</Text>
           
           <View style={styles.statsContainer}>
             <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Score</Text>
-              <Text style={styles.statValue}>{score}/{gameData.questions.length}</Text>
+              <Text style={styles.statLabel}>Meteors Destroyed</Text>
+              <Text style={styles.statValue}>{score}</Text>
             </View>
             <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Percentage</Text>
-              <Text style={styles.statValue}>{Math.round((score / gameData.questions.length) * 100)}%</Text>
+              <Text style={styles.statLabel}>Wave Reached</Text>
+              <Text style={styles.statValue}>{currentWave}</Text>
             </View>
           </View>
           
@@ -137,52 +230,62 @@ const GravityGame: React.FC<GravityGameProps> = ({ gameData, onClose, onGameComp
     );
   }
 
-  const currentQuestion = gameData.questions[currentQuestionIndex];
-
   return (
     <View style={styles.gameContainer}>
       {/* Game Header */}
       <View style={styles.gameHeader}>
         <View style={styles.headerInfo}>
-          <Text style={styles.scoreText}>Score: {score}</Text>
+          <Text style={styles.scoreText}>Meteors Destroyed: {score}</Text>
           <Text style={styles.livesText}>Lives: {lives}</Text>
+          <Text style={styles.waveText}>Wave: {currentWave}</Text>
         </View>
-        <Text style={styles.questionCounter}>
-          {currentQuestionIndex + 1} of {gameData.questions.length}
-        </Text>
       </View>
 
       {/* Game Area */}
       <View style={styles.gameArea}>
-        {/* Planet */}
+        {/* Meteors */}
+        {meteors.map((meteor) => (
+          <View
+            key={meteor.id}
+            style={[
+              styles.meteor,
+              {
+                left: meteor.x,
+                top: meteor.y,
+                opacity: meteor.destroyed ? 0 : 1,
+              }
+            ]}
+          >
+            <Ionicons name="planet" size={30} color="#ef4444" />
+            <Text style={styles.meteorText}>{meteor.question}</Text>
+          </View>
+        ))}
+
+        {/* Planet at bottom */}
         <View style={styles.planet}>
-          <Ionicons name="planet" size={80} color="#3b82f6" />
+          <Ionicons name="planet" size={100} color="#3b82f6" />
+          <Text style={styles.planetText}>EARTH</Text>
         </View>
 
-        {/* Question */}
-        <View style={styles.questionContainer}>
-          <Text style={styles.questionText}>
-            {currentQuestion.question || 'Defend the planet!'}
+        {/* Input Area */}
+        <View style={styles.inputArea}>
+          <Text style={styles.instructionText}>
+            Type the correct answer to destroy meteors!
           </Text>
-        </View>
-
-        {/* Answer Options */}
-        <View style={styles.answersContainer}>
-          {currentQuestion.options?.map((option: string, index: number) => (
-            <TouchableOpacity
-              key={index}
-              style={styles.answerButton}
-              onPress={() => {
-                if (option === currentQuestion.correctAnswer) {
-                  handleCorrectAnswer();
-                } else {
-                  handleWrongAnswer();
-                }
-              }}
-            >
-              <Text style={styles.answerButtonText}>{option}</Text>
-            </TouchableOpacity>
-          ))}
+          <TextInput
+            style={styles.textInput}
+            value={userInput}
+            onChangeText={setUserInput}
+            onSubmitEditing={handleInputSubmit}
+            placeholder="Type your answer..."
+            placeholderTextColor="#94a3b8"
+            autoCapitalize="none"
+            autoCorrect={false}
+            returnKeyType="done"
+          />
+          <TouchableOpacity style={styles.submitButton} onPress={handleInputSubmit}>
+            <Text style={styles.submitButtonText}>DESTROY!</Text>
+          </TouchableOpacity>
         </View>
       </View>
     </View>
@@ -215,49 +318,85 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#ef4444',
   },
-  questionCounter: {
-    fontSize: 14,
-    color: '#94a3b8',
-    fontWeight: '500',
+  waveText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#f59e0b',
   },
   gameArea: {
     flex: 1,
-    justifyContent: 'center',
+    position: 'relative',
+  },
+  meteor: {
+    position: 'absolute',
     alignItems: 'center',
-    padding: 40,
+    justifyContent: 'center',
+    width: 80,
+    height: 60,
   },
-  planet: {
-    marginBottom: 40,
-  },
-  questionContainer: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    padding: 24,
-    borderRadius: 16,
-    marginBottom: 40,
-    maxWidth: width - 80,
-  },
-  questionText: {
-    fontSize: 18,
+  meteorText: {
+    fontSize: 12,
     fontWeight: '600',
     color: '#ffffff',
     textAlign: 'center',
-    lineHeight: 26,
+    marginTop: 4,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    borderRadius: 4,
   },
-  answersContainer: {
-    width: '100%',
-    gap: 16,
+  planet: {
+    position: 'absolute',
+    bottom: 50,
+    left: width / 2 - 50,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  answerButton: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
+  planetText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#3b82f6',
+    marginTop: 4,
+  },
+  inputArea: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0,0,0,0.8)',
     padding: 20,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center',
   },
-  answerButtonText: {
+  instructionText: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: '600',
+    color: '#ffffff',
+    textAlign: 'center',
+    marginBottom: 15,
+  },
+  textInput: {
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderWidth: 2,
+    borderColor: '#3b82f6',
+    borderRadius: 12,
+    padding: 15,
+    fontSize: 18,
+    color: '#ffffff',
+    width: '100%',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  submitButton: {
+    backgroundColor: '#ef4444',
+    paddingVertical: 15,
+    paddingHorizontal: 30,
+    borderRadius: 12,
+    alignItems: 'center',
+    width: '100%',
+  },
+  submitButtonText: {
+    fontSize: 18,
+    fontWeight: '700',
     color: '#ffffff',
   },
   completionContainer: {
