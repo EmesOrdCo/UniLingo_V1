@@ -25,6 +25,7 @@ const SpeedChallengeGame: React.FC<SpeedChallengeGameProps> = ({ gameData, onClo
   const finalScoreRef = useRef<number>(0);
   const finalElapsedTimeRef = useRef<number>(0);
   const finalTotalAnsweredRef = useRef<number>(0);
+  const completionCalledRef = useRef<boolean>(false);
 
   useEffect(() => {
     gameStartTimeRef.current = Date.now();
@@ -52,6 +53,15 @@ const SpeedChallengeGame: React.FC<SpeedChallengeGameProps> = ({ gameData, onClo
     
     return () => clearInterval(timer);
   }, [timeLimit]);
+
+  // Auto-call onGameComplete when game finishes
+  useEffect(() => {
+    if (gameComplete && !completionCalledRef.current) {
+      console.log('🎯 SpeedChallenge calling onGameComplete with score:', finalScoreRef.current, 'time:', finalElapsedTimeRef.current, 'totalAnswered:', finalTotalAnsweredRef.current);
+      completionCalledRef.current = true;
+      onGameComplete(finalScoreRef.current, finalElapsedTimeRef.current, finalTotalAnsweredRef.current);
+    }
+  }, [gameComplete, onGameComplete]);
 
   // Handle game completion - removed automatic call, now handled by user action
 

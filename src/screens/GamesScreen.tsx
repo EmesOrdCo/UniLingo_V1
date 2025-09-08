@@ -814,9 +814,9 @@ export default function GamesScreen() {
       // Special handling for Speed Challenge game
       if (currentGame === 'Speed Challenge') {
         // For Speed Challenge: finalScore = correct answers, totalQuestions = questions answered (including skips)
-        totalQuestions = totalAnswered || finalScore; // Use totalAnswered if provided, fallback to finalScore
+        totalQuestions = totalAnswered || 1; // Use totalAnswered if provided, fallback to 1 to avoid division by zero
         accuracyPercentage = totalQuestions > 0 ? Math.round((finalScore / totalQuestions) * 100) : 0;
-        maxScore = totalQuestions * 100; // 100 points per question answered
+        maxScore = Math.max(totalQuestions * 100, 100); // Minimum 100 points, 100 points per question answered
         
         console.log('⚡ Speed Challenge scoring:', {
           correctAnswers: finalScore,
@@ -852,11 +852,15 @@ export default function GamesScreen() {
 
       console.log('📊 Calculated accuracy:', accuracyPercentage, '% from', finalScore, 'correct out of', totalQuestions, 'questions');
 
+      // Calculate score safely to avoid NaN
+      const calculatedScore = totalQuestions > 0 ? Math.round((finalScore / totalQuestions) * maxScore) : 0;
+      console.log('📊 Calculated score:', calculatedScore, 'from', finalScore, '/', totalQuestions, '*', maxScore);
+
       await ProgressTrackingService.recordGameActivity({
         activityType: 'game',
         activityName: gameName,
         durationSeconds,
-        score: Math.round((finalScore / totalQuestions) * maxScore),
+        score: calculatedScore,
         maxScore,
         accuracyPercentage,
         gameData,
@@ -870,7 +874,7 @@ export default function GamesScreen() {
           const xpResult = await XPService.awardXP(
             user.id,
             'game',
-            Math.round((finalScore / totalQuestions) * maxScore),
+            calculatedScore,
             maxScore,
             accuracyPercentage,
             gameName,
@@ -886,18 +890,25 @@ export default function GamesScreen() {
       }
 
       // Update game stats (existing functionality)
-    setGameStats(prev => ({
-      ...prev,
-      gamesPlayed: prev.gamesPlayed + 1,
-      totalScore: prev.totalScore + finalScore,
-      bestScore: Math.max(prev.bestScore, finalScore),
-      averageScore: Math.round((prev.totalScore + finalScore) / (prev.gamesPlayed + 1)),
-    }));
+      setGameStats(prev => ({
+        ...prev,
+        gamesPlayed: prev.gamesPlayed + 1,
+        totalScore: prev.totalScore + finalScore,
+        bestScore: Math.max(prev.bestScore, finalScore),
+        averageScore: Math.round((prev.totalScore + finalScore) / (prev.gamesPlayed + 1)),
+      }));
+
+      console.log(`🎯 [${screenId}] [${completionId}] ALL DATABASE OPERATIONS COMPLETED SUCCESSFULLY`);
+      
     } catch (error) {
       console.error('❌ Error tracking game progress:', error);
     }
 
-    // Close game modal and show completion message
+    // Wait a moment to ensure database operations complete
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    // Close game modal and show completion message - MOVED AFTER DATABASE OPERATIONS
+    console.log('🔄 Closing game modal and resetting all state');
     setShowGameModal(false);
     setCurrentGame(null);
     setGameData(null);

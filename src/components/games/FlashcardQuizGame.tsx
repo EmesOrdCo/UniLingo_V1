@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -27,8 +27,20 @@ const FlashcardQuizGame: React.FC<FlashcardQuizGameProps> = ({
   const [userAnswers, setUserAnswers] = useState<string[]>([]);
   const [reviewFilter, setReviewFilter] = useState<'all' | 'correct' | 'incorrect'>('all');
   
+  // Use ref to prevent multiple completion calls
+  const completionCalledRef = useRef<boolean>(false);
+  
   // Get language mode from gameData
   const languageMode = gameData.languageMode || 'question';
+  
+  // Auto-call onGameComplete when game finishes
+  useEffect(() => {
+    if (showReview && !completionCalledRef.current) {
+      console.log('🎯 FlashcardQuiz calling onGameComplete with score:', score);
+      completionCalledRef.current = true;
+      onGameComplete(score);
+    }
+  }, [showReview, score, onGameComplete]);
   
   const question = gameData.questions[currentQuestion];
   

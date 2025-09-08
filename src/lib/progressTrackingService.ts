@@ -88,57 +88,31 @@ export class ProgressTrackingService {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      // GLOBAL LOCK CHECK - Prevent ANY duplicate calls
-      const globalLockKey = `${user.id}-${data.activityName}-${data.score}-${data.maxScore}-${data.accuracyPercentage}`;
-      if (GlobalCompletionLock.getInstance().isLocked(globalLockKey)) {
-        console.log(`🚫 [${recordId}] GLOBAL LOCK: Completion already locked, BLOCKING ALL OPERATIONS`);
-        return;
-      }
-
-      // Lock this completion globally IMMEDIATELY
-      GlobalCompletionLock.getInstance().lockCompletion(globalLockKey);
-      console.log(`🔒 [${recordId}] LOCKED COMPLETION IMMEDIATELY: ${globalLockKey}`);
-
-      // SIMPLE DUPLICATE CHECK: Look for identical entries within last 5 seconds
-      const fiveSecondsAgo = new Date(Date.now() - 5000).toISOString();
-      const { data: recentActivities, error: checkError } = await supabase
-        .from('user_activities')
-        .select('id, completed_at')
-        .eq('user_id', user.id)
-        .eq('activity_type', data.activityType)
-        .eq('activity_name', data.activityName)
-        .eq('score', data.score)
-        .eq('max_score', data.maxScore)
-        .eq('accuracy_percentage', data.accuracyPercentage)
-        .gte('completed_at', fiveSecondsAgo)
-        .order('completed_at', { ascending: false })
-        .limit(1);
-
-      if (checkError) {
-        console.error(`❌ [${recordId}] Error checking for duplicates:`, checkError);
-      } else if (recentActivities && recentActivities.length > 0) {
-        console.log(`🚫 [${recordId}] DUPLICATE DETECTED! Found identical entry within 5 seconds, BLOCKING INSERT`);
-        console.log(`🚫 [${recordId}] Recent duplicate:`, recentActivities[0]);
-        return; // BLOCK THE INSERT
-      }
-
-      console.log(`✅ [${recordId}] No duplicates found, proceeding with insert`);
-
       // Insert into user_activities
-      const { error: activityError } = await supabase
+      const insertData = {
+        user_id: user.id,
+        activity_type: data.activityType,
+        activity_name: data.activityName,
+        duration_seconds: data.durationSeconds,
+        score: data.score,
+        max_score: data.maxScore,
+        accuracy_percentage: data.accuracyPercentage,
+        completed_at: new Date().toISOString(),
+      };
+      
+      console.log(`📝 [${recordId}] Inserting data:`, insertData);
+      
+      const { data: insertResult, error: activityError } = await supabase
         .from('user_activities')
-        .insert({
-          user_id: user.id,
-          activity_type: data.activityType,
-          activity_name: data.activityName,
-          duration_seconds: data.durationSeconds,
-          score: data.score,
-          max_score: data.maxScore,
-          accuracy_percentage: data.accuracyPercentage,
-          completed_at: new Date().toISOString(),
-        });
+        .insert(insertData)
+        .select();
 
-      if (activityError) throw activityError;
+      if (activityError) {
+        console.error(`❌ [${recordId}] Database insert error:`, activityError);
+        throw activityError;
+      }
+      
+      console.log(`✅ [${recordId}] Database insert result:`, insertResult);
 
       console.log(`✅ [${recordId}] Database insert successful for user_activities`);
 
@@ -169,6 +143,11 @@ export class ProgressTrackingService {
       }
     } catch (error) {
       console.error(`❌ [${recordId}] Error recording game activity:`, error);
+      console.error(`❌ [${recordId}] Error details:`, {
+        message: error.message,
+        stack: error.stack,
+        data: data
+      });
       throw error;
     }
   }

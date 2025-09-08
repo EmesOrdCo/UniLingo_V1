@@ -28,6 +28,15 @@ const WordScrambleGame: React.FC<WordScrambleGameProps> = ({ gameData, onClose, 
     }
   }, [currentQuestionIndex, gameData.questions]);
 
+  // Auto-call onGameComplete when game finishes
+  useEffect(() => {
+    if (gameComplete && !completionCalledRef.current) {
+      console.log('🎯 WordScramble calling onGameComplete with score:', finalScoreRef.current);
+      completionCalledRef.current = true;
+      onGameComplete(finalScoreRef.current);
+    }
+  }, [gameComplete, onGameComplete]);
+
   const generateScrambledWord = () => {
     const currentQuestion = gameData.questions[currentQuestionIndex];
     if (currentQuestion && currentQuestion.correctAnswer) {

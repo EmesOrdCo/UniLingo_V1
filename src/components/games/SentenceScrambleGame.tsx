@@ -22,7 +22,14 @@ const SentenceScrambleGame: React.FC<SentenceScrambleGameProps> = ({ gameData, o
   const finalScoreRef = useRef<number>(0);
   const completionCalledRef = useRef<boolean>(false);
 
-  // Removed automatic completion call - now handled by user action
+  // Auto-call onGameComplete when game finishes
+  useEffect(() => {
+    if (gameComplete && !completionCalledRef.current) {
+      console.log('🎯 SentenceScramble calling onGameComplete with score:', finalScoreRef.current);
+      completionCalledRef.current = true;
+      onGameComplete(finalScoreRef.current);
+    }
+  }, [gameComplete, onGameComplete]);
 
   useEffect(() => {
     if (gameData.questions && gameData.questions.length > 0) {

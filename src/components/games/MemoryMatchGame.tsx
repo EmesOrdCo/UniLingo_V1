@@ -17,9 +17,23 @@ const MemoryMatchGame: React.FC<MemoryMatchGameProps> = ({ gameData, onClose, on
   const [gameStartTime, setGameStartTime] = useState<number>(Date.now());
   const [isGameComplete, setIsGameComplete] = useState(false);
 
+  // Use ref to prevent multiple completion calls
+  const completionCalledRef = useRef<boolean>(false);
+
   useEffect(() => {
     initializeGame();
   }, []);
+
+  // Auto-call onGameComplete when game finishes
+  useEffect(() => {
+    if (isGameComplete && !completionCalledRef.current) {
+      const timeSpent = Math.round((Date.now() - gameStartTime) / 1000);
+      const matchedPairsCount = matchedPairs.length / 2; // Each pair has 2 cards
+      console.log('🎯 MemoryMatch calling onGameComplete with moves:', moves, 'time:', timeSpent);
+      completionCalledRef.current = true;
+      onGameComplete(moves, timeSpent);
+    }
+  }, [isGameComplete, moves, gameStartTime, matchedPairs.length, onGameComplete]);
 
   const initializeGame = () => {
     const gameCards = gameData.questions || [];

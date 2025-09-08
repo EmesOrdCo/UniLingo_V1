@@ -61,10 +61,10 @@ export default function LessonFlashcardQuiz({ vocabulary, onComplete, onClose, o
       const shuffledDefinitionOptions = definitionOptions.sort(() => Math.random() - 0.5);
       
       quizQuestions.push({
-        question: `What is the definition of "${vocab.keywords}"?`,
+        question: `What is the translation of "${vocab.keywords}"?`,
         correctAnswer: vocab.definition,
         options: shuffledDefinitionOptions,
-        type: 'definition'
+        type: 'translation'
       });
 
       // Create translation question

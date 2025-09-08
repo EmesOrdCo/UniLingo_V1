@@ -89,7 +89,7 @@ export class GameDataService {
     
     for (const card of shuffledCards) {
       const question = languageMode === 'question' 
-        ? `What is the definition of "${card.front}"?`
+        ? `What is the translation of "${card.front}"?`
         : `What is the term for "${card.back}"?`;
       
       const correctAnswer = languageMode === 'question' ? card.back : card.front;
@@ -102,7 +102,7 @@ export class GameDataService {
         question,
         correctAnswer,
         options: allOptions,
-        type: 'definition'
+        type: 'translation'
       });
     }
     
@@ -218,7 +218,7 @@ export class GameDataService {
     for (let i = 0; i < questionCount; i++) {
       const card = shuffledCards[i % shuffledCards.length]; // Cycle through cards, allowing repeats
       questions.push({
-        question: `What is the definition of "${card.front}"?`,
+        question: `What is the translation of "${card.front}"?`,
         correctAnswer: card.back,
         type: 'speed_challenge'
       });
