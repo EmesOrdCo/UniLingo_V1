@@ -157,10 +157,8 @@ export default function UploadScreen() {
       const userFlashcards = await UserFlashcardService.getUserFlashcards();
       const userTopics = Array.from(new Set(userFlashcards.map((card: any) => card.topic)));
       
-      const generalFlashcards = await FlashcardService.getAllFlashcards();
-      const generalTopics = Array.from(new Set(generalFlashcards.map((card: any) => card.topic)));
-      
-      const allTopics = Array.from(new Set([...userTopics, ...generalTopics])) as string[];
+      // Only use user topics - general flashcards table no longer exists
+      const allTopics = userTopics;
       
       if (allTopics.length === 0) {
         // Fallback to some default topics if none exist

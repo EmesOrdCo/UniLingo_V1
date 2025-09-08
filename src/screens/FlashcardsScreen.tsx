@@ -17,6 +17,8 @@ import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { FlashcardService } from '../lib/flashcardService';
 import { UserFlashcardService } from '../lib/userFlashcardService';
+import { ProgressTrackingService } from '../lib/progressTrackingService';
+import { XPService } from '../lib/xpService';
 import { supabase } from '../lib/supabase';
 import ConsistentHeader from '../components/ConsistentHeader';
 
@@ -256,9 +258,9 @@ export default function FlashcardsScreen() {
             subject: userSubject,
             topic: topic.name 
           });
-          const generalCount = generalFlashcards.filter(card => card.topic === topic.name);
-          topic.count = userCount.length + generalCount.length;
-          console.log(`📊 ${topic.name}: ${userCount.length} user + ${generalCount.length} general = ${topic.count} total`);
+          // REMOVED: General flashcards table no longer exists
+          topic.count = userCount.length;
+          console.log(`📊 ${topic.name}: ${userCount.length} user cards`);
         }
        
         setTopics(topicObjects);
@@ -292,16 +294,14 @@ export default function FlashcardsScreen() {
     // Re-fetch topics to update counts, filtered by subject
     const userFlashcards = await UserFlashcardService.getUserFlashcards({ subject: userSubject });
     // REMOVED: General flashcards table no longer exists - only use user flashcards
-    const generalFlashcards: any[] = [];
     
     // Update existing topics with new counts
     setTopics(prevTopics => 
       prevTopics.map(topic => {
         const userCount = userFlashcards.filter(card => card.topic === topic.name).length;
-        const generalCount = generalFlashcards.filter(card => card.topic === topic.name).length;
         return {
           ...topic,
-          count: userCount + generalCount
+          count: userCount
         };
       })
     );
@@ -405,50 +405,17 @@ export default function FlashcardsScreen() {
     if (!user) return;
     
     try {
-      // Check if progress record exists
-      const { data: existingProgress } = await supabase
-        .from('user_flashcard_progress')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('flashcard_id', flashcardId)
-        .maybeSingle();
-      
-      if (existingProgress) {
-        // Update existing progress
-        const isCorrect = answer === 'correct' || answer === 'easy';
-        const updateData = {
-          correct_attempts: existingProgress.correct_attempts + (isCorrect ? 1 : 0),
-          incorrect_attempts: existingProgress.incorrect_attempts + (isCorrect ? 0 : 1),
-        };
-        
-        await supabase
-          .from('user_flashcard_progress')
-          .update(updateData)
-          .eq('id', existingProgress.id);
-      } else {
-        // Create new progress record
-        const isCorrect = answer === 'correct' || answer === 'easy';
-        await supabase
-          .from('user_flashcard_progress')
-          .insert({
-            user_id: user.id,
-            flashcard_id: flashcardId,
-            correct_attempts: isCorrect ? 1 : 0,
-            incorrect_attempts: isCorrect ? 0 : 1,
-          });
-      }
+      // Use the new progress tracking service
+      const isCorrect = answer === 'correct' || answer === 'easy';
+      await ProgressTrackingService.updateFlashcardProgress({
+        flashcardId,
+        isCorrect,
+        responseTime: 5, // Average 5 seconds per card
+      });
 
-      // Update daily goals for flashcard review
-      try {
-        // Estimate time spent on this card (average 5 seconds per card)
-        const timeSpentSeconds = 5;
-        await FlashcardService.trackFlashcardReview(flashcardId, user.id, answer, timeSpentSeconds);
-        console.log('✅ Daily goals updated for flashcard review');
-      } catch (error) {
-        console.error('❌ Failed to update daily goals for flashcard:', error);
-      }
+      console.log('✅ Flashcard progress updated successfully');
     } catch (error) {
-      console.error('Error updating flashcard progress:', error);
+      console.error('❌ Error updating flashcard progress:', error);
     }
   };
 
@@ -605,8 +572,6 @@ export default function FlashcardsScreen() {
       }));
     }
   };
-
-    // End study session and show results
   const endStudySession = async (answers: Array<'correct' | 'incorrect' | 'easy' | 'hard'>) => {
     setStudySession(prev => ({
       ...prev,
@@ -615,7 +580,7 @@ export default function FlashcardsScreen() {
       answers
     }));
     
-    // Calculate study time and update daily goals
+    // Calculate study time and update progress tracking
     if (studySession.startTime && user) {
       const endTime = new Date();
       const timeSpentSeconds = Math.floor((endTime.getTime() - studySession.startTime.getTime()) / 1000);
@@ -623,49 +588,48 @@ export default function FlashcardsScreen() {
       
       console.log(`📚 Study session completed: ${timeSpentMinutes} minutes (${timeSpentSeconds} seconds)`);
       
-      // Update daily goals for study time
       try {
-        const { DailyGoalsService } = await import('../lib/dailyGoalsService');
-        if (timeSpentMinutes > 0) {
-          await DailyGoalsService.updateGoalProgress(user.id, 'study_time', timeSpentMinutes);
-          console.log('✅ Daily goals updated for study time');
-        }
-        
-        // Update flashcards reviewed goal
-        await DailyGoalsService.updateGoalProgress(user.id, 'flashcards_reviewed', studySession.flashcards.length);
-        console.log('✅ Daily goals updated for flashcards reviewed');
-      } catch (error) {
-        console.error('❌ Failed to update daily goals for study time:', error);
-      }
+        // Calculate session statistics
+        const correct = answers.filter(a => a === 'correct' || a === 'easy').length;
+        const total = answers.length;
+        const accuracyPercentage = Math.round((correct / total) * 100);
+        const score = Math.round((correct / total) * 100);
 
-      // Award XP and track activity for the entire session
-      try {
-        const { HolisticProgressService } = await import('../lib/holisticProgressService');
-        const { XPService } = await import('../lib/xpService');
-        const correctAnswers = answers.filter(a => a === 'correct' || a === 'easy').length;
-        const accuracyPercentage = Math.round((correctAnswers / answers.length) * 100);
-        
-        // Award XP for the entire session (this also logs the activity)
-        await XPService.awardXP(
-          user.id,
-          'flashcard',
-          correctAnswers,
-          answers.length,
-          accuracyPercentage,
-          'Flashcard Study Session',
-          timeSpentSeconds
-        );
-        
-        // Update streak after XP award
-        HolisticProgressService.updateStreak(user.id, 'daily_study');
-        console.log('✅ XP awarded and streak updated for flashcard study');
+        // Record flashcard review activity
+        await ProgressTrackingService.recordFlashcardActivity({
+          activityType: 'flashcard_review',
+          activityName: `Flashcard Review - ${selectedTopic || 'All Topics'}`,
+          durationSeconds: timeSpentSeconds,
+          score: score,
+          maxScore: 100,
+          accuracyPercentage: accuracyPercentage,
+          flashcardsReviewed: total,
+        });
+
+        console.log('✅ Flashcard review activity tracked successfully');
+
+        // Award XP for completing flashcard review
+        try {
+          const xpResult = await XPService.awardXP(
+            user.id,
+            'flashcard',
+            score,
+            100,
+            accuracyPercentage,
+            `Flashcard Review - ${selectedTopic || 'All Topics'}`,
+            timeSpentSeconds
+          );
+          
+          if (xpResult) {
+            console.log('🎯 XP awarded for flashcard review:', xpResult.totalXP, 'XP');
+          }
+        } catch (xpError) {
+          console.error('❌ Error awarding XP for flashcard review:', xpError);
+        }
       } catch (error) {
-        console.error('❌ Error importing services:', error);
+        console.error('❌ Error tracking flashcard review activity:', error);
       }
     }
-    
-    // Refresh flashcard statistics after study session completion
-    await fetchRealFlashcardStats();
   };
 
   // Toggle language display
@@ -1106,7 +1070,8 @@ export default function FlashcardsScreen() {
                   currentIndex: 0,
                   showAnswer: false,
                   answers: [],
-                  showNativeLanguage: studySession.showNativeLanguage
+                  showNativeLanguage: studySession.showNativeLanguage,
+                  startTime: new Date()
                 });
               }}
             >
@@ -1135,7 +1100,8 @@ export default function FlashcardsScreen() {
                   currentIndex: 0,
                   showAnswer: false,
                   answers: [],
-                  showNativeLanguage: studySession.showNativeLanguage
+                  showNativeLanguage: studySession.showNativeLanguage,
+                  startTime: new Date()
                 });
               }}
             >
@@ -1153,7 +1119,8 @@ export default function FlashcardsScreen() {
                   currentIndex: 0,
                   showAnswer: false,
                   answers: [],
-                  showNativeLanguage: false
+                  showNativeLanguage: false,
+                  startTime: null
                 });
                 setSelectedTopic(null);
                 setSelectedDifficulty(null);
@@ -2218,11 +2185,6 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',
-  },
-  difficultyContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 8,
   },
   difficultyText: {
     fontSize: 14,

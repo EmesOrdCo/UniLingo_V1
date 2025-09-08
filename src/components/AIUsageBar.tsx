@@ -11,7 +11,6 @@ import { useAuth } from '../contexts/AuthContext';
 
 const AIUsageBar: React.FC = () => {
   const { user } = useAuth();
-  const [usage, setUsage] = useState({ inputTokens: 0, outputTokens: 0 });
   const [spendingPercentage, setSpendingPercentage] = useState(0);
   const [loading, setLoading] = useState(true);
 
@@ -24,22 +23,13 @@ const AIUsageBar: React.FC = () => {
   const loadUsage = async () => {
     try {
       setLoading(true);
-      const [usageData, percentage] = await Promise.all([
-        SimpleTokenTracker.getCurrentUsage(user!.id),
-        SimpleTokenTracker.getSpendingPercentage(user!.id)
-      ]);
-      
-      setUsage(usageData);
+      const percentage = await SimpleTokenTracker.getSpendingPercentage(user!.id);
       setSpendingPercentage(percentage);
     } catch (error) {
       console.error('Error loading token usage:', error);
     } finally {
       setLoading(false);
     }
-  };
-
-  const formatNumber = (num: number) => {
-    return num.toLocaleString();
   };
 
   const getStatusColor = () => {
@@ -91,15 +81,6 @@ const AIUsageBar: React.FC = () => {
             }
           ]} 
         />
-      </View>
-      
-      <View style={styles.tokenBreakdown}>
-        <Text style={styles.tokenText}>
-          Input: {formatNumber(usage.inputTokens)} tokens
-        </Text>
-        <Text style={styles.tokenText}>
-          Output: {formatNumber(usage.outputTokens)} tokens
-        </Text>
       </View>
       
       <View style={styles.footer}>
@@ -166,15 +147,6 @@ const styles = StyleSheet.create({
   progressFill: {
     height: '100%',
     borderRadius: 4,
-  },
-  tokenBreakdown: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  tokenText: {
-    fontSize: 12,
-    color: '#6b7280',
   },
   footer: {
     alignItems: 'flex-end',

@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../contexts/AuthContext';
 import { LessonService, Lesson, LessonProgress } from '../lib/lessonService';
+import { XPService } from '../lib/xpService';
 import LessonFlashcards from '../components/lesson/LessonFlashcards';
 import LessonFlashcardQuiz from '../components/lesson/LessonFlashcardQuiz';
 import LessonSentenceScramble from '../components/lesson/LessonSentenceScramble';
@@ -294,20 +296,30 @@ export default function LessonWalkthroughScreen() {
     // Mark exercise as completed
     setCompletedExercises(prev => new Set([...prev, exerciseType]));
 
-    // Update progress in database
+    // Update progress in database using new service
     try {
       const totalScore = Object.values({
         ...exerciseScores,
         [exerciseType]: score
       }).reduce((sum, s) => sum + s, 0);
       
-      await LessonService.updateLessonProgress(lessonId, user.id, {
-        total_score: totalScore,
-        max_possible_score: lessonVocabulary.length * 5
+      const accuracyPercentage = Math.round((score / maxScore) * 100);
+      const timeSpentSeconds = 60; // Default 1 minute per exercise
+
+      // Update lesson progress
+      await ProgressTrackingService.updateLessonProgress({
+        lessonId,
+        totalScore: totalScore,
+        maxPossibleScore: lessonVocabulary.length * 5,
+        exercisesCompleted: completedExercises.size + 1,
+        totalExercises: 5, // Total number of exercises
+        timeSpentSeconds: timeSpentSeconds,
+        status: completedExercises.size + 1 >= 5 ? 'completed' : 'in_progress',
       });
+
+      console.log('✅ Lesson progress updated successfully');
     } catch (error) {
-      console.error('Error updating lesson progress:', error);
-      // Continue without database progress tracking
+      console.error('❌ Error updating lesson progress:', error);
     }
 
     // Determine next step
@@ -345,9 +357,46 @@ export default function LessonWalkthroughScreen() {
     const timeSpent = Math.floor((new Date().getTime() - startTime.getTime()) / 1000);
     const totalScore = Object.values(exerciseScores).reduce((sum, score) => sum + score, 0);
     const maxPossibleScore = lessonVocabulary.length * 5; // 5 exercises
+    const accuracyPercentage = Math.round((totalScore / maxPossibleScore) * 100);
 
     // Clear resume position since lesson is completed
     await clearResumePosition();
+
+    // Record lesson activity using new progress tracking service
+    try {
+      await ProgressTrackingService.recordLessonActivity({
+        activityType: 'lesson',
+        activityName: lesson?.title || 'Lesson',
+        durationSeconds: timeSpent,
+        score: totalScore,
+        maxScore: maxPossibleScore,
+        accuracyPercentage: accuracyPercentage,
+        lessonId: lessonId,
+      });
+
+      console.log('✅ Lesson activity recorded successfully');
+
+      // Award XP for completing the lesson
+      try {
+        const xpResult = await XPService.awardXP(
+          user.id,
+          'lesson',
+          totalScore,
+          maxPossibleScore,
+          accuracyPercentage,
+          lesson?.title || 'Lesson',
+          timeSpent
+        );
+        
+        if (xpResult) {
+          console.log('🎯 XP awarded for lesson:', xpResult.totalXP, 'XP');
+        }
+      } catch (xpError) {
+        console.error('❌ Error awarding XP for lesson:', xpError);
+      }
+    } catch (error) {
+      console.error('❌ Error recording lesson activity:', error);
+    }
 
     // Complete lesson (with error handling)
     try {
@@ -435,7 +484,7 @@ export default function LessonWalkthroughScreen() {
   // Render flow preview screen
   if (currentStep === 'flow-preview') {
     return (
-      <View style={styles.container}>
+      <SafeAreaView style={styles.container}>
         <View style={styles.header}>
                      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
              <Ionicons name="arrow-back" size={24} color="#6366f1" />
@@ -652,7 +701,7 @@ export default function LessonWalkthroughScreen() {
             </View>
           </View>
         </ScrollView>
-      </View>
+      </SafeAreaView>
     );
   }
   if (currentStep === 'flashcards') {
@@ -747,7 +796,7 @@ export default function LessonWalkthroughScreen() {
 
   if (currentStep === 'completed') {
     return (
-      <View style={styles.container}>
+      <SafeAreaView style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
             <Ionicons name="arrow-back" size={24} color="#6366f1" />
@@ -780,7 +829,7 @@ export default function LessonWalkthroughScreen() {
             </View>
           </View>
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
 
@@ -796,10 +845,16 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 20,
+    paddingTop: 24,
     backgroundColor: '#ffffff',
     borderBottomWidth: 1,
     borderBottomColor: '#f1f5f9',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   backButton: {
     padding: 8,

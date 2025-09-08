@@ -18,6 +18,12 @@ const TypeWhatYouHearGame: React.FC<TypeWhatYouHearGameProps> = ({ gameData, onC
   const [gameComplete, setGameComplete] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
 
+  useEffect(() => {
+    if (gameComplete) {
+      onGameComplete(score);
+    }
+  }, [gameComplete, score, onGameComplete]);
+
   const currentQuestion = gameData.questions[currentQuestionIndex];
 
   const playAudio = async () => {

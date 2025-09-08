@@ -156,12 +156,11 @@ export default function AIChatPage() {
     try {
       setLoadingVocabulary(true);
       
-      // Fetch vocabulary from both user flashcards and general flashcards
+      // Fetch vocabulary from user flashcards only - general flashcards table no longer exists
       const userFlashcards = await UserFlashcardService.getUserFlashcards();
-      const generalFlashcards = await FlashcardService.getAllFlashcards();
       
       // Filter by topic
-      const allFlashcards = [...userFlashcards, ...generalFlashcards];
+      const allFlashcards = userFlashcards;
       const topicVocabulary = allFlashcards.filter((card: any) => 
         card.topic === selectedTopic?.name
       );

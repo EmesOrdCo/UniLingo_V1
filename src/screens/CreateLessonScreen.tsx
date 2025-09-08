@@ -103,31 +103,68 @@ export default function CreateLessonScreen() {
 
       // Extract text from the backend API response
       const extractedText = webhookResult.result?.text || 'Text extraction failed';
+      const pages = webhookResult.result?.pages || [];
 
       // Generate vocabulary for the lesson
       setProgress({
         stage: 'processing',
         progress: 85,
-        message: 'Grouping keywords into topics...',
+        message: 'Processing PDF pages...',
       });
 
       let createdLessons: any[] = [];
 
       try {
-        console.log('🔍 Extracting keywords from PDF text...');
-        const keywords = await LessonService.extractKeywordsFromPDF(
-          extractedText,
-          selectedSubject,
-          userNativeLanguage
-        );
+        let keywords: string[] = [];
+        
+        // Use page-by-page processing for large PDFs, fallback to single extraction for small PDFs
+        if (pages.length > 1) {
+          console.log(`📄 Large PDF detected: ${pages.length} pages, using page-by-page processing`);
+          setProgress({
+            stage: 'processing',
+            progress: 85,
+            message: `Processing ${pages.length} pages...`,
+          });
+          
+          keywords = await LessonService.extractKeywordsFromPages(
+            pages,
+            selectedSubject,
+            userNativeLanguage
+          );
+        } else {
+          console.log('📄 Small PDF detected, using single extraction');
+          setProgress({
+            stage: 'processing',
+            progress: 85,
+            message: 'Extracting keywords...',
+          });
+          
+          keywords = await LessonService.extractKeywordsFromPDF(
+            extractedText,
+            selectedSubject,
+            userNativeLanguage
+          );
+        }
         
         console.log('📚 Grouping keywords into topics...');
+        setProgress({
+          stage: 'processing',
+          progress: 90,
+          message: 'Grouping keywords into topics...',
+        });
+        
         const topics = await LessonService.groupKeywordsIntoTopic(
           keywords,
           selectedSubject
         );
         
         console.log('📚 Generating vocabulary from topics...');
+        setProgress({
+          stage: 'processing',
+          progress: 92,
+          message: 'Generating vocabulary...',
+        });
+        
         const topicVocabulary = await LessonService.generateVocabularyFromTopics(
           topics,
           selectedSubject,
@@ -136,6 +173,11 @@ export default function CreateLessonScreen() {
 
         // Create multiple lessons (one per topic)
         console.log('💾 Creating lessons and storing vocabulary...');
+        setProgress({
+          stage: 'processing',
+          progress: 95,
+          message: 'Creating lessons...',
+        });
         
         for (let i = 0; i < topics.length; i++) {
           const topic = topics[i];
@@ -148,7 +190,7 @@ export default function CreateLessonScreen() {
 
           setProgress({
             stage: 'processing',
-            progress: 85 + (i * 10 / topics.length),
+            progress: 95 + (i * 4 / topics.length),
             message: `Creating lesson ${i + 1} of ${topics.length}: ${topic.topicName}...`,
           });
 

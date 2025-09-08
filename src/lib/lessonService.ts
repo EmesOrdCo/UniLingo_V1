@@ -123,14 +123,14 @@ export class LessonService {
 
       // Prepare messages for cost estimation
       const messages = [
-        {
-          role: 'system',
-          content: 'You are an expert content analyzer. You MUST return ONLY a JSON array of strings with no explanations, markdown, or text outside the JSON. Your response must start with [ and end with ]. Do NOT use backticks, code blocks, or any markdown formatting. Return raw JSON only.'
-        },
-        {
-          role: 'user',
-          content: prompt
-        }
+            {
+              role: 'system',
+            content: 'You are an expert content analyzer. You MUST return ONLY a JSON array of strings with no explanations, markdown, or text outside the JSON. Your response must start with [ and end with ]. Do NOT use backticks, code blocks, or any markdown formatting. Return raw JSON only.'
+            },
+            {
+              role: 'user',
+            content: prompt
+            }
       ];
 
       // Get current user for cost estimation
@@ -181,6 +181,192 @@ export class LessonService {
     } catch (error) {
       console.error('❌ Error extracting keywords:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Extract keywords from PDF pages individually for large PDFs
+   */
+  static async extractKeywordsFromPages(
+    pages: string[],
+    subject: string,
+    nativeLanguage: string
+  ): Promise<string[]> {
+    try {
+      console.log(`🔍 Extracting keywords from ${pages.length} pages...`);
+      
+      const allKeywords: string[] = [];
+      
+      for (let i = 0; i < pages.length; i++) {
+        const page = pages[i];
+        const pageNumber = i + 1;
+        
+        console.log(`📄 Processing page ${pageNumber}/${pages.length}...`);
+        
+        // Skip empty pages
+        if (!page || page.trim().length < 50) {
+          console.log(`⚠️ Skipping empty page ${pageNumber}`);
+          continue;
+        }
+        
+        // Truncate page if too long (but be more generous per page)
+        const maxPageTokens = 15000; // 15k tokens per page = 60k chars
+        const maxPageChars = maxPageTokens * 4;
+        
+        let pageText = page;
+        if (page.length > maxPageChars) {
+          pageText = page.substring(0, maxPageChars);
+          const lastSpaceIndex = pageText.lastIndexOf(' ');
+          if (lastSpaceIndex > 0) {
+            pageText = pageText.substring(0, lastSpaceIndex) + '...';
+          }
+          console.log(`✂️ Truncated page ${pageNumber}: ${page.length} → ${pageText.length} chars`);
+        }
+        
+        const prompt = `Extract key terms from this page of ${subject} content. Return ONLY a JSON array of strings:
+
+Page ${pageNumber} content: ${pageText}
+
+Requirements:
+- Extract only important technical terms, concepts, and vocabulary
+- Return terms as they appear in the text
+- Return ONLY a JSON array of strings with no explanations
+- Do NOT use backticks, code blocks, or markdown formatting`;
+
+        // Prepare messages for cost estimation
+        const messages = [
+          {
+            role: 'system',
+            content: 'You are an expert content analyzer. You MUST return ONLY a JSON array of strings with no explanations, markdown, or text outside the JSON. Your response must start with [ and end with ]. Do NOT use backticks, code blocks, or any markdown formatting. Return raw JSON only.'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ];
+
+        // Get current user for cost estimation
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          throw new Error('User not authenticated');
+        }
+
+        // Estimate cost before making the API call
+        const costEstimate = await CostEstimator.estimateCost(user.id, messages);
+        
+        if (!costEstimate.canProceed) {
+          throw new Error(`Page ${pageNumber}: ${CostEstimator.getCostExceededMessage(costEstimate)}`);
+        }
+
+        console.log(`💰 Page ${pageNumber} cost estimation:`, CostEstimator.getCostInfo(costEstimate));
+
+        const response = await openai.createChatCompletion({
+            model: 'gpt-4o-mini',
+            messages: messages,
+            max_tokens: 3000, // Smaller per page
+            temperature: 0.1,
+        });
+
+        const content = response.content;
+        if (!content) {
+          console.warn(`⚠️ No response for page ${pageNumber}, skipping`);
+          continue;
+        }
+
+        // Clean the response
+        let cleanedContent = content.trim();
+        if (cleanedContent.startsWith('```json')) {
+          cleanedContent = cleanedContent.replace(/```json\s*/, '').replace(/\s*```/, '');
+        }
+        if (cleanedContent.startsWith('```')) {
+          cleanedContent = cleanedContent.replace(/```\s*/, '').replace(/\s*```/, '');
+        }
+
+        try {
+          const pageKeywords = JSON.parse(cleanedContent);
+          
+          if (Array.isArray(pageKeywords)) {
+            allKeywords.push(...pageKeywords);
+            console.log(`✅ Page ${pageNumber}: Extracted ${pageKeywords.length} keywords`);
+          } else {
+            console.warn(`⚠️ Page ${pageNumber}: Invalid response format, skipping`);
+          }
+        } catch (parseError) {
+          console.warn(`⚠️ Page ${pageNumber}: Failed to parse keywords, skipping`);
+        }
+      }
+      
+      console.log(`📊 Total keywords extracted: ${allKeywords.length}`);
+      
+      // Deduplicate keywords intelligently
+      const deduplicatedKeywords = this.deduplicateKeywords(allKeywords);
+      console.log(`🧹 After deduplication: ${deduplicatedKeywords.length} keywords`);
+      
+      return deduplicatedKeywords;
+
+    } catch (error) {
+      console.error('❌ Error extracting keywords from pages:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Intelligently deduplicate keywords while preserving nested terms
+   */
+  static deduplicateKeywords(keywords: string[]): string[] {
+    try {
+      console.log('🧹 Starting intelligent keyword deduplication...');
+      
+      // Clean and normalize keywords
+      const cleanedKeywords = keywords
+        .map(k => k.trim().toLowerCase())
+        .filter(k => k.length > 1) // Remove single characters
+        .filter(k => !/^\d+$/.test(k)); // Remove pure numbers
+      
+      // Remove exact duplicates
+      const uniqueKeywords = [...new Set(cleanedKeywords)];
+      console.log(`📊 After exact deduplication: ${uniqueKeywords.length} keywords`);
+      
+      // Group similar keywords (but preserve nested terms)
+      const groupedKeywords: string[] = [];
+      const processed = new Set<string>();
+      
+      for (const keyword of uniqueKeywords) {
+        if (processed.has(keyword)) continue;
+        
+        // Find similar keywords (contained within each other)
+        const similarKeywords = uniqueKeywords.filter(k => 
+          k !== keyword && 
+          !processed.has(k) &&
+          (k.includes(keyword) || keyword.includes(k))
+        );
+        
+        if (similarKeywords.length > 0) {
+          // Keep the longest/most specific term
+          const allTerms = [keyword, ...similarKeywords];
+          const longestTerm = allTerms.reduce((longest, current) => 
+            current.length > longest.length ? current : longest
+          );
+          
+          groupedKeywords.push(longestTerm);
+          
+          // Mark all similar terms as processed
+          allTerms.forEach(term => processed.add(term));
+          
+          console.log(`🔗 Grouped: [${allTerms.join(', ')}] → "${longestTerm}"`);
+        } else {
+          groupedKeywords.push(keyword);
+          processed.add(keyword);
+        }
+      }
+      
+      console.log(`✅ Final deduplicated keywords: ${groupedKeywords.length}`);
+      return groupedKeywords;
+      
+    } catch (error) {
+      console.error('❌ Error deduplicating keywords:', error);
+      // Return original keywords if deduplication fails
+      return [...new Set(keywords.map(k => k.trim()).filter(k => k.length > 1))];
     }
   }
 
@@ -377,17 +563,17 @@ Format:
 [{"english_term": "word", "definition": "meaning", "native_translation": "translation", "example_sentence_en": "example", "example_sentence_native": "translated example", "difficulty_rank": 2}]
 
 Return ONLY the JSON array:`;
-
+        
       // Prepare messages for cost estimation
       const messages = [
-        {
-          role: 'system',
-          content: 'You are an expert language teacher. You MUST return ONLY a JSON array of objects with no explanations, markdown, or text outside the JSON. Your response must start with [ and end with ]. Do NOT use backticks, code blocks, or any markdown formatting. Return raw JSON only.'
-        },
-        {
-          role: 'user',
-          content: prompt
-        }
+            {
+              role: 'system',
+            content: 'You are an expert language teacher. You MUST return ONLY a JSON array of objects with no explanations, markdown, or text outside the JSON. Your response must start with [ and end with ]. Do NOT use backticks, code blocks, or any markdown formatting. Return raw JSON only.'
+            },
+            {
+              role: 'user',
+            content: prompt
+            }
       ];
 
       // Get current user for cost estimation

@@ -22,7 +22,7 @@ const MemoryMatchGame: React.FC<MemoryMatchGameProps> = ({ gameData, onClose, on
 
   const initializeGame = () => {
     const gameCards = gameData.questions || [];
-    const duplicatedCards = [...gameCards, ...gameCards].map((card, index) => ({
+    const cardsWithIds = gameCards.map((card, index) => ({
       ...card,
       id: index,
       isFlipped: false,
@@ -30,7 +30,7 @@ const MemoryMatchGame: React.FC<MemoryMatchGameProps> = ({ gameData, onClose, on
     }));
     
     // Shuffle cards
-    const shuffledCards = duplicatedCards.sort(() => Math.random() - 0.5);
+    const shuffledCards = cardsWithIds.sort(() => Math.random() - 0.5);
     setCards(shuffledCards);
     setGameStartTime(Date.now());
   };
@@ -54,17 +54,18 @@ const MemoryMatchGame: React.FC<MemoryMatchGameProps> = ({ gameData, onClose, on
     const firstCard = cards.find(card => card.id === firstId);
     const secondCard = cards.find(card => card.id === secondId);
 
-    if (firstCard && secondCard && firstCard.correctAnswer === secondCard.correctAnswer) {
-      // Match found
+    if (firstCard && secondCard && firstCard.originalCardId === secondCard.originalCardId) {
+      // Match found - cards belong to the same original flashcard
       setMatchedPairs([...matchedPairs, firstId, secondId]);
       setFlippedCards([]);
       
       // Check if game is complete
       if (matchedPairs.length + 2 === cards.length) {
         const gameTime = Math.round((Date.now() - gameStartTime) / 1000);
+        const matchedPairsCount = (matchedPairs.length + 2) / 2; // Calculate matched pairs
         setIsGameComplete(true);
         setTimeout(() => {
-          onGameComplete(moves + 1, gameTime);
+          onGameComplete(matchedPairsCount, gameTime);
         }, 1500);
       }
     } else {
@@ -142,7 +143,7 @@ const MemoryMatchGame: React.FC<MemoryMatchGameProps> = ({ gameData, onClose, on
             >
               {isFlipped ? (
                 <View style={styles.cardContent}>
-                  <Text style={styles.cardText}>{card.correctAnswer}</Text>
+                  <Text style={styles.cardText}>{card.question}</Text>
                 </View>
               ) : (
                 <View style={styles.cardBack}>

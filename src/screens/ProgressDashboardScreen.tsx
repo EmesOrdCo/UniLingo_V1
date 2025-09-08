@@ -13,6 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
+import { useRefresh } from '../contexts/RefreshContext';
 import { HolisticProgressService, ProgressInsights } from '../lib/holisticProgressService';
 import StudyCalendar from '../components/StudyCalendar';
 import DailyGoalsWidget from '../components/DailyGoalsWidget';
@@ -23,6 +24,7 @@ const { width } = Dimensions.get('window');
 export default function ProgressDashboardScreen() {
   const navigation = useNavigation();
   const { user } = useAuth();
+  const { refreshTrigger } = useRefresh();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [progressData, setProgressData] = useState<ProgressInsights | null>(null);
@@ -190,7 +192,7 @@ export default function ProgressDashboardScreen() {
 
         {/* Daily Goals Widget */}
         <View style={styles.goalsWidgetSection}>
-          <DailyGoalsWidget />
+          <DailyGoalsWidget refreshTrigger={refreshTrigger} />
         </View>
 
         {/* Level Progress */}

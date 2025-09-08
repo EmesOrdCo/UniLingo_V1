@@ -73,7 +73,16 @@ const WordScrambleGame: React.FC<WordScrambleGameProps> = ({ gameData, onClose, 
     setGameComplete(false);
   };
 
+  // Call onGameComplete when the game is completed
+  useEffect(() => {
+    if (gameComplete) {
+      console.log('🎮 Word Scramble completed with score:', score);
+      onGameComplete(score);
+    }
+  }, [gameComplete, score, onGameComplete]);
+
   if (gameComplete) {
+
     return (
       <View style={styles.gameContainer}>
         <View style={styles.completionContainer}>
@@ -86,9 +95,15 @@ const WordScrambleGame: React.FC<WordScrambleGameProps> = ({ gameData, onClose, 
             </Text>
           </View>
           
-          <TouchableOpacity style={styles.resetButton} onPress={resetGame}>
-            <Text style={styles.resetButtonText}>Play Again</Text>
-          </TouchableOpacity>
+          <View style={styles.actionButtons}>
+            <TouchableOpacity style={styles.resetButton} onPress={resetGame}>
+              <Text style={styles.resetButtonText}>Play Again</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.exitButton} onPress={onClose}>
+              <Text style={styles.exitButtonText}>Exit</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     );
@@ -404,13 +419,33 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#ffffff',
   },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    justifyContent: 'center',
+  },
   resetButton: {
+    flex: 1,
     backgroundColor: '#6466E9',
     paddingHorizontal: 32,
     paddingVertical: 16,
     borderRadius: 12,
+    alignItems: 'center',
   },
   resetButtonText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#ffffff',
+  },
+  exitButton: {
+    flex: 1,
+    backgroundColor: '#ef4444',
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  exitButtonText: {
     fontSize: 18,
     fontWeight: '600',
     color: '#ffffff',

@@ -17,6 +17,25 @@ import * as Speech from 'expo-speech';
 import { Audio } from 'expo-av';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
+import FlashcardQuizSetup from '../components/FlashcardQuizSetup';
+import MemoryMatchSetup from '../components/MemoryMatchSetup';
+import { FlashcardQuizSetupOptions } from '../components/FlashcardQuizSetup';
+import { MemoryMatchSetupOptions } from '../components/MemoryMatchSetup';
+import SentenceScrambleSetup from '../components/SentenceScrambleSetup';
+import HangmanSetup from '../components/HangmanSetup';
+import SpeedChallengeSetup from '../components/SpeedChallengeSetup';
+import TypeWhatYouHearSetup from '../components/TypeWhatYouHearSetup';
+import GravityGameSetup from '../components/GravityGameSetup';
+import { SentenceScrambleSetupOptions } from '../components/SentenceScrambleSetup';
+import { HangmanSetupOptions } from '../components/HangmanSetup';
+import { SpeedChallengeSetupOptions } from '../components/SpeedChallengeSetup';
+import { TypeWhatYouHearSetupOptions } from '../components/TypeWhatYouHearSetup';
+import { GravityGameSetupOptions } from '../components/GravityGameSetup';
+import WordScrambleSetup from '../components/WordScrambleSetup';
+import { WordScrambleSetupOptions } from '../components/WordScrambleSetup';
+import { GameDataService } from '../lib/gameDataService';
+import { ProgressTrackingService } from '../lib/progressTrackingService';
+import { XPService } from '../lib/xpService';
 import { UserFlashcardService } from '../lib/userFlashcardService';
 import { FlashcardService } from '../lib/flashcardService';
 import { FavouriteGamesService, FavouriteGame } from '../lib/favouriteGamesService';
@@ -45,7 +64,6 @@ export default function GamesScreen() {
   // State for games and data
   const [flashcards, setFlashcards] = useState<any[]>([]);
   const [topics, setTopics] = useState<string[]>([]);
-  const [selectedTopic, setSelectedTopic] = useState<string>('');
   const [gameStats, setGameStats] = useState({
     gamesPlayed: 0,
     totalScore: 0,
@@ -71,17 +89,17 @@ export default function GamesScreen() {
   const [showGameModal, setShowGameModal] = useState(false);
   const [currentGame, setCurrentGame] = useState<string | null>(null);
   const [gameData, setGameData] = useState<any>(null);
-  const [showTopicDropdown, setShowTopicDropdown] = useState(false);
-  const [showQuizSetup, setShowQuizSetup] = useState(false);
-  const [selectedQuestionCount, setSelectedQuestionCount] = useState(10);
-  const [selectedLanguageMode, setSelectedLanguageMode] = useState<'question' | 'answer'>('question');
-  const [selectedDifficulty, setSelectedDifficulty] = useState('');
-  const [showDifficultyDropdown, setShowDifficultyDropdown] = useState(false);
-  const [difficulties, setDifficulties] = useState([
-    { id: 'beginner', name: 'Beginner', description: 'Easy', color: '#10b981' },
-    { id: 'intermediate', name: 'Intermediate', description: 'Medium', color: '#f59e0b' },
-    { id: 'advanced', name: 'Advanced', description: 'Hard', color: '#dc2626' },
-  ]);
+  const [gameCompleted, setGameCompleted] = useState(false); // Add guard for completion
+  
+  // Setup modals
+  const [showFlashcardQuizSetup, setShowFlashcardQuizSetup] = useState(false);
+  const [showMemoryMatchSetup, setShowMemoryMatchSetup] = useState(false);
+  const [showWordScrambleSetup, setShowWordScrambleSetup] = useState(false);
+  const [showSentenceScrambleSetup, setShowSentenceScrambleSetup] = useState(false);
+  const [showHangmanSetup, setShowHangmanSetup] = useState(false);
+  const [showSpeedChallengeSetup, setShowSpeedChallengeSetup] = useState(false);
+  const [showTypeWhatYouHearSetup, setShowTypeWhatYouHearSetup] = useState(false);
+  const [showGravityGameSetup, setShowGravityGameSetup] = useState(false);
   
   // Favourite games state
   const [favouriteGames, setFavouriteGames] = useState<FavouriteGame[]>([]);
@@ -102,25 +120,16 @@ export default function GamesScreen() {
           card.subject && card.subject.toLowerCase() === userSubject.toLowerCase()
         );
         
-        // Get general flashcards
-        const generalFlashcards = await FlashcardService.getAllFlashcards();
-        const generalCards = generalFlashcards.filter((card: any) => 
-          card.subject && card.subject.toLowerCase() === userSubject.toLowerCase()
-        );
-        
-        // Combine and filter valid cards
-        const allCards = [...userCards, ...generalCards].filter(card => 
+        // Only use user flashcards - general flashcards table no longer exists
+        const allCards = userCards.filter(card => 
           card.front && card.back && card.topic
         );
         
         setFlashcards(allCards);
         
-        // Get unique topics
+        // Get unique topics from user cards only
         const uniqueTopics = Array.from(new Set(allCards.map(card => card.topic)));
         setTopics(uniqueTopics);
-        
-        // Default to "All Topics" (empty string means all topics)
-        setSelectedTopic('');
         
         // Load favourite games
         await loadFavouriteGames();
@@ -128,16 +137,12 @@ export default function GamesScreen() {
         console.log('✅ Game data loaded:', {
           totalCards: allCards.length,
           topics: uniqueTopics.length,
-          userCards: userCards.length,
-          generalCards: generalCards.length
+          userCards: userCards.length
         });
         
-        // Log sample cards from each source
+        // Log sample cards
         if (userCards.length > 0) {
           console.log('📝 Sample user card:', userCards[0]);
-        }
-        if (generalCards.length > 0) {
-          console.log('📝 Sample general card:', generalCards[0]);
         }
         
       } catch (error) {
@@ -241,26 +246,6 @@ export default function GamesScreen() {
     }
   };
 
-  // Get filtered card count based on current selection
-  const getFilteredCardCount = () => {
-    let topicCards = flashcards;
-    
-    if (selectedTopic) {
-      topicCards = topicCards.filter(card => card.topic === selectedTopic);
-    }
-    
-    if (selectedDifficulty) {
-      topicCards = topicCards.filter(card => card.difficulty === selectedDifficulty);
-    }
-    
-    // If current selection exceeds available cards, adjust to max available
-    if (selectedQuestionCount > topicCards.length) {
-      const maxAvailable = Math.max(5, Math.floor(topicCards.length / 5) * 5);
-      setSelectedQuestionCount(Math.min(maxAvailable, topicCards.length));
-    }
-    
-    return topicCards.length;
-  };
 
   // Helper functions for new UI
   const getGameIcon = (gameName: string) => {
@@ -308,7 +293,7 @@ export default function GamesScreen() {
       Alert.alert('No Cards Available', 'Please add some flashcards first.');
       return;
     }
-    setShowQuizSetup(true);
+    setShowFlashcardQuizSetup(true);
   };
 
   const startMemoryMatch = () => {
@@ -316,9 +301,7 @@ export default function GamesScreen() {
       Alert.alert('No Cards Available', 'Please add some flashcards first.');
       return;
     }
-    setCurrentGame('Memory Match');
-    setGameData({ flashcards: flashcards.slice(0, 12) });
-    setShowGameModal(true);
+    setShowMemoryMatchSetup(true);
   };
 
   const startWordScramble = () => {
@@ -326,9 +309,7 @@ export default function GamesScreen() {
       Alert.alert('No Cards Available', 'Please add some flashcards first.');
       return;
     }
-    setCurrentGame('Word Scramble');
-    setGameData({ flashcards: flashcards.slice(0, 10) });
-    setShowGameModal(true);
+    setShowWordScrambleSetup(true);
   };
 
   const startHangman = () => {
@@ -336,9 +317,7 @@ export default function GamesScreen() {
       Alert.alert('No Cards Available', 'Please add some flashcards first.');
       return;
     }
-    setCurrentGame('Hangman');
-    setGameData({ flashcards: flashcards.slice(0, 10) });
-    setShowGameModal(true);
+    setShowHangmanSetup(true);
   };
 
   const startSpeedChallenge = () => {
@@ -346,9 +325,7 @@ export default function GamesScreen() {
       Alert.alert('No Cards Available', 'Please add some flashcards first.');
       return;
     }
-    setCurrentGame('Speed Challenge');
-    setGameData({ flashcards: flashcards.slice(0, 20) });
-    setShowGameModal(true);
+    setShowSpeedChallengeSetup(true);
   };
 
   const startGravityGame = () => {
@@ -356,9 +333,7 @@ export default function GamesScreen() {
       Alert.alert('No Cards Available', 'Please add some flashcards first.');
       return;
     }
-    setCurrentGame('Planet Defense');
-    setGameData({ flashcards: flashcards.slice(0, 15) });
-    setShowGameModal(true);
+    setShowGravityGameSetup(true);
   };
 
   const startTypeWhatYouHear = () => {
@@ -366,9 +341,7 @@ export default function GamesScreen() {
       Alert.alert('No Cards Available', 'Please add some flashcards first.');
       return;
     }
-    setCurrentGame('Type What You Hear');
-    setGameData({ flashcards: flashcards.slice(0, 10) });
-    setShowGameModal(true);
+    setShowTypeWhatYouHearSetup(true);
   };
 
   const startSentenceScramble = () => {
@@ -376,25 +349,474 @@ export default function GamesScreen() {
       Alert.alert('No Cards Available', 'Please add some flashcards first.');
       return;
     }
-    setCurrentGame('Sentence Scramble');
-    setGameData({ flashcards: flashcards.slice(0, 10) });
+    setShowSentenceScrambleSetup(true);
+  };
+
+  // Setup completion handlers
+  const handleFlashcardQuizSetupComplete = (options: FlashcardQuizSetupOptions) => {
+    setShowFlashcardQuizSetup(false);
+    setCurrentGame('Flashcard Quiz');
+    setGameCompleted(false); // Reset completion flag
+    
+    // Map language mode to GameDataService format
+    const mappedLanguageMode = options.languageMode === 'native-to-target' ? 'question' : 
+                              options.languageMode === 'target-to-native' ? 'answer' : 'question';
+    
+    // Filter flashcards by topic and difficulty
+    let filteredFlashcards = flashcards;
+    
+    // Filter by topic if specific topic is selected
+    if (options.selectedTopic && options.selectedTopic !== 'All Topics') {
+      filteredFlashcards = filteredFlashcards.filter(card => card.topic === options.selectedTopic);
+    }
+    
+    // Filter by difficulty if specific difficulty is selected
+    if (options.difficulty && options.difficulty !== 'all') {
+      filteredFlashcards = filteredFlashcards.filter(card => card.difficulty === options.difficulty);
+    }
+    
+    const gameData = GameDataService.generateQuizQuestions(filteredFlashcards, options.questionCount, mappedLanguageMode);
+    setGameData(gameData);
     setShowGameModal(true);
   };
 
+  const handleMemoryMatchSetupComplete = (options: MemoryMatchSetupOptions) => {
+    try {
+      setShowMemoryMatchSetup(false);
+      setGameCompleted(false); // Reset completion flag
+      
+      // Filter flashcards by selected topic
+      let filteredFlashcards = flashcards;
+      if (options.selectedTopic && options.selectedTopic !== 'All Topics') {
+        filteredFlashcards = filteredFlashcards.filter(card => card.topic === options.selectedTopic);
+      }
+      
+      // Filter flashcards by difficulty (only if not 'all')
+      if (options.difficulty && options.difficulty !== 'all') {
+        filteredFlashcards = filteredFlashcards.filter(card => card.difficulty === options.difficulty);
+      }
+      
+      // Validate flashcards
+      const validation = GameDataService.validateFlashcards(filteredFlashcards, 'Memory Match');
+      if (!validation.isValid) {
+        Alert.alert('Cannot Start Game', validation.error || 'Invalid flashcard data');
+        return;
+      }
+      
+      setCurrentGame('Memory Match');
+      const gameData = GameDataService.generateMemoryMatchQuestions(filteredFlashcards, options.cardCount / 2);
+      setGameData(gameData);
+      setShowGameModal(true);
+    } catch (error) {
+      console.error('Error starting Memory Match:', error);
+      Alert.alert('Error', 'Failed to start Memory Match game. Please try again.');
+    }
+  };
+
+  const handleWordScrambleSetupComplete = (options: WordScrambleSetupOptions) => {
+    try {
+      setShowWordScrambleSetup(false);
+      setGameCompleted(false); // Reset completion flag
+      
+      // Filter flashcards based on selected topic and difficulty
+      let filteredFlashcards = flashcards;
+      
+      // Filter by topic if specific topic is selected
+      if (options.selectedTopic && options.selectedTopic !== 'All Topics') {
+        filteredFlashcards = filteredFlashcards.filter(card => card.topic === options.selectedTopic);
+      }
+      
+      // Filter by difficulty if specific difficulty is selected
+      if (options.difficulty && options.difficulty !== 'all') {
+        filteredFlashcards = filteredFlashcards.filter(card => card.difficulty === options.difficulty);
+      }
+      
+      console.log('🔍 Word Scramble filtered flashcards:', {
+        original: flashcards.length,
+        filtered: filteredFlashcards.length,
+        topic: options.selectedTopic,
+        difficulty: options.difficulty
+      });
+      
+      // Validate filtered flashcards
+      const validation = GameDataService.validateFlashcards(filteredFlashcards, 'Word Scramble');
+      if (!validation.isValid) {
+        Alert.alert('Cannot Start Game', validation.error || 'Invalid flashcard data');
+        return;
+      }
+      
+      setCurrentGame('Word Scramble');
+      const gameData = GameDataService.generateScrambleQuestions(filteredFlashcards, options.wordCount);
+      setGameData(gameData);
+      setShowGameModal(true);
+    } catch (error) {
+      console.error('Error starting Word Scramble:', error);
+      Alert.alert('Error', 'Failed to start Word Scramble game. Please try again.');
+    }
+  };
+
+  const handleSentenceScrambleSetupComplete = (options: SentenceScrambleSetupOptions) => {
+    try {
+      setShowSentenceScrambleSetup(false);
+      setGameCompleted(false); // Reset completion flag
+      
+      // Filter flashcards based on selected topic and difficulty
+      let filteredFlashcards = flashcards;
+      
+      // Filter by topic if specific topic is selected
+      if (options.selectedTopic && options.selectedTopic !== 'All Topics') {
+        filteredFlashcards = filteredFlashcards.filter(card => card.topic === options.selectedTopic);
+      }
+      
+      // Filter by difficulty if specific difficulty is selected
+      if (options.difficulty && options.difficulty !== 'all') {
+        filteredFlashcards = filteredFlashcards.filter(card => card.difficulty === options.difficulty);
+      }
+      
+      console.log('🔍 Sentence Scramble filtered flashcards:', {
+        original: flashcards.length,
+        filtered: filteredFlashcards.length,
+        topic: options.selectedTopic,
+        difficulty: options.difficulty
+      });
+      
+      // Validate filtered flashcards
+      const validation = GameDataService.validateFlashcards(filteredFlashcards, 'Sentence Scramble');
+      if (!validation.isValid) {
+        Alert.alert('Cannot Start Game', validation.error || 'Invalid flashcard data');
+        return;
+      }
+      
+    setCurrentGame('Sentence Scramble');
+      
+      // Map difficulty from database format to game format
+      let gameDifficulty: 'easy' | 'medium' | 'hard' | undefined;
+      if (options.difficulty === 'beginner') gameDifficulty = 'easy';
+      else if (options.difficulty === 'intermediate') gameDifficulty = 'medium';
+      else if (options.difficulty === 'expert') gameDifficulty = 'hard';
+      else gameDifficulty = undefined;
+      
+      const gameData = GameDataService.generateSentenceScrambleQuestions(filteredFlashcards, options.sentenceCount, gameDifficulty);
+      setGameData(gameData);
+    setShowGameModal(true);
+    } catch (error) {
+      console.error('Error starting Sentence Scramble:', error);
+      Alert.alert('Error', 'Failed to start Sentence Scramble game. Please try again.');
+    }
+  };
+
+  const handleHangmanSetupComplete = (options: HangmanSetupOptions) => {
+    try {
+      setShowHangmanSetup(false);
+      setGameCompleted(false); // Reset completion flag
+      
+      // Filter flashcards based on selected topic and difficulty
+      let filteredFlashcards = flashcards;
+      
+      // Filter by topic if specific topic is selected
+      if (options.selectedTopic && options.selectedTopic !== 'All Topics') {
+        filteredFlashcards = filteredFlashcards.filter(card => card.topic === options.selectedTopic);
+      }
+      
+      // Filter by difficulty if specific difficulty is selected
+      if (options.difficulty && options.difficulty !== 'all') {
+        filteredFlashcards = filteredFlashcards.filter(card => card.difficulty === options.difficulty);
+      }
+      
+      console.log('🔍 Hangman filtered flashcards:', {
+        original: flashcards.length,
+        filtered: filteredFlashcards.length,
+        topic: options.selectedTopic,
+        difficulty: options.difficulty
+      });
+      
+      // Validate filtered flashcards
+      const validation = GameDataService.validateFlashcards(filteredFlashcards, 'Hangman');
+      if (!validation.isValid) {
+        Alert.alert('Cannot Start Game', validation.error || 'Invalid flashcard data');
+        return;
+      }
+      
+      setCurrentGame('Hangman');
+      
+      // Map difficulty from database format to game format
+      let gameDifficulty: 'easy' | 'medium' | 'hard' | undefined;
+      if (options.difficulty === 'beginner') gameDifficulty = 'easy';
+      else if (options.difficulty === 'intermediate') gameDifficulty = 'medium';
+      else if (options.difficulty === 'expert') gameDifficulty = 'hard';
+      else gameDifficulty = undefined;
+      
+      const gameData = GameDataService.generateHangmanQuestions(filteredFlashcards, options.wordCount, gameDifficulty, options.maxGuesses);
+      setGameData(gameData);
+      setShowGameModal(true);
+    } catch (error) {
+      console.error('Error starting Hangman:', error);
+      Alert.alert('Error', 'Failed to start Hangman game. Please try again.');
+    }
+  };
+
+  const handleSpeedChallengeSetupComplete = (options: SpeedChallengeSetupOptions) => {
+    try {
+      setShowSpeedChallengeSetup(false);
+      setGameCompleted(false); // Reset completion flag
+      
+      // Filter flashcards based on selected topic and difficulty
+      let filteredFlashcards = flashcards;
+      
+      // Filter by topic if specific topic is selected
+      if (options.selectedTopic && options.selectedTopic !== 'All Topics') {
+        filteredFlashcards = filteredFlashcards.filter(card => card.topic === options.selectedTopic);
+      }
+      
+      // Filter by difficulty if specific difficulty is selected
+      if (options.difficulty && options.difficulty !== 'all') {
+        filteredFlashcards = filteredFlashcards.filter(card => card.difficulty === options.difficulty);
+      }
+      
+      console.log('🔍 Speed Challenge filtered flashcards:', {
+        original: flashcards.length,
+        filtered: filteredFlashcards.length,
+        topic: options.selectedTopic,
+        difficulty: options.difficulty
+      });
+      
+      // Validate filtered flashcards
+      const validation = GameDataService.validateFlashcards(filteredFlashcards, 'Speed Challenge');
+      if (!validation.isValid) {
+        Alert.alert('Cannot Start Game', validation.error || 'Invalid flashcard data');
+        return;
+      }
+      
+      setCurrentGame('Speed Challenge');
+      
+      // Map difficulty from database format to game format
+      let gameDifficulty: 'easy' | 'medium' | 'hard' | undefined;
+      if (options.difficulty === 'beginner') gameDifficulty = 'easy';
+      else if (options.difficulty === 'intermediate') gameDifficulty = 'medium';
+      else if (options.difficulty === 'expert') gameDifficulty = 'hard';
+      else gameDifficulty = undefined;
+      
+      const gameData = GameDataService.generateSpeedChallengeQuestions(filteredFlashcards, gameDifficulty, options.timeLimit);
+      setGameData(gameData);
+      setShowGameModal(true);
+    } catch (error) {
+      console.error('Error starting Speed Challenge:', error);
+      Alert.alert('Error', 'Failed to start Speed Challenge game. Please try again.');
+    }
+  };
+
+  const handleTypeWhatYouHearSetupComplete = (options: TypeWhatYouHearSetupOptions) => {
+    try {
+      setShowTypeWhatYouHearSetup(false);
+      setGameCompleted(false); // Reset completion flag
+      
+      // Filter flashcards based on selected topic and difficulty
+      let filteredFlashcards = flashcards;
+      
+      // Filter by topic if specific topic is selected
+      if (options.selectedTopic && options.selectedTopic !== 'All Topics') {
+        filteredFlashcards = filteredFlashcards.filter(card => card.topic === options.selectedTopic);
+      }
+      
+      // Filter by difficulty if specific difficulty is selected
+      if (options.difficulty && options.difficulty !== 'all') {
+        filteredFlashcards = filteredFlashcards.filter(card => card.difficulty === options.difficulty);
+      }
+      
+      console.log('🔍 Type What You Hear filtered flashcards:', {
+        original: flashcards.length,
+        filtered: filteredFlashcards.length,
+        topic: options.selectedTopic,
+        difficulty: options.difficulty
+      });
+      
+      // Validate filtered flashcards
+      const validation = GameDataService.validateFlashcards(filteredFlashcards, 'Type What You Hear');
+      if (!validation.isValid) {
+        Alert.alert('Cannot Start Game', validation.error || 'Invalid flashcard data');
+        return;
+      }
+      
+      setCurrentGame('Type What You Hear');
+      
+      // Map difficulty from database format to game format
+      let gameDifficulty: 'easy' | 'medium' | 'hard' | undefined;
+      if (options.difficulty === 'beginner') gameDifficulty = 'easy';
+      else if (options.difficulty === 'intermediate') gameDifficulty = 'medium';
+      else if (options.difficulty === 'expert') gameDifficulty = 'hard';
+      else gameDifficulty = undefined;
+      
+        const gameData = GameDataService.generateTypeWhatYouHearQuestions(filteredFlashcards, options.wordCount, gameDifficulty);
+      setGameData(gameData);
+      setShowGameModal(true);
+    } catch (error) {
+      console.error('Error starting Type What You Hear:', error);
+      Alert.alert('Error', 'Failed to start Type What You Hear game. Please try again.');
+    }
+  };
+
+  const handleGravityGameSetupComplete = (options: GravityGameSetupOptions) => {
+    try {
+      setShowGravityGameSetup(false);
+      setGameCompleted(false); // Reset completion flag
+      
+      // Filter flashcards based on selected topic and difficulty
+      let filteredFlashcards = flashcards;
+      
+      // Filter by topic if specific topic is selected
+      if (options.selectedTopic && options.selectedTopic !== 'All Topics') {
+        filteredFlashcards = filteredFlashcards.filter(card => card.topic === options.selectedTopic);
+      }
+      
+      // Filter by difficulty if specific difficulty is selected
+      if (options.difficulty && options.difficulty !== 'all') {
+        filteredFlashcards = filteredFlashcards.filter(card => card.difficulty === options.difficulty);
+      }
+      
+      console.log('🔍 Planet Defense filtered flashcards:', {
+        original: flashcards.length,
+        filtered: filteredFlashcards.length,
+        topic: options.selectedTopic,
+        difficulty: options.difficulty
+      });
+      
+      // Validate filtered flashcards
+      const validation = GameDataService.validateFlashcards(filteredFlashcards, 'Planet Defense');
+      if (!validation.isValid) {
+        Alert.alert('Cannot Start Game', validation.error || 'Invalid flashcard data');
+        return;
+      }
+      
+      setCurrentGame('Planet Defense');
+      
+      // Map difficulty from database format to game format
+      let gameDifficulty: 'easy' | 'medium' | 'hard' | undefined;
+      if (options.difficulty === 'beginner') gameDifficulty = 'easy';
+      else if (options.difficulty === 'intermediate') gameDifficulty = 'medium';
+      else if (options.difficulty === 'expert') gameDifficulty = 'hard';
+      else gameDifficulty = undefined;
+      
+        const gameData = GameDataService.generateGravityGameQuestions(filteredFlashcards, gameDifficulty, options.gravitySpeed);
+      setGameData(gameData);
+      setShowGameModal(true);
+    } catch (error) {
+      console.error('Error starting Planet Defense:', error);
+      Alert.alert('Error', 'Failed to start Planet Defense game. Please try again.');
+    }
+  };
+
   // Handle game completion
-  const handleGameComplete = (finalScore: number) => {
+  const handleGameComplete = async (finalScore: number, timeSpent?: number, totalAnswered?: number) => {
+    try {
+      console.log('🎮 Game completed with finalScore:', finalScore, 'timeSpent:', timeSpent, 'totalAnswered:', totalAnswered, 'currentGame:', currentGame);
+      
+      // Add a guard to prevent multiple calls
+      if (!currentGame || !gameData || gameCompleted) {
+        console.log('⚠️ Guard: No currentGame, gameData, or already completed, skipping');
+        return;
+      }
+      
+      // Set completion flag immediately to prevent duplicate calls
+      setGameCompleted(true);
+      
+      // Record game activity in progress tracking
+      const gameName = currentGame;
+      const durationSeconds = timeSpent || 60; // Default 1 minute if not provided
+      
+      let totalQuestions: number;
+      let accuracyPercentage: number;
+      let maxScore: number;
+      
+      // Special handling for Speed Challenge game
+      if (currentGame === 'Speed Challenge') {
+        // For Speed Challenge: finalScore = correct answers, totalQuestions = questions answered (including skips)
+        totalQuestions = totalAnswered || finalScore; // Use totalAnswered if provided, fallback to finalScore
+        accuracyPercentage = totalQuestions > 0 ? Math.round((finalScore / totalQuestions) * 100) : 0;
+        maxScore = totalQuestions * 100; // 100 points per question answered
+        
+        console.log('⚡ Speed Challenge scoring:', {
+          correctAnswers: finalScore,
+          totalAnswered: totalQuestions,
+          accuracyPercentage,
+          maxScore
+        });
+      } else if (currentGame === 'Memory Match') {
+        // For Memory Match: finalScore = matched pairs, totalQuestions = total pairs
+        totalQuestions = gameData.questions.length / 2; // Each pair creates 2 cards
+        accuracyPercentage = Math.round((finalScore / totalQuestions) * 100);
+        maxScore = totalQuestions * 100; // 100 points per pair
+        
+        console.log('🧠 Memory Match scoring:', {
+          matchedPairs: finalScore,
+          totalPairs: totalQuestions,
+          accuracyPercentage,
+          maxScore
+        });
+      } else {
+        // For other games: finalScore = correct answers, totalQuestions = total questions
+        totalQuestions = gameData.questions?.length || 1;
+        accuracyPercentage = Math.round((finalScore / totalQuestions) * 100);
+        maxScore = totalQuestions * 100; // 100 points per question
+        
+        console.log('📊 Standard game scoring:', {
+          correctAnswers: finalScore,
+          totalQuestions,
+          accuracyPercentage,
+          maxScore
+        });
+      }
+
+      console.log('📊 Calculated accuracy:', accuracyPercentage, '% from', finalScore, 'correct out of', totalQuestions, 'questions');
+
+      await ProgressTrackingService.recordGameActivity({
+        activityType: 'game',
+        activityName: gameName,
+        durationSeconds,
+        score: Math.round((finalScore / totalQuestions) * maxScore),
+        maxScore,
+        accuracyPercentage,
+        gameData,
+      });
+
+      console.log('✅ Game progress tracked successfully');
+
+      // Award XP for completing the game
+      if (user?.id) {
+        try {
+          const xpResult = await XPService.awardXP(
+            user.id,
+            'game',
+            Math.round((finalScore / totalQuestions) * maxScore),
+            maxScore,
+            accuracyPercentage,
+            gameName,
+            durationSeconds
+          );
+          
+          if (xpResult) {
+            console.log('🎯 XP awarded:', xpResult.totalXP, 'XP');
+          }
+        } catch (xpError) {
+          console.error('❌ Error awarding XP:', xpError);
+        }
+      }
+
+      // Update game stats (existing functionality)
+      setGameStats(prev => ({
+        ...prev,
+        gamesPlayed: prev.gamesPlayed + 1,
+        totalScore: prev.totalScore + finalScore,
+        bestScore: Math.max(prev.bestScore, finalScore),
+        averageScore: Math.round((prev.totalScore + finalScore) / (prev.gamesPlayed + 1)),
+      }));
+    } catch (error) {
+      console.error('❌ Error tracking game progress:', error);
+    }
+
+    // Close game modal and show completion message
     setShowGameModal(false);
     setCurrentGame(null);
     setGameData(null);
-    
-    // Update game stats
-    setGameStats(prev => ({
-      ...prev,
-      gamesPlayed: prev.gamesPlayed + 1,
-      totalScore: prev.totalScore + finalScore,
-      bestScore: Math.max(prev.bestScore, finalScore),
-      averageScore: Math.round((prev.totalScore + finalScore) / (prev.gamesPlayed + 1)),
-    }));
     
     Alert.alert(
       'Game Complete! 🎉',
@@ -408,6 +830,7 @@ export default function GamesScreen() {
     setShowGameModal(false);
     setCurrentGame(null);
     setGameData(null);
+    setGameCompleted(false); // Reset completion flag
   };
 
   // Render game component based on current game
@@ -419,6 +842,7 @@ export default function GamesScreen() {
       onClose: closeGameModal,
       onGameComplete: handleGameComplete,
       userProfile: profile,
+      ...(currentGame === 'Speed Challenge' && { timeLimit: gameData.timeLimit }),
     };
 
     switch (currentGame) {
@@ -459,7 +883,7 @@ export default function GamesScreen() {
             id: game.id,
             title: game.game_name,
             tag: getGameTag(game.game_name),
-            cards: getFilteredCardCount(),
+            cards: flashcards.length,
             progress: 0.4,
             icon: getGameIcon(game.game_name),
             isFavorite: true,
@@ -488,7 +912,7 @@ export default function GamesScreen() {
             id: game.name,
             title: game.name,
             tag: game.tag,
-            cards: getFilteredCardCount(),
+            cards: flashcards.length,
             progress: 0.2,
             icon: game.icon,
             isFavorite: gameFavouriteStatus[game.name] || false,
@@ -518,188 +942,67 @@ export default function GamesScreen() {
             total: realGameStats.totalGamesPlayed,
             accuracyPct: realGameStats.averageAccuracy,
             totalMinutes: realGameStats.totalGamingTime,
-            level: realGameStats.level,
-            xp: realGameStats.xp,
-            nextLevelXp: realGameStats.nextLevelXp
           }}
         />
       </ScrollView>
       
-      {/* Quiz Setup Modal */}
-      <Modal
-        visible={showQuizSetup}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setShowQuizSetup(false)}
-      >
-        <SafeAreaView style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <TouchableOpacity onPress={() => setShowQuizSetup(false)} style={styles.closeButton}>
-              <Ionicons name="close" size={24} color="#64748b" />
-            </TouchableOpacity>
-            <Text style={styles.modalTitle}>Quiz Setup</Text>
-            <View style={styles.placeholder} />
-          </View>
-          
-          <View style={styles.modalContent}>
-            {/* Topic Selection */}
-            <View style={styles.setupSection}>
-              <Text style={styles.setupSectionTitle}>Select Topic</Text>
-              <TouchableOpacity 
-                style={styles.dropdownButton}
-                onPress={() => setShowTopicDropdown(!showTopicDropdown)}
-              >
-                <Text style={styles.dropdownButtonText}>
-                  {selectedTopic || 'All Topics'}
-                </Text>
-                <Ionicons 
-                  name={showTopicDropdown ? "chevron-up" : "chevron-down"} 
-                  size={20} 
-                  color="#64748b" 
-                />
-              </TouchableOpacity>
-              
-              {showTopicDropdown && (
-                <View style={styles.dropdownMenu}>
-                  <TouchableOpacity 
-                    style={styles.dropdownItem}
-                    onPress={() => {
-                      setSelectedTopic('');
-                      setShowTopicDropdown(false);
-                    }}
-                  >
-                    <Text style={styles.dropdownItemText}>All Topics</Text>
-                  </TouchableOpacity>
-                  {topics.map((topic) => (
-                    <TouchableOpacity 
-                      key={topic}
-                      style={styles.dropdownItem}
-                      onPress={() => {
-                        setSelectedTopic(topic);
-                        setShowTopicDropdown(false);
-                      }}
-                    >
-                      <Text style={styles.dropdownItemText}>{topic}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              )}
-            </View>
 
-            {/* Difficulty Selection */}
-            <View style={styles.setupSection}>
-              <Text style={styles.setupSectionTitle}>Select Difficulty</Text>
-              <TouchableOpacity 
-                style={styles.dropdownButton}
-                onPress={() => setShowDifficultyDropdown(!showDifficultyDropdown)}
-              >
-                <Text style={styles.dropdownButtonText}>
-                  {selectedDifficulty || 'All Difficulties'}
-                </Text>
-                <Ionicons 
-                  name={showDifficultyDropdown ? "chevron-up" : "chevron-down"} 
-                  size={20} 
-                  color="#64748b" 
-                />
-              </TouchableOpacity>
-              
-              {showDifficultyDropdown && (
-                <View style={styles.dropdownMenu}>
-                  <TouchableOpacity 
-                    style={styles.dropdownItem}
-                    onPress={() => {
-                      setSelectedDifficulty('');
-                      setShowDifficultyDropdown(false);
-                    }}
-                  >
-                    <Text style={styles.dropdownItemText}>All Difficulties</Text>
-                  </TouchableOpacity>
-                  {difficulties.map((difficulty) => (
-                    <TouchableOpacity 
-                      key={difficulty.id}
-                      style={styles.dropdownItem}
-                      onPress={() => {
-                        setSelectedDifficulty(difficulty.id);
-                        setShowDifficultyDropdown(false);
-                      }}
-                    >
-                      <Text style={styles.dropdownItemText}>{difficulty.name}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              )}
-            </View>
+      {/* Setup Modals */}
+      <FlashcardQuizSetup
+        visible={showFlashcardQuizSetup}
+        onClose={() => setShowFlashcardQuizSetup(false)}
+        onStartGame={handleFlashcardQuizSetupComplete}
+        availableCards={flashcards.length}
+      />
 
-            {/* Question Count */}
-            <View style={styles.setupSection}>
-              <Text style={styles.setupSectionTitle}>Number of Questions</Text>
-              <View style={styles.questionCountContainer}>
-                <TouchableOpacity 
-                  style={styles.countButton}
-                  onPress={() => setSelectedQuestionCount(Math.max(5, selectedQuestionCount - 5))}
-                  disabled={selectedQuestionCount <= 5}
-                >
-                  <Ionicons name="remove" size={20} color="#64748b" />
-                </TouchableOpacity>
-                <Text style={styles.questionCountText}>{selectedQuestionCount}</Text>
-                <TouchableOpacity 
-                  style={styles.countButton}
-                  onPress={() => setSelectedQuestionCount(Math.min(50, selectedQuestionCount + 5))}
-                  disabled={selectedQuestionCount >= 50}
-                >
-                  <Ionicons name="add" size={20} color="#64748b" />
-                </TouchableOpacity>
-              </View>
-            </View>
+      <MemoryMatchSetup
+        visible={showMemoryMatchSetup}
+        onClose={() => setShowMemoryMatchSetup(false)}
+        onStartGame={handleMemoryMatchSetupComplete}
+        availableCards={flashcards.length}
+      />
 
-            {/* Language Mode */}
-            <View style={styles.setupSection}>
-              <Text style={styles.setupSectionTitle}>Language Mode</Text>
-              <View style={styles.languageModeContainer}>
-                <TouchableOpacity 
-                  style={[
-                    styles.languageModeButton,
-                    selectedLanguageMode === 'question' && styles.languageModeButtonActive
-                  ]}
-                  onPress={() => setSelectedLanguageMode('question')}
-                >
-                  <Text style={[
-                    styles.languageModeButtonText,
-                    selectedLanguageMode === 'question' && styles.languageModeButtonTextActive
-                  ]}>
-                    Question → Answer
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={[
-                    styles.languageModeButton,
-                    selectedLanguageMode === 'answer' && styles.languageModeButtonActive
-                  ]}
-                  onPress={() => setSelectedLanguageMode('answer')}
-                >
-                  <Text style={[
-                    styles.languageModeButtonText,
-                    selectedLanguageMode === 'answer' && styles.languageModeButtonTextActive
-                  ]}>
-                    Answer → Question
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </View>
+      <WordScrambleSetup
+        visible={showWordScrambleSetup}
+        onClose={() => setShowWordScrambleSetup(false)}
+        onStartGame={handleWordScrambleSetupComplete}
+        availableCards={flashcards.length}
+      />
 
-            {/* Start Button */}
-            <TouchableOpacity 
-              style={styles.startButton}
-              onPress={() => {
-                setShowQuizSetup(false);
-                startFlashcardQuiz();
-              }}
-            >
-              <Text style={styles.startButtonText}>Start Quiz</Text>
-            </TouchableOpacity>
-          </View>
-        </SafeAreaView>
-      </Modal>
+      <SentenceScrambleSetup
+        visible={showSentenceScrambleSetup}
+        onClose={() => setShowSentenceScrambleSetup(false)}
+        onStartGame={handleSentenceScrambleSetupComplete}
+        availableCards={flashcards.length}
+      />
+
+      <HangmanSetup
+        visible={showHangmanSetup}
+        onClose={() => setShowHangmanSetup(false)}
+        onStartGame={handleHangmanSetupComplete}
+        availableCards={flashcards.length}
+      />
+
+      <SpeedChallengeSetup
+        visible={showSpeedChallengeSetup}
+        onClose={() => setShowSpeedChallengeSetup(false)}
+        onStartGame={handleSpeedChallengeSetupComplete}
+        availableCards={flashcards.length}
+      />
+
+      <TypeWhatYouHearSetup
+        visible={showTypeWhatYouHearSetup}
+        onClose={() => setShowTypeWhatYouHearSetup(false)}
+        onStartGame={handleTypeWhatYouHearSetupComplete}
+        availableCards={flashcards.length}
+      />
+
+      <GravityGameSetup
+        visible={showGravityGameSetup}
+        onClose={() => setShowGravityGameSetup(false)}
+        onStartGame={handleGravityGameSetupComplete}
+        availableCards={flashcards.length}
+      />
 
       {/* Game Modal */}
       <Modal

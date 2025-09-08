@@ -39,15 +39,13 @@ export default function ConversationPracticeScreen() {
     try {
       setLoading(true);
       
-      // Fetch topics from both user flashcards and general flashcards
+      // Fetch topics from user flashcards only
       const userFlashcards = await UserFlashcardService.getUserFlashcards();
-      const generalFlashcards = await FlashcardService.getAllFlashcards();
       
-      // Combine and get unique topics
-      const allFlashcards = [...userFlashcards, ...generalFlashcards];
+      // Get unique topics from user cards only
       const topicMap = new Map<string, { count: number; cards: any[] }>();
       
-      allFlashcards.forEach((card: any) => {
+      userFlashcards.forEach((card: any) => {
         const topic = card.topic || 'General';
         if (!topicMap.has(topic)) {
           topicMap.set(topic, { count: 0, cards: [] });

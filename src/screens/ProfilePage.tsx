@@ -12,6 +12,7 @@ import ShareInvitationModal from '../components/ShareInvitationModal';
 import ProfileAvatar from '../components/ProfileAvatar';
 import ContactSupportModal from '../components/ContactSupportModal';
 import SubscriptionStatus from '../components/SubscriptionStatus';
+import AIUsageBar from '../components/AIUsageBar';
 
 export default function ProfilePage() {
   const navigation = useNavigation();
@@ -233,6 +234,9 @@ export default function ProfilePage() {
             navigation.navigate('Paywall' as never);
           }}
         />
+
+        {/* AI Usage */}
+        <AIUsageBar />
 
         {/* Menu Items */}
         <View style={styles.menuSection}>

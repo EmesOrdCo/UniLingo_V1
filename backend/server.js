@@ -50,6 +50,59 @@ const upload = multer({
   }
 });
 
+// Function to split text into approximate pages
+function splitTextIntoPages(text, pageCount) {
+  if (!text || pageCount <= 1) {
+    return [text || ''];
+  }
+  
+  const totalLength = text.length;
+  const avgPageLength = Math.floor(totalLength / pageCount);
+  
+  const pages = [];
+  let currentIndex = 0;
+  
+  for (let i = 0; i < pageCount; i++) {
+    let endIndex;
+    
+    if (i === pageCount - 1) {
+      // Last page gets all remaining text
+      endIndex = totalLength;
+    } else {
+      // Find a good break point (end of sentence or paragraph)
+      endIndex = currentIndex + avgPageLength;
+      
+      // Look for sentence endings within 200 characters
+      const searchStart = Math.max(currentIndex, endIndex - 200);
+      const searchEnd = Math.min(totalLength, endIndex + 200);
+      const searchText = text.substring(searchStart, searchEnd);
+      
+      // Find the last sentence ending
+      const sentenceEndings = ['. ', '.\n', '! ', '!\n', '? ', '?\n'];
+      let bestBreak = endIndex;
+      
+      for (const ending of sentenceEndings) {
+        const lastIndex = searchText.lastIndexOf(ending);
+        if (lastIndex !== -1) {
+          bestBreak = searchStart + lastIndex + ending.length;
+          break;
+        }
+      }
+      
+      endIndex = bestBreak;
+    }
+    
+    const pageText = text.substring(currentIndex, endIndex).trim();
+    if (pageText.length > 0) {
+      pages.push(pageText);
+    }
+    
+    currentIndex = endIndex;
+  }
+  
+  return pages;
+}
+
 // PDF text extraction removed - now handled by Zapier webhook
 
 // PDF text extraction endpoint removed - now handled by Zapier webhook
@@ -76,6 +129,9 @@ app.post('/api/process-pdf', upload.single('pdf'), async (req, res) => {
     const dataBuffer = fs.readFileSync(req.file.path);
     const result = await pdfParse(dataBuffer);
     
+    // Split text into pages (approximate - pdf-parse doesn't give exact page boundaries)
+    const pages = splitTextIntoPages(result.text, result.numpages);
+    
     console.log('\n' + '🎯'.repeat(20));
     console.log('🎯 SENDING RESPONSE TO FRONTEND');
     console.log('🎯'.repeat(20));
@@ -83,6 +139,7 @@ app.post('/api/process-pdf', upload.single('pdf'), async (req, res) => {
     console.log(`📄 Filename: ${req.file.originalname}`);
     console.log(`📊 Pages: ${result.numpages}`);
     console.log(`🔢 Characters: ${result.text.length.toLocaleString()}`);
+    console.log(`📑 Split into ${pages.length} page texts`);
     console.log('🎯'.repeat(20) + '\n');
 
     // Clean up the uploaded file
@@ -93,7 +150,8 @@ app.post('/api/process-pdf', upload.single('pdf'), async (req, res) => {
       success: true,
       message: 'PDF processed successfully via local pdf-parse',
       result: {
-        text: result.text,
+        text: result.text, // Keep full text for backward compatibility
+        pages: pages, // New: page-by-page text
         pageCount: result.numpages
       },
       filename: req.file.originalname

@@ -1,25 +1,68 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, TextInput, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 interface SpeedChallengeGameProps {
   gameData: any;
   onClose: () => void;
-  onGameComplete: (score: number, time: number) => void;
+  onGameComplete: (score: number, time: number, totalAnswered?: number) => void;
+  timeLimit?: number; // Add time limit prop
 }
 
-const SpeedChallengeGame: React.FC<SpeedChallengeGameProps> = ({ gameData, onClose, onGameComplete }) => {
+const SpeedChallengeGame: React.FC<SpeedChallengeGameProps> = ({ gameData, onClose, onGameComplete, timeLimit = 60 }) => {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userAnswer, setUserAnswer] = useState('');
   const [score, setScore] = useState(0);
-  const [gameStartTime, setGameStartTime] = useState<number>(Date.now());
+  const [totalAnswered, setTotalAnswered] = useState(0); // Track total questions answered
+  const gameStartTimeRef = useRef<number>(Date.now());
+  const [elapsedTime, setElapsedTime] = useState(0);
   const [gameComplete, setGameComplete] = useState(false);
   const [showResult, setShowResult] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
+  
+  // Use refs to capture final values when game completes
+  const finalScoreRef = useRef<number>(0);
+  const finalElapsedTimeRef = useRef<number>(0);
+  const finalTotalAnsweredRef = useRef<number>(0);
 
   useEffect(() => {
-    setGameStartTime(Date.now());
-  }, []);
+    gameStartTimeRef.current = Date.now();
+    setElapsedTime(0); // Reset elapsed time when game starts
+    
+    // Set up timer to update elapsed time and check for game end
+    const timer = setInterval(() => {
+      const currentElapsedTime = Math.round((Date.now() - gameStartTimeRef.current) / 1000);
+      setElapsedTime(currentElapsedTime);
+      
+      if (currentElapsedTime >= timeLimit) {
+        // Capture final values when game completes
+        console.log('⏰ Speed Challenge timer expired, capturing final values:', {
+          score,
+          currentElapsedTime,
+          totalAnswered
+        });
+        finalScoreRef.current = score;
+        finalElapsedTimeRef.current = currentElapsedTime;
+        finalTotalAnsweredRef.current = totalAnswered;
+        setGameComplete(true);
+        clearInterval(timer);
+      }
+    }, 1000);
+    
+    return () => clearInterval(timer);
+  }, [timeLimit]);
+
+  // Handle game completion
+  useEffect(() => {
+    if (gameComplete) {
+      console.log('🚀 Speed Challenge calling onGameComplete with:', {
+        score: finalScoreRef.current,
+        elapsedTime: finalElapsedTimeRef.current,
+        totalAnswered: finalTotalAnsweredRef.current
+      });
+      onGameComplete(finalScoreRef.current, finalElapsedTimeRef.current, finalTotalAnsweredRef.current);
+    }
+  }, [gameComplete]); // Only depend on gameComplete to avoid multiple calls
 
   const handleAnswerSubmit = () => {
     if (!userAnswer.trim()) return;
@@ -35,31 +78,26 @@ const SpeedChallengeGame: React.FC<SpeedChallengeGameProps> = ({ gameData, onClo
       setScore(score + 1);
     }
     
+    setTotalAnswered(totalAnswered + 1); // Increment total answered
     setShowResult(true);
     
     setTimeout(() => {
-      if (currentQuestionIndex < gameData.questions.length - 1) {
-        setCurrentQuestionIndex(currentQuestionIndex + 1);
-        setUserAnswer('');
-        setShowResult(false);
-      } else {
-        const totalTime = Math.round((Date.now() - gameStartTime) / 1000);
-        setGameComplete(true);
-        onGameComplete(score + (correctAnswer ? 1 : 0), totalTime);
-      }
+      // For speed challenge, we cycle through questions indefinitely
+      // Move to next question (cycling back to 0 if we reach the end)
+      const nextIndex = (currentQuestionIndex + 1) % gameData.questions.length;
+      setCurrentQuestionIndex(nextIndex);
+      setUserAnswer('');
+      setShowResult(false);
     }, 1500);
   };
 
   const skipQuestion = () => {
-    if (currentQuestionIndex < gameData.questions.length - 1) {
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
-      setUserAnswer('');
-      setShowResult(false);
-    } else {
-      const totalTime = Math.round((Date.now() - gameStartTime) / 1000);
-      setGameComplete(true);
-      onGameComplete(score, totalTime);
-    }
+    // For speed challenge, we cycle through questions indefinitely
+    const nextIndex = (currentQuestionIndex + 1) % gameData.questions.length;
+    setCurrentQuestionIndex(nextIndex);
+    setUserAnswer('');
+    setShowResult(false);
+    setTotalAnswered(totalAnswered + 1); // Increment total answered for skip
   };
 
   const resetGame = () => {
@@ -68,16 +106,22 @@ const SpeedChallengeGame: React.FC<SpeedChallengeGameProps> = ({ gameData, onClo
     setUserAnswer('');
     setShowResult(false);
     setGameComplete(false);
-    setGameStartTime(Date.now());
+    setTotalAnswered(0); // Reset total answered
+    gameStartTimeRef.current = Date.now();
+    setElapsedTime(0);
+    
+    // Reset refs
+    finalScoreRef.current = 0;
+    finalElapsedTimeRef.current = 0;
+    finalTotalAnsweredRef.current = 0;
   };
 
   if (gameComplete) {
-    const totalTime = Math.round((Date.now() - gameStartTime) / 1000);
     return (
       <View style={styles.gameContainer}>
         <View style={styles.completionContainer}>
           <Text style={styles.completionTitle}>🎉 Speed Challenge Complete!</Text>
-          <Text style={styles.completionSubtitle}>Your Results: {score}/{gameData.questions.length}</Text>
+          <Text style={styles.completionSubtitle}>Your Results: {score} correct answers</Text>
           
           <View style={styles.statsContainer}>
             <View style={styles.statItem}>
@@ -86,26 +130,31 @@ const SpeedChallengeGame: React.FC<SpeedChallengeGameProps> = ({ gameData, onClo
             </View>
             <View style={styles.statItem}>
               <Text style={styles.statLabel}>Time</Text>
-              <Text style={styles.statValue}>{totalTime}s</Text>
+              <Text style={styles.statValue}>{elapsedTime}s</Text>
             </View>
             <View style={styles.statItem}>
               <Text style={styles.statLabel}>Speed</Text>
               <Text style={styles.statValue}>
-                {Math.round((score / totalTime) * 60)} q/min
+                {elapsedTime > 0 ? Math.round((score / elapsedTime) * 60) : 0} q/min
               </Text>
             </View>
           </View>
           
-          <TouchableOpacity style={styles.resetButton} onPress={resetGame}>
-            <Text style={styles.resetButtonText}>Play Again</Text>
-          </TouchableOpacity>
+          <View style={styles.actionButtons}>
+            <TouchableOpacity style={styles.resetButton} onPress={resetGame}>
+              <Text style={styles.resetButtonText}>Play Again</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.exitButton} onPress={onClose}>
+              <Text style={styles.exitButtonText}>Exit</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     );
   }
 
   const currentQuestion = gameData.questions[currentQuestionIndex];
-  const elapsedTime = Math.round((Date.now() - gameStartTime) / 1000);
 
   return (
     <View style={styles.gameContainer}>
@@ -113,19 +162,19 @@ const SpeedChallengeGame: React.FC<SpeedChallengeGameProps> = ({ gameData, onClo
       <View style={styles.gameHeader}>
         <View style={styles.headerInfo}>
           <Text style={styles.scoreText}>Score: {score}</Text>
-          <Text style={styles.timeText}>Time: {elapsedTime}s</Text>
+          <Text style={styles.timeText}>Time: {elapsedTime}s / {timeLimit}s</Text>
         </View>
         <Text style={styles.questionCounter}>
-          {currentQuestionIndex + 1} of {gameData.questions.length}
+          Question {currentQuestionIndex + 1}
         </Text>
       </View>
 
-      {/* Progress Bar */}
+      {/* Progress Bar - Show time progress instead of question progress */}
       <View style={styles.progressBar}>
         <View 
           style={[
             styles.progressFill, 
-            { width: `${((currentQuestionIndex + 1) / gameData.questions.length) * 100}%` }
+            { width: `${Math.min((elapsedTime / timeLimit) * 100, 100)}%` }
           ]} 
         />
       </View>
@@ -422,13 +471,34 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#f59e0b',
   },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    justifyContent: 'center',
+    marginTop: 20,
+  },
   resetButton: {
     backgroundColor: '#f59e0b',
     paddingHorizontal: 32,
     paddingVertical: 16,
     borderRadius: 12,
+    flex: 1,
+    alignItems: 'center',
   },
   resetButtonText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#ffffff',
+  },
+  exitButton: {
+    backgroundColor: '#ef4444',
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    borderRadius: 12,
+    flex: 1,
+    alignItems: 'center',
+  },
+  exitButtonText: {
     fontSize: 18,
     fontWeight: '600',
     color: '#ffffff',

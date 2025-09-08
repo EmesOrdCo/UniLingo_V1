@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, TextInput, Dimensions } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 interface LessonFillInTheBlankProps {
@@ -93,7 +94,7 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
 
   if (questions.length === 0) {
     return (
-      <View style={styles.container}>
+      <SafeAreaView style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity 
             style={styles.closeButton} 
@@ -115,13 +116,13 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
             This lesson doesn't have enough example sentences to create fill-in-the-blank questions.
           </Text>
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
 
   if (gameComplete) {
     return (
-      <View style={styles.container}>
+      <SafeAreaView style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity 
             style={styles.closeButton} 
@@ -150,7 +151,7 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
             {Math.round((score / questions.length) * 100)}% correct
           </Text>
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
 
@@ -165,7 +166,7 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.closeButton} 
@@ -261,7 +262,7 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
           )}
         </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -275,10 +276,16 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 20,
+    paddingTop: 32,
     backgroundColor: '#ffffff',
     borderBottomWidth: 1,
     borderBottomColor: '#f1f5f9',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   closeButton: {
     padding: 12,

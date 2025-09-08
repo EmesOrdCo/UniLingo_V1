@@ -56,7 +56,7 @@ const FlashcardQuizGame: React.FC<FlashcardQuizGameProps> = ({
   };
   
   const handleReviewComplete = () => {
-    onGameComplete(score + (selectedAnswer === question.correctAnswer ? 1 : 0));
+    onGameComplete(score);
   };
   
   // Review Screen

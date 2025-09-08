@@ -15,9 +15,10 @@ const { width } = Dimensions.get('window');
 
 interface DailyGoalsWidgetProps {
   onGoalCompleted?: () => void;
+  refreshTrigger?: number; // Add refresh trigger prop
 }
 
-export default function DailyGoalsWidget({ onGoalCompleted }: DailyGoalsWidgetProps) {
+export default function DailyGoalsWidget({ onGoalCompleted, refreshTrigger }: DailyGoalsWidgetProps) {
   const { user } = useAuth();
   const [goalProgress, setGoalProgress] = useState<DailyGoalProgress | null>(null);
   const [loading, setLoading] = useState(true);
@@ -28,6 +29,13 @@ export default function DailyGoalsWidget({ onGoalCompleted }: DailyGoalsWidgetPr
       loadGoalProgress();
     }
   }, [user?.id]);
+
+  // Watch for refresh trigger
+  useEffect(() => {
+    if (refreshTrigger && user?.id) {
+      loadGoalProgress();
+    }
+  }, [refreshTrigger, user?.id]);
 
   const loadGoalProgress = async () => {
     try {

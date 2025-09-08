@@ -197,6 +197,31 @@ export class UserFlashcardService {
     }
   }
 
+  // Get topics for a specific user from user flashcards
+  static async getUserFlashcardTopicsByUserId(userId: string): Promise<string[]> {
+    try {
+      console.log('🔍 Fetching topics for user:', userId);
+      const { data, error } = await supabase
+        .from('user_flashcards')
+        .select('topic')
+        .eq('user_id', userId)
+        .not('topic', 'is', null)
+
+      if (error) {
+        console.error('❌ Supabase error:', error);
+        throw error;
+      }
+
+      console.log('📊 Raw topics data:', data);
+      const topics = Array.from(new Set(data?.map(item => item.topic) || []))
+      console.log('✅ Processed topics:', topics);
+      return topics.sort()
+    } catch (error: any) {
+      console.error('❌ Error fetching user flashcard topics by user ID:', error)
+      throw error
+    }
+  }
+
   // Get topics for a specific subject from user flashcards
   static async getUserFlashcardTopics(subject: string): Promise<string[]> {
     try {

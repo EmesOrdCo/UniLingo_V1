@@ -17,6 +17,12 @@ const GravityGame: React.FC<GravityGameProps> = ({ gameData, onClose, onGameComp
   const [gameComplete, setGameComplete] = useState(false);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
 
+  useEffect(() => {
+    if (gameComplete || gameOver) {
+      onGameComplete(score);
+    }
+  }, [gameComplete, gameOver, score, onGameComplete]);
+
   const handleCorrectAnswer = () => {
     setScore(score + 1);
     if (currentQuestionIndex < gameData.questions.length - 1) {

@@ -19,6 +19,12 @@ const HangmanGame: React.FC<HangmanGameProps> = ({ gameData, onClose, onGameComp
   const maxWrongGuesses = 6;
 
   useEffect(() => {
+    if (gameComplete) {
+      onGameComplete(score);
+    }
+  }, [gameComplete, score, onGameComplete]);
+
+  useEffect(() => {
     if (gameData.questions && gameData.questions.length > 0) {
       initializeNewWord();
     }

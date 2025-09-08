@@ -7,6 +7,8 @@ import * as Linking from 'expo-linking';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 import { SubscriptionProvider, useSubscription } from './src/contexts/SubscriptionContext';
 import { ProfilePictureProvider } from './src/contexts/ProfilePictureContext';
+import { RefreshProvider, useRefresh } from './src/contexts/RefreshContext';
+import { setRefreshTrigger } from './src/lib/progressTrackingService';
 import LoadingScreen from './src/components/LoadingScreen';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { NotificationService } from './src/lib/notificationService';
@@ -164,17 +166,30 @@ export default function App() {
       <AuthProvider>
         <SubscriptionProvider>
           <ProfilePictureProvider>
-            <NavigationContainer>
-              <ErrorBoundary>
-                <AppNavigator />
-                <StatusBar style="auto" />
-              </ErrorBoundary>
-            </NavigationContainer>
+            <RefreshProvider>
+              <NavigationContainer>
+                <ErrorBoundary>
+                  <AppNavigator />
+                  <StatusBar style="auto" />
+                </ErrorBoundary>
+              </NavigationContainer>
+            </RefreshProvider>
           </ProfilePictureProvider>
         </SubscriptionProvider>
       </AuthProvider>
     </SafeAreaProvider>
   );
+}
+
+// Component to set up refresh trigger
+function RefreshSetup() {
+  const { triggerRefresh } = useRefresh();
+  
+  useEffect(() => {
+    setRefreshTrigger(triggerRefresh);
+  }, [triggerRefresh]);
+  
+  return null;
 }
 
 // App navigator that handles auth state and profile completion
@@ -233,7 +248,12 @@ function AppNavigator() {
 
     // For existing users, always show MainNavigator regardless of profile status
     console.log('✅ User authenticated, showing MainNavigator');
-    return <MainNavigator />;
+    return (
+      <>
+        <RefreshSetup />
+        <MainNavigator />
+      </>
+    );
   } else {
     console.log('❌ No user, showing AuthStack');
     console.log('🔍 Auth state check - user:', user, 'loading:', loading);

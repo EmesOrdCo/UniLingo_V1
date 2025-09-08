@@ -18,6 +18,12 @@ const SentenceScrambleGame: React.FC<SentenceScrambleGameProps> = ({ gameData, o
   const [gameComplete, setGameComplete] = useState(false);
 
   useEffect(() => {
+    if (gameComplete) {
+      onGameComplete(score);
+    }
+  }, [gameComplete, score, onGameComplete]);
+
+  useEffect(() => {
     if (gameData.questions && gameData.questions.length > 0) {
       generateScrambledSentence();
     }
