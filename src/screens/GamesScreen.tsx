@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import GameCompletionTracker from '../lib/gameCompletionTracker';
+import GlobalCompletionLock from '../lib/globalCompletionLock';
 import {
   View,
   Text,
@@ -58,6 +60,10 @@ import SpeedChallengeGame from '../components/games/SpeedChallengeGame';
 const { width } = Dimensions.get('window');
 
 export default function GamesScreen() {
+  const screenId = React.useMemo(() => Math.random().toString(36).substr(2, 9), []);
+  
+  // console.log(`🎮 [${screenId}] GamesScreen component rendered`); // Debug logging disabled
+  
   const navigation = useNavigation();
   const { user, profile } = useAuth();
   
@@ -89,7 +95,10 @@ export default function GamesScreen() {
   const [showGameModal, setShowGameModal] = useState(false);
   const [currentGame, setCurrentGame] = useState<string | null>(null);
   const [gameData, setGameData] = useState<any>(null);
-  const [gameCompleted, setGameCompleted] = useState(false); // Add guard for completion
+  const [gameCompleted, setGameCompleted] = useState(false);
+  const completedGameIdsRef = useRef<Set<string>>(new Set()); // Add guard for completion
+  const lastCompletionTimeRef = useRef<number>(0);
+  const completionDebounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   // Setup modals
   const [showFlashcardQuizSetup, setShowFlashcardQuizSetup] = useState(false);
@@ -355,6 +364,7 @@ export default function GamesScreen() {
     setShowFlashcardQuizSetup(false);
     setCurrentGame('Flashcard Quiz');
     setGameCompleted(false); // Reset completion flag
+    completedGameIdsRef.current.clear(); // Clear completion tracking
     
     // Map language mode to GameDataService format
     const mappedLanguageMode = options.languageMode === 'native-to-target' ? 'question' : 
@@ -607,6 +617,16 @@ export default function GamesScreen() {
     try {
       setShowTypeWhatYouHearSetup(false);
       setGameCompleted(false); // Reset completion flag
+      completedGameIdsRef.current.clear(); // Clear completion tracking
+      GameCompletionTracker.getInstance().clear(); // Clear global completion tracking
+      GlobalCompletionLock.getInstance().clear(); // Clear global completion lock
+      
+      // Clear debounce timeout
+      if (completionDebounceTimeoutRef.current) {
+        clearTimeout(completionDebounceTimeoutRef.current);
+        completionDebounceTimeoutRef.current = null;
+      }
+      lastCompletionTimeRef.current = 0; // Reset completion time
       
       // Filter flashcards based on selected topic and difficulty
       let filteredFlashcards = flashcards;
@@ -703,19 +723,68 @@ export default function GamesScreen() {
     }
   };
 
-  // Handle game completion
+  // Handle game completion with aggressive debouncing
   const handleGameComplete = async (finalScore: number, timeSpent?: number, totalAnswered?: number) => {
+    const completionId = Math.random().toString(36).substr(2, 9);
+    const now = Date.now();
+    
     try {
-      console.log('🎮 Game completed with finalScore:', finalScore, 'timeSpent:', timeSpent, 'totalAnswered:', totalAnswered, 'currentGame:', currentGame);
+      console.log(`🎮 [${screenId}] [${completionId}] Game completed with finalScore:`, finalScore, 'timeSpent:', timeSpent, 'totalAnswered:', totalAnswered, 'currentGame:', currentGame, 'gameCompleted:', gameCompleted, 'timeSinceLastCompletion:', now - lastCompletionTimeRef.current);
       
-      // Add a guard to prevent multiple calls
-      if (!currentGame || !gameData || gameCompleted) {
-        console.log('⚠️ Guard: No currentGame, gameData, or already completed, skipping');
+      // NUCLEAR OPTION: Debounce all completions within 5 seconds
+      if (now - lastCompletionTimeRef.current < 5000) {
+        console.log(`🚫 [${screenId}] [${completionId}] NUCLEAR GUARD: Completion within 5 seconds, REJECTING`);
+        return;
+      }
+      
+      // Clear any existing debounce timeout
+      if (completionDebounceTimeoutRef.current) {
+        clearTimeout(completionDebounceTimeoutRef.current);
+        completionDebounceTimeoutRef.current = null;
+      }
+      
+      // Set debounce timeout to prevent rapid successive calls
+      completionDebounceTimeoutRef.current = setTimeout(() => {
+        console.log(`⏰ [${screenId}] [${completionId}] Debounce timeout expired, processing completion`);
+        processGameCompletion(finalScore, completionId, timeSpent, totalAnswered);
+      }, 100); // 100ms debounce
+      
+      // Update last completion time immediately
+      lastCompletionTimeRef.current = now;
+      
+    } catch (error) {
+      console.error(`❌ [${screenId}] [${completionId}] Error in handleGameComplete:`, error);
+    }
+  };
+
+  // Separate function to actually process the completion
+  const processGameCompletion = async (finalScore: number, completionId: string, timeSpent?: number, totalAnswered?: number) => {
+    try {
+      console.log(`🎯 [${screenId}] [${completionId}] Processing game completion`);
+      
+      // Add a guard to prevent multiple calls - use a more robust check
+      if (!currentGame || !gameData) {
+        console.log(`⚠️ [${screenId}] [${completionId}] Guard: No currentGame or gameData, skipping`);
+        return;
+      }
+      
+      // Check if already completed using a more immediate approach
+      if (gameCompleted) {
+        console.log(`⚠️ [${screenId}] [${completionId}] Guard: Already completed, skipping`);
+        return;
+      }
+
+      // Create a unique completion key based on game data and timestamp
+      const completionKey = `${currentGame}-${gameData.id || 'unknown'}-${Date.now()}`;
+      if (completedGameIdsRef.current.has(completionKey)) {
+        console.log(`⚠️ [${screenId}] [${completionId}] Guard: Completion key already exists, skipping`);
         return;
       }
       
       // Set completion flag immediately to prevent duplicate calls
+      console.log(`🔒 [${screenId}] [${completionId}] Setting gameCompleted to true and adding completion key: ${completionKey}`);
       setGameCompleted(true);
+      completedGameIdsRef.current.add(completionKey);
       
       // Record game activity in progress tracking
       const gameName = currentGame;
@@ -816,6 +885,8 @@ export default function GamesScreen() {
     setCurrentGame(null);
     setGameData(null);
     
+    console.log(`✅ [${screenId}] [${completionId}] Game completion handling finished`);
+    
     Alert.alert(
       'Game Complete! 🎉',
       `Final Score: ${finalScore}`,
@@ -829,10 +900,22 @@ export default function GamesScreen() {
     setCurrentGame(null);
     setGameData(null);
     setGameCompleted(false); // Reset completion flag
+    completedGameIdsRef.current.clear(); // Clear completion tracking
+    GameCompletionTracker.getInstance().clear(); // Clear global completion tracking
+    GlobalCompletionLock.getInstance().clear(); // Clear global completion lock
+    
+    // Clear debounce timeout
+    if (completionDebounceTimeoutRef.current) {
+      clearTimeout(completionDebounceTimeoutRef.current);
+      completionDebounceTimeoutRef.current = null;
+    }
+    lastCompletionTimeRef.current = 0; // Reset completion time
   };
 
   // Render game component based on current game
   const renderGameComponent = () => {
+    // console.log(`🎮 [${screenId}] renderGameComponent called for game: ${currentGame}`); // Debug logging disabled
+    
     if (!currentGame || !gameData) return null;
 
     const gameProps = {
@@ -857,6 +940,7 @@ export default function GamesScreen() {
       case 'Planet Defense':
         return <GravityGame {...gameProps} />;
       case 'Type What You Hear':
+        console.log(`🎧 [${screenId}] Creating TypeWhatYouHearGame component`);
         return <TypeWhatYouHearGame {...gameProps} />;
       case 'Sentence Scramble':
         return <SentenceScrambleGame {...gameProps} />;

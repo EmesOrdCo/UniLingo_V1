@@ -800,7 +800,8 @@ export class HolisticProgressService {
         .from('user_activities')
         .select('completed_at')
         .eq('user_id', userId)
-        .not('completed_at', 'is', null);
+        .not('completed_at', 'is', null)
+        .order('completed_at', { ascending: false });
 
       if (error) throw error;
 
@@ -808,9 +809,21 @@ export class HolisticProgressService {
       const studyDates = new Set<string>();
       activities?.forEach(activity => {
         if (activity.completed_at) {
-          const date = new Date(activity.completed_at);
-          const dateString = date.toISOString().split('T')[0];
-          studyDates.add(dateString);
+          try {
+            // Handle different timestamp formats
+            let dateString: string;
+            if (activity.completed_at.includes('T')) {
+              // ISO format: 2025-09-08T10:44:46.303+00:00
+              dateString = activity.completed_at.split('T')[0];
+            } else {
+              // Other formats, try to parse as Date
+              const date = new Date(activity.completed_at);
+              dateString = date.toISOString().split('T')[0];
+            }
+            studyDates.add(dateString);
+          } catch (error) {
+            console.error('Error parsing date:', activity.completed_at, error);
+          }
         }
       });
 

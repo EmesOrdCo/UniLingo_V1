@@ -387,18 +387,9 @@ export class XPService {
     durationSeconds?: number
   ): Promise<void> {
     try {
-      await supabase
-        .from('user_activities')
-        .insert({
-          user_id: userId,
-          activity_type: activityType,
-          activity_name: activityName,
-          score,
-          max_score: maxScore,
-          accuracy_percentage: accuracyPercentage,
-          duration_seconds: durationSeconds || 0,
-          completed_at: new Date().toISOString(),
-        });
+      // REMOVED: Duplicate insert into user_activities
+      // This was causing double logging because ProgressTrackingService already inserts
+      console.log('🎯 Activity logged (no database insert - handled by ProgressTrackingService)');
     } catch (error) {
       console.error('❌ Error logging activity:', error);
     }

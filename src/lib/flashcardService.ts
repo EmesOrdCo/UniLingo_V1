@@ -219,61 +219,46 @@ export class FlashcardService {
     try {
       console.log('🎯 Starting trackFlashcardReview:', { flashcardId, userId, result, timeSpent });
 
-      // Update or create flashcard progress record (temporarily disabled until table is created)
-      try {
-        // Check if the table exists by attempting a simple query
-        const { data: tableCheck, error: tableError } = await supabase
-          .from('user_flashcard_progress')
-          .select('id')
-          .limit(1);
-        
-        if (tableError && tableError.code === 'PGRST205') {
-          console.log('ℹ️ user_flashcard_progress table not found - skipping progress tracking');
-        } else {
-          // Table exists, proceed with progress tracking
-          const { data: existingProgress } = await supabase
-            .from('user_flashcard_progress')
-            .select('id, correct_attempts, incorrect_attempts')
-            .eq('user_id', userId)
-            .eq('flashcard_id', flashcardId)
-            .maybeSingle();
+      // Update or create flashcard progress record
+      const { data: existingProgress } = await supabase
+        .from('user_flashcard_progress')
+        .select('id, correct_attempts, incorrect_attempts')
+        .eq('user_id', userId)
+        .eq('flashcard_id', flashcardId)
+        .maybeSingle();
 
-          if (existingProgress) {
-            // Update existing progress
-            const isCorrect = result === 'correct' || result === 'easy';
-            const updateData = {
-              correct_attempts: existingProgress.correct_attempts + (isCorrect ? 1 : 0),
-              incorrect_attempts: existingProgress.incorrect_attempts + (isCorrect ? 0 : 1),
-              last_reviewed: new Date().toISOString(),
-            };
-            
-            const { error } = await supabase
-              .from('user_flashcard_progress')
-              .update(updateData)
-              .eq('id', existingProgress.id);
-            
-            if (error) throw error;
-          } else {
-            // Create new progress record
-            const isCorrect = result === 'correct' || result === 'easy';
-            const { error } = await supabase
-              .from('user_flashcard_progress')
-              .insert({
-                user_id: userId,
-                flashcard_id: flashcardId,
-                correct_attempts: isCorrect ? 1 : 0,
-                incorrect_attempts: isCorrect ? 0 : 1,
-                last_reviewed: new Date().toISOString(),
-              });
-            
-            if (error) throw error;
-          }
-          
-          console.log('✅ Flashcard progress updated with result:', result);
-        }
-      } catch (error) {
-        console.error('❌ Failed to update flashcard progress:', error);
+      if (existingProgress) {
+        // Update existing progress
+        const isCorrect = result === 'correct' || result === 'easy';
+        const updateData = {
+          correct_attempts: existingProgress.correct_attempts + (isCorrect ? 1 : 0),
+          incorrect_attempts: existingProgress.incorrect_attempts + (isCorrect ? 0 : 1),
+          last_reviewed: new Date().toISOString(),
+        };
+        
+        const { error } = await supabase
+          .from('user_flashcard_progress')
+          .update(updateData)
+          .eq('id', existingProgress.id);
+        
+        if (error) throw error;
+      } else {
+        // Create new progress record
+        const isCorrect = result === 'correct' || result === 'easy';
+        const { error } = await supabase
+          .from('user_flashcard_progress')
+          .insert({
+            user_id: userId,
+            flashcard_id: flashcardId,
+            correct_attempts: isCorrect ? 1 : 0,
+            incorrect_attempts: isCorrect ? 0 : 1,
+            last_reviewed: new Date().toISOString(),
+          });
+        
+        if (error) throw error;
       }
+      
+      console.log('✅ Flashcard progress updated with result:', result);
 
       // Note: XP is now awarded at the session level, not per individual flashcard
       // to avoid cluttering recent activities with individual card entries

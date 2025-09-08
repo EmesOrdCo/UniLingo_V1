@@ -30,27 +30,13 @@ interface Message {
 }
 
 interface ConversationParams {
-  mode?: 'conversation-practice' | 'general';
-  topic?: {
-    id: string;
-    name: string;
-    icon: string;
-    color: string;
-    vocabularyCount: number;
-    description: string;
-  };
-  vocabulary?: any[];
+  // Removed conversation practice mode - only general chat now
 }
 
 export default function AIChatPage() {
   const navigation = useNavigation();
   const route = useRoute();
   const params = route.params as ConversationParams;
-  
-  const isConversationPractice = params?.mode === 'conversation-practice';
-  const selectedTopic = params?.topic;
-  const [vocabulary, setVocabulary] = useState<any[]>([]);
-  const [loadingVocabulary, setLoadingVocabulary] = useState(false);
   
   // Voice capabilities
   const [isListening, setIsListening] = useState(false);
@@ -66,9 +52,7 @@ export default function AIChatPage() {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
-      text: isConversationPractice 
-        ? `Hi! I'm your UniLingo conversation partner for ${selectedTopic?.name || 'this topic'}. Let's practice using vocabulary in natural conversations! I'll help you use the terms you've learned in context. What would you like to talk about?`
-        : 'Hi! I\'m your UniLingo AI assistant. I can help you with language learning, answer questions about the app, or just chat! How can I help you today?',
+      text: 'Hi! I\'m your UniLingo AI assistant. I can help you with language learning, answer questions about the app, or just chat! How can I help you today?',
       isUser: false,
       timestamp: new Date(),
     },
@@ -83,13 +67,6 @@ export default function AIChatPage() {
       scrollViewRef.current?.scrollToEnd({ animated: true });
     }, 100);
   }, [messages]);
-
-  useEffect(() => {
-    // Load vocabulary for conversation practice
-    if (isConversationPractice && selectedTopic) {
-      loadVocabularyForTopic();
-    }
-  }, [isConversationPractice, selectedTopic]);
 
   useEffect(() => {
     // Initialize voice capabilities
@@ -152,27 +129,6 @@ export default function AIChatPage() {
     }
   };
 
-  const loadVocabularyForTopic = async () => {
-    try {
-      setLoadingVocabulary(true);
-      
-      // Fetch vocabulary from user flashcards only - general flashcards table no longer exists
-      const userFlashcards = await UserFlashcardService.getUserFlashcards();
-      
-      // Filter by topic
-      const allFlashcards = userFlashcards;
-      const topicVocabulary = allFlashcards.filter((card: any) => 
-        card.topic === selectedTopic?.name
-      );
-      
-      setVocabulary(topicVocabulary);
-      console.log(`📚 Loaded ${topicVocabulary.length} vocabulary terms for ${selectedTopic?.name}`);
-    } catch (error) {
-      console.error('Error loading vocabulary:', error);
-    } finally {
-      setLoadingVocabulary(false);
-    }
-  };
 
   const sendMessage = async () => {
     if (!inputText.trim()) return;
@@ -223,22 +179,7 @@ export default function AIChatPage() {
           messages: [
             {
               role: 'system',
-              content: isConversationPractice 
-                ? `You are a conversation partner for UniLingo, a language learning app. The user is practicing vocabulary from the topic: "${selectedTopic?.name}". 
-
-IMPORTANT: Use the following vocabulary terms naturally in your responses to help the user practice:
-${vocabulary.map((term: any) => `- ${term.term || term.english_term}: ${term.definition || term.translation}`).join('\n')}
-
-Your role:
-1. Engage in natural, contextual conversations about ${selectedTopic?.name}
-2. Naturally incorporate the vocabulary terms above in your responses
-3. Ask questions that encourage the user to use these terms
-4. Provide gentle corrections and suggestions when appropriate
-5. Keep responses conversational and encouraging
-6. Focus on practical usage of the vocabulary in real-world scenarios
-
-Be friendly, encouraging, and help the user practice using their vocabulary in context.`
-                : 'You are a helpful AI assistant for UniLingo, a language learning app. You can help users with language learning questions, app features, study tips, and general conversation. Be friendly, encouraging, and helpful. Keep responses concise but informative.',
+              content: 'You are a helpful AI assistant for UniLingo, a language learning app. You can help users with language learning questions, app features, study tips, and general conversation. Be friendly, encouraging, and helpful. Keep responses concise but informative.',
             },
             ...messages.map(msg => ({
               role: msg.isUser ? 'user' : 'assistant',
@@ -267,7 +208,7 @@ Be friendly, encouraging, and help the user practice using their vocabulary in c
       setMessages(prev => [...prev, aiMessage]);
 
       // Speak the AI response if voice is enabled
-      if (voiceEnabled && isConversationPractice) {
+      if (voiceEnabled) {
         setIsSpeaking(true);
         await VoiceService.textToSpeech(aiResponse, {
           rate: 0.85,
@@ -357,14 +298,12 @@ Be friendly, encouraging, and help the user practice using their vocabulary in c
       <View style={styles.header}>
         <View style={styles.headerContent}>
           <Text style={styles.headerTitle}>
-            {isConversationPractice ? 'Conversation Practice' : 'AI Assistant'}
+            AI Assistant
           </Text>
           <Text style={styles.headerSubtitle}>
             {usingCustomAssistant 
               ? 'Enhanced AI'
-              : isConversationPractice 
-                ? `Topic: ${selectedTopic?.name} (${vocabulary.length} terms)`
-                : 'Powered by GPT'
+              : 'Powered by GPT'
             }
           </Text>
         </View>

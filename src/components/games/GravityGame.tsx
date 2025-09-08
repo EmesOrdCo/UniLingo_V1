@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -17,17 +17,27 @@ const GravityGame: React.FC<GravityGameProps> = ({ gameData, onClose, onGameComp
   const [gameComplete, setGameComplete] = useState(false);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
 
+  // Use ref to capture final score and prevent multiple calls
+  const finalScoreRef = useRef<number>(0);
+  const completionCalledRef = useRef<boolean>(false);
+
   useEffect(() => {
-    if (gameComplete || gameOver) {
-      onGameComplete(score);
+    if ((gameComplete || gameOver) && !completionCalledRef.current) {
+      console.log('🪐 Gravity Game calling onGameComplete with:', {
+        score: finalScoreRef.current
+      });
+      completionCalledRef.current = true;
+      onGameComplete(finalScoreRef.current);
     }
-  }, [gameComplete, gameOver, score, onGameComplete]);
+  }, [gameComplete, gameOver]); // Only depend on gameComplete and gameOver to avoid multiple calls
 
   const handleCorrectAnswer = () => {
     setScore(score + 1);
     if (currentQuestionIndex < gameData.questions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
     } else {
+      // Capture final score before completing game
+      finalScoreRef.current = score + 1; // +1 because we just scored
       setGameComplete(true);
     }
   };
@@ -37,10 +47,14 @@ const GravityGame: React.FC<GravityGameProps> = ({ gameData, onClose, onGameComp
     setLives(newLives);
     
     if (newLives <= 0) {
+      // Capture final score before game over
+      finalScoreRef.current = score;
       setGameOver(true);
     } else if (currentQuestionIndex < gameData.questions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
     } else {
+      // Capture final score before completing game
+      finalScoreRef.current = score;
       setGameComplete(true);
     }
   };
@@ -51,6 +65,8 @@ const GravityGame: React.FC<GravityGameProps> = ({ gameData, onClose, onGameComp
     setGameOver(false);
     setGameComplete(false);
     setCurrentQuestionIndex(0);
+    finalScoreRef.current = 0; // Reset the ref as well
+    completionCalledRef.current = false; // Reset completion called flag
   };
 
   if (gameComplete) {

@@ -75,14 +75,17 @@ export default function StudyCalendar({ studyDates, currentMonth }: StudyCalenda
     // Add current month's days
     for (let day = 1; day <= lastDayNumber; day++) {
       const date = new Date(year, month, day);
-      days.push({
+      const dayData = {
         date,
         day,
         isCurrentMonth: true,
         isToday: isToday(date),
         isStudyDay: isStudyDay(date),
         isFuture: isFuture(date),
-      });
+      };
+      
+      
+      days.push(dayData);
     }
     
     // Add next month's days to fill the last week (ensure we have 6 rows)
@@ -110,7 +113,12 @@ export default function StudyCalendar({ studyDates, currentMonth }: StudyCalenda
   };
 
   const isStudyDay = (date: Date): boolean => {
-    const dateString = date.toISOString().split('T')[0];
+    // Use local date string instead of toISOString() to avoid timezone issues
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const dateString = `${year}-${month}-${day}`;
+    
     return studyDates.includes(dateString);
   };
 
@@ -145,11 +153,11 @@ export default function StudyCalendar({ studyDates, currentMonth }: StudyCalenda
     if (day.isFuture) {
       return [styles.calendarDay, styles.futureDay];
     }
-    if (day.isToday) {
-      return [styles.calendarDay, styles.today];
-    }
     if (day.isStudyDay) {
       return [styles.calendarDay, styles.studyDay];
+    }
+    if (day.isToday) {
+      return [styles.calendarDay, styles.today];
     }
     if (!day.isCurrentMonth) {
       return [styles.calendarDay, styles.otherMonthDay];
@@ -161,11 +169,11 @@ export default function StudyCalendar({ studyDates, currentMonth }: StudyCalenda
     if (day.isFuture) {
       return styles.futureDayText;
     }
-    if (day.isToday) {
-      return styles.todayText;
-    }
     if (day.isStudyDay) {
       return styles.studyDayText;
+    }
+    if (day.isToday) {
+      return styles.todayText;
     }
     if (!day.isCurrentMonth) {
       return styles.otherMonthDayText;

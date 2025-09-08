@@ -28,18 +28,13 @@ const faqData: FAQItem[] = [
   },
   {
     id: '4',
-    question: 'How does the AI conversation practice work?',
-    answer: 'The AI conversation feature allows you to practice speaking and writing in English through realistic conversations. The AI adapts to your level and can discuss topics related to your university studies, helping you improve both general and academic English.'
-  },
-  {
-    id: '5',
     question: 'What are the different game types available?',
     answer: 'UniLingo offers various games including Word Scramble, Sentence Scramble, Memory Match, Hangman, Speed Challenge, Gravity Game, and Type What You Hear. Each game focuses on different language skills like vocabulary, grammar, listening, and spelling.'
   },
   {
     id: '6',
     question: 'How does the AI usage tracking work?',
-    answer: 'UniLingo tracks your monthly AI usage to ensure fair access for all users. You have a monthly allowance for AI-powered features like lesson generation and conversation practice. The usage is displayed as a percentage on your dashboard.'
+    answer: 'UniLingo tracks your monthly AI usage to ensure fair access for all users. You have a monthly allowance for AI-powered features like lesson generation. The usage is displayed as a percentage on your dashboard.'
   },
   {
     id: '7',
@@ -74,7 +69,7 @@ const faqData: FAQItem[] = [
   {
     id: '13',
     question: 'Can I use UniLingo offline?',
-    answer: 'Some features like reviewing previously downloaded lessons and playing games can work offline. However, AI-powered features like conversation practice and lesson generation require an internet connection.'
+    answer: 'Some features like reviewing previously downloaded lessons and playing games can work offline. However, AI-powered features like lesson generation require an internet connection.'
   },
   {
     id: '14',

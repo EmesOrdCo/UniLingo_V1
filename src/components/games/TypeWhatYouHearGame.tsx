@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, TextInput, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
+import GameCompletionTracker from '../../lib/gameCompletionTracker';
 
 interface TypeWhatYouHearGameProps {
   gameData: any;
@@ -10,6 +11,10 @@ interface TypeWhatYouHearGameProps {
 }
 
 const TypeWhatYouHearGame: React.FC<TypeWhatYouHearGameProps> = ({ gameData, onClose, onGameComplete }) => {
+  const componentId = React.useMemo(() => Math.random().toString(36).substr(2, 9), []);
+  
+  console.log(`🎧 [${componentId}] TypeWhatYouHearGame component mounted/rendered`);
+  
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userAnswer, setUserAnswer] = useState('');
   const [score, setScore] = useState(0);
@@ -18,11 +23,59 @@ const TypeWhatYouHearGame: React.FC<TypeWhatYouHearGameProps> = ({ gameData, onC
   const [gameComplete, setGameComplete] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
 
+  // Use ref to capture final score and prevent multiple calls
+  const finalScoreRef = useRef<number>(0);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const completionCalledRef = useRef<boolean>(false);
+  const gameCompleteProcessedRef = useRef<boolean>(false);
+
   useEffect(() => {
-    if (gameComplete) {
-      onGameComplete(score);
+    if (gameComplete && !gameCompleteProcessedRef.current) {
+      const callId = Math.random().toString(36).substr(2, 9);
+      // Use a stable key based on game data, not timestamp
+      const gameKey = `type-what-you-hear-${gameData?.id || 'unknown'}-${gameData?.questions?.length || 0}`;
+      
+      console.log(`🎧 [${componentId}] [${callId}] Type What You Hear calling onGameComplete with:`, {
+        score: finalScoreRef.current,
+        gameComplete,
+        timestamp: new Date().toISOString(),
+        gameDataExists: !!gameData,
+        questionsLength: gameData?.questions?.length,
+        gameKey,
+        alreadyCompleted: GameCompletionTracker.getInstance().isCompleted(gameKey),
+        gameCompleteProcessed: gameCompleteProcessedRef.current
+      });
+      
+      // Add guard to prevent completion if game data is no longer valid
+      if (!gameData || !gameData.questions || gameData.questions.length === 0) {
+        console.log(`⚠️ [${componentId}] [${callId}] Guard: Game data invalid, skipping onGameComplete`);
+        return;
+      }
+      
+      // Check global completion tracker
+      if (GameCompletionTracker.getInstance().isCompleted(gameKey)) {
+        console.log(`⚠️ [${componentId}] [${callId}] Guard: Game already completed globally, skipping`);
+        return;
+      }
+      
+      // Mark as processed immediately to prevent any duplicate processing
+      gameCompleteProcessedRef.current = true;
+      
+      // Mark completion as called globally
+      GameCompletionTracker.getInstance().markCompleted(gameKey);
+      onGameComplete(finalScoreRef.current);
     }
-  }, [gameComplete, score, onGameComplete]);
+  }, [gameComplete]); // Only depend on gameComplete to avoid multiple calls
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      console.log(`🎧 [${componentId}] TypeWhatYouHearGame component unmounting`);
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
 
   const currentQuestion = gameData.questions[currentQuestionIndex];
 
@@ -59,14 +112,23 @@ const TypeWhatYouHearGame: React.FC<TypeWhatYouHearGameProps> = ({ gameData, onC
     
     setShowResult(true);
     
-    setTimeout(() => {
+    // Clear any existing timeout
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    
+    timeoutRef.current = setTimeout(() => {
       if (currentQuestionIndex < gameData.questions.length - 1) {
         setCurrentQuestionIndex(currentQuestionIndex + 1);
         setUserAnswer('');
         setShowResult(false);
       } else {
+        // Capture final score before completing game
+        finalScoreRef.current = score + (correctAnswer ? 1 : 0);
+        console.log(`🎧 Setting gameComplete=true in checkAnswer timeout, finalScore: ${finalScoreRef.current}`);
         setGameComplete(true);
       }
+      timeoutRef.current = null;
     }, 2000);
   };
 
@@ -76,16 +138,29 @@ const TypeWhatYouHearGame: React.FC<TypeWhatYouHearGameProps> = ({ gameData, onC
       setUserAnswer('');
       setShowResult(false);
     } else {
+      // Capture final score before completing game
+      finalScoreRef.current = score;
+      console.log(`🎧 Setting gameComplete=true in skipQuestion, finalScore: ${finalScoreRef.current}`);
       setGameComplete(true);
     }
   };
 
   const resetGame = () => {
+    // Clear any existing timeout
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+    
     setCurrentQuestionIndex(0);
     setScore(0);
     setUserAnswer('');
     setShowResult(false);
     setGameComplete(false);
+    finalScoreRef.current = 0; // Reset the ref as well
+    completionCalledRef.current = false; // Reset completion called flag
+    gameCompleteProcessedRef.current = false; // Reset game complete processed flag
+    GameCompletionTracker.getInstance().clear(); // Clear global completion tracking
   };
 
   if (gameComplete) {

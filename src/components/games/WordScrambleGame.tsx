@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, TextInput, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -16,6 +16,10 @@ const WordScrambleGame: React.FC<WordScrambleGameProps> = ({ gameData, onClose, 
   const [showResult, setShowResult] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
   const [gameComplete, setGameComplete] = useState(false);
+
+  // Use ref to capture final score and prevent multiple calls
+  const finalScoreRef = useRef<number>(0);
+  const completionCalledRef = useRef<boolean>(false);
 
   useEffect(() => {
     if (gameData.questions && gameData.questions.length > 0) {
@@ -52,6 +56,8 @@ const WordScrambleGame: React.FC<WordScrambleGameProps> = ({ gameData, onClose, 
       if (currentQuestionIndex < gameData.questions.length - 1) {
         setCurrentQuestionIndex(currentQuestionIndex + 1);
       } else {
+        // Capture final score before completing game
+        finalScoreRef.current = score + (correctAnswer ? 1 : 0);
         setGameComplete(true);
       }
     }, 2000);
@@ -61,6 +67,8 @@ const WordScrambleGame: React.FC<WordScrambleGameProps> = ({ gameData, onClose, 
     if (currentQuestionIndex < gameData.questions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
     } else {
+      // Capture final score before completing game
+      finalScoreRef.current = score;
       setGameComplete(true);
     }
   };
@@ -71,15 +79,20 @@ const WordScrambleGame: React.FC<WordScrambleGameProps> = ({ gameData, onClose, 
     setUserAnswer('');
     setShowResult(false);
     setGameComplete(false);
+    finalScoreRef.current = 0; // Reset the ref as well
+    completionCalledRef.current = false; // Reset completion called flag
   };
 
   // Call onGameComplete when the game is completed
   useEffect(() => {
-    if (gameComplete) {
-      console.log('🎮 Word Scramble completed with score:', score);
-      onGameComplete(score);
+    if (gameComplete && !completionCalledRef.current) {
+      console.log('🔤 Word Scramble calling onGameComplete with:', {
+        score: finalScoreRef.current
+      });
+      completionCalledRef.current = true;
+      onGameComplete(finalScoreRef.current);
     }
-  }, [gameComplete, score, onGameComplete]);
+  }, [gameComplete]); // Only depend on gameComplete to avoid multiple calls
 
   if (gameComplete) {
 

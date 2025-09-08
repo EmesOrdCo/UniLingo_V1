@@ -33,7 +33,6 @@ import ProfilePage from './src/screens/ProfilePage';
 import CreateLessonScreen from './src/screens/CreateLessonScreen';
 import AIChatPage from './src/screens/AIChatPage';
 import PaywallScreen from './src/screens/PaywallScreen';
-import ConversationPracticeScreen from './src/screens/ConversationPracticeScreen';
 import AssistantConfigScreen from './src/screens/AssistantConfigScreen';
 import LessonWalkthroughScreen from './src/screens/LessonWalkthroughScreen';
 import OnboardingFlowScreen from './src/screens/OnboardingFlowScreen';
@@ -69,7 +68,6 @@ function MainNavigator() {
       <Stack.Screen name="CreateLesson" component={CreateLessonScreen} />
       <Stack.Screen name="AIChat" component={AIChatPage} />
       <Stack.Screen name="Paywall" component={PaywallScreenWrapper} />
-      <Stack.Screen name="ConversationPractice" component={ConversationPracticeScreen} />
       <Stack.Screen name="AssistantConfig" component={AssistantConfigScreen} />
       <Stack.Screen name="LessonWalkthrough" component={LessonWalkthroughScreen} />
       <Stack.Screen name="OnboardingFlow" component={OnboardingFlowScreen} />

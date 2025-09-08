@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import GlobalCompletionLock from './globalCompletionLock';
 
 // Import refresh context to trigger UI updates
 let refreshTrigger: (() => void) | null = null;
@@ -54,13 +55,74 @@ export interface LessonProgressData {
 }
 
 export class ProgressTrackingService {
+  private static callCounter = 0;
+  private static lastCallTime = 0;
+  
   /**
    * Record a game activity
    */
   static async recordGameActivity(data: GameActivityData): Promise<void> {
+    const recordId = Math.random().toString(36).substr(2, 9);
+    const timestamp = new Date().toISOString();
+    const now = Date.now();
+    this.callCounter++;
+    
+    // NUCLEAR OPTION: Block any calls within 1 second
+    if (now - this.lastCallTime < 1000) {
+      console.log(`🚫 [${recordId}] NUCLEAR BLOCK: Call within 1 second, BLOCKING COMPLETELY`);
+      return;
+    }
+    this.lastCallTime = now;
+    
+    console.log(`📊 [${recordId}] ProgressTrackingService.recordGameActivity called - CALL #${this.callCounter}`);
+    console.log(`📊 [${recordId}] ProgressTrackingService.recordGameActivity called with:`, {
+      activityType: data.activityType,
+      activityName: data.activityName,
+      score: data.score,
+      maxScore: data.maxScore,
+      accuracyPercentage: data.accuracyPercentage,
+      timestamp: timestamp
+    });
+    
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
+
+      // GLOBAL LOCK CHECK - Prevent ANY duplicate calls
+      const globalLockKey = `${user.id}-${data.activityName}-${data.score}-${data.maxScore}-${data.accuracyPercentage}`;
+      if (GlobalCompletionLock.getInstance().isLocked(globalLockKey)) {
+        console.log(`🚫 [${recordId}] GLOBAL LOCK: Completion already locked, BLOCKING ALL OPERATIONS`);
+        return;
+      }
+
+      // Lock this completion globally IMMEDIATELY
+      GlobalCompletionLock.getInstance().lockCompletion(globalLockKey);
+      console.log(`🔒 [${recordId}] LOCKED COMPLETION IMMEDIATELY: ${globalLockKey}`);
+
+      // SIMPLE DUPLICATE CHECK: Look for identical entries within last 5 seconds
+      const fiveSecondsAgo = new Date(Date.now() - 5000).toISOString();
+      const { data: recentActivities, error: checkError } = await supabase
+        .from('user_activities')
+        .select('id, completed_at')
+        .eq('user_id', user.id)
+        .eq('activity_type', data.activityType)
+        .eq('activity_name', data.activityName)
+        .eq('score', data.score)
+        .eq('max_score', data.maxScore)
+        .eq('accuracy_percentage', data.accuracyPercentage)
+        .gte('completed_at', fiveSecondsAgo)
+        .order('completed_at', { ascending: false })
+        .limit(1);
+
+      if (checkError) {
+        console.error(`❌ [${recordId}] Error checking for duplicates:`, checkError);
+      } else if (recentActivities && recentActivities.length > 0) {
+        console.log(`🚫 [${recordId}] DUPLICATE DETECTED! Found identical entry within 5 seconds, BLOCKING INSERT`);
+        console.log(`🚫 [${recordId}] Recent duplicate:`, recentActivities[0]);
+        return; // BLOCK THE INSERT
+      }
+
+      console.log(`✅ [${recordId}] No duplicates found, proceeding with insert`);
 
       // Insert into user_activities
       const { error: activityError } = await supabase
@@ -77,6 +139,8 @@ export class ProgressTrackingService {
         });
 
       if (activityError) throw activityError;
+
+      console.log(`✅ [${recordId}] Database insert successful for user_activities`);
 
       // Update user_learning_stats
       await this.updateLearningStats(user.id, {
@@ -97,14 +161,14 @@ export class ProgressTrackingService {
       // Update streaks
       await this.updateStreaks(user.id, 'game_play');
 
-      console.log('✅ Game activity recorded successfully');
+      console.log(`🎯 [${recordId}] Game activity recorded successfully - ALL OPERATIONS COMPLETE`);
       
       // Trigger UI refresh
       if (refreshTrigger) {
         refreshTrigger();
       }
     } catch (error) {
-      console.error('❌ Error recording game activity:', error);
+      console.error(`❌ [${recordId}] Error recording game activity:`, error);
       throw error;
     }
   }
@@ -409,10 +473,10 @@ export class ProgressTrackingService {
           newStats.total_games_played = (existingStats.total_games_played || 0) + updates.totalGamesPlayed;
         }
         if (updates.totalLessonsCompleted) {
-          newStats.total_lessons_compl = (existingStats.total_lessons_compl || 0) + updates.totalLessonsCompleted;
+          newStats.total_lessons_completed = (existingStats.total_lessons_completed || 0) + updates.totalLessonsCompleted;
         }
         if (updates.totalFlashcardsReviewed) {
-          newStats.total_flashcards_revi = (existingStats.total_flashcards_revi || 0) + updates.totalFlashcardsReviewed;
+          newStats.total_flashcards_reviewed = (existingStats.total_flashcards_reviewed || 0) + updates.totalFlashcardsReviewed;
         }
         if (updates.totalScoreEarned) {
           newStats.total_score_earned = (existingStats.total_score_earned || 0) + updates.totalScoreEarned;
@@ -432,13 +496,13 @@ export class ProgressTrackingService {
         const newStats = {
           user_id: userId,
           total_study_time_hours: updates.totalStudyTimeHours || 0,
-          total_lessons_compl: updates.totalLessonsCompleted || 0,
-          total_flashcards_revi: updates.totalFlashcardsReviewed || 0,
+          total_lessons_completed: updates.totalLessonsCompleted || 0,
+          total_flashcards_reviewed: updates.totalFlashcardsReviewed || 0,
           total_games_played: updates.totalGamesPlayed || 0,
           total_score_earned: updates.totalScoreEarned || 0,
-          average_lesson_accu: 0,
+          average_lesson_accuracy: 0,
           favorite_subject: null,
-          best_performance_d: null,
+          best_performance_date: null,
           current_level: 'Beginner',
           experience_points: updates.totalScoreEarned || 0,
           created_at: now,

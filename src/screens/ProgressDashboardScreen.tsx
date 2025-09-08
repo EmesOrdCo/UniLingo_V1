@@ -11,7 +11,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { useRefresh } from '../contexts/RefreshContext';
 import { HolisticProgressService, ProgressInsights } from '../lib/holisticProgressService';
@@ -36,6 +36,22 @@ export default function ProgressDashboardScreen() {
       loadProgressData();
     }
   }, [user]);
+
+  // Add refresh trigger to reload data when activities are completed
+  useEffect(() => {
+    if (user?.id && refreshTrigger) {
+      loadProgressData();
+    }
+  }, [refreshTrigger, user]);
+
+  // Refresh data when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      if (user?.id) {
+        loadProgressData();
+      }
+    }, [user?.id])
+  );
 
   const loadProgressData = async () => {
     try {

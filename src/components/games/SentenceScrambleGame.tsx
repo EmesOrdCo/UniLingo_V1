@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -17,11 +17,19 @@ const SentenceScrambleGame: React.FC<SentenceScrambleGameProps> = ({ gameData, o
   const [isCorrect, setIsCorrect] = useState(false);
   const [gameComplete, setGameComplete] = useState(false);
 
+  // Use ref to capture final score and prevent multiple calls
+  const finalScoreRef = useRef<number>(0);
+  const completionCalledRef = useRef<boolean>(false);
+
   useEffect(() => {
-    if (gameComplete) {
-      onGameComplete(score);
+    if (gameComplete && !completionCalledRef.current) {
+      console.log('🔀 Sentence Scramble calling onGameComplete with:', {
+        score: finalScoreRef.current
+      });
+      completionCalledRef.current = true;
+      onGameComplete(finalScoreRef.current);
     }
-  }, [gameComplete, score, onGameComplete]);
+  }, [gameComplete]); // Only depend on gameComplete to avoid multiple calls
 
   useEffect(() => {
     if (gameData.questions && gameData.questions.length > 0) {
@@ -76,6 +84,8 @@ const SentenceScrambleGame: React.FC<SentenceScrambleGameProps> = ({ gameData, o
       if (currentQuestionIndex < gameData.questions.length - 1) {
         setCurrentQuestionIndex(currentQuestionIndex + 1);
       } else {
+        // Capture final score before completing game
+        finalScoreRef.current = score + (correctAnswer ? 1 : 0);
         setGameComplete(true);
       }
     }, 2000);
@@ -85,6 +95,8 @@ const SentenceScrambleGame: React.FC<SentenceScrambleGameProps> = ({ gameData, o
     if (currentQuestionIndex < gameData.questions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
     } else {
+      // Capture final score before completing game
+      finalScoreRef.current = score;
       setGameComplete(true);
     }
   };
@@ -95,6 +107,8 @@ const SentenceScrambleGame: React.FC<SentenceScrambleGameProps> = ({ gameData, o
     setSelectedWords([]);
     setShowResult(false);
     setGameComplete(false);
+    finalScoreRef.current = 0; // Reset the ref as well
+    completionCalledRef.current = false; // Reset completion called flag
   };
 
   if (gameComplete) {
