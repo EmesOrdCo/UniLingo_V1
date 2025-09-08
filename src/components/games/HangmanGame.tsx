@@ -6,9 +6,10 @@ interface HangmanGameProps {
   gameData: any;
   onClose: () => void;
   onGameComplete: (score: number) => void;
+  onPlayAgain: () => void;
 }
 
-const HangmanGame: React.FC<HangmanGameProps> = ({ gameData, onClose, onGameComplete }) => {
+const HangmanGame: React.FC<HangmanGameProps> = ({ gameData, onClose, onGameComplete, onPlayAgain }) => {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [guessedLetters, setGuessedLetters] = useState<string[]>([]);
   const [wrongGuesses, setWrongGuesses] = useState(0);
@@ -22,15 +23,7 @@ const HangmanGame: React.FC<HangmanGameProps> = ({ gameData, onClose, onGameComp
   const finalScoreRef = useRef<number>(0);
   const completionCalledRef = useRef<boolean>(false);
 
-  useEffect(() => {
-    if (gameComplete && !completionCalledRef.current) {
-      console.log('🎯 Hangman calling onGameComplete with:', {
-        score: finalScoreRef.current
-      });
-      completionCalledRef.current = true;
-      onGameComplete(finalScoreRef.current);
-    }
-  }, [gameComplete]); // Only depend on gameComplete to avoid multiple calls
+  // Removed automatic completion call - now handled by user action
 
   useEffect(() => {
     if (gameData.questions && gameData.questions.length > 0) {
@@ -118,22 +111,41 @@ const HangmanGame: React.FC<HangmanGameProps> = ({ gameData, onClose, onGameComp
     completionCalledRef.current = false; // Reset completion called flag
   };
 
+  const handlePlayAgain = () => {
+    onPlayAgain();
+  };
+
+  const handleReturnToMenu = () => {
+    onClose();
+  };
+
   if (gameComplete) {
     return (
       <View style={styles.gameContainer}>
         <View style={styles.completionContainer}>
           <Text style={styles.completionTitle}>🎉 Hangman Complete!</Text>
-          <Text style={styles.completionSubtitle}>Your Results: {score}/{gameData.questions.length}</Text>
+          <Text style={styles.completionSubtitle}>Great job!</Text>
           
-          <View style={styles.scoreCircle}>
-            <Text style={styles.scorePercentage}>
-              {Math.round((score / gameData.questions.length) * 100)}%
-            </Text>
+          <View style={styles.statsContainer}>
+            <View style={styles.statItem}>
+              <Text style={styles.statLabel}>Score</Text>
+              <Text style={styles.statValue}>{score}/{gameData.questions.length}</Text>
+            </View>
+            <View style={styles.statItem}>
+              <Text style={styles.statLabel}>Percentage</Text>
+              <Text style={styles.statValue}>{Math.round((score / gameData.questions.length) * 100)}%</Text>
+            </View>
           </View>
           
-          <TouchableOpacity style={styles.resetButton} onPress={resetGame}>
-            <Text style={styles.resetButtonText}>Play Again</Text>
-          </TouchableOpacity>
+          <View style={styles.actionButtons}>
+            <TouchableOpacity style={styles.resetButton} onPress={handlePlayAgain}>
+              <Text style={styles.resetButtonText}>Play Again</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.exitButton} onPress={handleReturnToMenu}>
+              <Text style={styles.exitButtonText}>Return to Menu</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     );
@@ -531,6 +543,24 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 40,
   },
+  statsContainer: {
+    flexDirection: 'row',
+    gap: 40,
+    marginBottom: 40,
+  },
+  statItem: {
+    alignItems: 'center',
+  },
+  statLabel: {
+    fontSize: 14,
+    color: '#64748b',
+    marginBottom: 8,
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#6466E9',
+  },
   scoreCircle: {
     width: 120,
     height: 120,
@@ -545,16 +575,38 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#ffffff',
   },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 24,
+  },
   resetButton: {
+    flex: 1,
     backgroundColor: '#6466E9',
-    paddingHorizontal: 32,
+    paddingHorizontal: 24,
     paddingVertical: 16,
     borderRadius: 12,
+    alignItems: 'center',
   },
   resetButtonText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
     color: '#ffffff',
+  },
+  exitButton: {
+    flex: 1,
+    backgroundColor: '#f1f5f9',
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  exitButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#64748b',
   },
 });
 

@@ -6,9 +6,10 @@ interface MemoryMatchGameProps {
   gameData: any;
   onClose: () => void;
   onGameComplete: (moves: number, time: number) => void;
+  onPlayAgain: () => void;
 }
 
-const MemoryMatchGame: React.FC<MemoryMatchGameProps> = ({ gameData, onClose, onGameComplete }) => {
+const MemoryMatchGame: React.FC<MemoryMatchGameProps> = ({ gameData, onClose, onGameComplete, onPlayAgain }) => {
   const [cards, setCards] = useState<any[]>([]);
   const [flippedCards, setFlippedCards] = useState<number[]>([]);
   const [matchedPairs, setMatchedPairs] = useState<number[]>([]);
@@ -61,12 +62,7 @@ const MemoryMatchGame: React.FC<MemoryMatchGameProps> = ({ gameData, onClose, on
       
       // Check if game is complete
       if (matchedPairs.length + 2 === cards.length) {
-        const gameTime = Math.round((Date.now() - gameStartTime) / 1000);
-        const matchedPairsCount = (matchedPairs.length + 2) / 2; // Calculate matched pairs
         setIsGameComplete(true);
-        setTimeout(() => {
-          onGameComplete(matchedPairsCount, gameTime);
-        }, 1500);
       }
     } else {
       // No match, flip cards back after delay
@@ -82,6 +78,14 @@ const MemoryMatchGame: React.FC<MemoryMatchGameProps> = ({ gameData, onClose, on
     setMoves(0);
     setIsGameComplete(false);
     initializeGame();
+  };
+
+  const handlePlayAgain = () => {
+    onPlayAgain();
+  };
+
+  const handleReturnToMenu = () => {
+    onClose();
   };
 
   if (isGameComplete) {
@@ -103,9 +107,15 @@ const MemoryMatchGame: React.FC<MemoryMatchGameProps> = ({ gameData, onClose, on
             </View>
           </View>
           
-          <TouchableOpacity style={styles.resetButton} onPress={resetGame}>
-            <Text style={styles.resetButtonText}>Play Again</Text>
-          </TouchableOpacity>
+          <View style={styles.actionButtons}>
+            <TouchableOpacity style={styles.resetButton} onPress={handlePlayAgain}>
+              <Text style={styles.resetButtonText}>Play Again</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.exitButton} onPress={handleReturnToMenu}>
+              <Text style={styles.exitButtonText}>Return to Menu</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     );
@@ -119,9 +129,6 @@ const MemoryMatchGame: React.FC<MemoryMatchGameProps> = ({ gameData, onClose, on
           <Text style={styles.movesText}>Moves: {moves}</Text>
           <Text style={styles.pairsText}>Pairs: {matchedPairs.length / 2}/{cards.length / 2}</Text>
         </View>
-        <TouchableOpacity style={styles.resetButton} onPress={resetGame}>
-          <Ionicons name="refresh" size={20} color="#6466E9" />
-        </TouchableOpacity>
       </View>
 
       {/* Game Grid */}
@@ -187,9 +194,11 @@ const styles = StyleSheet.create({
     color: '#1e293b',
   },
   resetButton: {
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: '#f1f5f9',
+    flex: 1,
+    backgroundColor: '#6466E9',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
   },
   gameGrid: {
     flex: 1,
@@ -277,10 +286,29 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#6466E9',
   },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 24,
+  },
   resetButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#6466E9',
+    color: '#ffffff',
+  },
+  exitButton: {
+    flex: 1,
+    backgroundColor: '#f1f5f9',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  exitButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#64748b',
   },
 });
 

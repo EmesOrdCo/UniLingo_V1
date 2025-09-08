@@ -6,9 +6,10 @@ interface WordScrambleGameProps {
   gameData: any;
   onClose: () => void;
   onGameComplete: (score: number) => void;
+  onPlayAgain: () => void;
 }
 
-const WordScrambleGame: React.FC<WordScrambleGameProps> = ({ gameData, onClose, onGameComplete }) => {
+const WordScrambleGame: React.FC<WordScrambleGameProps> = ({ gameData, onClose, onGameComplete, onPlayAgain }) => {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [scrambledWord, setScrambledWord] = useState('');
   const [userAnswer, setUserAnswer] = useState('');
@@ -28,7 +29,7 @@ const WordScrambleGame: React.FC<WordScrambleGameProps> = ({ gameData, onClose, 
   }, [currentQuestionIndex, gameData.questions]);
 
   const generateScrambledWord = () => {
-    const currentQuestion = gameData?.questions?.[currentQuestionIndex];
+    const currentQuestion = gameData.questions[currentQuestionIndex];
     if (currentQuestion && currentQuestion.correctAnswer) {
       const word = currentQuestion.correctAnswer;
       const scrambled = word.split('').sort(() => Math.random() - 0.5).join('');
@@ -39,10 +40,8 @@ const WordScrambleGame: React.FC<WordScrambleGameProps> = ({ gameData, onClose, 
   };
 
   const checkAnswer = () => {
-    const currentQuestion = gameData?.questions?.[currentQuestionIndex];
-    if (!currentQuestion) return;
-    
-    const correct = currentQuestion.correctAnswer?.toLowerCase().trim() || '';
+    const currentQuestion = gameData.questions[currentQuestionIndex];
+    const correct = currentQuestion.correctAnswer.toLowerCase().trim();
     const userInput = userAnswer.toLowerCase().trim();
     
     const correctAnswer = userInput === correct;
@@ -55,7 +54,7 @@ const WordScrambleGame: React.FC<WordScrambleGameProps> = ({ gameData, onClose, 
     setShowResult(true);
     
     setTimeout(() => {
-      if (currentQuestionIndex < (gameData?.questions?.length || 0) - 1) {
+      if (currentQuestionIndex < gameData.questions.length - 1) {
         setCurrentQuestionIndex(currentQuestionIndex + 1);
       } else {
         // Capture final score before completing game
@@ -66,7 +65,7 @@ const WordScrambleGame: React.FC<WordScrambleGameProps> = ({ gameData, onClose, 
   };
 
   const skipQuestion = () => {
-    if (currentQuestionIndex < (gameData?.questions?.length || 0) - 1) {
+    if (currentQuestionIndex < gameData.questions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
     } else {
       // Capture final score before completing game
@@ -85,38 +84,41 @@ const WordScrambleGame: React.FC<WordScrambleGameProps> = ({ gameData, onClose, 
     completionCalledRef.current = false; // Reset completion called flag
   };
 
-  // Call onGameComplete when the game is completed
-  useEffect(() => {
-    if (gameComplete && !completionCalledRef.current) {
-      console.log('🔤 Word Scramble calling onGameComplete with:', {
-        score: finalScoreRef.current
-      });
-      completionCalledRef.current = true;
-      onGameComplete(finalScoreRef.current);
-    }
-  }, [gameComplete]); // Only depend on gameComplete to avoid multiple calls
+  const handlePlayAgain = () => {
+    onPlayAgain();
+  };
+
+  const handleReturnToMenu = () => {
+    onClose();
+  };
+
+  // Handle game completion - removed automatic call, now handled by user action
 
   if (gameComplete) {
-
     return (
       <View style={styles.gameContainer}>
         <View style={styles.completionContainer}>
           <Text style={styles.completionTitle}>🎉 Word Scramble Complete!</Text>
-          <Text style={styles.completionSubtitle}>Your Results: {score}/{gameData?.questions?.length || 0}</Text>
+          <Text style={styles.completionSubtitle}>Great job!</Text>
           
-          <View style={styles.scoreCircle}>
-            <Text style={styles.scorePercentage}>
-              {Math.round((score / (gameData?.questions?.length || 1)) * 100)}%
-            </Text>
+          <View style={styles.statsContainer}>
+            <View style={styles.statItem}>
+              <Text style={styles.statLabel}>Score</Text>
+              <Text style={styles.statValue}>{score}/{gameData.questions.length}</Text>
+            </View>
+            <View style={styles.statItem}>
+              <Text style={styles.statLabel}>Percentage</Text>
+              <Text style={styles.statValue}>{Math.round((score / gameData.questions.length) * 100)}%</Text>
+            </View>
           </View>
           
           <View style={styles.actionButtons}>
-            <TouchableOpacity style={styles.resetButton} onPress={resetGame}>
+            <TouchableOpacity style={styles.resetButton} onPress={handlePlayAgain}>
               <Text style={styles.resetButtonText}>Play Again</Text>
             </TouchableOpacity>
             
-            <TouchableOpacity style={styles.exitButton} onPress={onClose}>
-              <Text style={styles.exitButtonText}>Exit</Text>
+            <TouchableOpacity style={styles.exitButton} onPress={handleReturnToMenu}>
+              <Text style={styles.exitButtonText}>Return to Menu</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -124,37 +126,7 @@ const WordScrambleGame: React.FC<WordScrambleGameProps> = ({ gameData, onClose, 
     );
   }
 
-  const currentQuestion = gameData?.questions?.[currentQuestionIndex];
-
-  // Safety check for game data
-  if (!gameData || !gameData.questions || gameData.questions.length === 0) {
-    return (
-      <View style={styles.gameContainer}>
-        <View style={styles.completionContainer}>
-          <Text style={styles.completionTitle}>⚠️ No Questions Available</Text>
-          <Text style={styles.completionSubtitle}>Unable to load word scramble questions.</Text>
-          <TouchableOpacity style={styles.exitButton} onPress={onClose}>
-            <Text style={styles.exitButtonText}>Exit</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  }
-
-  // Safety check for current question
-  if (!currentQuestion) {
-    return (
-      <View style={styles.gameContainer}>
-        <View style={styles.completionContainer}>
-          <Text style={styles.completionTitle}>⚠️ Question Error</Text>
-          <Text style={styles.completionSubtitle}>Unable to load current question.</Text>
-          <TouchableOpacity style={styles.exitButton} onPress={onClose}>
-            <Text style={styles.exitButtonText}>Exit</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  }
+  const currentQuestion = gameData.questions[currentQuestionIndex];
 
   return (
     <View style={styles.gameContainer}>
@@ -164,19 +136,19 @@ const WordScrambleGame: React.FC<WordScrambleGameProps> = ({ gameData, onClose, 
           <View 
             style={[
               styles.progressFill, 
-              { width: `${((currentQuestionIndex + 1) / (gameData?.questions?.length || 1)) * 100}%` }
+              { width: `${((currentQuestionIndex + 1) / gameData.questions.length) * 100}%` }
             ]} 
           />
         </View>
         <Text style={styles.progressText}>
-          {currentQuestionIndex + 1} of {gameData?.questions?.length || 0}
+          {currentQuestionIndex + 1} of {gameData.questions.length}
         </Text>
       </View>
 
       {/* Question */}
       <View style={styles.questionContainer}>
         <Text style={styles.questionText}>
-          Unscramble the word below:
+          {currentQuestion.question || 'Unscramble the word:'}
         </Text>
       </View>
 
@@ -242,15 +214,11 @@ const WordScrambleGame: React.FC<WordScrambleGameProps> = ({ gameData, onClose, 
           </Text>
           
           <Text style={styles.correctAnswerText}>
-            The correct answer is: {currentQuestion?.correctAnswer || 'Unknown'}
+            The correct answer is: {currentQuestion.correctAnswer}
           </Text>
         </View>
       )}
 
-      {/* Score Display */}
-      <View style={styles.scoreContainer}>
-        <Text style={styles.scoreText}>Score: {score}</Text>
-      </View>
     </View>
   );
 };
@@ -349,10 +317,11 @@ const styles = StyleSheet.create({
     gap: 16,
     marginHorizontal: 20,
     marginBottom: 24,
+    justifyContent: 'center',
   },
   actionButton: {
-    flex: 1,
-    paddingVertical: 16,
+    flex: 0.6,
+    paddingVertical: 12,
     borderRadius: 12,
     alignItems: 'center',
   },
@@ -417,20 +386,6 @@ const styles = StyleSheet.create({
     color: '#64748b',
     textAlign: 'center',
   },
-  scoreContainer: {
-    position: 'absolute',
-    top: 20,
-    right: 20,
-    backgroundColor: '#6466E9',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  scoreText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#ffffff',
-  },
   completionContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -450,6 +405,24 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 40,
   },
+  statsContainer: {
+    flexDirection: 'row',
+    gap: 40,
+    marginBottom: 40,
+  },
+  statItem: {
+    alignItems: 'center',
+  },
+  statLabel: {
+    fontSize: 14,
+    color: '#64748b',
+    marginBottom: 8,
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#6466E9',
+  },
   scoreCircle: {
     width: 120,
     height: 120,
@@ -467,33 +440,33 @@ const styles = StyleSheet.create({
   actionButtons: {
     flexDirection: 'row',
     gap: 12,
-    justifyContent: 'center',
+    marginTop: 24,
   },
   resetButton: {
     flex: 1,
     backgroundColor: '#6466E9',
-    paddingHorizontal: 32,
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
   },
   resetButtonText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
     color: '#ffffff',
   },
   exitButton: {
     flex: 1,
-    backgroundColor: '#ef4444',
-    paddingHorizontal: 32,
+    backgroundColor: '#f1f5f9',
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
   },
   exitButtonText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
-    color: '#ffffff',
+    color: '#64748b',
   },
 });
 

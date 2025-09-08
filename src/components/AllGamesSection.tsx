@@ -9,33 +9,20 @@ interface Game {
   cards: number;
   progress: number;
   icon: string;
-  isFavorite: boolean;
   onPlay: () => void;
 }
 
 interface AllGamesSectionProps {
   games: Game[];
-  onToggleFavorite: (id: string) => void;
 }
 
-const AllGamesSection: React.FC<AllGamesSectionProps> = ({ games, onToggleFavorite }) => {
+const AllGamesSection: React.FC<AllGamesSectionProps> = ({ games }) => {
   return (
     <View style={styles.container}>
       <Text style={styles.sectionTitle}>All Games</Text>
       <View style={styles.gamesGrid}>
         {games.map((game) => (
           <View key={game.id} style={styles.gameCard}>
-            {/* Favorite Button */}
-            <TouchableOpacity
-              style={styles.favoriteButton}
-              onPress={() => onToggleFavorite(game.id)}
-            >
-              <Ionicons 
-                name={game.isFavorite ? "heart" : "heart-outline"} 
-                size={16} 
-                color={game.isFavorite ? "#dc2626" : "#94a3b8"} 
-              />
-            </TouchableOpacity>
 
             {/* Game Icon */}
             <View style={styles.gameIconContainer}>
@@ -96,20 +83,6 @@ const styles = StyleSheet.create({
     borderColor: '#e2e8f0',
     position: 'relative',
     minHeight: 160,
-  },
-  favoriteButton: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    zIndex: 10,
   },
   gameIconContainer: {
     width: 48,

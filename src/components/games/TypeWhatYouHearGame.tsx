@@ -8,9 +8,10 @@ interface TypeWhatYouHearGameProps {
   gameData: any;
   onClose: () => void;
   onGameComplete: (score: number) => void;
+  onPlayAgain: () => void;
 }
 
-const TypeWhatYouHearGame: React.FC<TypeWhatYouHearGameProps> = ({ gameData, onClose, onGameComplete }) => {
+const TypeWhatYouHearGame: React.FC<TypeWhatYouHearGameProps> = ({ gameData, onClose, onGameComplete, onPlayAgain }) => {
   const componentId = React.useMemo(() => Math.random().toString(36).substr(2, 9), []);
   
   console.log(`🎧 [${componentId}] TypeWhatYouHearGame component mounted/rendered`);
@@ -29,43 +30,7 @@ const TypeWhatYouHearGame: React.FC<TypeWhatYouHearGameProps> = ({ gameData, onC
   const completionCalledRef = useRef<boolean>(false);
   const gameCompleteProcessedRef = useRef<boolean>(false);
 
-  useEffect(() => {
-    if (gameComplete && !gameCompleteProcessedRef.current) {
-      const callId = Math.random().toString(36).substr(2, 9);
-      // Use a stable key based on game data, not timestamp
-      const gameKey = `type-what-you-hear-${gameData?.id || 'unknown'}-${gameData?.questions?.length || 0}`;
-      
-      console.log(`🎧 [${componentId}] [${callId}] Type What You Hear calling onGameComplete with:`, {
-        score: finalScoreRef.current,
-        gameComplete,
-        timestamp: new Date().toISOString(),
-        gameDataExists: !!gameData,
-        questionsLength: gameData?.questions?.length,
-        gameKey,
-        alreadyCompleted: GameCompletionTracker.getInstance().isCompleted(gameKey),
-        gameCompleteProcessed: gameCompleteProcessedRef.current
-      });
-      
-      // Add guard to prevent completion if game data is no longer valid
-      if (!gameData || !gameData.questions || gameData.questions.length === 0) {
-        console.log(`⚠️ [${componentId}] [${callId}] Guard: Game data invalid, skipping onGameComplete`);
-        return;
-      }
-      
-      // Check global completion tracker
-      if (GameCompletionTracker.getInstance().isCompleted(gameKey)) {
-        console.log(`⚠️ [${componentId}] [${callId}] Guard: Game already completed globally, skipping`);
-        return;
-      }
-      
-      // Mark as processed immediately to prevent any duplicate processing
-      gameCompleteProcessedRef.current = true;
-      
-      // Mark completion as called globally
-      GameCompletionTracker.getInstance().markCompleted(gameKey);
-      onGameComplete(finalScoreRef.current);
-    }
-  }, [gameComplete]); // Only depend on gameComplete to avoid multiple calls
+  // Removed automatic completion call - now handled by user action
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -163,22 +128,41 @@ const TypeWhatYouHearGame: React.FC<TypeWhatYouHearGameProps> = ({ gameData, onC
     GameCompletionTracker.getInstance().clear(); // Clear global completion tracking
   };
 
+  const handlePlayAgain = () => {
+    onPlayAgain();
+  };
+
+  const handleReturnToMenu = () => {
+    onClose();
+  };
+
   if (gameComplete) {
     return (
       <View style={styles.gameContainer}>
         <View style={styles.completionContainer}>
-          <Text style={styles.completionTitle}>🎉 Listening Game Complete!</Text>
-          <Text style={styles.completionSubtitle}>Your Results: {score}/{gameData.questions.length}</Text>
+          <Text style={styles.completionTitle}>🎉 Type What You Hear Complete!</Text>
+          <Text style={styles.completionSubtitle}>Great job!</Text>
           
-          <View style={styles.scoreCircle}>
-            <Text style={styles.scorePercentage}>
-              {Math.round((score / gameData.questions.length) * 100)}%
-            </Text>
+          <View style={styles.statsContainer}>
+            <View style={styles.statItem}>
+              <Text style={styles.statLabel}>Score</Text>
+              <Text style={styles.statValue}>{score}/{gameData.questions.length}</Text>
+            </View>
+            <View style={styles.statItem}>
+              <Text style={styles.statLabel}>Percentage</Text>
+              <Text style={styles.statValue}>{Math.round((score / gameData.questions.length) * 100)}%</Text>
+            </View>
           </View>
           
-          <TouchableOpacity style={styles.resetButton} onPress={resetGame}>
-            <Text style={styles.resetButtonText}>Play Again</Text>
-          </TouchableOpacity>
+          <View style={styles.actionButtons}>
+            <TouchableOpacity style={styles.resetButton} onPress={handlePlayAgain}>
+              <Text style={styles.resetButtonText}>Play Again</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.exitButton} onPress={handleReturnToMenu}>
+              <Text style={styles.exitButtonText}>Return to Menu</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     );
@@ -287,10 +271,6 @@ const TypeWhatYouHearGame: React.FC<TypeWhatYouHearGameProps> = ({ gameData, onC
         </View>
       )}
 
-      {/* Score Display */}
-      <View style={styles.scoreContainer}>
-        <Text style={styles.scoreText}>Score: {score}</Text>
-      </View>
     </View>
   );
 };
@@ -463,20 +443,6 @@ const styles = StyleSheet.create({
     color: '#64748b',
     textAlign: 'center',
   },
-  scoreContainer: {
-    position: 'absolute',
-    top: 20,
-    right: 20,
-    backgroundColor: '#6466E9',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  scoreText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#ffffff',
-  },
   completionContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -496,6 +462,24 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 40,
   },
+  statsContainer: {
+    flexDirection: 'row',
+    gap: 40,
+    marginBottom: 40,
+  },
+  statItem: {
+    alignItems: 'center',
+  },
+  statLabel: {
+    fontSize: 14,
+    color: '#64748b',
+    marginBottom: 8,
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#6466E9',
+  },
   scoreCircle: {
     width: 120,
     height: 120,
@@ -510,16 +494,36 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#ffffff',
   },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 24,
+  },
   resetButton: {
+    flex: 1,
     backgroundColor: '#6466E9',
-    paddingHorizontal: 32,
     paddingVertical: 16,
     borderRadius: 12,
+    alignItems: 'center',
   },
   resetButtonText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
     color: '#ffffff',
+  },
+  exitButton: {
+    flex: 1,
+    backgroundColor: '#f1f5f9',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  exitButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#64748b',
   },
 });
 

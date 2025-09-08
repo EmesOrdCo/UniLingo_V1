@@ -450,8 +450,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     backgroundColor: 'white',
     borderBottomWidth: 1,
     borderBottomColor: '#e2e8f0',
@@ -469,7 +469,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    padding: 20,
+    padding: 16,
   },
   contentTouchable: {
     flex: 1,
@@ -477,8 +477,8 @@ const styles = StyleSheet.create({
   infoCard: {
     backgroundColor: 'white',
     borderRadius: 12,
-    padding: 16,
-    marginBottom: 24,
+    padding: 12,
+    marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -495,13 +495,13 @@ const styles = StyleSheet.create({
     color: '#64748b',
   },
   section: {
-    marginBottom: 24,
+    marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: '#1e293b',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   dropdownContainer: {
     marginBottom: 8,
@@ -509,7 +509,7 @@ const styles = StyleSheet.create({
   dropdown: {
     backgroundColor: 'white',
     borderRadius: 12,
-    padding: 16,
+    padding: 12,
     borderWidth: 1,
     borderColor: '#e2e8f0',
     flexDirection: 'row',
@@ -553,7 +553,7 @@ const styles = StyleSheet.create({
     maxHeight: 200,
   },
   dropdownOption: {
-    padding: 16,
+    padding: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#f1f5f9',
   },
@@ -571,14 +571,14 @@ const styles = StyleSheet.create({
   optionsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
+    gap: 8,
   },
   optionCard: {
     flex: 1,
     minWidth: '45%',
     backgroundColor: 'white',
     borderRadius: 12,
-    padding: 16,
+    padding: 12,
     borderWidth: 2,
     borderColor: '#e2e8f0',
   },
@@ -626,11 +626,11 @@ const styles = StyleSheet.create({
   startButton: {
     backgroundColor: '#6366f1',
     borderRadius: 12,
-    padding: 16,
+    padding: 14,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 20,
+    marginTop: 8,
   },
   startButtonText: {
     color: 'white',
