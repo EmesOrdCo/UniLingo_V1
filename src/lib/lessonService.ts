@@ -53,6 +53,19 @@ export interface LessonProgress {
 
 export class LessonService {
   /**
+   * Determine lesson difficulty based on vocabulary count
+   */
+  static determineDifficultyByVocabCount(vocabCount: number): 'beginner' | 'intermediate' | 'advanced' {
+    if (vocabCount <= 10) {
+      return 'beginner';
+    } else if (vocabCount <= 25) {
+      return 'intermediate';
+    } else {
+      return 'advanced';
+    }
+  }
+
+  /**
    * Convert PDF to text using backend server
    */
   static async convertPdfToText(pdfUri: string): Promise<string> {
@@ -693,6 +706,189 @@ Return ONLY the JSON array:`;
     } catch (error) {
       console.error('Error getting lesson:', error);
       return null;
+    }
+  }
+
+  /**
+   * Fix all existing lessons for a user (difficulty and progress)
+   */
+  static async fixExistingLessons(userId: string): Promise<void> {
+    try {
+      console.log('🔧 Fixing existing lessons for user...');
+      
+      // 1. Update difficulty levels based on vocabulary count
+      await this.updateLessonsDifficulty(userId);
+      
+      // 2. Ensure all lessons have progress records
+      await this.ensureProgressRecords(userId);
+      
+      console.log('✅ Finished fixing existing lessons');
+    } catch (error) {
+      console.error('❌ Error fixing existing lessons:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Ensure all lessons have progress records
+   */
+  static async ensureProgressRecords(userId: string): Promise<void> {
+    try {
+      console.log('📊 Ensuring all lessons have progress records...');
+      
+      // Get all lessons without progress records
+      const { data: lessonsWithoutProgress, error: lessonsError } = await supabase
+        .from('esp_lessons')
+        .select(`
+          id,
+          title,
+          lesson_progress!left(*)
+        `)
+        .eq('user_id', userId);
+
+      if (lessonsError) throw lessonsError;
+
+      for (const lesson of lessonsWithoutProgress || []) {
+        // If no progress record exists, create one
+        if (!lesson.lesson_progress || lesson.lesson_progress.length === 0) {
+          const { error: insertError } = await supabase
+            .from('lesson_progress')
+            .insert([{
+              user_id: userId,
+              lesson_id: lesson.id,
+              started_at: null,
+              completed_at: null,
+              total_score: 0,
+              max_possible_score: 0,
+              exercises_completed: 0,
+              total_exercises: 5,
+              time_spent_seconds: 0,
+              status: 'not_started',
+            }]);
+
+          if (insertError) {
+            console.error(`❌ Error creating progress record for lesson ${lesson.id}:`, insertError);
+          } else {
+            console.log(`✅ Created progress record for lesson: ${lesson.title}`);
+          }
+        }
+      }
+      
+      console.log('✅ Finished ensuring progress records');
+    } catch (error) {
+      console.error('❌ Error ensuring progress records:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update existing lessons with correct difficulty based on vocabulary count
+   */
+  static async updateLessonsDifficulty(userId: string): Promise<void> {
+    try {
+      console.log('🔄 Updating lesson difficulties based on vocabulary count...');
+      
+      // Get all lessons with vocabulary counts
+      const { data: lessons, error: lessonsError } = await supabase
+        .from('esp_lessons')
+        .select(`
+          id,
+          difficulty_level,
+          lesson_vocabulary(count)
+        `)
+        .eq('user_id', userId);
+
+      if (lessonsError) throw lessonsError;
+
+      for (const lesson of lessons || []) {
+        const vocabCount = lesson.lesson_vocabulary?.[0]?.count || 0;
+        const correctDifficulty = this.determineDifficultyByVocabCount(vocabCount);
+        
+        // Only update if difficulty is different
+        if (lesson.difficulty_level !== correctDifficulty) {
+          const { error: updateError } = await supabase
+            .from('esp_lessons')
+            .update({ difficulty_level: correctDifficulty })
+            .eq('id', lesson.id);
+
+          if (updateError) {
+            console.error(`❌ Error updating lesson ${lesson.id}:`, updateError);
+          } else {
+            console.log(`✅ Updated lesson ${lesson.id}: ${lesson.difficulty_level} → ${correctDifficulty} (${vocabCount} terms)`);
+          }
+        }
+      }
+      
+      console.log('✅ Finished updating lesson difficulties');
+    } catch (error) {
+      console.error('❌ Error updating lesson difficulties:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get user's lessons with vocabulary counts and progress data
+   */
+  static async getUserLessonsWithProgress(userId: string): Promise<(Lesson & { vocab_count: number; progress?: LessonProgress })[]> {
+    try {
+      const { data, error } = await supabase
+        .from('esp_lessons')
+        .select(`
+          *,
+          lesson_vocabulary(count),
+          lesson_progress!left(*)
+        `)
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      
+      // Map the data to include vocab_count and progress
+      const lessonsWithProgress = (data || []).map(lesson => {
+        const progress = lesson.lesson_progress && lesson.lesson_progress.length > 0 ? lesson.lesson_progress[0] : null;
+        
+        return {
+          ...lesson,
+          vocab_count: lesson.lesson_vocabulary?.[0]?.count || 0,
+          progress: progress
+        };
+      });
+
+      return lessonsWithProgress;
+
+    } catch (error) {
+      console.error('Error getting user lessons with progress:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get user's lessons with vocabulary counts
+   */
+  static async getUserLessonsWithVocabCount(userId: string): Promise<(Lesson & { vocab_count: number })[]> {
+    try {
+      const { data, error } = await supabase
+        .from('esp_lessons')
+        .select(`
+          *,
+          lesson_vocabulary(count)
+        `)
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      
+      // Map the data to include vocab_count
+      const lessonsWithCount = (data || []).map(lesson => ({
+        ...lesson,
+        vocab_count: lesson.lesson_vocabulary?.[0]?.count || 0
+      }));
+
+      return lessonsWithCount;
+
+    } catch (error) {
+      console.error('Error getting user lessons with vocab count:', error);
+      return [];
     }
   }
 

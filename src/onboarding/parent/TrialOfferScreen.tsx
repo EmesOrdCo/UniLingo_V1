@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import { useThemeTokens } from '../../theme/useThemeTokens';
 import { Screen, OnboardingButton } from '../ui';
 import { useOnboardingStore, useOnboardingField } from '../state';
@@ -77,9 +78,9 @@ export function TrialOfferScreen() {
       showBackButton={true}
     >
       <View style={styles.container}>
-        {/* Gift Icon */}
+        {/* Professional Icon */}
         <View style={styles.iconContainer}>
-          <Text style={styles.giftIcon}>🎁</Text>
+          <Ionicons name="rocket" size={60} color="#6366f1" />
         </View>
 
         {/* Price Strip */}

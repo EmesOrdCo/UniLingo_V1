@@ -106,7 +106,7 @@ export function TrialOfferScreen() {
       <View style={styles.iconContainer}>
         <View style={styles.giftIcon}>
           <Ionicons
-            name="gift"
+            name="rocket"
             size={50}
             color={theme.colors.text.inverse}
           />

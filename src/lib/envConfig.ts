@@ -30,7 +30,7 @@ export const ENV = {
   SUPABASE_URL: getEnvironmentVariable('EXPO_PUBLIC_SUPABASE_URL'),
   SUPABASE_ANON_KEY: getEnvironmentVariable('EXPO_PUBLIC_SUPABASE_ANON_KEY'),
   OPENAI_API_KEY: getEnvironmentVariable('EXPO_PUBLIC_OPENAI_API_KEY'),
-  CLOUDMERSIVE_API_KEY: getEnvironmentVariable('EXPO_PUBLIC_CLOUDMERSIVE_API_KEY'),
+  BACKEND_URL: getEnvironmentVariable('EXPO_PUBLIC_BACKEND_URL'),
 };
 
 // Debug logging
@@ -38,7 +38,7 @@ console.log('🔧 Environment Configuration:', {
   SUPABASE_URL: ENV.SUPABASE_URL ? 'Configured' : 'Not configured',
   SUPABASE_ANON_KEY: ENV.SUPABASE_ANON_KEY ? 'Configured' : 'Not configured',
   OPENAI_API_KEY: ENV.OPENAI_API_KEY ? `Configured (${ENV.OPENAI_API_KEY.length} chars)` : 'Not configured',
-  CLOUDMERSIVE_API_KEY: ENV.CLOUDMERSIVE_API_KEY ? `Configured (${ENV.CLOUDMERSIVE_API_KEY.length} chars)` : 'Not configured',
+  BACKEND_URL: ENV.BACKEND_URL ? 'Configured' : 'Not configured',
   Platform: Platform.OS,
   IsDev: __DEV__,
 });

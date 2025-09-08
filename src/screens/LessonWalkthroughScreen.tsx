@@ -7,6 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../contexts/AuthContext';
 import { LessonService, Lesson, LessonProgress } from '../lib/lessonService';
 import { XPService } from '../lib/xpService';
+import { ProgressTrackingService } from '../lib/progressTrackingService';
 import LessonFlashcards from '../components/lesson/LessonFlashcards';
 import LessonFlashcardQuiz from '../components/lesson/LessonFlashcardQuiz';
 import LessonSentenceScramble from '../components/lesson/LessonSentenceScramble';

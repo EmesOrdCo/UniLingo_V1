@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   View, 
   Text, 
@@ -27,7 +27,7 @@ const SUBJECTS = [
 export default function LandingScreen() {
   const navigation = useNavigation();
   const [currentSubjectIndex, setCurrentSubjectIndex] = useState(0);
-  const [fadeAnim] = useState(new Animated.Value(1));
+  const fadeAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     const interval = setInterval(() => {

@@ -8,6 +8,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useProfilePicture } from '../contexts/ProfilePictureContext';
 import { HolisticProgressService } from '../lib/holisticProgressService';
 import { ProfilePictureService } from '../lib/profilePictureService';
+import { DeleteAccountService } from '../lib/deleteAccountService';
 import ShareInvitationModal from '../components/ShareInvitationModal';
 import ProfileAvatar from '../components/ProfileAvatar';
 import ContactSupportModal from '../components/ContactSupportModal';
@@ -140,6 +141,82 @@ export default function ProfilePage() {
             } catch (error) {
               console.error('Error signing out:', error);
             }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!user?.id) {
+      Alert.alert('Error', 'User not authenticated');
+      return;
+    }
+
+    // First confirmation dialog
+    Alert.alert(
+      'Delete Account',
+      'Are you sure you want to delete your account? This action will permanently remove all your data including:\n\n• All flashcards and lessons\n• Progress and statistics\n• Profile information\n• Subscription data\n\nThis action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Continue',
+          style: 'destructive',
+          onPress: () => {
+            // Second confirmation dialog with stronger warning
+            Alert.alert(
+              'Final Confirmation',
+              '⚠️ WARNING: This will permanently delete your account and ALL data.\n\nYou will lose:\n• All your learning progress\n• Flashcards and lessons\n• Account settings\n• Subscription information\n\nThis action is IRREVERSIBLE and cannot be undone.\n\nAre you absolutely sure?',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'DELETE ACCOUNT',
+                  style: 'destructive',
+                  onPress: async () => {
+                    try {
+                      // Show loading state
+                      Alert.alert(
+                        'Deleting Account',
+                        'Please wait while we delete your account and all associated data...',
+                        [],
+                        { cancelable: false }
+                      );
+
+                      const result = await DeleteAccountService.deleteUserAccount(user.id);
+                      
+                      if (result.success) {
+                        Alert.alert(
+                          'Account Deleted',
+                          'Your account and all data have been permanently deleted. You will now be signed out.',
+                          [
+                            {
+                              text: 'OK',
+                              onPress: async () => {
+                                // Sign out after successful deletion
+                                await signOut();
+                              },
+                            },
+                          ]
+                        );
+                      } else {
+                        Alert.alert(
+                          'Deletion Failed',
+                          result.error || 'Failed to delete account. Please try again or contact support.',
+                          [{ text: 'OK' }]
+                        );
+                      }
+                    } catch (error) {
+                      console.error('Error deleting account:', error);
+                      Alert.alert(
+                        'Error',
+                        'An unexpected error occurred while deleting your account. Please try again or contact support.',
+                        [{ text: 'OK' }]
+                      );
+                    }
+                  },
+                },
+              ]
+            );
           },
         },
       ]
@@ -294,7 +371,7 @@ export default function ProfilePage() {
                   </View>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.settingItem}>
+                <TouchableOpacity style={styles.settingItem} onPress={handleDeleteAccount}>
                   <View style={styles.settingLeft}>
                     <Ionicons name="trash-outline" size={24} color="#ef4444" />
                     <Text style={[styles.settingTitle, styles.deleteAccountText]}>Delete account</Text>
@@ -302,66 +379,7 @@ export default function ProfilePage() {
                 </TouchableOpacity>
               </View>
 
-              {/* Downloads Section */}
-              <View style={styles.settingsSection}>
-                <Text style={styles.sectionHeader}>Downloads</Text>
-                
-                <View style={styles.settingItem}>
-                  <View style={styles.settingLeft}>
-                    <Ionicons name="download-outline" size={24} color="#374151" />
-                    <Text style={styles.settingTitle}>Automatic downloads</Text>
-                  </View>
-                  <View style={styles.settingRight}>
-                    <Text style={styles.settingValue}>Wi-Fi only</Text>
-                    <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
-                  </View>
-                </View>
 
-                <TouchableOpacity style={styles.settingItem}>
-                  <View style={styles.settingLeft}>
-                    <Ionicons name="hardware-chip-outline" size={24} color="#f97316" />
-                    <Text style={[styles.settingTitle, styles.orangeText]}>Free up some space on your device</Text>
-                  </View>
-                </TouchableOpacity>
-              </View>
-
-              {/* General Section */}
-              <View style={styles.settingsSection}>
-                <Text style={styles.sectionHeader}>General</Text>
-                
-                <TouchableOpacity style={styles.settingItem}>
-                  <View style={styles.settingLeft}>
-                    <Ionicons name="notifications-outline" size={24} color="#374151" />
-                    <Text style={styles.settingTitle}>Reminders</Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
-                </TouchableOpacity>
-
-
-                <TouchableOpacity 
-                  style={styles.settingItem}
-                  onPress={() => Alert.alert('Coming Soon', 'Sound effects will be available in a future update.')}
-                >
-                  <View style={styles.settingLeft}>
-                    <Ionicons name="volume-high-outline" size={24} color="#374151" />
-                    <Text style={styles.settingTitle}>Sound effects</Text>
-                  </View>
-                  <TouchableOpacity style={styles.toggleButton}>
-                    <View style={styles.toggleCircle} />
-                  </TouchableOpacity>
-                </TouchableOpacity>
-
-                <View style={styles.settingItem}>
-                  <View style={styles.settingLeft}>
-                    <Ionicons name="flame-outline" size={24} color="#374151" />
-                    <Text style={styles.settingTitle}>Streak notifications</Text>
-                  </View>
-                  <TouchableOpacity style={styles.toggleButton}>
-                    <View style={styles.toggleCircle} />
-                  </TouchableOpacity>
-                </View>
-
-              </View>
 
               {/* About Section */}
               <View style={styles.settingsSection}>
@@ -386,29 +404,6 @@ export default function ProfilePage() {
                   <Text style={styles.settingValue}>1.0</Text>
                 </View>
 
-                <TouchableOpacity style={styles.settingItem}>
-                  <View style={styles.settingLeft}>
-                    <Ionicons name="document-text-outline" size={24} color="#374151" />
-                    <Text style={styles.settingTitle}>Imprint</Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.settingItem}>
-                  <View style={styles.settingLeft}>
-                    <Ionicons name="document-outline" size={24} color="#374151" />
-                    <Text style={styles.settingTitle}>Terms & Conditions</Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.settingItem}>
-                  <View style={styles.settingLeft}>
-                    <Ionicons name="shield-outline" size={24} color="#374151" />
-                    <Text style={styles.settingTitle}>Privacy</Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
-                </TouchableOpacity>
               </View>
 
             </ScrollView>

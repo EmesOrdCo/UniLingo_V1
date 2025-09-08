@@ -14,11 +14,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { getPdfProcessingUrl } from '../config/backendConfig';
+import { LessonService } from '../lib/lessonService';
 
 import * as DocumentPicker from 'expo-document-picker';
 
 import { supabase } from '../lib/supabase';
-import { LessonService } from '../lib/lessonService';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -198,6 +198,10 @@ export default function CreateLessonScreen() {
           // Create lesson for this topic
           const lessonTitle = `${selectedSubject} - ${topic.topicName}`;
           
+          // Calculate difficulty based on vocabulary count
+          const vocabCount = topicVocab.vocabulary.length;
+          const difficultyLevel = LessonService.determineDifficultyByVocabCount(vocabCount);
+          
           const { data: lesson, error: lessonError } = await supabase
             .from('esp_lessons')
             .insert([{
@@ -207,7 +211,7 @@ export default function CreateLessonScreen() {
               source_pdf_name: file.name,
               native_language: userNativeLanguage,
               estimated_duration: 45,
-              difficulty_level: 'intermediate',
+              difficulty_level: difficultyLevel,
               status: 'ready'
             }])
             .select()
@@ -239,7 +243,7 @@ export default function CreateLessonScreen() {
           }
 
           createdLessons.push(lesson);
-          console.log(`✅ Created lesson: ${lessonTitle} with ${vocabularyWithLessonId.length} vocabulary items`);
+          console.log(`✅ Created lesson: ${lessonTitle} with ${vocabularyWithLessonId.length} vocabulary items (${difficultyLevel} difficulty)`);
         }
 
         if (createdLessons.length === 0) {

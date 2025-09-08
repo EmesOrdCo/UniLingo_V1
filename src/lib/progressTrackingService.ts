@@ -403,7 +403,6 @@ export class ProgressTrackingService {
           total_exercises: data.totalExercises,
           time_spent_seconds: data.timeSpentSeconds,
           status: data.status,
-          updated_at: now,
         };
 
         const { error } = await supabase
@@ -425,8 +424,6 @@ export class ProgressTrackingService {
           total_exercises: data.totalExercises,
           time_spent_seconds: data.timeSpentSeconds,
           status: data.status,
-          created_at: now,
-          updated_at: now,
         };
 
         const { error } = await supabase

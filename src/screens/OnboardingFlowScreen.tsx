@@ -808,7 +808,7 @@ export default function OnboardingFlowScreen() {
         return (
           <View style={styles.stepContainer}>
             <View style={styles.trialIconContainer}>
-              <Text style={styles.trialIcon}>🎁</Text>
+              <Ionicons name="rocket" size={60} color="#6366f1" />
             </View>
             <Text style={styles.stepTitle}>Start your free trial</Text>
             <Text style={styles.stepSubtitle}>

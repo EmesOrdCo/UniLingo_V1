@@ -3,10 +3,10 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, ActivityIn
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
-import { LessonService, Lesson } from '../lib/lessonService';
+import { LessonService, Lesson, LessonProgress } from '../lib/lessonService';
 
 export default function LessonsContent() {
-  const [lessons, setLessons] = useState<Lesson[]>([]);
+  const [lessons, setLessons] = useState<(Lesson & { vocab_count: number; progress?: LessonProgress })[]>([]);
   const [loadingLessons, setLoadingLessons] = useState(true);
   
   const navigation = useNavigation();
@@ -27,7 +27,7 @@ export default function LessonsContent() {
 
     try {
       setLoadingLessons(true);
-      const userLessons = await LessonService.getUserLessons(user.id);
+      const userLessons = await LessonService.getUserLessonsWithProgress(user.id);
       setLessons(userLessons);
       console.log(`✅ Fetched ${userLessons.length} lessons for user`);
     } catch (error) {
@@ -90,6 +90,39 @@ export default function LessonsContent() {
 
   const handleRefresh = () => {
     fetchUserLessons();
+  };
+
+  // Helper function to calculate progress percentage
+  const calculateProgressPercentage = (lesson: Lesson & { vocab_count: number; progress?: LessonProgress }): number => {
+    if (!lesson.progress) return 0;
+    
+    // Calculate based on exercises completed vs total exercises
+    // There are exactly 5 exercises per lesson: flashcards, flashcard-quiz, sentence-scramble, word-scramble, fill-in-blank
+    const totalExercises = lesson.progress.total_exercises || 5;
+    const completedExercises = lesson.progress.exercises_completed || 0;
+    
+    // Ensure percentage doesn't exceed 100%
+    return Math.min(Math.round((completedExercises / totalExercises) * 100), 100);
+  };
+
+  // Helper function to get progress status text
+  const getProgressStatusText = (lesson: Lesson & { vocab_count: number; progress?: LessonProgress }): string => {
+    if (!lesson.progress) return 'Not started';
+    
+    if (lesson.progress.completed_at) {
+      return 'Completed';
+    }
+    
+    const percentage = calculateProgressPercentage(lesson);
+    const completedExercises = lesson.progress.exercises_completed || 0;
+    
+    if (percentage === 0) {
+      return 'Not started';
+    } else if (percentage < 100) {
+      return `${completedExercises}/5 exercises`;
+    } else {
+      return 'Completed';
+    }
   };
 
   // Helper function to get subject-specific colors
@@ -221,8 +254,8 @@ export default function LessonsContent() {
               {/* Lesson Details - Single Line */}
               <View style={styles.lessonDetails}>
                 <View style={styles.detailItem}>
-                  <Ionicons name="time-outline" size={14} color="#6366f1" />
-                  <Text style={styles.detailText}>{lesson.estimated_duration} min</Text>
+                  <Ionicons name="library-outline" size={14} color="#6366f1" />
+                  <Text style={styles.detailText}>{lesson.vocab_count} terms</Text>
                 </View>
                 <View style={styles.detailSeparator} />
                 <View style={styles.detailItem}>
@@ -238,12 +271,15 @@ export default function LessonsContent() {
                 </View>
               </View>
 
-              {/* Progress Bar Placeholder */}
+              {/* Progress Bar */}
               <View style={styles.progressContainer}>
                 <View style={styles.progressBar}>
-                  <View style={[styles.progressFill, { width: '0%' }]} />
+                  <View style={[
+                    styles.progressFill, 
+                    { width: `${calculateProgressPercentage(lesson)}%` }
+                  ]} />
                 </View>
-                <Text style={styles.progressText}>Not started</Text>
+                <Text style={styles.progressText}>{getProgressStatusText(lesson)}</Text>
               </View>
             </TouchableOpacity>
           ))}

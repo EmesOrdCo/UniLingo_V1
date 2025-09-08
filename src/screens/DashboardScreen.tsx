@@ -7,7 +7,6 @@ import { Ionicons } from '@expo/vector-icons';
 // Import screens
 import FlashcardsScreen from './FlashcardsScreen';
 import GamesScreen from './GamesScreen';
-import ProgressScreen from './StudyScreen';
 
 // Import components
 import ConsistentHeader from '../components/ConsistentHeader';
