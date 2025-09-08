@@ -6,10 +6,11 @@ interface SpeedChallengeGameProps {
   gameData: any;
   onClose: () => void;
   onGameComplete: (score: number, time: number, totalAnswered?: number) => void;
+  onPlayAgain: () => void;
   timeLimit?: number; // Add time limit prop
 }
 
-const SpeedChallengeGame: React.FC<SpeedChallengeGameProps> = ({ gameData, onClose, onGameComplete, timeLimit = 60 }) => {
+const SpeedChallengeGame: React.FC<SpeedChallengeGameProps> = ({ gameData, onClose, onGameComplete, onPlayAgain, timeLimit = 60 }) => {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userAnswer, setUserAnswer] = useState('');
   const [score, setScore] = useState(0);
@@ -52,17 +53,7 @@ const SpeedChallengeGame: React.FC<SpeedChallengeGameProps> = ({ gameData, onClo
     return () => clearInterval(timer);
   }, [timeLimit]);
 
-  // Handle game completion
-  useEffect(() => {
-    if (gameComplete) {
-      console.log('🚀 Speed Challenge calling onGameComplete with:', {
-        score: finalScoreRef.current,
-        elapsedTime: finalElapsedTimeRef.current,
-        totalAnswered: finalTotalAnsweredRef.current
-      });
-      onGameComplete(finalScoreRef.current, finalElapsedTimeRef.current, finalTotalAnsweredRef.current);
-    }
-  }, [gameComplete]); // Only depend on gameComplete to avoid multiple calls
+  // Handle game completion - removed automatic call, now handled by user action
 
   const handleAnswerSubmit = () => {
     if (!userAnswer.trim()) return;
@@ -116,12 +107,20 @@ const SpeedChallengeGame: React.FC<SpeedChallengeGameProps> = ({ gameData, onClo
     finalTotalAnsweredRef.current = 0;
   };
 
+  const handlePlayAgain = () => {
+    onPlayAgain();
+  };
+
+  const handleReturnToMenu = () => {
+    onClose();
+  };
+
   if (gameComplete) {
     return (
       <View style={styles.gameContainer}>
         <View style={styles.completionContainer}>
           <Text style={styles.completionTitle}>🎉 Speed Challenge Complete!</Text>
-          <Text style={styles.completionSubtitle}>Your Results: {score} correct answers</Text>
+          <Text style={styles.completionSubtitle}>Great job!</Text>
           
           <View style={styles.statsContainer}>
             <View style={styles.statItem}>
@@ -141,12 +140,12 @@ const SpeedChallengeGame: React.FC<SpeedChallengeGameProps> = ({ gameData, onClo
           </View>
           
           <View style={styles.actionButtons}>
-            <TouchableOpacity style={styles.resetButton} onPress={resetGame}>
+            <TouchableOpacity style={styles.resetButton} onPress={handlePlayAgain}>
               <Text style={styles.resetButtonText}>Play Again</Text>
             </TouchableOpacity>
             
-            <TouchableOpacity style={styles.exitButton} onPress={onClose}>
-              <Text style={styles.exitButtonText}>Exit</Text>
+            <TouchableOpacity style={styles.exitButton} onPress={handleReturnToMenu}>
+              <Text style={styles.exitButtonText}>Return to Menu</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -251,7 +250,7 @@ const SpeedChallengeGame: React.FC<SpeedChallengeGameProps> = ({ gameData, onClo
 
       {/* Speed Indicator */}
       <View style={styles.speedIndicator}>
-        <Ionicons name="flash" size={20} color="#f59e0b" />
+        <Ionicons name="flash" size={20} color="#6466E9" />
         <Text style={styles.speedText}>Speed Challenge</Text>
       </View>
     </View>
@@ -284,7 +283,7 @@ const styles = StyleSheet.create({
   timeText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#f59e0b',
+    color: '#6466E9',
   },
   questionCounter: {
     fontSize: 14,
@@ -300,7 +299,7 @@ const styles = StyleSheet.create({
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#f59e0b',
+    backgroundColor: '#6466E9',
     borderRadius: 3,
   },
   questionContainer: {
@@ -359,7 +358,7 @@ const styles = StyleSheet.create({
     borderColor: '#e2e8f0',
   },
   submitButton: {
-    backgroundColor: '#f59e0b',
+    backgroundColor: '#6466E9',
   },
   skipButtonText: {
     fontSize: 16,
@@ -421,17 +420,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#fef3c7',
+    backgroundColor: '#f0f4ff',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#f59e0b',
+    borderColor: '#6466E9',
   },
   speedText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#92400e',
+    color: '#6466E9',
   },
   completionContainer: {
     flex: 1,
@@ -469,39 +468,38 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#f59e0b',
+    color: '#6466E9',
   },
   actionButtons: {
     flexDirection: 'row',
     gap: 12,
-    justifyContent: 'center',
-    marginTop: 20,
+    marginTop: 24,
   },
   resetButton: {
-    backgroundColor: '#f59e0b',
-    paddingHorizontal: 32,
+    flex: 1,
+    backgroundColor: '#6466E9',
     paddingVertical: 16,
     borderRadius: 12,
-    flex: 1,
     alignItems: 'center',
   },
   resetButtonText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
     color: '#ffffff',
   },
   exitButton: {
-    backgroundColor: '#ef4444',
-    paddingHorizontal: 32,
+    flex: 1,
+    backgroundColor: '#f1f5f9',
     paddingVertical: 16,
     borderRadius: 12,
-    flex: 1,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
   },
   exitButtonText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
-    color: '#ffffff',
+    color: '#64748b',
   },
 });
 

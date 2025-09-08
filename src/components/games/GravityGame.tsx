@@ -69,22 +69,37 @@ const GravityGame: React.FC<GravityGameProps> = ({ gameData, onClose, onGameComp
     completionCalledRef.current = false; // Reset completion called flag
   };
 
+  const handleReturnToMenu = () => {
+    onGameComplete(score);
+  };
+
   if (gameComplete) {
     return (
       <View style={styles.gameContainer}>
         <View style={styles.completionContainer}>
-          <Text style={styles.completionTitle}>🎉 Planet Defense Complete!</Text>
-          <Text style={styles.completionSubtitle}>Your Results: {score}/{gameData.questions.length}</Text>
+          <Text style={styles.completionTitle}>🎉 Gravity Game Complete!</Text>
+          <Text style={styles.completionSubtitle}>Great job!</Text>
           
-          <View style={styles.scoreCircle}>
-            <Text style={styles.scorePercentage}>
-              {Math.round((score / gameData.questions.length) * 100)}%
-            </Text>
+          <View style={styles.statsContainer}>
+            <View style={styles.statItem}>
+              <Text style={styles.statLabel}>Score</Text>
+              <Text style={styles.statValue}>{score}/{gameData.questions.length}</Text>
+            </View>
+            <View style={styles.statItem}>
+              <Text style={styles.statLabel}>Percentage</Text>
+              <Text style={styles.statValue}>{Math.round((score / gameData.questions.length) * 100)}%</Text>
+            </View>
           </View>
           
-          <TouchableOpacity style={styles.resetButton} onPress={resetGame}>
-            <Text style={styles.resetButtonText}>Play Again</Text>
-          </TouchableOpacity>
+          <View style={styles.actionButtons}>
+            <TouchableOpacity style={styles.resetButton} onPress={resetGame}>
+              <Text style={styles.resetButtonText}>Play Again</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.exitButton} onPress={handleReturnToMenu}>
+              <Text style={styles.exitButtonText}>Return to Menu</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     );
@@ -94,18 +109,29 @@ const GravityGame: React.FC<GravityGameProps> = ({ gameData, onClose, onGameComp
     return (
       <View style={styles.gameContainer}>
         <View style={styles.completionContainer}>
-          <Text style={styles.completionTitle}>💥 Game Over!</Text>
-          <Text style={styles.completionSubtitle}>Your Score: {score}/{gameData.questions.length}</Text>
+          <Text style={styles.completionTitle}>💥 Gravity Game Over!</Text>
+          <Text style={styles.completionSubtitle}>Better luck next time!</Text>
           
-          <View style={styles.scoreCircle}>
-            <Text style={styles.scorePercentage}>
-              {Math.round((score / gameData.questions.length) * 100)}%
-            </Text>
+          <View style={styles.statsContainer}>
+            <View style={styles.statItem}>
+              <Text style={styles.statLabel}>Score</Text>
+              <Text style={styles.statValue}>{score}/{gameData.questions.length}</Text>
+            </View>
+            <View style={styles.statItem}>
+              <Text style={styles.statLabel}>Percentage</Text>
+              <Text style={styles.statValue}>{Math.round((score / gameData.questions.length) * 100)}%</Text>
+            </View>
           </View>
           
-          <TouchableOpacity style={styles.resetButton} onPress={resetGame}>
-            <Text style={styles.resetButtonText}>Try Again</Text>
-          </TouchableOpacity>
+          <View style={styles.actionButtons}>
+            <TouchableOpacity style={styles.resetButton} onPress={resetGame}>
+              <Text style={styles.resetButtonText}>Play Again</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.exitButton} onPress={handleReturnToMenu}>
+              <Text style={styles.exitButtonText}>Return to Menu</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     );
@@ -243,15 +269,33 @@ const styles = StyleSheet.create({
   completionTitle: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#ffffff',
+    color: '#1e293b',
     textAlign: 'center',
     marginBottom: 8,
   },
   completionSubtitle: {
     fontSize: 18,
-    color: '#94a3b8',
+    color: '#64748b',
     textAlign: 'center',
     marginBottom: 40,
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    gap: 40,
+    marginBottom: 40,
+  },
+  statItem: {
+    alignItems: 'center',
+  },
+  statLabel: {
+    fontSize: 14,
+    color: '#64748b',
+    marginBottom: 8,
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#6466E9',
   },
   scoreCircle: {
     width: 120,
@@ -267,16 +311,36 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#ffffff',
   },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 24,
+  },
   resetButton: {
-    backgroundColor: '#3b82f6',
-    paddingHorizontal: 32,
+    flex: 1,
+    backgroundColor: '#6466E9',
     paddingVertical: 16,
     borderRadius: 12,
+    alignItems: 'center',
   },
   resetButtonText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
     color: '#ffffff',
+  },
+  exitButton: {
+    flex: 1,
+    backgroundColor: '#f1f5f9',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  exitButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#64748b',
   },
 });
 

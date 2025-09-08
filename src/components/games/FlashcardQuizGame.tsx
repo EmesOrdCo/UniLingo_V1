@@ -6,6 +6,7 @@ interface FlashcardQuizGameProps {
   gameData: any;
   onClose: () => void;
   onGameComplete: (score: number) => void;
+  onPlayAgain: () => void;
   userProfile: any;
 }
 
@@ -13,6 +14,7 @@ const FlashcardQuizGame: React.FC<FlashcardQuizGameProps> = ({
   gameData, 
   onClose, 
   onGameComplete, 
+  onPlayAgain,
   userProfile 
 }) => {
   const [currentQuestion, setCurrentQuestion] = useState(0);
@@ -55,99 +57,43 @@ const FlashcardQuizGame: React.FC<FlashcardQuizGameProps> = ({
     }, 1500);
   };
   
-  const handleReviewComplete = () => {
-    onGameComplete(score);
+  const handlePlayAgain = () => {
+    // Close game and return to setup screen
+    onPlayAgain();
+  };
+
+  const handleReturnToMenu = () => {
+    onClose();
   };
   
   // Review Screen
   if (showReview) {
     return (
       <View style={styles.gameContainer}>
-        <View style={styles.reviewHeader}>
-          <Text style={styles.reviewTitle}>🎉 Quiz Complete!</Text>
-          <Text style={styles.reviewSubtitle}>Your Results: {score}/{gameData.questions.length}</Text>
+        <View style={styles.completionContainer}>
+          <Text style={styles.completionTitle}>🎉 Flashcard Quiz Complete!</Text>
+          <Text style={styles.completionSubtitle}>Great job!</Text>
           
-          {/* Score Summary */}
-          <View style={styles.scoreSummary}>
-            <View style={styles.scoreCircle}>
-              <Text style={styles.scorePercentage}>
-                {Math.round((score / gameData.questions.length) * 100)}%
-              </Text>
+          <View style={styles.statsContainer}>
+            <View style={styles.statItem}>
+              <Text style={styles.statLabel}>Score</Text>
+              <Text style={styles.statValue}>{score}/{gameData.questions.length}</Text>
             </View>
-            <Text style={styles.scoreText}>{score} out of {gameData.questions.length} correct</Text>
+            <View style={styles.statItem}>
+              <Text style={styles.statLabel}>Percentage</Text>
+              <Text style={styles.statValue}>{Math.round((score / gameData.questions.length) * 100)}%</Text>
+            </View>
           </View>
           
-          {/* Review Filter */}
-          <View style={styles.reviewFilter}>
-            <TouchableOpacity 
-              style={[styles.filterButton, reviewFilter === 'all' && styles.filterButtonActive]}
-              onPress={() => setReviewFilter('all')}
-            >
-              <Text style={[styles.filterButtonText, reviewFilter === 'all' && styles.filterButtonTextActive]}>All</Text>
+          <View style={styles.actionButtons}>
+            <TouchableOpacity style={styles.resetButton} onPress={handlePlayAgain}>
+              <Text style={styles.resetButtonText}>Play Again</Text>
             </TouchableOpacity>
-            <TouchableOpacity 
-              style={[styles.filterButton, reviewFilter === 'correct' && styles.filterButtonActive]}
-              onPress={() => setReviewFilter('correct')}
-            >
-              <Text style={[styles.filterButtonText, reviewFilter === 'correct' && styles.filterButtonTextActive]}>Correct</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={[styles.filterButton, reviewFilter === 'incorrect' && styles.filterButtonActive]}
-              onPress={() => setReviewFilter('incorrect')}
-            >
-              <Text style={[styles.filterButtonText, reviewFilter === 'incorrect' && styles.filterButtonTextActive]}>Incorrect</Text>
+            
+            <TouchableOpacity style={styles.exitButton} onPress={handleReturnToMenu}>
+              <Text style={styles.exitButtonText}>Return to Menu</Text>
             </TouchableOpacity>
           </View>
-        </View>
-        
-        <ScrollView style={styles.reviewContent} showsVerticalScrollIndicator={false}>
-          {gameData.questions.map((q: any, index: number) => {
-            const userAnswer = userAnswers[index];
-            const isCorrect = userAnswer === q.correctAnswer;
-            
-            // Apply filter
-            if (reviewFilter === 'correct' && !isCorrect) return null;
-            if (reviewFilter === 'incorrect' && isCorrect) return null;
-            
-            return (
-              <View key={index} style={styles.reviewQuestion}>
-                <View style={styles.questionHeader}>
-                  <Text style={styles.questionNumber}>Question {index + 1}</Text>
-                  <View style={[styles.resultIndicator, isCorrect ? styles.resultCorrect : styles.resultIncorrect]}>
-                    <Ionicons 
-                      name={isCorrect ? "checkmark" : "close"} 
-                      size={16} 
-                      color="#ffffff" 
-                    />
-                  </View>
-                </View>
-                
-                <Text style={styles.questionText}>
-                  {languageMode === 'question' ? q.question : q.correctAnswer}
-                </Text>
-                
-                <View style={styles.answerSection}>
-                  <Text style={styles.answerLabel}>Your Answer:</Text>
-                  <Text style={[styles.userAnswer, isCorrect ? styles.userAnswerCorrect : styles.userAnswerIncorrect]}>
-                    {userAnswer || 'No answer'}
-                  </Text>
-                  
-                  {!isCorrect && (
-                    <>
-                      <Text style={styles.answerLabel}>Correct Answer:</Text>
-                      <Text style={styles.correctAnswer}>{q.correctAnswer}</Text>
-                    </>
-                  )}
-                </View>
-              </View>
-            );
-          })}
-        </ScrollView>
-        
-        <View style={styles.reviewFooter}>
-          <TouchableOpacity style={styles.completeButton} onPress={handleReviewComplete}>
-            <Text style={styles.completeButtonText}>Complete Review</Text>
-          </TouchableOpacity>
         </View>
       </View>
     );
@@ -493,16 +439,73 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#e2e8f0',
   },
-  completeButton: {
+  completionContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+  },
+  completionTitle: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#1e293b',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  completionSubtitle: {
+    fontSize: 18,
+    color: '#64748b',
+    textAlign: 'center',
+    marginBottom: 40,
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    gap: 40,
+    marginBottom: 40,
+  },
+  statItem: {
+    alignItems: 'center',
+  },
+  statLabel: {
+    fontSize: 14,
+    color: '#64748b',
+    marginBottom: 8,
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#6466E9',
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 24,
+  },
+  resetButton: {
+    flex: 1,
     backgroundColor: '#6466E9',
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
   },
-  completeButtonText: {
+  resetButtonText: {
     fontSize: 16,
     fontWeight: '600',
     color: '#ffffff',
+  },
+  exitButton: {
+    flex: 1,
+    backgroundColor: '#f1f5f9',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  exitButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#64748b',
   },
 });
 

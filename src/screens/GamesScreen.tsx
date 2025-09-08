@@ -40,12 +40,10 @@ import { ProgressTrackingService } from '../lib/progressTrackingService';
 import { XPService } from '../lib/xpService';
 import { UserFlashcardService } from '../lib/userFlashcardService';
 import { FlashcardService } from '../lib/flashcardService';
-import { FavouriteGamesService, FavouriteGame } from '../lib/favouriteGamesService';
 import { GameStatisticsService } from '../lib/gameStatisticsService';
 import { supabase } from '../lib/supabase';
 import ConsistentHeader from '../components/ConsistentHeader';
 import DailyChallengeSection from '../components/DailyChallengeSection';
-import FavouritesSection from '../components/FavouritesSection';
 import AllGamesSection from '../components/AllGamesSection';
 import GameStatsSection from '../components/GameStatsSection';
 import FlashcardQuizGame from '../components/games/FlashcardQuizGame';
@@ -110,9 +108,6 @@ export default function GamesScreen() {
   const [showTypeWhatYouHearSetup, setShowTypeWhatYouHearSetup] = useState(false);
   const [showGravityGameSetup, setShowGravityGameSetup] = useState(false);
   
-  // Favourite games state
-  const [favouriteGames, setFavouriteGames] = useState<FavouriteGame[]>([]);
-  const [gameFavouriteStatus, setGameFavouriteStatus] = useState<{ [key: string]: boolean }>({});
 
   // Fetch flashcards and topics
   useEffect(() => {
@@ -138,8 +133,6 @@ export default function GamesScreen() {
         const uniqueTopics = Array.from(new Set(allCards.map(card => card.topic)));
         setTopics(uniqueTopics);
         
-        // Load favourite games
-        await loadFavouriteGames();
         
         console.log('✅ Game data loaded:', {
           totalCards: allCards.length,
@@ -168,30 +161,6 @@ export default function GamesScreen() {
     }
   }, [user?.id]);
 
-  // Load favourite games
-  const loadFavouriteGames = async () => {
-    try {
-      if (!user?.id) return;
-      
-      const { data: favourites, error } = await FavouriteGamesService.getUserFavouriteGames(user.id);
-      if (error) throw error;
-      
-      if (favourites) {
-        setFavouriteGames(favourites);
-        
-        // Update game favourite status
-        const statusMap: { [key: string]: boolean } = {};
-        favourites.forEach((game: FavouriteGame) => {
-          statusMap[game.game_name] = true;
-        });
-        setGameFavouriteStatus(statusMap);
-        
-        console.log('✅ Favourite games loaded:', favourites.length);
-      }
-    } catch (error) {
-      console.error('❌ Error loading favourite games:', error);
-    }
-  };
 
   // Load real game statistics
   const loadGameStatistics = async () => {
@@ -224,34 +193,6 @@ export default function GamesScreen() {
     await loadGameStatistics();
   };
 
-  // Toggle game favourite status
-  const toggleGameFavourite = async (gameName: string, gameCategory: string) => {
-    try {
-      const isCurrentlyFavourite = gameFavouriteStatus[gameName];
-      
-      if (isCurrentlyFavourite) {
-        // Remove from favourites
-        if (!user?.id) return;
-        await FavouriteGamesService.removeFavouriteGame(user.id, gameName, gameCategory);
-        setGameFavouriteStatus(prev => ({ ...prev, [gameName]: false }));
-        setFavouriteGames(prev => prev.filter(game => game.game_name !== gameName));
-        console.log('❌ Removed from favourites:', gameName);
-      } else {
-        // Add to favourites
-        if (!user?.id) return;
-        const { data: newFavourite, error } = await FavouriteGamesService.createFavouriteGame(user.id, gameName, gameCategory);
-        if (error) throw error;
-        if (newFavourite) {
-          setGameFavouriteStatus(prev => ({ ...prev, [gameName]: true }));
-          setFavouriteGames(prev => [...prev, newFavourite]);
-          console.log('❤️ Added to favourites:', gameName);
-        }
-      }
-    } catch (error) {
-      console.error('❌ Error toggling favourite:', error);
-      Alert.alert('Error', 'Failed to update favourites. Please try again.');
-    }
-  };
 
 
   // Helper functions for new UI
@@ -301,6 +242,62 @@ export default function GamesScreen() {
       return;
     }
     setShowFlashcardQuizSetup(true);
+  };
+
+  const handleFlashcardQuizPlayAgain = () => {
+    // Close the game modal and reopen the setup screen
+    setShowGameModal(false);
+    setCurrentGame(null);
+    setGameData(null);
+    setShowFlashcardQuizSetup(true);
+  };
+
+  const handleMemoryMatchPlayAgain = () => {
+    // Close the game modal and reopen the setup screen
+    setShowGameModal(false);
+    setCurrentGame(null);
+    setGameData(null);
+    setShowMemoryMatchSetup(true);
+  };
+
+  const handleWordScramblePlayAgain = () => {
+    // Close the game modal and reopen the setup screen
+    setShowGameModal(false);
+    setCurrentGame(null);
+    setGameData(null);
+    setShowWordScrambleSetup(true);
+  };
+
+  const handleHangmanPlayAgain = () => {
+    // Close the game modal and reopen the setup screen
+    setShowGameModal(false);
+    setCurrentGame(null);
+    setGameData(null);
+    setShowHangmanSetup(true);
+  };
+
+  const handleSpeedChallengePlayAgain = () => {
+    // Close the game modal and reopen the setup screen
+    setShowGameModal(false);
+    setCurrentGame(null);
+    setGameData(null);
+    setShowSpeedChallengeSetup(true);
+  };
+
+  const handleTypeWhatYouHearPlayAgain = () => {
+    // Close the game modal and reopen the setup screen
+    setShowGameModal(false);
+    setCurrentGame(null);
+    setGameData(null);
+    setShowTypeWhatYouHearSetup(true);
+  };
+
+  const handleSentenceScramblePlayAgain = () => {
+    // Close the game modal and reopen the setup screen
+    setShowGameModal(false);
+    setCurrentGame(null);
+    setGameData(null);
+    setShowSentenceScrambleSetup(true);
   };
 
   const startMemoryMatch = () => {
@@ -928,22 +925,22 @@ export default function GamesScreen() {
 
     switch (currentGame) {
       case 'Flashcard Quiz':
-        return <FlashcardQuizGame {...gameProps} />;
+        return <FlashcardQuizGame {...gameProps} onPlayAgain={handleFlashcardQuizPlayAgain} />;
       case 'Memory Match':
-        return <MemoryMatchGame {...gameProps} />;
+        return <MemoryMatchGame {...gameProps} onPlayAgain={handleMemoryMatchPlayAgain} />;
       case 'Word Scramble':
-        return <WordScrambleGame {...gameProps} />;
+        return <WordScrambleGame {...gameProps} onPlayAgain={handleWordScramblePlayAgain} />;
       case 'Hangman':
-        return <HangmanGame {...gameProps} />;
+        return <HangmanGame {...gameProps} onPlayAgain={handleHangmanPlayAgain} />;
       case 'Speed Challenge':
-        return <SpeedChallengeGame {...gameProps} />;
+        return <SpeedChallengeGame {...gameProps} onPlayAgain={handleSpeedChallengePlayAgain} />;
       case 'Planet Defense':
         return <GravityGame {...gameProps} />;
       case 'Type What You Hear':
         console.log(`🎧 [${screenId}] Creating TypeWhatYouHearGame component`);
-        return <TypeWhatYouHearGame {...gameProps} />;
+        return <TypeWhatYouHearGame {...gameProps} onPlayAgain={handleTypeWhatYouHearPlayAgain} />;
       case 'Sentence Scramble':
-        return <SentenceScrambleGame {...gameProps} />;
+        return <SentenceScrambleGame {...gameProps} onPlayAgain={handleSentenceScramblePlayAgain} />;
       default:
         return null;
     }
@@ -959,23 +956,13 @@ export default function GamesScreen() {
         {/* Daily Challenge */}
         <DailyChallengeSection onPlay={() => startFlashcardQuiz()} />
         
-        {/* Favourites */}
-        <FavouritesSection 
-          favorites={favouriteGames.map((game) => ({
-            id: game.id,
-            title: game.game_name,
-            tag: getGameTag(game.game_name),
-            cards: flashcards.length,
-            progress: 0.4,
-            icon: getGameIcon(game.game_name),
-            isFavorite: true,
-            onPlay: getGameOnPress(game.game_name)
-          }))}
-          onToggleFavorite={(id) => {
-            const game = favouriteGames.find(g => g.id === id);
-            if (game) {
-              toggleGameFavourite(game.game_name, game.game_category);
-            }
+        {/* Your Game Stats */}
+        <GameStatsSection 
+          stats={{
+            today: realGameStats.gamesPlayedToday,
+            total: realGameStats.totalGamesPlayed,
+            accuracyPct: realGameStats.averageAccuracy,
+            totalMinutes: realGameStats.totalGamingTime,
           }}
         />
         
@@ -997,34 +984,8 @@ export default function GamesScreen() {
             cards: flashcards.length,
             progress: 0.2,
             icon: game.icon,
-            isFavorite: gameFavouriteStatus[game.name] || false,
             onPlay: game.onPress
           }))}
-          onToggleFavorite={(id) => {
-            const game = [
-              { name: 'Flashcard Quiz', tag: 'Quiz' },
-              { name: 'Memory Match', tag: 'Memory' },
-              { name: 'Word Scramble', tag: 'Puzzle' },
-              { name: 'Hangman', tag: 'Word Game' },
-              { name: 'Speed Challenge', tag: 'Speed' },
-              { name: 'Planet Defense', tag: 'Arcade' },
-              { name: 'Type What You Hear', tag: 'Listening' },
-              { name: 'Sentence Scramble', tag: 'Grammar' },
-            ].find(g => g.name === id);
-            if (game) {
-              toggleGameFavourite(game.name, game.tag);
-            }
-          }}
-        />
-        
-        {/* Your Game Stats */}
-        <GameStatsSection 
-          stats={{
-            today: realGameStats.gamesPlayedToday,
-            total: realGameStats.totalGamesPlayed,
-            accuracyPct: realGameStats.averageAccuracy,
-            totalMinutes: realGameStats.totalGamingTime,
-          }}
         />
       </ScrollView>
       
@@ -1260,7 +1221,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingTop: 40,
+    paddingBottom: 16,
   },
   gameModalTitle: {
     fontSize: 18,
