@@ -708,11 +708,11 @@ export default function GamesScreen() {
       setCurrentGame('Planet Defense');
       
       // Map difficulty from database format to game format
-      let gameDifficulty: 'easy' | 'medium' | 'hard' | undefined;
+      let gameDifficulty: 'easy' | 'medium' | 'hard' = 'medium'; // Default to medium
       if (options.difficulty === 'beginner') gameDifficulty = 'easy';
       else if (options.difficulty === 'intermediate') gameDifficulty = 'medium';
       else if (options.difficulty === 'expert') gameDifficulty = 'hard';
-      else gameDifficulty = undefined;
+      // 'all' difficulty uses medium as default
       
         const gameData = GameDataService.generateGravityGameQuestions(filteredFlashcards, gameDifficulty, options.gravitySpeed);
       setGameData(gameData);

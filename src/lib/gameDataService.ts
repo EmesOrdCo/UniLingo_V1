@@ -270,21 +270,48 @@ export class GameDataService {
   }
 
   /**
-   * Generate gravity game questions for GravityGame
+   * Generate meteor data for Planet Defense game
    */
   static generateGravityGameQuestions(flashcards: UserFlashcard[], difficulty: 'easy' | 'medium' | 'hard' = 'medium', gravitySpeed: number = 1.0): GameData {
-    const questions: GameQuestion[] = [];
+    const meteors: GameQuestion[] = [];
     const shuffledCards = this.shuffleArray(flashcards);
     
-    for (const card of shuffledCards) {
-      questions.push({
-        question: `Defend Earth! What is "${card.front}"?`,
-        correctAnswer: card.back,
-        type: 'gravity_game'
+    // Generate more meteors for longer gameplay
+    const meteorCount = difficulty === 'easy' ? 20 : difficulty === 'medium' ? 30 : 40;
+    const selectedCards = shuffledCards.slice(0, Math.min(meteorCount, shuffledCards.length));
+    
+    for (const card of selectedCards) {
+      // Randomly choose whether to show term or definition on meteor
+      const showTerm = Math.random() < 0.5;
+      
+      meteors.push({
+        question: showTerm ? card.front : card.back, // What's shown on the meteor
+        correctAnswer: showTerm ? card.back : card.front, // What player must type
+        type: 'meteor',
+        gravitySpeed: gravitySpeed,
+        // Additional meteor properties
+        meteorId: Math.random().toString(36).substr(2, 9),
+        fallSpeed: this.calculateMeteorSpeed(difficulty, gravitySpeed),
+        spawnDelay: Math.random() * 3000 + 1000, // Random spawn delay 1-4 seconds
       });
     }
     
-    return { questions };
+    return { 
+      questions: meteors,
+      setupOptions: {
+        difficulty,
+        gravitySpeed,
+        meteorCount: meteors.length
+      }
+    };
+  }
+
+  /**
+   * Calculate meteor fall speed based on difficulty and gravity speed
+   */
+  private static calculateMeteorSpeed(difficulty: 'easy' | 'medium' | 'hard', gravitySpeed: number): number {
+    const baseSpeed = difficulty === 'easy' ? 2 : difficulty === 'medium' ? 3 : 4;
+    return baseSpeed * gravitySpeed;
   }
 
   /**
