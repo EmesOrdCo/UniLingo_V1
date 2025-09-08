@@ -108,7 +108,7 @@ export default function LessonFlashcards({ vocabulary, onComplete, onClose, onPr
           activeOpacity={0.7}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Ionicons name="close" size={24} color="#6366f1" />
+          <Ionicons name="close" size={24} color="#64748b" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Flashcards</Text>
         <View style={styles.placeholder} />
@@ -216,8 +216,15 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     padding: 12,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 8,
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   headerTitle: {
     fontSize: 28,

@@ -45,16 +45,17 @@ import { GameStatisticsService } from '../lib/gameStatisticsService';
 import { supabase } from '../lib/supabase';
 import ConsistentHeader from '../components/ConsistentHeader';
 import DailyChallengeSection from '../components/DailyChallengeSection';
+import { DailyChallengeService } from '../lib/dailyChallengeService';
 import FavouritesSection from '../components/FavouritesSection';
 import AllGamesSection from '../components/AllGamesSection';
 import GameStatsSection from '../components/GameStatsSection';
 import FlashcardQuizGame from '../components/games/FlashcardQuizGame';
-import MemoryMatchGame from '../components/games/MemoryMatchGame';
+import LessonSentenceScramble from '../components/lesson/LessonSentenceScramble';
 import WordScrambleGame from '../components/games/WordScrambleGame';
+import MemoryMatchGame from '../components/games/MemoryMatchGame';
 import HangmanGame from '../components/games/HangmanGame';
 import GravityGame from '../components/games/GravityGame';
 import TypeWhatYouHearGame from '../components/games/TypeWhatYouHearGame';
-import SentenceScrambleGame from '../components/games/SentenceScrambleGame';
 import SpeedChallengeGame from '../components/games/SpeedChallengeGame';
 
 const { width } = Dimensions.get('window');
@@ -95,6 +96,7 @@ export default function GamesScreen() {
   const [showGameModal, setShowGameModal] = useState(false);
   const [currentGame, setCurrentGame] = useState<string | null>(null);
   const [gameData, setGameData] = useState<any>(null);
+  const [filteredFlashcards, setFilteredFlashcards] = useState<any[]>([]);
   const [gameCompleted, setGameCompleted] = useState(false);
   const completedGameIdsRef = useRef<Set<string>>(new Set()); // Add guard for completion
   const lastCompletionTimeRef = useRef<number>(0);
@@ -294,6 +296,8 @@ export default function GamesScreen() {
     }
   };
 
+  // Handle daily challenge completion
+
   // Game start functions
   const startFlashcardQuiz = () => {
     if (flashcards.length === 0) {
@@ -385,6 +389,7 @@ export default function GamesScreen() {
     
     const gameData = GameDataService.generateQuizQuestions(filteredFlashcards, options.questionCount, mappedLanguageMode);
     setGameData(gameData);
+    setFilteredFlashcards(filteredFlashcards); // Store the filtered flashcards
     setShowGameModal(true);
   };
 
@@ -423,6 +428,7 @@ export default function GamesScreen() {
 
   const handleWordScrambleSetupComplete = (options: WordScrambleSetupOptions) => {
     try {
+      console.log('🔤 Starting Word Scramble setup');
       setShowWordScrambleSetup(false);
       setGameCompleted(false); // Reset completion flag
       
@@ -457,6 +463,7 @@ export default function GamesScreen() {
       const gameData = GameDataService.generateScrambleQuestions(filteredFlashcards, options.wordCount);
       setGameData(gameData);
       setShowGameModal(true);
+      console.log('✅ Word Scramble game started successfully');
     } catch (error) {
       console.error('Error starting Word Scramble:', error);
       Alert.alert('Error', 'Failed to start Word Scramble game. Please try again.');
@@ -465,6 +472,7 @@ export default function GamesScreen() {
 
   const handleSentenceScrambleSetupComplete = (options: SentenceScrambleSetupOptions) => {
     try {
+      console.log('🔀 Starting Sentence Scramble setup');
       setShowSentenceScrambleSetup(false);
       setGameCompleted(false); // Reset completion flag
       
@@ -507,6 +515,7 @@ export default function GamesScreen() {
       const gameData = GameDataService.generateSentenceScrambleQuestions(filteredFlashcards, options.sentenceCount, gameDifficulty);
       setGameData(gameData);
     setShowGameModal(true);
+    console.log('✅ Sentence Scramble game started successfully');
     } catch (error) {
       console.error('Error starting Sentence Scramble:', error);
       Alert.alert('Error', 'Failed to start Sentence Scramble game. Please try again.');
@@ -731,6 +740,16 @@ export default function GamesScreen() {
     try {
       console.log(`🎮 [${screenId}] [${completionId}] Game completed with finalScore:`, finalScore, 'timeSpent:', timeSpent, 'totalAnswered:', totalAnswered, 'currentGame:', currentGame, 'gameCompleted:', gameCompleted, 'timeSinceLastCompletion:', now - lastCompletionTimeRef.current);
       
+      // Check if this is a daily challenge completion
+      if (currentGame && user) {
+        try {
+          await DailyChallengeService.completeChallenge(user.id, currentGame);
+          console.log(`✅ Daily challenge completed: ${currentGame}`);
+        } catch (error) {
+          console.error('Error completing daily challenge:', error);
+        }
+      }
+      
       // NUCLEAR OPTION: Debounce all completions within 5 seconds
       if (now - lastCompletionTimeRef.current < 5000) {
         console.log(`🚫 [${screenId}] [${completionId}] NUCLEAR GUARD: Completion within 5 seconds, REJECTING`);
@@ -884,6 +903,17 @@ export default function GamesScreen() {
     setShowGameModal(false);
     setCurrentGame(null);
     setGameData(null);
+    setGameCompleted(false); // Reset completion flag
+    completedGameIdsRef.current.clear(); // Clear completion tracking
+    GameCompletionTracker.getInstance().clear(); // Clear global completion tracking
+    GlobalCompletionLock.getInstance().clear(); // Clear global completion lock
+    
+    // Clear debounce timeout
+    if (completionDebounceTimeoutRef.current) {
+      clearTimeout(completionDebounceTimeoutRef.current);
+      completionDebounceTimeoutRef.current = null;
+    }
+    lastCompletionTimeRef.current = 0; // Reset completion time
     
     console.log(`✅ [${screenId}] [${completionId}] Game completion handling finished`);
     
@@ -896,6 +926,7 @@ export default function GamesScreen() {
 
   // Close game modal
   const closeGameModal = () => {
+    console.log('🔄 Closing game modal and resetting all state');
     setShowGameModal(false);
     setCurrentGame(null);
     setGameData(null);
@@ -910,6 +941,7 @@ export default function GamesScreen() {
       completionDebounceTimeoutRef.current = null;
     }
     lastCompletionTimeRef.current = 0; // Reset completion time
+    console.log('✅ Game modal state reset complete');
   };
 
   // Render game component based on current game
@@ -928,7 +960,15 @@ export default function GamesScreen() {
 
     switch (currentGame) {
       case 'Flashcard Quiz':
-        return <FlashcardQuizGame {...gameProps} />;
+        return <FlashcardQuizGame 
+          {...gameProps} 
+          onStartNextGame={(gameType) => {
+            console.log(`🎯 Starting next game: ${gameType}`);
+            setCurrentGame(gameType);
+            // No need to generate game data - LessonSentenceScramble uses vocabulary directly
+            setShowGameModal(true);
+          }}
+        />;
       case 'Memory Match':
         return <MemoryMatchGame {...gameProps} />;
       case 'Word Scramble':
@@ -943,7 +983,11 @@ export default function GamesScreen() {
         console.log(`🎧 [${screenId}] Creating TypeWhatYouHearGame component`);
         return <TypeWhatYouHearGame {...gameProps} />;
       case 'Sentence Scramble':
-        return <SentenceScrambleGame {...gameProps} />;
+        return <LessonSentenceScramble 
+          vocabulary={filteredFlashcards} 
+          onComplete={onGameComplete} 
+          onClose={onClose} 
+        />;
       default:
         return null;
     }
@@ -957,7 +1001,12 @@ export default function GamesScreen() {
       
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Daily Challenge */}
-        <DailyChallengeSection onPlay={() => startFlashcardQuiz()} />
+        <DailyChallengeSection onPlay={(gameType) => {
+          const gameFunction = getGameOnPress(gameType);
+          if (gameFunction) {
+            gameFunction();
+          }
+        }} />
         
         {/* Favourites */}
         <FavouritesSection 

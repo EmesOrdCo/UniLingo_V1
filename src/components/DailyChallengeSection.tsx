@@ -1,21 +1,66 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '../contexts/AuthContext';
+import { DailyChallengeService, DailyChallenge } from '../lib/dailyChallengeService';
 
 interface DailyChallengeSectionProps {
-  onPlay: () => void;
+  onPlay: (gameType: string) => void;
 }
 
 const DailyChallengeSection: React.FC<DailyChallengeSectionProps> = ({ onPlay }) => {
+  const [challenge, setChallenge] = useState<DailyChallenge | null>(null);
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+
+  useEffect(() => {
+    loadTodaysChallenge();
+  }, [user]);
+
+  const loadTodaysChallenge = async () => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      let todaysChallenge = await DailyChallengeService.getTodaysChallenge(user.id);
+      
+      // Create challenge if it doesn't exist
+      if (!todaysChallenge) {
+        todaysChallenge = await DailyChallengeService.createTodaysChallenge(user.id);
+      }
+      
+      setChallenge(todaysChallenge);
+    } catch (error) {
+      console.error('Error loading daily challenge:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePlay = () => {
+    if (challenge && !challenge.completed) {
+      onPlay(challenge.game_type);
+    }
+  };
+
+  // Don't show if completed or loading
+  if (loading || !challenge || challenge.completed) {
+    return null;
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.heroCarousel}>
         <View style={styles.backgroundGradient}>
           <View style={styles.content}>
             <View style={styles.textContent}>
-              <Text style={styles.subtitle}>Win 50 XP today</Text>
+              <Text style={styles.subtitle}>Win {challenge.xp_reward} XP today</Text>
               <Text style={styles.title}>🔥 Daily Challenge</Text>
-              <TouchableOpacity style={styles.ctaButton} onPress={onPlay}>
+              <Text style={styles.gameType}>{challenge.game_type}</Text>
+              <TouchableOpacity style={styles.ctaButton} onPress={handlePlay}>
                 <Text style={styles.ctaButtonText}>Play now</Text>
                 <Ionicons name="arrow-forward" size={16} color="#6466E9" />
               </TouchableOpacity>
@@ -72,6 +117,12 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#ffffff',
     marginBottom: 8,
+  },
+  gameType: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.8)',
+    marginBottom: 12,
   },
   ctaButton: {
     flexDirection: 'row',

@@ -727,7 +727,10 @@ export default function LessonWalkthroughScreen() {
     return (
       <LessonFlashcardQuiz
         vocabulary={lessonVocabulary}
-        onComplete={(score) => handleExerciseComplete('flashcard-quiz', score, lessonVocabulary.length)}
+        onComplete={(score) => {
+          handleExerciseComplete('flashcard-quiz', score, lessonVocabulary.length);
+          navigateToExercise('sentence-scramble');
+        }}
         onClose={() => {
           console.log('Flashcard quiz close button pressed');
           navigation.goBack();
@@ -745,7 +748,10 @@ export default function LessonWalkthroughScreen() {
     return (
       <LessonSentenceScramble
         vocabulary={lessonVocabulary}
-        onComplete={(score) => handleExerciseComplete('sentence-scramble', score, lessonVocabulary.length)}
+        onComplete={(score) => {
+          handleExerciseComplete('sentence-scramble', score, lessonVocabulary.length);
+          navigateToExercise('word-scramble');
+        }}
         onClose={() => {
           console.log('Sentence scramble close button pressed');
           navigation.goBack();
@@ -763,7 +769,10 @@ export default function LessonWalkthroughScreen() {
     return (
       <LessonWordScramble
         vocabulary={lessonVocabulary}
-        onComplete={(score) => handleExerciseComplete('word-scramble', score, lessonVocabulary.length)}
+        onComplete={(score) => {
+          handleExerciseComplete('word-scramble', score, lessonVocabulary.length);
+          navigateToExercise('fill-in-blank');
+        }}
         onClose={() => {
           console.log('Word scramble close button pressed');
           navigation.goBack();
@@ -1208,5 +1217,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,
+    flexShrink: 0,
   },
 });

@@ -133,7 +133,7 @@ export default function LessonFlashcardQuiz({ vocabulary, onComplete, onClose, o
 
   // Review Screen
   if (showReview) {
-    const finalScore = score + (selectedAnswer === questions[currentQuestion].correctAnswer ? 1 : 0);
+    const finalScore = score; // score already includes all correct answers
     const filteredQuestions = getFilteredQuestions();
 
     return (
@@ -148,7 +148,7 @@ export default function LessonFlashcardQuiz({ vocabulary, onComplete, onClose, o
             activeOpacity={0.7}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Ionicons name="close" size={24} color="#6366f1" />
+            <Ionicons name="close" size={24} color="#64748b" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Quiz Complete!</Text>
           <View style={styles.placeholder} />
@@ -245,7 +245,7 @@ export default function LessonFlashcardQuiz({ vocabulary, onComplete, onClose, o
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-            <Ionicons name="close" size={24} color="#6366f1" />
+            <Ionicons name="close" size={24} color="#64748b" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Flashcard Quiz</Text>
           <View style={styles.placeholder} />

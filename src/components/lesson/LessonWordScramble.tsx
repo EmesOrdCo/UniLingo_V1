@@ -124,7 +124,7 @@ export default function LessonWordScramble({ vocabulary, onComplete, onClose, on
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-            <Ionicons name="close" size={24} color="#6366f1" />
+            <Ionicons name="close" size={24} color="#64748b" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Word Scramble Complete!</Text>
           <View style={styles.placeholder} />
@@ -156,7 +156,7 @@ export default function LessonWordScramble({ vocabulary, onComplete, onClose, on
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-            <Ionicons name="close" size={24} color="#6366f1" />
+            <Ionicons name="close" size={24} color="#64748b" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Word Scramble</Text>
           <View style={styles.placeholder} />
@@ -174,6 +174,24 @@ export default function LessonWordScramble({ vocabulary, onComplete, onClose, on
   const currentQuestion = questions[currentQuestionIndex];
   const progressPercentage = ((currentQuestionIndex + 1) / questions.length) * 100;
 
+  // Safety check
+  if (!currentQuestion) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+            <Ionicons name="close" size={24} color="#64748b" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Word Scramble</Text>
+          <View style={styles.placeholder} />
+        </View>
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingText}>Loading question...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -186,7 +204,7 @@ export default function LessonWordScramble({ vocabulary, onComplete, onClose, on
           activeOpacity={0.7}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Ionicons name="close" size={24} color="#6366f1" />
+          <Ionicons name="close" size={24} color="#64748b" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Word Scramble</Text>
         <View style={styles.placeholder} />
@@ -216,7 +234,7 @@ export default function LessonWordScramble({ vocabulary, onComplete, onClose, on
           {/* Hint */}
           <View style={styles.hintContainer}>
             <Text style={styles.hintLabel}>Hint:</Text>
-            <Text style={styles.hintText}>{currentQuestion.hint}</Text>
+            <Text style={styles.hintText}>{currentQuestion?.hint || 'No hint available'}</Text>
           </View>
 
           {/* Answer Input */}
@@ -291,8 +309,15 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     padding: 12,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 8,
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   headerTitle: {
     fontSize: 28,

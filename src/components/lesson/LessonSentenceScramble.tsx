@@ -48,11 +48,13 @@ export default function LessonSentenceScramble({ vocabulary, onComplete, onClose
     const scrambleQuestions: ScrambleQuestion[] = [];
     
     vocabulary.forEach((vocab) => {
-      if (vocab.example_sentence_en) {
+      // Handle both lesson vocabulary (example_sentence_en) and user flashcards (example)
+      const exampleSentence = vocab.example_sentence_en || vocab.example;
+      if (exampleSentence) {
         scrambleQuestions.push({
-          sentence: vocab.example_sentence_en,
-          scrambledWords: vocab.example_sentence_en.split(' '),
-          correctAnswer: vocab.example_sentence_en
+          sentence: exampleSentence,
+          scrambledWords: exampleSentence.split(' '),
+          correctAnswer: exampleSentence
         });
       }
     });
@@ -135,7 +137,7 @@ export default function LessonSentenceScramble({ vocabulary, onComplete, onClose
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-            <Ionicons name="close" size={24} color="#6366f1" />
+            <Ionicons name="close" size={24} color="#64748b" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Sentence Scramble Complete!</Text>
           <View style={styles.placeholder} />
@@ -167,7 +169,7 @@ export default function LessonSentenceScramble({ vocabulary, onComplete, onClose
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-            <Ionicons name="close" size={24} color="#6366f1" />
+            <Ionicons name="close" size={24} color="#64748b" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Sentence Scramble</Text>
           <View style={styles.placeholder} />
@@ -513,6 +515,17 @@ const styles = StyleSheet.create({
   completeButtonText: {
     color: '#ffffff',
     fontSize: 18,
+    fontWeight: '600',
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#ef4444',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  closeButtonText: {
+    color: '#6366f1',
+    fontSize: 16,
     fontWeight: '600',
   },
 });

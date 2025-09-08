@@ -7,13 +7,15 @@ interface FlashcardQuizGameProps {
   onClose: () => void;
   onGameComplete: (score: number) => void;
   userProfile: any;
+  onStartNextGame?: (gameType: string) => void;
 }
 
 const FlashcardQuizGame: React.FC<FlashcardQuizGameProps> = ({ 
   gameData, 
   onClose, 
   onGameComplete, 
-  userProfile 
+  userProfile,
+  onStartNextGame
 }) => {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [score, setScore] = useState(0);
@@ -56,7 +58,11 @@ const FlashcardQuizGame: React.FC<FlashcardQuizGameProps> = ({
   };
   
   const handleReviewComplete = () => {
-    onGameComplete(score);
+    if (onStartNextGame) {
+      onStartNextGame('Sentence Scramble');
+    } else {
+      onGameComplete(score);
+    }
   };
   
   // Review Screen

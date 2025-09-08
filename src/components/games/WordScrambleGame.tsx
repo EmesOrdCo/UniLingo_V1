@@ -28,7 +28,7 @@ const WordScrambleGame: React.FC<WordScrambleGameProps> = ({ gameData, onClose, 
   }, [currentQuestionIndex, gameData.questions]);
 
   const generateScrambledWord = () => {
-    const currentQuestion = gameData.questions[currentQuestionIndex];
+    const currentQuestion = gameData?.questions?.[currentQuestionIndex];
     if (currentQuestion && currentQuestion.correctAnswer) {
       const word = currentQuestion.correctAnswer;
       const scrambled = word.split('').sort(() => Math.random() - 0.5).join('');
@@ -39,8 +39,10 @@ const WordScrambleGame: React.FC<WordScrambleGameProps> = ({ gameData, onClose, 
   };
 
   const checkAnswer = () => {
-    const currentQuestion = gameData.questions[currentQuestionIndex];
-    const correct = currentQuestion.correctAnswer.toLowerCase().trim();
+    const currentQuestion = gameData?.questions?.[currentQuestionIndex];
+    if (!currentQuestion) return;
+    
+    const correct = currentQuestion.correctAnswer?.toLowerCase().trim() || '';
     const userInput = userAnswer.toLowerCase().trim();
     
     const correctAnswer = userInput === correct;
@@ -53,7 +55,7 @@ const WordScrambleGame: React.FC<WordScrambleGameProps> = ({ gameData, onClose, 
     setShowResult(true);
     
     setTimeout(() => {
-      if (currentQuestionIndex < gameData.questions.length - 1) {
+      if (currentQuestionIndex < (gameData?.questions?.length || 0) - 1) {
         setCurrentQuestionIndex(currentQuestionIndex + 1);
       } else {
         // Capture final score before completing game
@@ -64,7 +66,7 @@ const WordScrambleGame: React.FC<WordScrambleGameProps> = ({ gameData, onClose, 
   };
 
   const skipQuestion = () => {
-    if (currentQuestionIndex < gameData.questions.length - 1) {
+    if (currentQuestionIndex < (gameData?.questions?.length || 0) - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
     } else {
       // Capture final score before completing game
@@ -100,11 +102,11 @@ const WordScrambleGame: React.FC<WordScrambleGameProps> = ({ gameData, onClose, 
       <View style={styles.gameContainer}>
         <View style={styles.completionContainer}>
           <Text style={styles.completionTitle}>🎉 Word Scramble Complete!</Text>
-          <Text style={styles.completionSubtitle}>Your Results: {score}/{gameData.questions.length}</Text>
+          <Text style={styles.completionSubtitle}>Your Results: {score}/{gameData?.questions?.length || 0}</Text>
           
           <View style={styles.scoreCircle}>
             <Text style={styles.scorePercentage}>
-              {Math.round((score / gameData.questions.length) * 100)}%
+              {Math.round((score / (gameData?.questions?.length || 1)) * 100)}%
             </Text>
           </View>
           
@@ -122,7 +124,37 @@ const WordScrambleGame: React.FC<WordScrambleGameProps> = ({ gameData, onClose, 
     );
   }
 
-  const currentQuestion = gameData.questions[currentQuestionIndex];
+  const currentQuestion = gameData?.questions?.[currentQuestionIndex];
+
+  // Safety check for game data
+  if (!gameData || !gameData.questions || gameData.questions.length === 0) {
+    return (
+      <View style={styles.gameContainer}>
+        <View style={styles.completionContainer}>
+          <Text style={styles.completionTitle}>⚠️ No Questions Available</Text>
+          <Text style={styles.completionSubtitle}>Unable to load word scramble questions.</Text>
+          <TouchableOpacity style={styles.exitButton} onPress={onClose}>
+            <Text style={styles.exitButtonText}>Exit</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
+  // Safety check for current question
+  if (!currentQuestion) {
+    return (
+      <View style={styles.gameContainer}>
+        <View style={styles.completionContainer}>
+          <Text style={styles.completionTitle}>⚠️ Question Error</Text>
+          <Text style={styles.completionSubtitle}>Unable to load current question.</Text>
+          <TouchableOpacity style={styles.exitButton} onPress={onClose}>
+            <Text style={styles.exitButtonText}>Exit</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.gameContainer}>
@@ -132,19 +164,19 @@ const WordScrambleGame: React.FC<WordScrambleGameProps> = ({ gameData, onClose, 
           <View 
             style={[
               styles.progressFill, 
-              { width: `${((currentQuestionIndex + 1) / gameData.questions.length) * 100}%` }
+              { width: `${((currentQuestionIndex + 1) / (gameData?.questions?.length || 1)) * 100}%` }
             ]} 
           />
         </View>
         <Text style={styles.progressText}>
-          {currentQuestionIndex + 1} of {gameData.questions.length}
+          {currentQuestionIndex + 1} of {gameData?.questions?.length || 0}
         </Text>
       </View>
 
       {/* Question */}
       <View style={styles.questionContainer}>
         <Text style={styles.questionText}>
-          {currentQuestion.question || 'Unscramble the word:'}
+          Unscramble the word below:
         </Text>
       </View>
 
@@ -210,7 +242,7 @@ const WordScrambleGame: React.FC<WordScrambleGameProps> = ({ gameData, onClose, 
           </Text>
           
           <Text style={styles.correctAnswerText}>
-            The correct answer is: {currentQuestion.correctAnswer}
+            The correct answer is: {currentQuestion?.correctAnswer || 'Unknown'}
           </Text>
         </View>
       )}

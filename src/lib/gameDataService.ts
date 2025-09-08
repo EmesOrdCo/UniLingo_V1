@@ -121,10 +121,9 @@ export class GameDataService {
     
     for (const card of shuffledCards) {
       const wordToScramble = card.front;
-      const scrambled = this.shuffleArray(wordToScramble.split('')).join('');
       
       questions.push({
-        question: `Unscramble this word: "${scrambled}"`,
+        question: 'Unscramble the word below:',
         correctAnswer: wordToScramble,
         type: 'scramble'
       });
@@ -256,11 +255,9 @@ export class GameDataService {
     for (const card of shuffledCards) {
       // Use example sentence if available, otherwise create one from front/back
       const sentence = card.example || `${card.front} means ${card.back}`;
-      const words = sentence.split(' ');
-      const scrambledWords = this.shuffleArray(words);
       
       questions.push({
-        question: `Unscramble this sentence: "${scrambledWords.join(' ')}"`,
+        question: 'Unscramble the sentence below:',
         correctAnswer: sentence,
         type: 'sentence_scramble'
       });

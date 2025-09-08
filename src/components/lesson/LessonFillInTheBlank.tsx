@@ -53,7 +53,7 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
     if (!userAnswer.trim()) return;
 
     const currentQuestion = questions[currentQuestionIndex];
-    const correctAnswer = currentQuestion.blankWord.toLowerCase().trim();
+    const correctAnswer = currentQuestion?.blankWord?.toLowerCase().trim() || '';
     const userAnswerLower = userAnswer.toLowerCase().trim();
     
     // More flexible matching - check if the answer contains the correct word or vice versa
@@ -105,7 +105,7 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
             activeOpacity={0.7}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Ionicons name="close" size={24} color="#6366f1" />
+            <Ionicons name="close" size={24} color="#64748b" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Fill in the Blank</Text>
           <View style={styles.placeholder} />
@@ -133,7 +133,7 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
             activeOpacity={0.7}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Ionicons name="close" size={24} color="#6366f1" />
+            <Ionicons name="close" size={24} color="#64748b" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Fill in the Blank Complete!</Text>
           <View style={styles.placeholder} />
@@ -197,13 +197,13 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
         
         <View style={styles.sentenceContainer}>
           <Text style={styles.sentenceText}>
-            {createSentenceWithBlank(currentQuestion.sentence, currentQuestion.blankWord)}
+            {createSentenceWithBlank(currentQuestion?.sentence || '', currentQuestion?.blankWord || '')}
           </Text>
         </View>
 
         <View style={styles.hintContainer}>
           <Ionicons name="bulb" size={20} color="#f59e0b" />
-          <Text style={styles.hintText}>Hint: {currentQuestion.hint}</Text>
+          <Text style={styles.hintText}>Hint: {currentQuestion?.hint || 'No hint available'}</Text>
         </View>
 
         <View style={styles.inputContainer}>
@@ -233,7 +233,7 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
             </Text>
             {!isCorrect && (
               <Text style={styles.correctAnswer}>
-                The correct answer is: {currentQuestion.blankWord}
+                The correct answer is: {currentQuestion?.blankWord || 'Unknown'}
               </Text>
             )}
           </View>
