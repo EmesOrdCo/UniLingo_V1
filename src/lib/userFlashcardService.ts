@@ -6,6 +6,7 @@ export interface UserFlashcard extends Flashcard {
   pronunciation?: string
   example?: string
   native_language: string
+  show_native_language?: boolean
   created_at: string
   updated_at: string
 }
@@ -21,6 +22,7 @@ export interface CreateUserFlashcardData {
   pronunciation?: string
   example?: string
   native_language: string
+  show_native_language?: boolean
 }
 
 export interface UserFlashcardFilters {

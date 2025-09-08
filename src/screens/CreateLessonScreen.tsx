@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
+import { getPdfProcessingUrl } from '../config/backendConfig';
 
 import * as DocumentPicker from 'expo-document-picker';
 
@@ -83,7 +84,7 @@ export default function CreateLessonScreen() {
         name: file.name,
       } as any);
 
-      const webhookResponse = await fetch('http://192.168.1.146:3001/api/process-pdf', {
+      const webhookResponse = await fetch(getPdfProcessingUrl(), {
         method: 'POST',
         body: formData,
       });
@@ -303,7 +304,7 @@ export default function CreateLessonScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
@@ -406,16 +407,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 15,
-    backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
+    backgroundColor: '#f8fafc',
   },
   backButton: {
     padding: 8,
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 28,
+    fontWeight: '700',
     color: '#1e293b',
     flex: 1,
     textAlign: 'center',
@@ -424,7 +423,7 @@ const styles = StyleSheet.create({
     width: 40,
   },
   descriptionContainer: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
     margin: 16,
     padding: 16,
     borderRadius: 12,
@@ -448,7 +447,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   subjectSection: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
     marginHorizontal: 16,
     marginBottom: 16,
     padding: 12,
@@ -481,7 +480,7 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   uploadArea: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
     marginHorizontal: 16,
     marginBottom: 16,
     padding: 24,
@@ -535,7 +534,7 @@ const styles = StyleSheet.create({
     elevation: 0,
   },
   progressContainer: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
     marginHorizontal: 16,
     marginBottom: 16,
     padding: 16,
@@ -564,7 +563,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   infoSection: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
     marginHorizontal: 16,
     marginBottom: 16,
     padding: 16,

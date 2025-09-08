@@ -76,7 +76,7 @@ const SUPPORTED_LANGUAGES = [
   { code: 'ku', name: 'Kurdish (Kurmanji)', flag: '🇮🇶' },
   { code: 'ky', name: 'Kyrgyz', flag: '🇰🇬' },
   { code: 'lo', name: 'Lao', flag: '🇱🇦' },
-  { code: 'la', name: 'Latin', flag: '🏛️' },
+  { code: 'la', name: 'Native', flag: '🏛️' },
   { code: 'lv', name: 'Latvian', flag: '🇱🇻' },
   { code: 'lt', name: 'Lithuanian', flag: '🇱🇹' },
   { code: 'lb', name: 'Luxembourgish', flag: '🇱🇺' },
@@ -852,7 +852,7 @@ export default function OnboardingFlowScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity 
@@ -980,15 +980,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
   },
   backButton: {
     padding: 8,
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: '600',
+    fontSize: 28,
+    fontWeight: '700',
     color: '#1e293b',
   },
   placeholder: {
@@ -1352,8 +1350,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
   },
   modalTitle: {
     fontSize: 18,
@@ -1364,12 +1360,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
   },
   languageItemSelected: {
     backgroundColor: '#f0f4ff',
-    borderBottomColor: '#e0e7ff',
   },
   languageName: {
     fontSize: 16,
@@ -1382,7 +1375,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   subjectCard: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
     borderRadius: 16,
     padding: 20,
     marginVertical: 8,

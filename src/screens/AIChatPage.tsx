@@ -352,7 +352,7 @@ Be friendly, encouraging, and help the user practice using their vocabulary in c
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerContent}>
@@ -516,7 +516,7 @@ Be friendly, encouraging, and help the user practice using their vocabulary in c
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
   },
   header: {
     flexDirection: 'row',
@@ -524,15 +524,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
   },
   headerContent: {
     flex: 1,
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: '600',
+    fontSize: 28,
+    fontWeight: '700',
     color: '#111827',
   },
   headerSubtitle: {
@@ -627,7 +625,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderTopWidth: 1,
     borderTopColor: '#f3f4f6',
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
   },
   input: {
     flex: 1,

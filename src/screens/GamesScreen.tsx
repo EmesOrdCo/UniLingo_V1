@@ -114,11 +114,9 @@ export default function GamesScreen() {
         const userSubject = profile.subjects[0];
         console.log('🎮 Fetching game data for subject:', userSubject);
         
-        // Get user's flashcards
-        const userFlashcards = await UserFlashcardService.getUserFlashcards();
-        const userCards = userFlashcards.filter((card: any) => 
-          card.subject && card.subject.toLowerCase() === userSubject.toLowerCase()
-        );
+        // Get user's flashcards filtered by subject
+        const userFlashcards = await UserFlashcardService.getUserFlashcards({ subject: userSubject });
+        const userCards = userFlashcards;
         
         // Only use user flashcards - general flashcards table no longer exists
         const allCards = userCards.filter(card => 
@@ -802,13 +800,13 @@ export default function GamesScreen() {
       }
 
       // Update game stats (existing functionality)
-      setGameStats(prev => ({
-        ...prev,
-        gamesPlayed: prev.gamesPlayed + 1,
-        totalScore: prev.totalScore + finalScore,
-        bestScore: Math.max(prev.bestScore, finalScore),
-        averageScore: Math.round((prev.totalScore + finalScore) / (prev.gamesPlayed + 1)),
-      }));
+    setGameStats(prev => ({
+      ...prev,
+      gamesPlayed: prev.gamesPlayed + 1,
+      totalScore: prev.totalScore + finalScore,
+      bestScore: Math.max(prev.bestScore, finalScore),
+      averageScore: Math.round((prev.totalScore + finalScore) / (prev.gamesPlayed + 1)),
+    }));
     } catch (error) {
       console.error('❌ Error tracking game progress:', error);
     }
@@ -868,7 +866,7 @@ export default function GamesScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <ConsistentHeader 
         pageName="Games"
       />
@@ -1040,7 +1038,7 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -1048,8 +1046,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
   },
   closeButton: {
     padding: 8,
@@ -1094,7 +1090,7 @@ const styles = StyleSheet.create({
   },
   dropdownMenu: {
     marginTop: 8,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#e2e8f0',
@@ -1107,8 +1103,6 @@ const styles = StyleSheet.create({
   dropdownItem: {
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
   },
   dropdownItemText: {
     fontSize: 16,
@@ -1175,7 +1169,7 @@ const styles = StyleSheet.create({
   },
   gameModalContainer: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
   },
   gameModalHeader: {
     flexDirection: 'row',
@@ -1183,8 +1177,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
   },
   gameModalTitle: {
     fontSize: 18,

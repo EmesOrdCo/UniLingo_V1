@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import DailyGoalsWidget from './DailyGoalsWidget';
-import RecentActivitiesWidget from './RecentActivitiesWidget';
 import LevelProgressWidget from './LevelProgressWidget';
 import ConversationPracticeCard from './ConversationPracticeCard';
 
@@ -21,9 +20,6 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
       
       {/* Level Progress Widget */}
       <LevelProgressWidget />
-      
-      {/* Recent Activities Widget */}
-      <RecentActivitiesWidget />
     </ScrollView>
   );
 }

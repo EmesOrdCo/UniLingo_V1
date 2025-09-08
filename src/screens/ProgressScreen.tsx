@@ -15,7 +15,7 @@ export default function ProgressScreen() {
 
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <ConsistentHeader 
         pageName="Progress"
       />
@@ -223,9 +223,7 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 24,
     paddingVertical: 24,
-    backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
+    backgroundColor: '#f8fafc',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.12,
@@ -233,8 +231,8 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   headerTitle: {
-    fontSize: 32,
-    fontWeight: '800',
+    fontSize: 28,
+    fontWeight: '700',
     color: '#1e293b',
     letterSpacing: -0.5,
   },
@@ -246,7 +244,7 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
   summaryCard: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
     borderRadius: 28,
     padding: 32,
     shadowColor: '#000',
@@ -311,7 +309,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
     borderRadius: 20,
     padding: 24,
     shadowColor: '#000',
@@ -376,7 +374,7 @@ const styles = StyleSheet.create({
   },
   streakCard: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
@@ -405,7 +403,7 @@ const styles = StyleSheet.create({
   },
   achievementItem: {
     flexDirection: 'row',
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
     borderRadius: 12,
     padding: 16,
     shadowColor: '#000',

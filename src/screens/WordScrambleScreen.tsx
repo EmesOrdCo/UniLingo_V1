@@ -60,7 +60,7 @@ export default function WordScrambleScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header with back button */}
       <View style={styles.header}>
         <TouchableOpacity 
@@ -140,17 +140,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
+    backgroundColor: '#f8fafc',
   },
   backButton: {
     padding: 8,
     marginRight: 12,
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 28,
+    fontWeight: '700',
     color: '#1e293b',
     flex: 1,
   },
@@ -184,7 +182,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   scoreContainer: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 20,
@@ -201,7 +199,7 @@ const styles = StyleSheet.create({
     color: '#6366f1',
   },
   gameCard: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
     padding: 24,
     borderRadius: 16,
     width: '100%',

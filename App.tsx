@@ -39,6 +39,7 @@ import LessonWalkthroughScreen from './src/screens/LessonWalkthroughScreen';
 import OnboardingFlowScreen from './src/screens/OnboardingFlowScreen';
 import LandingScreen from './src/screens/LandingScreen';
 import FAQScreen from './src/screens/FAQScreen';
+import TermsAndConditionsScreen from './src/screens/TermsAndConditionsScreen';
 
 const Stack = createStackNavigator();
 
@@ -73,6 +74,7 @@ function MainNavigator() {
       <Stack.Screen name="LessonWalkthrough" component={LessonWalkthroughScreen} />
       <Stack.Screen name="OnboardingFlow" component={OnboardingFlowScreen} />
       <Stack.Screen name="FAQ" component={FAQScreen} />
+      <Stack.Screen name="TermsAndConditions" component={TermsAndConditionsScreen} />
     </Stack.Navigator>
   );
 }

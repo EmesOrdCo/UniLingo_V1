@@ -24,7 +24,7 @@ export default function ExercisesScreen() {
   ];
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header with back button */}
       <View style={styles.header}>
         <TouchableOpacity 
@@ -102,8 +102,8 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 28,
+    fontWeight: '700',
     color: '#1e293b',
     flex: 1,
   },
@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   introSection: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
     borderRadius: 16,
     padding: 24,
     marginBottom: 24,
@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
   },
   exerciseCard: {
     width: '48%',
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
     padding: 20,
     borderRadius: 16,
     alignItems: 'center',
@@ -185,7 +185,7 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
   actionSection: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
     borderRadius: 16,
     padding: 24,
     shadowColor: '#000',

@@ -1,1 +1,0 @@
-This is a test document for PDF extraction. It contains multiple sentences to test the text extraction capabilities of our server. The server should be able to extract all this text from the PDF file.

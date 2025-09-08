@@ -85,9 +85,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    backgroundColor: '#f8fafc',
   },
   headerLeft: {
     flex: 1,
@@ -104,8 +102,8 @@ const styles = StyleSheet.create({
     fontFamily: 'System',
   },
   pageNameText: {
-    fontSize: 24,
-    fontWeight: '600',
+    fontSize: 28,
+    fontWeight: '700',
     color: '#1f2937',
     fontFamily: 'System',
   },

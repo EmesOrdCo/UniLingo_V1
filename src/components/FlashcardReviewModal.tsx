@@ -303,18 +303,13 @@ export default function FlashcardReviewModal({
             
             <TouchableOpacity 
               style={[styles.actionButton, styles.saveButton]}
-              onPress={() => onSave(filteredFlashcards)}
+              onPress={() => {
+                onSave(filteredFlashcards);
+                onClose(); // Close the modal after saving
+              }}
             >
               <Ionicons name="save-outline" size={20} color="#ffffff" />
               <Text style={styles.saveButtonText}>Save All ({filteredFlashcards.length})</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={[styles.actionButton, styles.doneButton]}
-              onPress={onClose}
-            >
-              <Ionicons name="checkmark-circle" size={20} color="#10b981" />
-              <Text style={styles.doneButtonText}>Done</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -342,8 +337,8 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 28,
+    fontWeight: '700',
     color: '#1e293b',
     flex: 1,
   },

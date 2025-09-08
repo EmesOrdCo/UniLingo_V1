@@ -14,7 +14,7 @@ const faqData: FAQItem[] = [
   {
     id: '1',
     question: 'What is UniLingo?',
-    answer: 'UniLingo is a language learning app designed specifically for university students. It helps you learn languages through interactive lessons, games, and AI-powered conversations tailored to academic contexts.'
+    answer: 'UniLingo is a language learning app designed specifically for university students. It helps you learn languages through personalized, interactive lessons, games, and AI-powered conversations tailored to academic contexts.'
   },
   {
     id: '2',
@@ -103,7 +103,7 @@ export default function FAQScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity 
@@ -161,22 +161,20 @@ export default function FAQScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
   },
   backButton: {
     padding: 8,
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: '600',
+    fontSize: 28,
+    fontWeight: '700',
     color: '#111827',
     flex: 1,
     textAlign: 'center',
@@ -189,8 +187,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   faqItem: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
   },
   questionContainer: {
     flexDirection: 'row',
