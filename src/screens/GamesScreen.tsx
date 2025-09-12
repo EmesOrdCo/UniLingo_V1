@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { logger } from '../lib/logger';
 import GameCompletionTracker from '../lib/gameCompletionTracker';
 import GlobalCompletionLock from '../lib/globalCompletionLock';
 import {
@@ -119,7 +120,7 @@ export default function GamesScreen() {
       
       try {
         const userSubject = profile.subjects[0];
-        console.log('🎮 Fetching game data for subject:', userSubject);
+        logger.debug('Fetching game data for subject:', userSubject);
         
         // Get user's flashcards filtered by subject
         const userFlashcards = await UserFlashcardService.getUserFlashcards({ subject: userSubject });
@@ -137,16 +138,10 @@ export default function GamesScreen() {
         setTopics(uniqueTopics);
         
         
-        console.log('✅ Game data loaded:', {
+        logger.debug('Game data loaded:', {
           totalCards: allCards.length,
-          topics: uniqueTopics.length,
-          userCards: userCards.length
+          topics: uniqueTopics.length
         });
-        
-        // Log sample cards
-        if (userCards.length > 0) {
-          console.log('📝 Sample user card:', userCards[0]);
-        }
         
       } catch (error) {
         console.error('❌ Error fetching game data:', error);

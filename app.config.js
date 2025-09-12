@@ -33,7 +33,7 @@ export default {
       favicon: "./assets/favicon.png"
     },
     scheme: "unilingo",
-    sdkVersion: "53.0.0",
+    sdkVersion: "54.0.0",
     plugins: [
       "expo-web-browser",
       [

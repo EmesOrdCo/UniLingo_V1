@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { logger } from '../lib/logger';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -21,9 +22,9 @@ export default function LevelProgressWidget({ onRefresh }: LevelProgressWidgetPr
     
     try {
       setLoading(true);
-      console.log('🔄 Loading level info for user:', user.id);
+      logger.debug('Loading level info for user:', user.id);
       const info = await XPService.getLevelInfo(user.id);
-      console.log('📊 Level info loaded:', info);
+      logger.debug('Level info loaded:', info);
       setLevelInfo(info);
     } catch (error) {
       console.error('❌ Error loading level info:', error);
@@ -37,7 +38,7 @@ export default function LevelProgressWidget({ onRefresh }: LevelProgressWidgetPr
     
     try {
       setRefreshing(true);
-      console.log('🔄 Manual refresh triggered for user:', user.id);
+      logger.debug('Manual refresh triggered for user:', user.id);
       
       // Force refresh by calling the parent's refresh function if available
       if (onRefresh) {
@@ -47,7 +48,7 @@ export default function LevelProgressWidget({ onRefresh }: LevelProgressWidgetPr
       // Also refresh our own data
       await loadLevelInfo();
       
-      console.log('✅ Level info refreshed successfully');
+      logger.debug('Level info refreshed successfully');
     } catch (error) {
       console.error('❌ Error refreshing level info:', error);
     } finally {

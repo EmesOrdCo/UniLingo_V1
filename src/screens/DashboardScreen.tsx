@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { logger } from '../lib/logger';
 import { View, Text, StyleSheet, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -81,7 +82,7 @@ function LessonsTab() {
 
 // Main tab navigator component
 function TabNavigator() {
-  console.log('📱 TabNavigator rendering...');
+  logger.debug('TabNavigator rendering');
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -126,7 +127,7 @@ function TabNavigator() {
 
 // Main DashboardScreen component
 export default function DashboardScreen() {
-  console.log('🏠 DashboardScreen rendering...');
+  logger.debug('DashboardScreen rendering');
   return <TabNavigator />;
 }
 

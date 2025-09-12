@@ -1,5 +1,7 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from './supabase';
+import { XPService } from './xpService';
+import { logger } from './logger';
+import { ProgressTrackingService } from './progressTrackingService';
 
 export interface DailyChallenge {
   challenge_date: string;
@@ -22,30 +24,41 @@ export class DailyChallengeService {
     'Sentence Scramble'
   ];
 
-  private static readonly STORAGE_KEY = 'daily_challenge';
-
   /**
    * Get today's daily challenge for a user
    */
   static async getTodaysChallenge(userId: string): Promise<DailyChallenge | null> {
     try {
       const today = new Date().toISOString().split('T')[0];
-      const storageKey = `${this.STORAGE_KEY}_${userId}`;
       
-      const storedChallenge = await AsyncStorage.getItem(storageKey);
-      
-      if (storedChallenge) {
-        const challenge: DailyChallenge = JSON.parse(storedChallenge);
-        
-        // Check if it's still today's challenge
-        if (challenge.challenge_date === today) {
-          return challenge;
-        }
+      // Check if there's a daily challenge activity for today
+      const { data, error } = await supabase
+        .from('user_activities')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('activity_type', 'daily_challenge')
+        .gte('created_at', `${today}T00:00:00.000Z`)
+        .lt('created_at', `${today}T23:59:59.999Z`)
+        .maybeSingle();
+
+      if (error) {
+        logger.error('Error getting today\'s challenge:', error);
+        return null;
       }
-      
+
+      if (data) {
+        return {
+          challenge_date: today,
+          game_type: data.activity_name,
+          xp_reward: 50,
+          completed: true,
+          completed_at: data.completed_at,
+        };
+      }
+
       return null;
     } catch (error) {
-      console.error('Error getting today\'s challenge:', error);
+      logger.error('Error getting today\'s challenge:', error);
       return null;
     }
   }
@@ -66,7 +79,7 @@ export class DailyChallengeService {
       // Select random game
       const randomGame = this.AVAILABLE_GAMES[Math.floor(Math.random() * this.AVAILABLE_GAMES.length)];
       
-      // Create new challenge
+      // Create new challenge (we'll store it in user_activities when completed)
       const newChallenge: DailyChallenge = {
         challenge_date: today,
         game_type: randomGame,
@@ -74,44 +87,51 @@ export class DailyChallengeService {
         completed: false,
       };
 
-      // Store in AsyncStorage
-      const storageKey = `${this.STORAGE_KEY}_${userId}`;
-      await AsyncStorage.setItem(storageKey, JSON.stringify(newChallenge));
-      
-      console.log(`🎯 Created daily challenge: ${randomGame} for ${today}`);
+      logger.info(`Created daily challenge: ${randomGame} for ${today}`);
       return newChallenge;
     } catch (error) {
-      console.error('Error creating today\'s challenge:', error);
+      logger.error('Error creating today\'s challenge:', error);
       return null;
     }
   }
 
   /**
-   * Mark daily challenge as completed
+   * Mark daily challenge as completed and award XP
    */
   static async completeChallenge(userId: string, gameType: string): Promise<boolean> {
     try {
       const challenge = await this.getTodaysChallenge(userId);
       
-      if (!challenge || challenge.game_type !== gameType) {
+      if (!challenge || challenge.game_type !== gameType || challenge.completed) {
+        logger.warn(`Challenge completion failed: challenge=${!!challenge}, gameType=${gameType}, completed=${challenge?.completed}`);
         return false;
       }
 
-      // Update challenge
-      const updatedChallenge: DailyChallenge = {
-        ...challenge,
-        completed: true,
-        completed_at: new Date().toISOString(),
-      };
+      // Award extra XP for daily challenge completion
+      try {
+        await XPService.awardXP(userId, challenge.xp_reward, 'daily_challenge_completion', {
+          game_type: gameType,
+          challenge_date: challenge.challenge_date
+        });
+        logger.info(`Awarded ${challenge.xp_reward} XP for daily challenge completion`);
+      } catch (xpError) {
+        logger.error('Error awarding XP for daily challenge:', xpError);
+        // Don't fail the challenge completion if XP fails
+      }
 
-      // Store updated challenge
-      const storageKey = `${this.STORAGE_KEY}_${userId}`;
-      await AsyncStorage.setItem(storageKey, JSON.stringify(updatedChallenge));
-      
-      console.log(`✅ Daily challenge completed: ${gameType}`);
+      // Log daily challenge completion to user_activities
+      try {
+        await ProgressTrackingService.recordDailyChallengeCompletion(userId, gameType);
+        logger.info(`Daily challenge completion logged to user_activities`);
+      } catch (logError) {
+        logger.error('Error logging daily challenge completion:', logError);
+        // Don't fail the challenge completion if logging fails
+      }
+
+      logger.info(`Daily challenge completed: ${gameType} (+${challenge.xp_reward} XP)`);
       return true;
     } catch (error) {
-      console.error('Error completing challenge:', error);
+      logger.error('Error completing challenge:', error);
       return false;
     }
   }
@@ -124,26 +144,27 @@ export class DailyChallengeService {
       const challenge = await this.getTodaysChallenge(userId);
       return challenge?.completed || false;
     } catch (error) {
-      console.error('Error checking challenge completion:', error);
+      logger.error('Error checking challenge completion:', error);
       return false;
     }
   }
 
   /**
-   * Get challenge completion streak (using existing daily goals)
+   * Get challenge completion streak
    */
   static async getChallengeStreak(userId: string): Promise<number> {
     try {
-      // Use existing daily goals to track streak
       const { data, error } = await supabase
-        .from('user_daily_goals')
-        .select('goal_date, completed')
+        .from('user_activities')
+        .select('created_at')
         .eq('user_id', userId)
-        .eq('goal_type', 'games_played')
-        .eq('completed', true)
-        .order('goal_date', { ascending: false });
+        .eq('activity_type', 'daily_challenge')
+        .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        logger.error('Error getting challenge streak:', error);
+        return 0;
+      }
 
       if (!data || data.length === 0) return 0;
 
@@ -152,12 +173,12 @@ export class DailyChallengeService {
       const today = new Date();
       
       for (let i = 0; i < data.length; i++) {
-        const goalDate = new Date(data[i].goal_date);
+        const activityDate = new Date(data[i].created_at);
         const expectedDate = new Date(today);
         expectedDate.setDate(today.getDate() - i);
         
-        // Check if this goal was completed on the expected date
-        if (goalDate.toDateString() === expectedDate.toDateString()) {
+        // Check if this activity was completed on the expected date
+        if (activityDate.toDateString() === expectedDate.toDateString()) {
           streak++;
         } else {
           break;
@@ -166,7 +187,7 @@ export class DailyChallengeService {
 
       return streak;
     } catch (error) {
-      console.error('Error getting challenge streak:', error);
+      logger.error('Error getting challenge streak:', error);
       return 0;
     }
   }

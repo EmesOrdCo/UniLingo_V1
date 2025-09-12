@@ -46,9 +46,35 @@ const DailyChallengeSection: React.FC<DailyChallengeSectionProps> = ({ onPlay })
     }
   };
 
-  // Don't show if completed or loading
-  if (loading || !challenge || challenge.completed) {
+  // Don't show if loading
+  if (loading || !challenge) {
     return null;
+  }
+
+  // Show completion state if completed
+  if (challenge.completed) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.heroCarousel}>
+          <View style={styles.completedBackgroundGradient}>
+            <View style={styles.content}>
+              <View style={styles.textContent}>
+                <Text style={styles.subtitle}>+{challenge.xp_reward} XP earned!</Text>
+                <Text style={styles.title}>✅ Daily Challenge Complete</Text>
+                <Text style={styles.gameType}>{challenge.game_type}</Text>
+                <View style={styles.completedBadge}>
+                  <Ionicons name="checkmark-circle" size={16} color="#10b981" />
+                  <Text style={styles.completedText}>Completed</Text>
+                </View>
+              </View>
+              <View style={styles.iconContainer}>
+                <Ionicons name="trophy" size={36} color="rgba(255,255,255,0.9)" />
+              </View>
+            </View>
+          </View>
+        </View>
+      </View>
+    );
   }
 
   return (
@@ -95,6 +121,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#6466E9',
     backgroundImage: 'radial-gradient(120% 100% at -10% -20%, #9294FF 0%, #6466E9 40%, #4f51d6 70%)',
+  },
+  completedBackgroundGradient: {
+    flex: 1,
+    backgroundColor: '#10b981',
+    backgroundImage: 'radial-gradient(120% 100% at -10% -20%, #34d399 0%, #10b981 40%, #059669 70%)',
   },
   content: {
     flex: 1,
@@ -146,6 +177,22 @@ const styles = StyleSheet.create({
   },
   iconContainer: {
     paddingRight: 8,
+  },
+  completedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    alignSelf: 'flex-start',
+    marginTop: 8,
+  },
+  completedText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#ffffff',
   },
 });
 

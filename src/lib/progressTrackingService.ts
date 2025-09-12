@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { logger } from './logger';
 import GlobalCompletionLock from './globalCompletionLock';
 
 // Import refresh context to trigger UI updates
@@ -59,29 +60,62 @@ export class ProgressTrackingService {
   private static lastCallTime = 0;
   
   /**
-   * Record a game activity
+   * Record daily challenge completion
    */
+  static async recordDailyChallengeCompletion(userId: string, gameType: string): Promise<void> {
+    const recordId = Math.random().toString(36).substr(2, 9);
+    const timestamp = new Date().toISOString();
+    
+    logger.debug(`Recording daily challenge completion: ${gameType}`, { userId, recordId });
+    
+    try {
+      const insertData = {
+        user_id: userId,
+        activity_type: 'daily_challenge',
+        activity_name: gameType,
+        score: 50, // XP reward
+        max_score: 50,
+        accuracy_percentage: 100,
+        duration_seconds: 0,
+        completed_at: timestamp,
+      };
+
+      const { error: activityError } = await supabase
+        .from('user_activities')
+        .insert(insertData);
+
+      if (activityError) {
+        logger.error(`Database insert error for daily challenge:`, activityError);
+        throw activityError;
+      }
+      
+      logger.info(`Daily challenge completion recorded: ${gameType}`);
+      
+      // Trigger UI refresh
+      if (refreshTrigger) {
+        refreshTrigger();
+      }
+    } catch (error) {
+      logger.error(`Error recording daily challenge completion:`, error);
+      throw error;
+    }
+  }
   static async recordGameActivity(data: GameActivityData): Promise<void> {
     const recordId = Math.random().toString(36).substr(2, 9);
     const timestamp = new Date().toISOString();
     const now = Date.now();
     this.callCounter++;
     
-    // NUCLEAR OPTION: Block any calls within 1 second
+    // Block rapid calls to prevent spam
     if (now - this.lastCallTime < 1000) {
-      console.log(`🚫 [${recordId}] NUCLEAR BLOCK: Call within 1 second, BLOCKING COMPLETELY`);
+      logger.debug(`Blocking rapid call within 1 second`);
       return;
     }
     this.lastCallTime = now;
     
-    console.log(`📊 [${recordId}] ProgressTrackingService.recordGameActivity called - CALL #${this.callCounter}`);
-    console.log(`📊 [${recordId}] ProgressTrackingService.recordGameActivity called with:`, {
-      activityType: data.activityType,
-      activityName: data.activityName,
+    logger.debug(`Recording game activity: ${data.activityName}`, {
       score: data.score,
-      maxScore: data.maxScore,
-      accuracyPercentage: data.accuracyPercentage,
-      timestamp: timestamp
+      accuracy: data.accuracyPercentage
     });
     
     try {

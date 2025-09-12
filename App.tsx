@@ -1,4 +1,6 @@
 import React, { useEffect } from 'react';
+import './src/config/logging'; // Initialize logging configuration
+import { logger } from './src/lib/logger';
 import { NavigationContainer, useNavigation } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { StatusBar } from 'expo-status-bar';
@@ -44,7 +46,7 @@ const Stack = createStackNavigator();
 
 // Main stack navigator
 function MainNavigator() {
-  console.log('🏗️ MainNavigator rendering...');
+  logger.debug('MainNavigator rendering');
   return (
     <Stack.Navigator
       initialRouteName="Dashboard"

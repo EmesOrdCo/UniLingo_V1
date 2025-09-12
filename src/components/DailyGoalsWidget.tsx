@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { logger } from '../lib/logger';
 import {
   View,
   Text,
@@ -45,26 +46,9 @@ export default function DailyGoalsWidget({ onGoalCompleted, refreshTrigger }: Da
       
       // Debug logging
       if (progress) {
-        console.log('📊 Daily Goals Progress:', {
-          study_time: progress.study_time,
-          lessons_completed: progress.lessons_completed,
-          flashcards_reviewed: progress.flashcards_reviewed,
-          games_played: progress.games_played,
-          overall_progress: progress.overall_progress
-        });
-        
-        // Calculate individual goal percentages for debugging
-        const studyTimePercent = Math.min((progress.study_time.current / progress.study_time.target) * 100, 100);
-        const lessonsPercent = Math.min((progress.lessons_completed.current / progress.lessons_completed.target) * 100, 100);
-        const flashcardsPercent = Math.min((progress.flashcards_reviewed.current / progress.flashcards_reviewed.target) * 100, 100);
-        const gamesPercent = Math.min((progress.games_played.current / progress.games_played.target) * 100, 100);
-        
-        console.log('📊 Individual Goal Percentages:', {
-          study_time: `${studyTimePercent.toFixed(1)}% (${progress.study_time.current}/${progress.study_time.target})`,
-          lessons_completed: `${lessonsPercent.toFixed(1)}% (${progress.lessons_completed.current}/${progress.lessons_completed.target})`,
-          flashcards_reviewed: `${flashcardsPercent.toFixed(1)}% (${progress.flashcards_reviewed.current}/${progress.flashcards_reviewed.target})`,
-          games_played: `${gamesPercent.toFixed(1)}% (${progress.games_played.current}/${progress.games_played.target})`,
-          total_weighted: `${progress.overall_progress}%`
+        logger.debug('Daily Goals Progress:', {
+          overall_progress: progress.overall_progress,
+          goals_completed: Object.values(progress).filter(goal => goal.completed).length
         });
       }
       
