@@ -225,6 +225,30 @@ export default function ProfilePage() {
 
   const menuItems = [
     {
+      id: 'progress',
+      title: 'My Progress',
+      icon: 'analytics-outline',
+      onPress: () => {
+        navigation.navigate('Progress' as never);
+      },
+    },
+    {
+      id: 'daily-goals',
+      title: 'Daily Goals',
+      icon: 'flag-outline',
+      onPress: () => {
+        navigation.navigate('DailyGoals' as never);
+      },
+    },
+    {
+      id: 'level-progress',
+      title: 'Level Progress',
+      icon: 'trending-up-outline',
+      onPress: () => {
+        navigation.navigate('LevelProgress' as never);
+      },
+    },
+    {
       id: 'settings',
       title: 'Settings',
       icon: 'settings-outline',
@@ -646,6 +670,6 @@ const styles = StyleSheet.create({
     color: '#ef4444',
   },
   orangeText: {
-    color: '#f97316',
+    color: '#6466E9',
   },
 });

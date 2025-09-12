@@ -71,7 +71,7 @@ export default function LevelProgressWidget({ onRefresh }: LevelProgressWidgetPr
       case 'intermediate': return '#f59e0b';
       case 'advanced': return '#ef4444';
       case 'expert': return '#8b5cf6';
-      case 'master': return '#f97316';
+      case 'master': return '#6466E9';
       default: return '#6b7280';
     }
   };

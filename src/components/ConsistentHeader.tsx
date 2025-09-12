@@ -85,7 +85,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#ffffff',
   },
   headerLeft: {
     flex: 1,

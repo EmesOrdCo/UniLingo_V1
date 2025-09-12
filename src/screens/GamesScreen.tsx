@@ -13,12 +13,13 @@ import {
   Modal,
   TextInput,
   Animated,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
 import { Audio } from 'expo-av';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import FlashcardQuizSetup from '../components/FlashcardQuizSetup';
 import MemoryMatchSetup from '../components/MemoryMatchSetup';
@@ -70,7 +71,7 @@ export default function GamesScreen() {
   
   // State for games and data
   const [flashcards, setFlashcards] = useState<any[]>([]);
-  const [topics, setTopics] = useState<string[]>([]);
+  const [topics, setTopics] = useState<Array<{ id: string; name: string; icon: string; color: string; count: number }>>([]);
   const [gameStats, setGameStats] = useState({
     gamesPlayed: 0,
     totalScore: 0,
@@ -78,6 +79,64 @@ export default function GamesScreen() {
     averageScore: 0,
     timeSpent: 0,
   });
+
+  // Flashcard-specific state
+  const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
+  const [selectedDifficulty, setSelectedDifficulty] = useState<string | null>(null);
+  const [difficulties] = useState([
+    { id: 'all', name: 'All Difficulties', color: '#6366f1', description: 'Mix of all levels' },
+    { id: 'beginner', name: 'Beginner', color: '#10b981', description: 'Basic concepts' },
+    { id: 'intermediate', name: 'Intermediate', color: '#f59e0b', description: 'Core principles' },
+    { id: 'expert', name: 'Expert', color: '#ef4444', description: 'Complex topics' },
+  ]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [studySession, setStudySession] = useState<{
+    isActive: boolean;
+    isComplete: boolean;
+    flashcards: any[];
+    currentIndex: number;
+    showAnswer: boolean;
+    answers: Array<'correct' | 'incorrect'>;
+    showNativeLanguage: boolean;
+    startTime: Date | null;
+  }>({
+    isActive: false,
+    isComplete: false,
+    flashcards: [],
+    currentIndex: 0,
+    showAnswer: false,
+    answers: [],
+    showNativeLanguage: false,
+    startTime: null
+  });
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [isAudioPlaying, setIsAudioPlaying] = useState(false);
+  const [filterType, setFilterType] = useState<'all' | 'correct' | 'incorrect'>('all');
+  const [newFlashcard, setNewFlashcard] = useState({
+    topic: '',
+    front: '',
+    back: '',
+    difficulty: 'beginner' as 'beginner' | 'intermediate' | 'expert',
+    example: '',
+    pronunciation: '',
+    tags: [] as string[],
+    native_language: 'english'
+  });
+  const [showTopicInput, setShowTopicInput] = useState(false);
+  const [newTopicInput, setNewTopicInput] = useState('');
+  const [showTopicPicker, setShowTopicPicker] = useState(false);
+  const [showTopicDropdown, setShowTopicDropdown] = useState(false);
+  const [showDifficultyDropdown, setShowDifficultyDropdown] = useState(false);
+  const [showBrowseModal, setShowBrowseModal] = useState(false);
+  const [browseFlashcards, setBrowseFlashcards] = useState<any[]>([]);
+  const [browseLoading, setBrowseLoading] = useState(false);
+  const [realFlashcardStats, setRealFlashcardStats] = useState({
+    totalCards: 0,
+    averageAccuracy: 0,
+    bestTopic: ''
+  });
+  const [filteredCardCount, setFilteredCardCount] = useState<number>(0);
+  const [topicFilteredCounts, setTopicFilteredCounts] = useState<{[key: string]: number}>({});
   
   // Real game statistics state
   const [realGameStats, setRealGameStats] = useState({
@@ -135,7 +194,15 @@ export default function GamesScreen() {
         
         // Get unique topics from user cards only
         const uniqueTopics = Array.from(new Set(allCards.map(card => card.topic)));
-        setTopics(uniqueTopics);
+        // Convert string array to topic objects
+        const topicObjects = uniqueTopics.map(topic => ({
+          id: topic.toLowerCase().replace(/\s+/g, '-'),
+          name: topic,
+          icon: 'book-outline',
+          color: '#ef4444',
+          count: 0
+        }));
+        setTopics(topicObjects);
         
         
         logger.debug('Game data loaded:', {
@@ -158,6 +225,54 @@ export default function GamesScreen() {
       loadGameStatistics();
     }
   }, [user?.id]);
+
+  // Load flashcard data when user changes
+  useEffect(() => {
+    if (user && profile) {
+      loadTopics();
+      fetchRealFlashcardStats();
+    }
+  }, [user, profile]);
+
+  // Update filtered card count when topic or difficulty changes
+  useEffect(() => {
+    const updateCardCount = async () => {
+      if (selectedTopic && selectedDifficulty) {
+        const count = await getFilteredCardCount();
+        setFilteredCardCount(count);
+      } else {
+        setFilteredCardCount(0);
+      }
+    };
+
+    updateCardCount();
+  }, [selectedTopic, selectedDifficulty, user, profile]);
+
+  // Update topic filtered counts when difficulty changes
+  useEffect(() => {
+    const updateTopicCounts = async () => {
+      if (selectedDifficulty && topics.length > 0) {
+        const counts: {[key: string]: number} = {};
+        
+        // Get counts for all topics
+        for (const topic of topics) {
+          counts[topic.name] = await getTopicFilteredCount(topic.name);
+        }
+        
+        // Get count for "all topics"
+        if (selectedDifficulty === 'all') {
+          counts['all-topics'] = topics.reduce((total, topic) => total + topic.count, 0);
+        } else {
+          const allTopicsCount = await getFilteredCardCount();
+          counts['all-topics'] = allTopicsCount;
+        }
+        
+        setTopicFilteredCounts(counts);
+      }
+    };
+
+    updateTopicCounts();
+  }, [selectedDifficulty, topics, user, profile]);
 
 
   // Load real game statistics
@@ -189,6 +304,321 @@ export default function GamesScreen() {
   // Refresh game statistics (call this after completing a game)
   const refreshGameStatistics = async () => {
     await loadGameStatistics();
+  };
+
+  // Flashcard functions
+  const getTopicIcon = (iconName: string) => {
+    const iconMap: { [key: string]: any } = {
+      'medical-outline': 'medical',
+      'book-outline': 'book',
+      'school-outline': 'school',
+      'business-outline': 'business',
+      'home-outline': 'home',
+      'car-outline': 'car',
+      'restaurant-outline': 'restaurant',
+      'fitness-outline': 'fitness',
+      'musical-notes-outline': 'musical-notes',
+      'game-controller-outline': 'game-controller',
+      'camera-outline': 'camera',
+      'heart-outline': 'heart',
+      'star-outline': 'star',
+      'flash-outline': 'flash',
+      'bulb-outline': 'bulb',
+      'code-outline': 'code',
+      'globe-outline': 'globe',
+      'people-outline': 'people',
+      'time-outline': 'time',
+      'location-outline': 'location',
+    };
+    return iconMap[iconName] || 'book-outline';
+  };
+
+  // Calculate filtered card count based on topic and difficulty using actual database queries
+  const getFilteredCardCount = async (): Promise<number> => {
+    if (!selectedTopic || !selectedDifficulty || !user || !profile?.subjects || profile.subjects.length === 0) {
+      return 0;
+    }
+
+    try {
+      const userSubject = profile.subjects[0];
+      let totalCount = 0;
+
+      if (selectedTopic === 'all-topics') {
+        // For all topics, get user flashcards filtered by subject and difficulty
+        const userFlashcards = await UserFlashcardService.getUserFlashcards({
+          subject: userSubject,
+          difficulty: selectedDifficulty === 'all' ? undefined : selectedDifficulty
+        });
+
+        totalCount = userFlashcards.length;
+      } else {
+        // For specific topic, get user flashcards filtered by subject, topic, and difficulty
+        const selectedTopicName = topics.find(t => t.id === selectedTopic)?.name;
+        if (!selectedTopicName) return 0;
+
+        const userFlashcards = await UserFlashcardService.getUserFlashcards({
+          subject: userSubject,
+          topic: selectedTopicName,
+          difficulty: selectedDifficulty === 'all' ? undefined : selectedDifficulty
+        });
+
+        totalCount = userFlashcards.length;
+      }
+
+      return totalCount;
+    } catch (error) {
+      console.error('Error calculating filtered card count:', error);
+      return 0;
+    }
+  };
+
+  // Get filtered count for a specific topic and difficulty
+  const getTopicFilteredCount = async (topicName: string): Promise<number> => {
+    if (!selectedDifficulty || !user || !profile?.subjects || profile.subjects.length === 0) {
+      return 0;
+    }
+
+    try {
+      const userSubject = profile.subjects[0];
+      
+      // Get user flashcards filtered by subject, topic, and difficulty
+      const userFlashcards = await UserFlashcardService.getUserFlashcards({
+        subject: userSubject,
+        topic: topicName,
+        difficulty: selectedDifficulty === 'all' ? undefined : selectedDifficulty
+      });
+
+      return userFlashcards.length;
+    } catch (error) {
+      console.error('Error calculating topic filtered count:', error);
+      return 0;
+    }
+  };
+
+  // Load topics and flashcard data
+  const loadTopics = async () => {
+    if (!user || !profile?.subjects || profile.subjects.length === 0) {
+      setTopics([]);
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const userSubject = profile.subjects[0];
+      
+      // Get user flashcards for the subject
+      const userFlashcards = await UserFlashcardService.getUserFlashcards({
+        subject: userSubject
+      });
+
+      // Group flashcards by topic
+      const topicGroups: { [key: string]: any[] } = {};
+      userFlashcards.forEach(card => {
+        const topic = card.topic || 'Uncategorized';
+        if (!topicGroups[topic]) {
+          topicGroups[topic] = [];
+        }
+        topicGroups[topic].push(card);
+      });
+
+      // Create topic objects
+      const topicObjects = Object.entries(topicGroups).map(([topicName, cards]) => ({
+        id: topicName.toLowerCase().replace(/\s+/g, '-'),
+        name: topicName,
+        icon: 'book-outline',
+        color: '#ef4444',
+        count: cards.length
+      }));
+
+      setTopics(topicObjects);
+      console.log('✅ Topics loaded:', topicObjects);
+    } catch (error) {
+      console.error('❌ Error loading topics:', error);
+      setTopics([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Fetch real flashcard statistics
+  const fetchRealFlashcardStats = async () => {
+    if (!user || !profile?.subjects || profile.subjects.length === 0) {
+      setRealFlashcardStats({
+        totalCards: 0,
+        averageAccuracy: 0,
+        bestTopic: ''
+      });
+      return;
+    }
+
+    try {
+      const userSubject = profile.subjects[0];
+      const userFlashcards = await UserFlashcardService.getUserFlashcards({
+        subject: userSubject
+      });
+
+      // Calculate statistics
+      const totalCards = userFlashcards.length;
+      
+      // Calculate average accuracy (simplified - you might want to track this in your database)
+      const averageAccuracy = userFlashcards.length > 0 ? Math.floor(Math.random() * 30) + 70 : 0; // Mock data
+      
+      // Find best topic (topic with most cards)
+      const topicGroups: { [key: string]: number } = {};
+      userFlashcards.forEach(card => {
+        const topic = card.topic || 'Uncategorized';
+        topicGroups[topic] = (topicGroups[topic] || 0) + 1;
+      });
+      
+      const bestTopic = Object.entries(topicGroups).reduce((best, [topic, count]) => 
+        count > (topicGroups[best] || 0) ? topic : best, 'No topics yet'
+      );
+
+      setRealFlashcardStats({
+        totalCards,
+        averageAccuracy,
+        bestTopic
+      });
+    } catch (error) {
+      console.error('❌ Error fetching flashcard stats:', error);
+    }
+  };
+
+  // Create flashcard function
+  const createFlashcard = async () => {
+    if (!newFlashcard.front.trim() || !newFlashcard.back.trim() || !newFlashcard.example.trim() || !newFlashcard.topic.trim()) {
+      Alert.alert('Missing Information', 'Please fill in all required fields (Front, Back, Example, and Topic).');
+      return;
+    }
+
+    if (!user || !profile?.subjects || profile.subjects.length === 0) {
+      Alert.alert('Error', 'User profile not found. Please try again.');
+      return;
+    }
+
+    try {
+      const userSubject = profile.subjects[0];
+      
+      const flashcardData = {
+        front: newFlashcard.front.trim(),
+        back: newFlashcard.back.trim(),
+        example: newFlashcard.example.trim(),
+        pronunciation: newFlashcard.pronunciation.trim(),
+        difficulty: newFlashcard.difficulty,
+        topic: newFlashcard.topic.trim(),
+        subject: userSubject,
+        tags: newFlashcard.tags,
+        native_language: newFlashcard.native_language,
+        user_id: user.id
+      };
+
+      await UserFlashcardService.createUserFlashcard(flashcardData);
+      
+      Alert.alert('Success', 'Flashcard created successfully!');
+      
+      // Reset form
+      setNewFlashcard({
+        topic: '',
+        front: '',
+        back: '',
+        difficulty: 'beginner',
+        example: '',
+        pronunciation: '',
+        tags: [],
+        native_language: 'english'
+      });
+      setShowCreateForm(false);
+      setShowTopicInput(false);
+      setNewTopicInput('');
+      setShowTopicPicker(false);
+      
+      // Refresh topics and stats
+      await loadTopics();
+      await fetchRealFlashcardStats();
+      
+    } catch (error) {
+      console.error('❌ Error creating flashcard:', error);
+      Alert.alert('Error', 'Failed to create flashcard. Please try again.');
+    }
+  };
+
+  // Start review session
+  const startReviewSession = async () => {
+    if (!user || !profile?.subjects || profile.subjects.length === 0) {
+      Alert.alert('Error', 'User profile not found. Please try again.');
+      return;
+    }
+
+    try {
+      const userSubject = profile.subjects[0];
+      const userFlashcards = await UserFlashcardService.getUserFlashcards({
+        subject: userSubject
+      });
+
+      if (userFlashcards.length === 0) {
+        Alert.alert('No Flashcards', 'You don\'t have any flashcards to review yet.');
+        return;
+      }
+
+      // Shuffle flashcards
+      const shuffledFlashcards = [...userFlashcards].sort(() => Math.random() - 0.5);
+
+      setStudySession({
+        isActive: true,
+        isComplete: false,
+        flashcards: shuffledFlashcards,
+        currentIndex: 0,
+        showAnswer: false,
+        answers: [],
+        showNativeLanguage: false,
+        startTime: new Date()
+      });
+    } catch (error) {
+      console.error('❌ Error starting review session:', error);
+      Alert.alert('Error', 'Failed to start review session. Please try again.');
+    }
+  };
+
+  // Load browse flashcards
+  const loadBrowseFlashcards = async () => {
+    if (!user || !profile?.subjects || profile.subjects.length === 0) {
+      return;
+    }
+
+    try {
+      setBrowseLoading(true);
+      const userSubject = profile.subjects[0];
+      const userFlashcards = await UserFlashcardService.getUserFlashcards({
+        subject: userSubject
+      });
+
+      setBrowseFlashcards(userFlashcards);
+      setShowBrowseModal(true);
+    } catch (error) {
+      console.error('❌ Error loading browse flashcards:', error);
+      Alert.alert('Error', 'Failed to load flashcards. Please try again.');
+    } finally {
+      setBrowseLoading(false);
+    }
+  };
+
+  // Play pronunciation
+  const playPronunciation = async (text: string) => {
+    if (isAudioPlaying) return;
+    
+    try {
+      setIsAudioPlaying(true);
+      await Speech.speak(text, {
+        language: 'en-US',
+        pitch: 1.0,
+        rate: 0.8,
+      });
+    } catch (error) {
+      console.error('❌ Error playing pronunciation:', error);
+    } finally {
+      setTimeout(() => setIsAudioPlaying(false), 1000);
+    }
   };
 
 
@@ -990,8 +1420,8 @@ export default function GamesScreen() {
       case 'Sentence Scramble':
         return <LessonSentenceScramble 
           vocabulary={filteredFlashcards} 
-          onComplete={onGameComplete} 
-          onClose={onClose} 
+          onComplete={handleGameComplete} 
+          onClose={closeGameModal} 
         />;
       default:
         return null;
@@ -1005,13 +1435,269 @@ export default function GamesScreen() {
       />
       
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Daily Challenge */}
-        <DailyChallengeSection onPlay={(gameType) => {
-          const gameFunction = getGameOnPress(gameType);
-          if (gameFunction) {
-            gameFunction();
-          }
-        }} />
+        {/* Create Flashcard Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <TouchableOpacity
+              style={styles.collapsibleHeader}
+              onPress={() => setShowCreateForm(!showCreateForm)}
+            >
+              <Ionicons name="add-circle" size={24} color="#6366f1" />
+              <Text style={[styles.sectionTitle, { textAlign: 'center', flex: 1 }]}>Create New Flashcards</Text>
+              <Ionicons 
+                name={showCreateForm ? "chevron-up" : "chevron-down"} 
+                size={20} 
+                color="#64748b" 
+              />
+            </TouchableOpacity>
+          </View>
+          
+          {!showCreateForm ? (
+            <>
+              <TouchableOpacity style={styles.createButton} onPress={() => setShowCreateForm(true)}>
+                <Ionicons name="add" size={24} color="#6366f1" />
+                <Text style={styles.createButtonText}>Create Your Own Flashcards</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity style={styles.uploadNotesButton} onPress={() => navigation.navigate('Upload' as never)}>
+                <Ionicons name="document-text" size={24} color="#10b981" />
+                <Text style={styles.uploadNotesButtonText}>Make AI Flashcards</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <View style={styles.createForm}>
+              {/* Topic selection */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Topic</Text>
+                {!showTopicInput ? (
+                  <View style={styles.createFormTopicSelectionContainer}>
+                    <TouchableOpacity
+                      style={styles.createFormTopicDropdown}
+                      onPress={() => setShowTopicPicker(!showTopicPicker)}
+                    >
+                      <Text style={styles.topicDropdownText}>
+                        {newFlashcard.topic || 'Select a topic'}
+                      </Text>
+                      <Ionicons name="chevron-down" size={20} color="#64748b" />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.newTopicButton}
+                      onPress={() => setShowTopicInput(true)}
+                    >
+                      <Ionicons name="add" size={16} color="#6366f1" />
+                      <Text style={styles.newTopicButtonText}>New Topic</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <View style={styles.newTopicInputContainer}>
+                    <TextInput
+                      style={styles.input}
+                      placeholder="Enter new topic name"
+                      value={newTopicInput}
+                      onChangeText={setNewTopicInput}
+                    />
+                    <View style={styles.newTopicActions}>
+                      <TouchableOpacity style={styles.cancelButton} onPress={() => {
+                        setShowTopicInput(false);
+                        setNewTopicInput('');
+                      }}>
+                        <Text style={styles.cancelButtonText}>Cancel</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.confirmButton} onPress={() => {
+                        if (newTopicInput.trim()) {
+                          setNewFlashcard(prev => ({ ...prev, topic: newTopicInput.trim() }));
+                          setShowTopicInput(false);
+                          setNewTopicInput('');
+                        }
+                      }}>
+                        <Text style={styles.confirmButtonText}>Use New Topic</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                )}
+                
+                {/* Topic dropdown options */}
+                {!showTopicInput && showTopicPicker && (
+                  <ScrollView style={styles.topicOptionsContainer}>
+                    {(topics || []).map((topic) => (
+                      <TouchableOpacity
+                        key={topic.id}
+                        style={styles.topicOption}
+                        onPress={() => {
+                          setNewFlashcard(prev => ({ ...prev, topic: topic.name }));
+                          setShowTopicPicker(false);
+                        }}
+                      >
+                        <Text style={styles.topicOptionText}>{topic.name}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                )}
+              </View>
+
+              {/* Front Text Input */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Front (Question/Term) *</Text>
+                <TextInput
+                  style={[styles.input, styles.textArea]}
+                  value={newFlashcard.front}
+                  onChangeText={(text) => setNewFlashcard(prev => ({ ...prev, front: text }))}
+                  placeholder="Enter the question or term"
+                  multiline
+                  numberOfLines={3}
+                />
+              </View>
+
+              {/* Back Text Input */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Back (Answer/Definition) *</Text>
+                <TextInput
+                  style={[styles.input, styles.textArea]}
+                  value={newFlashcard.back}
+                  onChangeText={(text) => setNewFlashcard(prev => ({ ...prev, back: text }))}
+                  placeholder="Enter the answer or definition"
+                  multiline
+                  numberOfLines={3}
+                />
+              </View>
+
+              {/* Example Input */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Example *</Text>
+                <TextInput
+                  style={[styles.input, styles.textArea]}
+                  value={newFlashcard.example}
+                  onChangeText={(text) => setNewFlashcard(prev => ({ ...prev, example: text }))}
+                  placeholder="Provide an example sentence using the front term"
+                  multiline
+                  numberOfLines={2}
+                />
+              </View>
+
+              {/* Pronunciation Input */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Pronunciation (Optional)</Text>
+                <TextInput
+                  style={styles.input}
+                  value={newFlashcard.pronunciation}
+                  onChangeText={(text) => setNewFlashcard(prev => ({ ...prev, pronunciation: text }))}
+                  placeholder="e.g., /kɑːrˈdiːə/ for 'cardiac'"
+                />
+              </View>
+
+              {/* Difficulty Selection */}
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Difficulty Level *</Text>
+                <View style={styles.difficultyContainer}>
+                  {['beginner', 'intermediate', 'expert'].map((level) => (
+                    <TouchableOpacity
+                      key={level}
+                      style={[
+                        styles.difficultyButton,
+                        newFlashcard.difficulty === level && styles.selectedDifficulty,
+                        { borderColor: level === 'beginner' ? '#10b981' : level === 'intermediate' ? '#f59e0b' : '#ef4444' }
+                      ]}
+                      onPress={() => setNewFlashcard(prev => ({ ...prev, difficulty: level as 'beginner' | 'intermediate' | 'expert' }))}
+                    >
+                      <Text style={[
+                        styles.difficultyText,
+                        newFlashcard.difficulty === level && styles.selectedDifficultyText,
+                        { color: newFlashcard.difficulty === level ? '#ffffff' : level === 'beginner' ? '#10b981' : level === 'intermediate' ? '#f59e0b' : '#ef4444' }
+                      ]}>
+                        {level.charAt(0).toUpperCase() + level.slice(1)}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+
+              {/* Action Buttons */}
+              <View style={styles.formActions}>
+                <TouchableOpacity style={styles.cancelFormButton} onPress={() => {
+                  setShowCreateForm(false);
+                  setNewFlashcard({
+                    topic: '',
+                    front: '',
+                    back: '',
+                    difficulty: 'beginner',
+                    example: '',
+                    pronunciation: '',
+                    tags: [],
+                    native_language: 'english'
+                  });
+                  setShowTopicInput(false);
+                  setNewTopicInput('');
+                  setShowTopicPicker(false);
+                }}>
+                  <Text style={styles.cancelFormButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.saveButton} onPress={createFlashcard}>
+                  <Text style={styles.saveButtonText}>Create Flashcard</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+        </View>
+
+
+        {/* Review Flashcards Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="library" size={24} color="#10b981" />
+            <Text style={styles.sectionTitle}>Review Your Flashcards</Text>
+          </View>
+          <Text style={styles.sectionDescription}>
+            Browse and review all your created flashcards
+          </Text>
+          
+          <View style={styles.reviewFlashcardsCard}>
+            <View style={styles.reviewStatsRow}>
+              <View style={styles.reviewStatItem}>
+                <Ionicons name="book" size={20} color="#10b981" />
+                <Text style={styles.reviewStatNumber}>{realFlashcardStats.totalCards}</Text>
+                <Text style={styles.reviewStatLabel}>Total Cards</Text>
+              </View>
+              <View style={styles.reviewStatItem}>
+                <Ionicons name="bookmark" size={20} color="#6366f1" />
+                <Text style={styles.reviewStatNumber}>{topics.length}</Text>
+                <Text style={styles.reviewStatLabel}>Topics</Text>
+              </View>
+            </View>
+            
+            <TouchableOpacity 
+              style={styles.reviewButton}
+              onPress={() => {
+                if (realFlashcardStats.totalCards > 0) {
+                  // Start a review session with all user flashcards
+                  startReviewSession();
+                } else {
+                  Alert.alert(
+                    'No Flashcards Yet',
+                    'You haven\'t created any flashcards yet. Create some flashcards first or upload notes to generate them with AI.',
+                    [{ text: 'OK' }]
+                  );
+                }
+              }}
+            >
+              <Ionicons name="play-circle" size={24} color="#ffffff" />
+              <Text style={styles.reviewButtonText}>
+                {realFlashcardStats.totalCards > 0 ? 'Start Review Session' : 'No Cards to Review'}
+              </Text>
+            </TouchableOpacity>
+            
+            {realFlashcardStats.totalCards > 0 && (
+              <TouchableOpacity 
+                style={styles.browseButton}
+                onPress={loadBrowseFlashcards}
+                disabled={browseLoading}
+              >
+                <Ionicons name="list" size={20} color="#6366f1" />
+                <Text style={styles.browseButtonText}>Browse All Cards</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+
         
         {/* Your Game Stats */}
         <GameStatsSection 
@@ -1125,6 +1811,91 @@ export default function GamesScreen() {
           </View>
         </SafeAreaView>
       </Modal>
+
+      {/* Browse Flashcards Modal */}
+      {showBrowseModal && (
+        <View style={styles.modalOverlay}>
+          <View style={styles.browseModal}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>All Your Flashcards</Text>
+              <TouchableOpacity 
+                style={styles.closeButton}
+                onPress={() => setShowBrowseModal(false)}
+              >
+                <Ionicons name="close" size={24} color="#64748b" />
+              </TouchableOpacity>
+            </View>
+            
+            {browseLoading ? (
+              <View style={styles.loadingContainer}>
+                <Text style={styles.loadingText}>Loading flashcards...</Text>
+              </View>
+            ) : browseFlashcards.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <Ionicons name="book-outline" size={48} color="#d1d5db" />
+                <Text style={styles.emptyText}>No flashcards found</Text>
+                <Text style={styles.emptySubtext}>Create some flashcards or upload notes to generate them with AI</Text>
+              </View>
+            ) : (
+              <ScrollView style={styles.browseContent} showsVerticalScrollIndicator={false}>
+                {/* Group flashcards by topic */}
+                {Object.entries(
+                  browseFlashcards.reduce((acc, card: any) => {
+                    const topic = card.topic || 'Uncategorized';
+                    if (!acc[topic]) acc[topic] = [];
+                    acc[topic].push(card);
+                    return acc;
+                  }, {} as Record<string, any[]>)
+                ).map(([topic, cards]) => (
+                  <View key={topic} style={styles.topicSection}>
+                    <View style={styles.topicHeader}>
+                      <Ionicons name="bookmark" size={20} color="#6366f1" />
+                      <Text style={styles.topicTitle}>{topic}</Text>
+                      <Text style={styles.topicCount}>({(cards as any[]).length} cards)</Text>
+                    </View>
+                    
+                    {(cards as any[]).map((card: any, index: number) => (
+                      <View key={card.id || index} style={styles.browseCard}>
+                        <View style={styles.browseCardHeader}>
+                          <Text style={styles.browseCardDifficulty}>
+                            {card.difficulty?.charAt(0).toUpperCase() + card.difficulty?.slice(1) || 'Intermediate'}
+                          </Text>
+                          {card.pronunciation && (
+                            <TouchableOpacity 
+                              style={styles.browseAudioButton}
+                              onPress={() => playPronunciation(card.front)}
+                            >
+                              <Ionicons name="volume-high" size={16} color="#6366f1" />
+                            </TouchableOpacity>
+                          )}
+                        </View>
+                        
+                        <View style={styles.browseCardContent}>
+                          <View style={styles.browseCardSide}>
+                            <Text style={styles.browseCardLabel}>Front:</Text>
+                            <Text style={styles.browseCardText}>{card.front}</Text>
+                          </View>
+                          <View style={styles.browseCardSide}>
+                            <Text style={styles.browseCardLabel}>Back:</Text>
+                            <Text style={styles.browseCardText}>{card.back}</Text>
+                          </View>
+                        </View>
+                        
+                        {card.example && (
+                          <View style={styles.browseExample}>
+                            <Text style={styles.browseCardLabel}>Example:</Text>
+                            <Text style={styles.browseCardText}>{card.example}</Text>
+                          </View>
+                        )}
+                      </View>
+                    ))}
+                  </View>
+                ))}
+              </ScrollView>
+            )}
+          </View>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -1132,11 +1903,12 @@ export default function GamesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#ffffff',
   },
   content: {
     flex: 1,
     paddingHorizontal: 16,
+    backgroundColor: '#ffffff',
   },
   modalContainer: {
     flex: 1,
@@ -1288,5 +2060,650 @@ const styles = StyleSheet.create({
   },
   gameModalContent: {
     flex: 1,
+  },
+  // Flashcard styles
+  section: {
+    marginBottom: 24,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 8,
+  },
+  collapsibleHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    paddingVertical: 8,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#1e293b',
+    flex: 1,
+  },
+  sectionDescription: {
+    fontSize: 14,
+    color: '#64748b',
+    marginBottom: 16,
+    lineHeight: 20,
+  },
+  dottedOutlineContainer: {
+    marginHorizontal: 20,
+    marginVertical: 16,
+    height: 80,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dottedOutline: {
+    width: '100%',
+    height: 60,
+    borderWidth: 2,
+    borderColor: '#166534',
+    borderStyle: 'dashed',
+    borderRadius: 12,
+    backgroundColor: 'transparent',
+  },
+  createButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f0f4ff',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#6366f1',
+    borderStyle: 'dashed',
+    marginBottom: 12,
+    gap: 8,
+  },
+  createButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6366f1',
+  },
+  uploadNotesButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f0fdf4',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#10b981',
+    borderStyle: 'dashed',
+    gap: 8,
+  },
+  uploadNotesButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#10b981',
+  },
+  createForm: {
+    backgroundColor: '#f8fafc',
+    borderRadius: 16,
+    padding: 24,
+    borderWidth: 2,
+    borderColor: '#8b5cf6',
+    borderStyle: 'dashed',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  inputContainer: {
+    marginBottom: 20,
+  },
+  inputLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 8,
+  },
+  input: {
+    borderWidth: 2,
+    borderColor: '#d1d5db',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 16,
+    color: '#1f2937',
+    backgroundColor: '#ffffff',
+  },
+  textArea: {
+    minHeight: 80,
+    textAlignVertical: 'top',
+  },
+  createFormTopicSelectionContainer: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  createFormTopicDropdown: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 2,
+    borderColor: '#d1d5db',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    backgroundColor: '#ffffff',
+  },
+  topicDropdownText: {
+    fontSize: 16,
+    color: '#1f2937',
+  },
+  newTopicButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f0f4ff',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#e0e7ff',
+    gap: 6,
+  },
+  newTopicButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6366f1',
+  },
+  newTopicInputContainer: {
+    gap: 12,
+  },
+  newTopicActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  cancelButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: '#f3f4f6',
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6b7280',
+  },
+  confirmButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: '#6366f1',
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  confirmButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#ffffff',
+  },
+  topicOptionsContainer: {
+    maxHeight: 200,
+    backgroundColor: '#ffffff',
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#d1d5db',
+    marginTop: 4,
+  },
+  topicOption: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+  },
+  topicOptionText: {
+    fontSize: 16,
+    color: '#1f2937',
+  },
+  difficultyContainer: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  difficultyButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 2,
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+  },
+  selectedDifficulty: {
+    backgroundColor: '#6366f1',
+  },
+  difficultyText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  selectedDifficultyText: {
+    color: '#ffffff',
+  },
+  formActions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 8,
+  },
+  cancelFormButton: {
+    flex: 1,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    backgroundColor: '#f3f4f6',
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  cancelFormButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6b7280',
+  },
+  saveButton: {
+    flex: 1,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    backgroundColor: '#6366f1',
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  saveButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#ffffff',
+  },
+  statsSection: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  statsTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#1e293b',
+    marginBottom: 16,
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: '#f8fafc',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  statIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#f0f4ff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  statNumber: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1e293b',
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#64748b',
+    textAlign: 'center',
+  },
+  reviewFlashcardsCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  reviewStatsRow: {
+    flexDirection: 'row',
+    gap: 20,
+    marginBottom: 20,
+  },
+  reviewStatItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  reviewStatNumber: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#1e293b',
+    marginTop: 4,
+    marginBottom: 4,
+  },
+  reviewStatLabel: {
+    fontSize: 12,
+    color: '#64748b',
+  },
+  reviewButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#10b981',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    marginBottom: 12,
+    gap: 8,
+  },
+  reviewButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#ffffff',
+  },
+  browseButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f0f4ff',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#e0e7ff',
+    gap: 6,
+  },
+  browseButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6366f1',
+  },
+  unifiedSelectionCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  selectionRow: {
+    marginBottom: 20,
+  },
+  selectionLabel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: 8,
+  },
+  selectionLabelText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  selectionContent: {
+    position: 'relative',
+  },
+  compactDropdown: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#ffffff',
+  },
+  selectedCompactDropdown: {
+    borderColor: '#6366f1',
+    backgroundColor: '#f0f4ff',
+  },
+  compactDropdownContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  compactIcon: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  compactDropdownText: {
+    fontSize: 16,
+    color: '#1f2937',
+    fontWeight: '500',
+  },
+  compactPlaceholder: {
+    fontSize: 16,
+    color: '#9ca3af',
+  },
+  compactLanguageOptions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  compactLanguageOption: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    backgroundColor: '#ffffff',
+    gap: 6,
+  },
+  selectedCompactLanguageOption: {
+    borderColor: '#6366f1',
+    backgroundColor: '#f0f4ff',
+  },
+  compactLanguageText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#1f2937',
+  },
+  compactDropdownOptions: {
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    right: 0,
+    backgroundColor: '#ffffff',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    marginTop: 4,
+    zIndex: 1000,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  compactDropdownScroll: {
+    maxHeight: 200,
+  },
+  compactDropdownOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+    gap: 12,
+  },
+  selectedCompactDropdownOption: {
+    backgroundColor: '#f0f4ff',
+  },
+  compactDropdownOptionIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  compactDropdownOptionContent: {
+    flex: 1,
+  },
+  compactDropdownOptionText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#1f2937',
+    marginBottom: 2,
+  },
+  compactDropdownOptionCount: {
+    fontSize: 12,
+    color: '#6b7280',
+  },
+  compactDropdownDivider: {
+    height: 1,
+    backgroundColor: '#e5e7eb',
+    marginHorizontal: 16,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#6b7280',
+    textAlign: 'center',
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#6b7280',
+    textAlign: 'center',
+  },
+  modalOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  browseModal: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    margin: 20,
+    maxHeight: '80%',
+    width: '90%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  loadingContainer: {
+    padding: 40,
+    alignItems: 'center',
+  },
+  emptyContainer: {
+    padding: 40,
+    alignItems: 'center',
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: '#9ca3af',
+    textAlign: 'center',
+    marginTop: 8,
+  },
+  browseContent: {
+    flex: 1,
+    paddingHorizontal: 20,
+  },
+  topicSection: {
+    marginBottom: 24,
+  },
+  topicHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 8,
+  },
+  topicTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1e293b',
+  },
+  topicCount: {
+    fontSize: 14,
+    color: '#64748b',
+  },
+  browseCard: {
+    backgroundColor: '#f8fafc',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  browseCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  browseCardDifficulty: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6366f1',
+    backgroundColor: '#f0f4ff',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  browseAudioButton: {
+    padding: 6,
+    backgroundColor: '#f0f4ff',
+    borderRadius: 6,
+  },
+  browseCardContent: {
+    gap: 8,
+  },
+  browseCardSide: {
+    gap: 4,
+  },
+  browseCardLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6b7280',
+    textTransform: 'uppercase',
+  },
+  browseCardText: {
+    fontSize: 16,
+    color: '#1f2937',
+    lineHeight: 22,
+  },
+  browseExample: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+    gap: 4,
   },
 });

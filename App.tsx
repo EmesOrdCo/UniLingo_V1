@@ -41,6 +41,11 @@ import OnboardingFlowScreen from './src/screens/OnboardingFlowScreen';
 import LandingScreen from './src/screens/LandingScreen';
 import FAQScreen from './src/screens/FAQScreen';
 import TermsAndConditionsScreen from './src/screens/TermsAndConditionsScreen';
+import DailyGoalsScreen from './src/screens/DailyGoalsScreen';
+import LevelProgressScreen from './src/screens/LevelProgressScreen';
+import UnitDetailScreen from './src/screens/UnitDetailScreen';
+import CoursesScreen from './src/screens/CoursesScreen';
+import YourLessonsScreen from './src/screens/YourLessonsScreen';
 
 const Stack = createStackNavigator();
 
@@ -75,6 +80,11 @@ function MainNavigator() {
       <Stack.Screen name="OnboardingFlow" component={OnboardingFlowScreen} />
       <Stack.Screen name="FAQ" component={FAQScreen} />
       <Stack.Screen name="TermsAndConditions" component={TermsAndConditionsScreen} />
+      <Stack.Screen name="DailyGoals" component={DailyGoalsScreen} />
+      <Stack.Screen name="LevelProgress" component={LevelProgressScreen} />
+      <Stack.Screen name="UnitDetail" component={UnitDetailScreen} />
+      <Stack.Screen name="Courses" component={CoursesScreen} />
+      <Stack.Screen name="YourLessons" component={YourLessonsScreen} />
     </Stack.Navigator>
   );
 }

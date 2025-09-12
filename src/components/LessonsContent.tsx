@@ -48,98 +48,20 @@ export default function LessonsContent() {
     navigation.navigate('CreateLesson' as never);
   };
 
-  const handleLessonPress = async (lesson: Lesson) => {
+  const handleLessonPress = (lesson: Lesson) => {
     // Navigate to lesson walkthrough
-    (navigation as any).navigate('LessonWalkthrough', {
-      lessonId: lesson.id,
-      lessonTitle: lesson.title
-    });
+    navigation.navigate('LessonWalkthrough' as never, { lessonId: lesson.id } as never);
   };
 
-  const handleDeleteLesson = async (lesson: Lesson) => {
-    Alert.alert(
-      'Delete Lesson',
-      `Are you sure you want to delete "${lesson.title}"? This action cannot be undone and will remove all lesson data including vocabulary and progress.`,
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const success = await LessonService.deleteLesson(lesson.id, user!.id);
-              if (success) {
-                Alert.alert('Success', 'Lesson deleted successfully!');
-                // Refresh the lessons list
-                fetchUserLessons();
-              } else {
-                Alert.alert('Error', 'Failed to delete lesson. Please try again.');
-              }
-            } catch (error) {
-              console.error('Error deleting lesson:', error);
-              Alert.alert('Error', 'Failed to delete lesson. Please try again.');
-            }
-          },
-        },
-      ]
-    );
+  const handleYourLessonsPress = () => {
+    // Navigate to Your Lessons screen
+    navigation.navigate('YourLessons' as never);
   };
 
-  const handleRefresh = () => {
-    fetchUserLessons();
+  const handleActivityPress = (activityName: string) => {
+    Alert.alert('Coming Soon', `${activityName} feature is coming soon!`);
   };
 
-  // Helper function to calculate progress percentage
-  const calculateProgressPercentage = (lesson: Lesson & { vocab_count: number; progress?: LessonProgress }): number => {
-    if (!lesson.progress) return 0;
-    
-    // Calculate based on exercises completed vs total exercises
-    // There are exactly 5 exercises per lesson: flashcards, flashcard-quiz, sentence-scramble, word-scramble, fill-in-blank
-    const totalExercises = lesson.progress.total_exercises || 5;
-    const completedExercises = lesson.progress.exercises_completed || 0;
-    
-    // Ensure percentage doesn't exceed 100%
-    return Math.min(Math.round((completedExercises / totalExercises) * 100), 100);
-  };
-
-  // Helper function to get progress status text
-  const getProgressStatusText = (lesson: Lesson & { vocab_count: number; progress?: LessonProgress }): string => {
-    if (!lesson.progress) return 'Not started';
-    
-    if (lesson.progress.completed_at) {
-      return 'Completed';
-    }
-    
-    const percentage = calculateProgressPercentage(lesson);
-    const completedExercises = lesson.progress.exercises_completed || 0;
-    
-    if (percentage === 0) {
-      return 'Not started';
-    } else if (percentage < 100) {
-      return `${completedExercises}/5 exercises`;
-    } else {
-      return 'Completed';
-    }
-  };
-
-  // Helper function to get subject-specific colors
-  const getSubjectColor = (subject: string) => {
-    const colors: { [key: string]: string } = {
-      'Mathematics': '#6366f1',
-      'Science': '#10b981',
-      'History': '#f59e0b',
-      'Literature': '#ef4444',
-      'Language': '#8b5cf6',
-      'Art': '#ec4899',
-      'Music': '#06b6d4',
-      'Geography': '#84cc16',
-      'default': '#6366f1'
-    };
-    return colors[subject] || colors.default;
-  };
   if (loadingLessons) {
     return (
       <View style={styles.loadingContainer}>
@@ -151,140 +73,111 @@ export default function LessonsContent() {
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* Header with refresh button */}
+      {/* Create Your First Lesson Card */}
+      <View style={styles.createLessonCard}>
+        <Text style={styles.createLessonTitle}>Create Your First Lesson</Text>
+        <Text style={styles.createLessonDescription}>
+          Upload PDF course notes to generate an interactive vocabulary lesson.
+        </Text>
+        <TouchableOpacity style={styles.uploadButton} onPress={handleCreateLesson}>
+          <Ionicons name="cloud-upload-outline" size={24} color="#ffffff" />
+          <Text style={styles.uploadButtonText}>Choose PDF File</Text>
+        </TouchableOpacity>
+      </View>
 
-      {lessons.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Ionicons name="book-outline" size={64} color="#cbd5e1" />
-          <Text style={styles.emptyTitle}>No Lessons Yet</Text>
-          <Text style={styles.emptyText}>
-            Upload a PDF to create your first lesson and start learning English terminology!
-          </Text>
-          
-          {/* AI-Powered Lessons Section */}
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>AI-Powered Vocabulary Lessons</Text>
-            <Text style={styles.cardDescription}>
-              Upload your course notes and let AI create an interactive vocabulary lesson 
-              with flashcards and games. Perfect for learning subject-specific English terminology.
+      {/* Your Lessons Card */}
+      <TouchableOpacity style={styles.yourLessonsCard} onPress={handleYourLessonsPress}>
+        <View style={styles.yourLessonsLeft}>
+          <View style={styles.yourLessonsIcon}>
+            <Ionicons name="book-outline" size={20} color="#8b5cf6" />
+          </View>
+          <View style={styles.yourLessonsText}>
+            <Text style={styles.yourLessonsTitle}>Your Lessons</Text>
+            <Text style={styles.yourLessonsSubtitle}>
+              {lessons.length === 0 ? 'No lessons yet.' : `${lessons.length} lesson${lessons.length !== 1 ? 's' : ''} created`}
             </Text>
           </View>
-
-          {/* Create Your Lesson Section */}
-          <View style={styles.card}>
-            <View style={styles.lessonIconContainer}>
-              <Ionicons name="document-text" size={64} color="#6366f1" />
-            </View>
-            <Text style={styles.cardTitle}>Create Your First Lesson</Text>
-            <Text style={styles.cardDescription}>
-              Upload PDF course notes to generate an interactive vocabulary lesson
-            </Text>
-            <TouchableOpacity 
-              style={styles.mainCreateButton}
-              onPress={handleCreateLesson}
-            >
-              <Ionicons name="cloud-upload" size={20} color="#ffffff" />
-              <Text style={styles.createButtonText}>Choose PDF File</Text>
-            </TouchableOpacity>
-          </View>
         </View>
-      ) : (
-        <View style={styles.lessonsContainer}>
-          {/* Lessons Header */}
-          <View style={styles.lessonsHeader}>
-            <Text style={styles.lessonsTitle}>{lessons.length} lessons created</Text>
-            <View style={styles.headerButtons}>
-              <TouchableOpacity 
-                style={styles.refreshButton}
-                onPress={fetchUserLessons}
-                disabled={loadingLessons}
-              >
-                <Ionicons 
-                  name="refresh" 
-                  size={16} 
-                  color={loadingLessons ? "#94a3b8" : "#6366f1"} 
-                />
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.addLessonButton}
-                onPress={handleCreateLesson}
-              >
-                <Ionicons name="add" size={20} color="#ffffff" />
-                <Text style={styles.addLessonButtonText}>New Lesson</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+        <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+      </TouchableOpacity>
 
-          {lessons.map((lesson, index) => (
-            <TouchableOpacity
-              key={lesson.id}
-              style={styles.lessonCard}
-              onPress={() => handleLessonPress(lesson)}
-              activeOpacity={0.7}
-            >
-              {/* Delete Button - Top Right */}
-              <TouchableOpacity
-                style={styles.deleteButton}
-                onPress={() => handleDeleteLesson(lesson)}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="trash-outline" size={16} color="#ef4444" />
-              </TouchableOpacity>
-
-              {/* Lesson Header with Icon */}
-              <View style={styles.lessonHeader}>
-                <View style={styles.lessonIconContainer}>
-                  <View style={[
-                    styles.lessonIcon,
-                    { backgroundColor: getSubjectColor(lesson.subject) }
-                  ]}>
-                    <Ionicons name="book-outline" size={20} color="#ffffff" />
-                  </View>
-                </View>
-                <View style={styles.lessonInfo}>
-                  <Text style={styles.lessonTitle} numberOfLines={2}>
-                    {lesson.title}
-                  </Text>
-                  <Text style={styles.lessonDate}>
-                    Created {new Date(lesson.created_at).toLocaleDateString()}
-                  </Text>
-                </View>
-              </View>
-              
-              {/* Lesson Details - Single Line */}
-              <View style={styles.lessonDetails}>
-                <View style={styles.detailItem}>
-                  <Ionicons name="library-outline" size={14} color="#6366f1" />
-                  <Text style={styles.detailText}>{lesson.vocab_count} terms</Text>
-                </View>
-                <View style={styles.detailSeparator} />
-                <View style={styles.detailItem}>
-                  <Ionicons name="trending-up-outline" size={14} color="#6366f1" />
-                  <Text style={styles.detailText}>{lesson.difficulty_level}</Text>
-                </View>
-                <View style={styles.detailSeparator} />
-                <View style={styles.detailItem}>
-                  <Ionicons name="document-text-outline" size={14} color="#6366f1" />
-                  <Text style={styles.detailText} numberOfLines={1}>
-                    {lesson.source_pdf_name}
-                  </Text>
-                </View>
-              </View>
-
-              {/* Progress Bar */}
-              <View style={styles.progressContainer}>
-                <View style={styles.progressBar}>
-                  <View style={[
-                    styles.progressFill, 
-                    { width: `${calculateProgressPercentage(lesson)}%` }
-                  ]} />
-                </View>
-                <Text style={styles.progressText}>{getProgressStatusText(lesson)}</Text>
-              </View>
-            </TouchableOpacity>
-          ))}
+      {/* Speak Section */}
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <Ionicons name="chatbubble-outline" size={20} color="#8b5cf6" />
+          <Text style={styles.sectionTitle}>Speak</Text>
         </View>
-      )}
+        
+        <TouchableOpacity 
+          style={styles.activityCard} 
+          onPress={() => handleActivityPress('AI Conversation Partner')}
+        >
+          <View style={styles.activityContent}>
+            <Text style={styles.activityTitle}>AI Conversation Partner</Text>
+            <Text style={styles.activityDescription}>Practise in your own words</Text>
+          </View>
+          <View style={styles.activityIcon}>
+            <Ionicons name="sparkles" size={24} color="#ffffff" />
+          </View>
+        </TouchableOpacity>
+      </View>
+
+      {/* Listen Section */}
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <Ionicons name="headset-outline" size={20} color="#8b5cf6" />
+          <Text style={styles.sectionTitle}>Listen</Text>
+        </View>
+        
+        <TouchableOpacity 
+          style={styles.activityCard} 
+          onPress={() => handleActivityPress('Audio Recap')}
+        >
+          <View style={styles.activityContent}>
+            <Text style={styles.activityTitle}>Audio Recap</Text>
+            <Text style={styles.activityDescription}>Do guided audio lessons, hands free</Text>
+          </View>
+          <View style={[styles.activityIcon, { backgroundColor: '#6466E9' }]}>
+            <Ionicons name="headset" size={24} color="#ffffff" />
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={styles.activityCard} 
+          onPress={() => handleActivityPress('Podcasts')}
+        >
+          <View style={styles.activityContent}>
+            <Text style={styles.activityTitle}>Podcasts</Text>
+            <Text style={styles.activityDescription}>Learn something new on the move</Text>
+          </View>
+          <View style={styles.activityIcon}>
+            <Ionicons name="radio" size={24} color="#ffffff" />
+          </View>
+        </TouchableOpacity>
+      </View>
+
+      {/* Write Section */}
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <Ionicons name="checkmark-circle-outline" size={20} color="#8b5cf6" />
+          <Text style={styles.sectionTitle}>Write</Text>
+        </View>
+        
+        <TouchableOpacity 
+          style={styles.activityCard} 
+          onPress={() => handleActivityPress('Guided Text Message Conversations')}
+        >
+          <View style={styles.activityContent}>
+            <Text style={styles.activityTitle}>Guided Text Message Conversations</Text>
+            <Text style={styles.activityDescription}>Practice writing through guided text conversations</Text>
+          </View>
+          <View style={[styles.activityIcon, { backgroundColor: '#06b6d4' }]}>
+            <Ionicons name="chatbubble" size={24} color="#ffffff" />
+          </View>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.bottomSpacing} />
     </ScrollView>
   );
 }
@@ -292,230 +185,155 @@ export default function LessonsContent() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#ffffff',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 40,
+    backgroundColor: '#ffffff',
   },
   loadingText: {
-    fontSize: 16,
-    color: '#64748b',
-    marginTop: 12,
-  },
-  emptyContainer: {
-    alignItems: 'center',
-    paddingVertical: 40,
-    paddingHorizontal: 20,
-  },
-  emptyTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#1e293b',
     marginTop: 16,
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  emptyText: {
     fontSize: 16,
     color: '#64748b',
-    textAlign: 'center',
-    lineHeight: 24,
-    marginBottom: 32,
   },
-  card: {
+  createLessonCard: {
     backgroundColor: '#ffffff',
+    marginHorizontal: 20,
+    marginTop: 20,
+    marginBottom: 16,
+    padding: 24,
     borderRadius: 16,
-    padding: 20,
-    marginBottom: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 3,
-    borderWidth: 1,
-    borderColor: '#f1f5f9',
   },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+  createLessonTitle: {
+    fontSize: 20,
+    fontWeight: '700',
     color: '#1e293b',
-    marginBottom: 12,
+    marginBottom: 8,
   },
-  cardDescription: {
-    fontSize: 14,
+  createLessonDescription: {
+    fontSize: 16,
     color: '#64748b',
-    lineHeight: 20,
-    marginBottom: 16,
+    marginBottom: 20,
+    lineHeight: 22,
   },
-  mainCreateButton: {
-    backgroundColor: '#6366f1',
+  uploadButton: {
+    backgroundColor: '#8b5cf6',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
     paddingVertical: 16,
     paddingHorizontal: 24,
     borderRadius: 12,
-    marginTop: 8,
+    gap: 8,
   },
-  createButtonText: {
-    color: '#ffffff',
+  uploadButtonText: {
     fontSize: 16,
     fontWeight: '600',
-  },
-  lessonsContainer: {
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-  },
-  lessonsHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  headerButtons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  refreshButton: {
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: '#f8fafc',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
-  lessonsTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1e293b',
-  },
-  addLessonButton: {
-    backgroundColor: '#6366f1',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  addLessonButtonText: {
     color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '500',
-    marginLeft: 4,
   },
-  lessonCard: {
+  yourLessonsCard: {
     backgroundColor: '#ffffff',
-    borderRadius: 16,
+    marginHorizontal: 20,
     marginBottom: 16,
     padding: 20,
+    borderRadius: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
+    shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 3,
-    borderWidth: 1,
-    borderColor: '#f1f5f9',
-    position: 'relative',
   },
-  deleteButton: {
-    position: 'absolute',
-    top: 16,
-    right: 16,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#fef2f2',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 1,
-  },
-  lessonHeader: {
+  yourLessonsLeft: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 16,
+    alignItems: 'center',
+    flex: 1,
   },
-  lessonIconContainer: {
-    marginRight: 12,
-  },
-  lessonIcon: {
+  yourLessonsIcon: {
     width: 40,
     height: 40,
     borderRadius: 20,
+    backgroundColor: '#f3e8ff',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 3,
-    elevation: 1,
+    marginRight: 16,
   },
-  lessonInfo: {
+  yourLessonsText: {
     flex: 1,
-    marginRight: 48, // Space for delete button
   },
-  lessonTitle: {
-    fontSize: 18,
+  yourLessonsTitle: {
+    fontSize: 16,
     fontWeight: '600',
     color: '#1e293b',
     marginBottom: 4,
-    lineHeight: 24,
   },
-  lessonDate: {
-    fontSize: 12,
-    color: '#94a3b8',
-    fontWeight: '500',
+  yourLessonsSubtitle: {
+    fontSize: 14,
+    color: '#64748b',
   },
-  lessonDetails: {
+  section: {
+    marginBottom: 24,
+  },
+  sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginHorizontal: 20,
+    marginBottom: 16,
+    gap: 8,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1e293b',
+  },
+  activityCard: {
+    backgroundColor: '#ffffff',
+    marginHorizontal: 20,
     marginBottom: 12,
-    paddingHorizontal: 4,
-  },
-  detailItem: {
+    padding: 20,
+    borderRadius: 16,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  activityContent: {
     flex: 1,
+    marginRight: 16,
+  },
+  activityTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1e293b',
+    marginBottom: 4,
+  },
+  activityDescription: {
+    fontSize: 14,
+    color: '#64748b',
+    lineHeight: 20,
+  },
+  activityIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: '#8b5cf6',
+    alignItems: 'center',
     justifyContent: 'center',
   },
-  detailSeparator: {
-    width: 1,
-    height: 16,
-    backgroundColor: '#e2e8f0',
-    marginHorizontal: 8,
-  },
-  detailText: {
-    fontSize: 11,
-    fontWeight: '500',
-    color: '#64748b',
-    marginLeft: 4,
-    flex: 1,
-    textAlign: 'center',
-  },
-  progressContainer: {
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#f1f5f9',
-  },
-  progressBar: {
-    height: 8,
-    backgroundColor: '#f1f5f9',
-    borderRadius: 4,
-    marginBottom: 6,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: '#6366f1',
-    borderRadius: 4,
-  },
-  progressText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#64748b',
-    textAlign: 'center',
+  bottomSpacing: {
+    height: 20,
   },
 });

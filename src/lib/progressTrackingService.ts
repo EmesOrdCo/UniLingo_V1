@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 import { logger } from './logger';
 import GlobalCompletionLock from './globalCompletionLock';
+import OptimizedProgressService from './optimizedProgressService';
 
 // Import refresh context to trigger UI updates
 let refreshTrigger: (() => void) | null = null;
@@ -91,6 +92,9 @@ export class ProgressTrackingService {
       
       logger.info(`Daily challenge completion recorded: ${gameType}`);
       
+      // Clear progress cache since data has changed
+      await OptimizedProgressService.clearUserCache(userId);
+      
       // Trigger UI refresh
       if (refreshTrigger) {
         refreshTrigger();
@@ -171,6 +175,9 @@ export class ProgressTrackingService {
 
       console.log(`🎯 [${recordId}] Game activity recorded successfully - ALL OPERATIONS COMPLETE`);
       
+      // Clear progress cache since data has changed
+      await OptimizedProgressService.clearUserCache(user.id);
+      
       // Trigger UI refresh
       if (refreshTrigger) {
         refreshTrigger();
@@ -231,6 +238,9 @@ export class ProgressTrackingService {
 
       console.log('✅ Flashcard activity recorded successfully');
       
+      // Clear progress cache since data has changed
+      await OptimizedProgressService.clearUserCache(user.id);
+      
       // Trigger UI refresh
       if (refreshTrigger) {
         refreshTrigger();
@@ -285,6 +295,9 @@ export class ProgressTrackingService {
       await this.updateStreaks(user.id, 'lesson_completion');
 
       console.log('✅ Lesson activity recorded successfully');
+      
+      // Clear progress cache since data has changed
+      await OptimizedProgressService.clearUserCache(user.id);
       
       // Trigger UI refresh
       if (refreshTrigger) {

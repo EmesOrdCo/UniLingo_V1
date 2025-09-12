@@ -6,7 +6,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 
 // Import screens
-import FlashcardsScreen from './FlashcardsScreen';
+import ProgressDashboardScreen from './ProgressDashboardScreen';
 import GamesScreen from './GamesScreen';
 
 // Import components
@@ -15,8 +15,10 @@ import DashboardContent from '../components/DashboardContent';
 import LessonsContent from '../components/LessonsContent';
 
 // Import services
-import { HolisticProgressService, ProgressInsights } from '../lib/holisticProgressService';
+import { ProgressInsights } from '../lib/holisticProgressService';
+import OptimizedProgressService from '../lib/optimizedProgressService';
 import { useAuth } from '../contexts/AuthContext';
+import { useRefresh } from '../contexts/RefreshContext';
 
 const Tab = createBottomTabNavigator();
 
@@ -26,6 +28,7 @@ function OverviewTab() {
   const [loadingProgress, setLoadingProgress] = useState(false);
 
   const { user } = useAuth();
+  const { refreshTrigger } = useRefresh();
 
   // Load progress data
   useEffect(() => {
@@ -34,10 +37,17 @@ function OverviewTab() {
     }
   }, [user?.id]);
 
-  const loadProgressData = async () => {
+  // Handle refresh triggers
+  useEffect(() => {
+    if (refreshTrigger && user?.id) {
+      loadProgressData(true); // Force refresh
+    }
+  }, [refreshTrigger, user?.id]);
+
+  const loadProgressData = async (forceRefresh: boolean = false) => {
     try {
       setLoadingProgress(true);
-      const data = await HolisticProgressService.getProgressInsights(user!.id);
+      const data = await OptimizedProgressService.getProgressInsights(user!.id, forceRefresh);
       setProgressData(data);
     } catch (error) {
       console.error('Error loading progress data:', error);
@@ -52,7 +62,7 @@ function OverviewTab() {
 
       {/* Consistent Header */}
       <ConsistentHeader 
-        pageName="Dashboard"
+        pageName="Home"
         isOverview={true}
       />
 
@@ -72,7 +82,7 @@ function LessonsTab() {
       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
       
       <ConsistentHeader 
-        pageName="My Lessons"
+        pageName="Lessons"
       />
       
       <LessonsContent />
@@ -89,10 +99,10 @@ function TabNavigator() {
         tabBarIcon: ({ focused, color, size }) => {
           let iconName: keyof typeof Ionicons.glyphMap = 'grid';
 
-          if (route.name === 'Overview') {
+          if (route.name === 'Home') {
             iconName = focused ? 'home' : 'home-outline';
-          } else if (route.name === 'Flashcards') {
-            iconName = focused ? 'book' : 'book-outline';
+          } else if (route.name === 'Progress') {
+            iconName = focused ? 'analytics' : 'analytics-outline';
           } else if (route.name === 'Games') {
             iconName = focused ? 'game-controller' : 'game-controller-outline'; 
           } else if (route.name === 'Lessons') {
@@ -117,10 +127,10 @@ function TabNavigator() {
         headerShown: false,
       })}
     >
-      <Tab.Screen name="Overview" component={OverviewTab} />
-      <Tab.Screen name="Flashcards" component={FlashcardsScreen} />
+      <Tab.Screen name="Home" component={OverviewTab} />
       <Tab.Screen name="Games" component={GamesScreen} />
       <Tab.Screen name="Lessons" component={LessonsTab} />
+      <Tab.Screen name="Progress" component={ProgressDashboardScreen} />
     </Tab.Navigator>
   );
 }
@@ -134,7 +144,7 @@ export default function DashboardScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#ffffff',
   },
   placeholderContainer: {
     flex: 1,

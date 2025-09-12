@@ -103,8 +103,10 @@ export class UserFlashcardService {
       }
 
       // Always use the authenticated user's ID, overriding any passed user_id
+      // Remove show_native_language field if it exists since the column doesn't exist in the database
+      const { show_native_language, ...flashcardDataWithoutShowNative } = flashcardData;
       const flashcardWithUserId = {
-        ...flashcardData,
+        ...flashcardDataWithoutShowNative,
         user_id: user.id
       }
 

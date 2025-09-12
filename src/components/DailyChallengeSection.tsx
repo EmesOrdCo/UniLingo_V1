@@ -83,16 +83,14 @@ const DailyChallengeSection: React.FC<DailyChallengeSectionProps> = ({ onPlay })
         <View style={styles.backgroundGradient}>
           <View style={styles.content}>
             <View style={styles.textContent}>
-              <Text style={styles.subtitle}>Win {challenge.xp_reward} XP today</Text>
-              <Text style={styles.title}>🔥 Daily Challenge</Text>
-              <Text style={styles.gameType}>{challenge.game_type}</Text>
+              <Text style={styles.title}>Daily vocab challenge</Text>
+              <Text style={styles.description}>Practice words and phrases to maximize retention!</Text>
               <TouchableOpacity style={styles.ctaButton} onPress={handlePlay}>
-                <Text style={styles.ctaButtonText}>Play now</Text>
-                <Ionicons name="arrow-forward" size={16} color="#6466E9" />
+                <Text style={styles.ctaButtonText}>Review now</Text>
               </TouchableOpacity>
             </View>
             <View style={styles.iconContainer}>
-              <Ionicons name="flame" size={36} color="rgba(255,255,255,0.9)" />
+              <Ionicons name="flame" size={36} color="#6466E9" />
             </View>
           </View>
         </View>
@@ -107,7 +105,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   heroCarousel: {
-    height: 144,
+    height: 180,
     width: '100%',
     overflow: 'hidden',
     borderRadius: 24,
@@ -119,8 +117,8 @@ const styles = StyleSheet.create({
   },
   backgroundGradient: {
     flex: 1,
-    backgroundColor: '#6466E9',
-    backgroundImage: 'radial-gradient(120% 100% at -10% -20%, #9294FF 0%, #6466E9 40%, #4f51d6 70%)',
+    backgroundColor: '#E0E7FF',
+    backgroundImage: 'radial-gradient(120% 100% at -10% -20%, #F0F4FF 0%, #E0E7FF 40%, #C7D2FE 70%)',
   },
   completedBackgroundGradient: {
     flex: 1,
@@ -132,8 +130,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 24,
+    paddingHorizontal: 24,
+    paddingVertical: 16,
   },
   textContent: {
     flex: 1,
@@ -146,22 +144,19 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: '800',
-    color: '#ffffff',
-    marginBottom: 8,
-  },
-  gameType: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: 'rgba(255,255,255,0.8)',
+    color: '#000000',
     marginBottom: 12,
   },
+  description: {
+    fontSize: 16,
+    color: '#374151',
+    marginBottom: 20,
+    lineHeight: 22,
+  },
   ctaButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: 'rgba(255,255,255,0.95)',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    backgroundColor: '#6466E9',
+    paddingHorizontal: 80,
+    paddingVertical: 12,
     borderRadius: 20,
     alignSelf: 'flex-start',
     shadowColor: '#000',
@@ -173,7 +168,7 @@ const styles = StyleSheet.create({
   ctaButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6466E9',
+    color: '#ffffff',
   },
   iconContainer: {
     paddingRight: 8,

@@ -15,9 +15,11 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { useRefresh } from '../contexts/RefreshContext';
 import { HolisticProgressService, ProgressInsights } from '../lib/holisticProgressService';
+import OptimizedProgressService from '../lib/optimizedProgressService';
 import StudyCalendar from '../components/StudyCalendar';
 import DailyGoalsWidget from '../components/DailyGoalsWidget';
 import RecentActivitiesWidget from '../components/RecentActivitiesWidget';
+import ConsistentHeader from '../components/ConsistentHeader';
 
 const { width } = Dimensions.get('window');
 
@@ -40,7 +42,7 @@ export default function ProgressDashboardScreen() {
   // Add refresh trigger to reload data when activities are completed
   useEffect(() => {
     if (user?.id && refreshTrigger) {
-      loadProgressData();
+      loadProgressData(true); // Force refresh when activities are completed
     }
   }, [refreshTrigger, user]);
 
@@ -53,26 +55,30 @@ export default function ProgressDashboardScreen() {
     }, [user?.id])
   );
 
-  const loadProgressData = async () => {
+  const loadProgressData = async (forceRefresh: boolean = false) => {
     try {
       setLoading(true);
       setError(null); // Clear any previous errors
-      let data = await HolisticProgressService.getProgressInsights(user!.id);
+      
+      console.log('🚀 Loading progress data...', forceRefresh ? '(force refresh)' : '(cache-first)');
+      
+      // Use optimized service with caching
+      let data = await OptimizedProgressService.getProgressInsights(user!.id, forceRefresh);
       
       // If no data exists, initialize user progress
       if (!data) {
         console.log('No progress data found, initializing user progress...');
         try {
           await HolisticProgressService.initializeUserProgress(user!.id);
-          data = await HolisticProgressService.getProgressInsights(user!.id);
+          data = await OptimizedProgressService.getProgressInsights(user!.id, true);
         } catch (initError) {
           console.error('Error initializing user progress:', initError);
           // Continue with empty data if initialization fails
         }
       }
       
-      // Load study dates for calendar
-      const dates = await HolisticProgressService.getStudyDates(user!.id);
+      // Load study dates for calendar (also cached)
+      const dates = await OptimizedProgressService.getStudyDates(user!.id);
       setStudyDates(dates);
       
       // Ensure we always have some data structure
@@ -92,6 +98,8 @@ export default function ProgressDashboardScreen() {
           progressPercentage: 0,
         },
       });
+      
+      console.log('✅ Progress data loaded successfully');
     } catch (error) {
       console.error('Error loading progress data:', error);
       setError('Failed to load progress data. Please try again.');
@@ -102,7 +110,7 @@ export default function ProgressDashboardScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await loadProgressData();
+    await loadProgressData(true); // Force refresh when user pulls to refresh
     setRefreshing(false);
   };
 
@@ -134,7 +142,7 @@ export default function ProgressDashboardScreen() {
       case 'intermediate': return '#f59e0b';
       case 'advanced': return '#ef4444';
       case 'expert': return '#8b5cf6';
-      case 'master': return '#f97316';
+      case 'master': return '#6466E9';
       default: return '#6b7280';
     }
   };
@@ -153,15 +161,9 @@ export default function ProgressDashboardScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#6b7280" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Progress Dashboard</Text>
-        <TouchableOpacity onPress={onRefresh} style={styles.refreshButton}>
-          <Ionicons name="refresh" size={24} color="#6366f1" />
-        </TouchableOpacity>
-      </View>
+      <ConsistentHeader 
+        pageName="Progress"
+      />
 
       {/* Error Display */}
       {error && (
@@ -398,33 +400,13 @@ export default function ProgressDashboardScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#f8fafc',
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#1e293b',
-  },
-  backButton: {
-    padding: 8,
-    borderRadius: 8,
-  },
-  refreshButton: {
-    padding: 8,
-    borderRadius: 8,
+    backgroundColor: '#ffffff',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#ffffff',
   },
   loadingText: {
     marginTop: 16,

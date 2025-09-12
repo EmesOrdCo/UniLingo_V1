@@ -1,518 +1,248 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Image,
-  Dimensions,
-  StatusBar,
+  SafeAreaView,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import DailyChallengeSection from '../components/DailyChallengeSection';
 
 export default function HomeScreen() {
-  const [activeSubject, setActiveSubject] = useState(0);
-  const [screenWidth, setScreenWidth] = useState(400);
   const navigation = useNavigation();
 
-  console.log('🏠 HomeScreen rendering...');
-
-  useEffect(() => {
-    const { width } = Dimensions.get('window');
-    setScreenWidth(width || 400);
-  }, []);
-
-  // Create styles after screenWidth is set
-  const styles = useMemo(() => {
-    // Ensure screenWidth is always a number and handle edge cases
-    const safeScreenWidth = typeof screenWidth === 'number' && !isNaN(screenWidth) ? screenWidth : 400;
-    
-    // Validate the width calculation to prevent crashes
-    const calculateWidth = (baseWidth: number) => {
-      try {
-        const result = Math.max((baseWidth - 52) / 2, 150);
-        return isNaN(result) ? 150 : result;
-      } catch (error) {
-        console.warn('Width calculation error:', error);
-        return 150;
-      }
-    };
-
-    return StyleSheet.create({
-      container: {
-        flex: 1,
-        backgroundColor: '#f8fafc',
-      },
-      header: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingHorizontal: 24,
-        paddingVertical: 24,
-        backgroundColor: '#f8fafc',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.12,
-        shadowRadius: 20,
-        elevation: 6,
-      },
-      logoContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-      },
-      logo: {
-        width: 56,
-        height: 56,
-        borderRadius: 16,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 16,
-        backgroundColor: '#6366f1',
-        shadowColor: '#6366f1',
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.4,
-        shadowRadius: 12,
-        elevation: 8,
-      },
-      logoText: {
-        fontSize: 28,
-        fontWeight: '800',
-        color: '#ffffff',
-        letterSpacing: -0.5,
-      },
-      headerButtons: {
-        flexDirection: 'row',
-        alignItems: 'center',
-      },
-      signInButton: {
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        marginRight: 12,
-      },
-      signInText: {
-        color: '#64748b',
-        fontSize: 16,
-        fontWeight: '500',
-      },
-      getStartedButton: {
-        backgroundColor: '#6366f1',
-        paddingHorizontal: 28,
-        paddingVertical: 16,
-        borderRadius: 16,
-        shadowColor: '#6366f1',
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.4,
-        shadowRadius: 12,
-        elevation: 8,
-      },
-      getStartedText: {
-        color: '#ffffff',
-        fontSize: 18,
-        fontWeight: '700',
-        letterSpacing: -0.3,
-      },
-      scrollView: {
-        flex: 1,
-      },
-      heroSection: {
-        padding: 20,
-        alignItems: 'center',
-        textAlign: 'center',
-      },
-      heroTitle: {
-        fontSize: 28,
-        fontWeight: 'bold',
-        color: '#1e293b',
-        textAlign: 'center',
-        lineHeight: 36,
-        marginBottom: 16,
-      },
-      heroTitleHighlight: {
-        color: '#6366f1',
-      },
-      heroSubtitle: {
-        fontSize: 16,
-        color: '#64748b',
-        textAlign: 'center',
-        lineHeight: 24,
-        marginBottom: 32,
-        paddingHorizontal: 20,
-      },
-      ctaButton: {
-        backgroundColor: '#6366f1',
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: 24,
-        paddingVertical: 16,
-        borderRadius: 12,
-        marginBottom: 8,
-      },
-      ctaButtonText: {
-        color: '#ffffff',
-        fontSize: 18,
-        fontWeight: '600',
-      },
-      section: {
-        padding: 20,
-        marginBottom: 20,
-      },
-      sectionTitle: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: '#1e293b',
-        textAlign: 'center',
-        marginBottom: 8,
-      },
-      sectionSubtitle: {
-        fontSize: 16,
-        color: '#64748b',
-        textAlign: 'center',
-        marginBottom: 24,
-      },
-      subjectsGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        justifyContent: 'space-between',
-      },
-      subjectCard: {
-        width: calculateWidth(safeScreenWidth),
-        backgroundColor: '#f8fafc',
-        padding: 16,
-        borderRadius: 12,
-        alignItems: 'center',
-        borderWidth: 2,
-        borderColor: 'transparent',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
-      },
-      activeSubjectCard: {
-        borderColor: '#6366f1',
-      },
-      subjectIcon: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 12,
-      },
-      subjectName: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: '#1e293b',
-        textAlign: 'center',
-      },
-      featuresList: {
-        marginBottom: 16,
-      },
-      featureCard: {
-        flexDirection: 'row',
-        backgroundColor: '#f8fafc',
-        padding: 16,
-        borderRadius: 12,
-        alignItems: 'flex-start',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
-      },
-      featureIcon: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 16,
-      },
-      featureContent: {
-        flex: 1,
-      },
-      featureTitle: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#1e293b',
-        marginBottom: 4,
-      },
-      featureDescription: {
-        fontSize: 14,
-        color: '#64748b',
-        lineHeight: 20,
-      },
-      stepsContainer: {
-        marginBottom: 24,
-      },
-      step: {
-        alignItems: 'center',
-        textAlign: 'center',
-      },
-      stepNumber: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
-        backgroundColor: '#6366f1',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: 16,
-      },
-      stepNumberText: {
-        color: '#ffffff',
-        fontSize: 20,
-        fontWeight: 'bold',
-      },
-      stepTitle: {
-        fontSize: 18,
-        fontWeight: '600',
-        color: '#1e293b',
-        marginBottom: 8,
-        textAlign: 'center',
-      },
-      stepDescription: {
-        fontSize: 14,
-        color: '#64748b',
-        textAlign: 'center',
-        lineHeight: 20,
-      },
-      ctaSection: {
-        padding: 20,
-        marginBottom: 40,
-      },
-      ctaGradient: {
-        padding: 24,
-        borderRadius: 16,
-        alignItems: 'center',
-      },
-      ctaTitle: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: '#ffffff',
-        textAlign: 'center',
-        marginBottom: 8,
-      },
-      ctaSubtitle: {
-        fontSize: 16,
-        color: '#e2e8f0',
-        textAlign: 'center',
-        marginBottom: 24,
-        lineHeight: 24,
-      },
-      ctaButtonLarge: {
-        backgroundColor: '#f8fafc',
-        paddingHorizontal: 32,
-        paddingVertical: 16,
-        borderRadius: 12,
-      },
-    });
-  }, [screenWidth]);
-
-  const handleSubjectPress = (index: number) => {
-    setActiveSubject(index);
-  };
-
-  const handleGetStarted = () => {
-    navigation.navigate('Register' as never);
-  };
-
-  const handleSignIn = () => {
-    navigation.navigate('Login' as never);
-  };
-
-  const subjects = [
-    { name: 'Medicine', icon: 'medical', color: '#ef4444' },
-    { name: 'Engineering', icon: 'construct', color: '#3b82f6' },
-    { name: 'Physics', icon: 'flash', color: '#8b5cf6' },
-    { name: 'Biology', icon: 'leaf', color: '#10b981' },
-    { name: 'Chemistry', icon: 'flask', color: '#f59e0b' },
-    { name: 'Business', icon: 'business', color: '#6b7280' },
-    { name: 'Humanities', icon: 'library', color: '#f59e0b' },
-    { name: 'Sciences', icon: 'school', color: '#14b8a6' },
-  ];
-
-  const features = [
-    {
-      icon: 'cloud-upload',
-      title: 'Upload Course Notes',
-      description: 'Upload your lecture notes, PDFs, or documents and let AI extract key terminology for learning.',
-      color: '#3b82f6',
-    },
-    {
-      icon: 'bulb',
-      title: 'AI-Generated Content',
-      description: 'Get personalized learning materials and exercises based on your subject and current level.',
-      color: '#8b5cf6',
-    },
-    {
-      icon: 'compass',
-      title: 'Subject-Specific Learning',
-      description: 'Learn academic English vocabulary and phrases relevant to your field of study.',
-      color: '#10b981',
-    },
-    {
-      icon: 'book',
-      title: 'Interactive Flashcards',
-      description: 'Review key terms with spaced repetition learning for maximum retention.',
-      color: '#f59e0b',
-    },
-    {
-      icon: 'people',
-      title: 'University-Focused',
-      description: 'Designed specifically for university students with academic context in mind.',
-      color: '#6366f1',
-    },
-    {
-      icon: 'trophy',
-      title: 'Progress Tracking',
-      description: 'Monitor your learning progress with detailed analytics and achievements.',
-      color: '#ec4899',
-    },
+  const units = [
+    { id: 1, title: 'add unit name here' },
+    { id: 2, title: 'add unit name here' },
+    { id: 3, title: 'add unit name here' },
+    { id: 4, title: 'add unit name here' },
+    { id: 5, title: 'add unit name here' },
+    { id: 6, title: 'add unit name here' },
+    { id: 7, title: 'add unit name here' },
+    { id: 8, title: 'add unit name here' },
+    { id: 9, title: 'add unit name here' },
+    { id: 10, title: 'add unit name here' },
   ];
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
-      
       {/* Header */}
       <View style={styles.header}>
-        <View style={styles.logoContainer}>
-          <View style={[styles.logo, { backgroundColor: '#6366f1' }]}>
-            <Ionicons name="book" size={24} color="#ffffff" />
-          </View>
-          <Text style={styles.logoText}>UniLingo</Text>
-        </View>
-        
-        <View style={styles.headerButtons}>
-          <TouchableOpacity style={styles.signInButton} onPress={handleSignIn}>
-            <Text style={styles.signInText}>Sign In</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.getStartedButton} onPress={handleGetStarted}>
-            <Text style={styles.getStartedText}>Get Started</Text>
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="arrow-back" size={24} color="#000000" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Current course</Text>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} style={styles.scrollView}>
-        {/* Hero Section */}
-        <View style={styles.heroSection}>
-          <Text style={styles.heroTitle}>
-            Master Academic English{'\n'}
-            <Text style={styles.heroTitleHighlight}>One Subject at a Time</Text>
-          </Text>
-          <Text style={styles.heroSubtitle}>
-            Transform your university notes into interactive learning experiences. 
-            Learn subject-specific vocabulary with AI-powered flashcards and exercises.
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Daily Challenge */}
+        <DailyChallengeSection onPlay={(gameType) => {
+          navigation.navigate('Games' as never);
+        }} />
+
+        {/* Course Overview Section */}
+        <View style={styles.courseOverview}>
+          <Text style={styles.courseLevel}>A1.1</Text>
+          <Text style={styles.courseTitle}>Newcomer I (A1.1)</Text>
+          <Text style={styles.courseDescription}>
+            Learn how to introduce yourself and answer simple questions about your basic needs.
           </Text>
           
-          <TouchableOpacity style={styles.ctaButton} onPress={handleGetStarted}>
-            <Text style={styles.ctaButtonText}>Start Learning Today</Text>
-            <Ionicons name="arrow-forward" size={20} color="#ffffff" />
+          {/* Progress Bar */}
+          <View style={styles.progressSection}>
+            <View style={styles.progressBar}>
+              <View style={styles.progressFill} />
+            </View>
+            <Text style={styles.progressText}>2%</Text>
+          </View>
+          
+          {/* Change Button */}
+          <TouchableOpacity style={styles.changeButton}>
+            <Text style={styles.changeButtonText}>Change</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Subjects Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Choose Your Subject</Text>
-          <Text style={styles.sectionSubtitle}>
-            Select your field of study to get started with relevant vocabulary
-          </Text>
-          
-          <View style={styles.subjectsGrid}>
-            {subjects.map((subject, index) => (
-              <TouchableOpacity
-                key={subject.name}
-                style={[
-                  styles.subjectCard,
-                  activeSubject === index && styles.activeSubjectCard,
-                ]}
-                onPress={() => handleSubjectPress(index)}
-              >
-                <View
-                  style={[styles.subjectIcon, { backgroundColor: subject.color }]}
-                >
-                  <Ionicons name={subject.icon as any} size={24} color="#ffffff" />
-                </View>
-                <Text style={styles.subjectName}>{subject.name}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        {/* Features Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Why Choose UniLingo?</Text>
-          <Text style={styles.sectionSubtitle}>
-            Everything you need to excel in academic English
-          </Text>
-          
-          <View style={styles.featuresList}>
-            {features.map((feature, index) => (
-              <View key={index} style={styles.featureCard}>
-                <View style={[styles.featureIcon, { backgroundColor: feature.color }]}>
-                  <Ionicons name={feature.icon as any} size={24} color="#ffffff" />
-                </View>
-                <View style={styles.featureContent}>
-                  <Text style={styles.featureTitle}>{feature.title}</Text>
-                  <Text style={styles.featureDescription}>{feature.description}</Text>
+        {/* Course Units Section */}
+        <View style={styles.unitsSection}>
+          {units.map((unit) => (
+            <TouchableOpacity key={unit.id} style={styles.unitCard}>
+              <View style={styles.unitHeader}>
+                <Text style={styles.unitNumber}>Unit {unit.id}</Text>
+                <View style={styles.unitProgressBar}>
+                  <View style={styles.unitProgressFill} />
                 </View>
               </View>
-            ))}
-          </View>
-        </View>
-
-        {/* How It Works Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>How It Works</Text>
-          <View style={styles.stepsContainer}>
-            <View style={styles.step}>
-              <View style={styles.stepNumber}>
-                <Text style={styles.stepNumberText}>1</Text>
+              
+              <Text style={styles.unitTitle}>{unit.title}</Text>
+              
+              <View style={styles.unitFooter}>
+                <Ionicons name="download-outline" size={20} color="#6b7280" />
+                <Ionicons name="chevron-down" size={20} color="#6b7280" />
               </View>
-              <Text style={styles.stepTitle}>Upload Your Notes</Text>
-              <Text style={styles.stepDescription}>
-                Upload PDFs, documents, or type in your lecture notes
-              </Text>
-            </View>
-            
-            <View style={styles.step}>
-              <View style={styles.stepNumber}>
-                <Text style={styles.stepNumberText}>2</Text>
-              </View>
-              <Text style={styles.stepTitle}>AI Extracts Terms</Text>
-              <Text style={styles.stepDescription}>
-                Our AI identifies key vocabulary and concepts automatically
-              </Text>
-            </View>
-            
-            <View style={styles.step}>
-              <View style={styles.stepNumber}>
-                <Text style={styles.stepNumberText}>3</Text>
-              </View>
-              <Text style={styles.stepTitle}>Learn & Practice</Text>
-              <Text style={styles.stepDescription}>
-                Study with flashcards, games, and interactive exercises
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* CTA Section */}
-        <View style={styles.ctaSection}>
-          <View style={[styles.ctaGradient, { backgroundColor: '#6366f1' }]}>
-            <Text style={styles.ctaTitle}>Ready to Transform Your Learning?</Text>
-            <Text style={styles.ctaSubtitle}>
-              Join thousands of students already using UniLingo to master academic English
-            </Text>
-            <TouchableOpacity style={styles.ctaButtonLarge} onPress={handleGetStarted}>
-              <Text style={styles.ctaButtonText}>Get Started Free</Text>
             </TouchableOpacity>
-          </View>
+          ))}
         </View>
+
+        {/* Unlock Courses Button */}
+        <TouchableOpacity style={styles.unlockButton}>
+          <Ionicons name="lock-closed" size={20} color="#ffffff" />
+          <Text style={styles.unlockButtonText}>Unlock all Spanish courses</Text>
+        </TouchableOpacity>
+
+        <View style={styles.bottomSpacing} />
       </ScrollView>
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+  backButton: {
+    marginRight: 16,
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#000000',
+  },
+  content: {
+    flex: 1,
+  },
+  courseOverview: {
+    padding: 20,
+    backgroundColor: '#ffffff',
+  },
+  courseLevel: {
+    fontSize: 14,
+    color: '#6b7280',
+    marginBottom: 4,
+  },
+  courseTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#000000',
+    marginBottom: 8,
+  },
+  courseDescription: {
+    fontSize: 16,
+    color: '#4b5563',
+    lineHeight: 22,
+    marginBottom: 20,
+  },
+  progressSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  progressBar: {
+    flex: 1,
+    height: 8,
+    backgroundColor: '#e5e7eb',
+    borderRadius: 4,
+    marginRight: 12,
+  },
+  progressFill: {
+    width: '2%',
+    height: '100%',
+    backgroundColor: '#6466E9',
+    borderRadius: 4,
+  },
+  progressText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000000',
+  },
+  changeButton: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: '#000000',
+    borderRadius: 8,
+  },
+  changeButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#000000',
+  },
+  unitsSection: {
+    padding: 20,
+    backgroundColor: '#ffffff',
+  },
+  unitCard: {
+    backgroundColor: '#ffffff',
+    padding: 16,
+    marginBottom: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  unitHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  unitNumber: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#6b7280',
+    marginRight: 12,
+  },
+  unitProgressBar: {
+    flex: 1,
+    height: 4,
+    backgroundColor: '#e5e7eb',
+    borderRadius: 2,
+  },
+  unitProgressFill: {
+    width: '0%',
+    height: '100%',
+    backgroundColor: '#6466E9',
+    borderRadius: 2,
+  },
+  unitTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#000000',
+    marginBottom: 12,
+  },
+  unitFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  unlockButton: {
+    margin: 20,
+    backgroundColor: '#6466E9',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    gap: 8,
+  },
+  unlockButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#ffffff',
+  },
+  bottomSpacing: {
+    height: 20,
+  },
+});

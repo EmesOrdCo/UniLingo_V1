@@ -55,7 +55,7 @@ export default function ProgressAnalyticsDashboard({ userId, onClose }: Progress
       case 'morning':
         return { icon: 'sunny', color: '#f59e0b', text: 'Morning' };
       case 'afternoon':
-        return { icon: 'partly-sunny', color: '#f97316', text: 'Afternoon' };
+        return { icon: 'partly-sunny', color: '#6466E9', text: 'Afternoon' };
       default:
         return { icon: 'moon', color: '#6366f1', text: 'Evening' };
     }
