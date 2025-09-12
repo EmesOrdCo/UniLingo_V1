@@ -46,6 +46,11 @@ import LevelProgressScreen from './src/screens/LevelProgressScreen';
 import UnitDetailScreen from './src/screens/UnitDetailScreen';
 import CoursesScreen from './src/screens/CoursesScreen';
 import YourLessonsScreen from './src/screens/YourLessonsScreen';
+import FlashcardStudyScreen from './src/screens/FlashcardStudyScreen';
+import BrowseFlashcardsScreen from './src/screens/BrowseFlashcardsScreen';
+import UnitWordsScreen from './src/screens/UnitWordsScreen';
+import UnitListenScreen from './src/screens/UnitListenScreen';
+import UnitWriteScreen from './src/screens/UnitWriteScreen';
 
 const Stack = createStackNavigator();
 
@@ -85,6 +90,11 @@ function MainNavigator() {
       <Stack.Screen name="UnitDetail" component={UnitDetailScreen} />
       <Stack.Screen name="Courses" component={CoursesScreen} />
       <Stack.Screen name="YourLessons" component={YourLessonsScreen} />
+      <Stack.Screen name="FlashcardStudy" component={FlashcardStudyScreen} />
+      <Stack.Screen name="BrowseFlashcards" component={BrowseFlashcardsScreen} />
+      <Stack.Screen name="UnitWords" component={UnitWordsScreen} />
+      <Stack.Screen name="UnitListen" component={UnitListenScreen} />
+      <Stack.Screen name="UnitWrite" component={UnitWriteScreen} />
     </Stack.Navigator>
   );
 }

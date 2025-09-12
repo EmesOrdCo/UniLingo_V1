@@ -89,13 +89,20 @@ export default function ProgressDashboardScreen() {
         weeklyProgress: [],
         monthlyProgress: [],
         recentActivities: [],
-        upcomingGoals: [],
         achievements: [],
         levelProgress: {
           currentLevel: 'Beginner',
           experiencePoints: 0,
           nextLevelThreshold: 100,
           progressPercentage: 0,
+        },
+        flashcardStats: {
+          totalCards: 0,
+          masteredCards: 0,
+          dayStreak: 0,
+          averageAccuracy: 0,
+          bestTopic: 'None',
+          weakestTopic: 'None',
         },
       });
       
@@ -245,51 +252,6 @@ export default function ProgressDashboardScreen() {
           </View>
         </View>
 
-        {/* Today's Goals */}
-        <View style={styles.goalsSection}>
-          <Text style={styles.sectionTitle}>🎯 Today's Goals</Text>
-          <View style={styles.goalsGrid}>
-            {progressData?.upcomingGoals.map((goal, index) => (
-              <View key={index} style={styles.goalCard}>
-                <View style={styles.goalHeader}>
-                  <Ionicons 
-                    name={
-                      goal.goal_type === 'study_time' ? 'time' :
-                      goal.goal_type === 'lessons_completed' ? 'book' :
-                      goal.goal_type === 'flashcards_reviewed' ? 'card' : 'game-controller'
-                    } 
-                    size={20} 
-                    color={goal.completed ? '#10b981' : '#6b7280'} 
-                  />
-                  <Text style={styles.goalType}>
-                    {goal.goal_type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                  </Text>
-                </View>
-                <View style={styles.goalProgress}>
-                  <Text style={styles.goalCurrent}>{goal.current_value}</Text>
-                  <Text style={styles.goalSeparator}>/</Text>
-                  <Text style={styles.goalTarget}>{goal.target_value}</Text>
-                </View>
-                <View style={styles.goalBar}>
-                  <View 
-                    style={[
-                      styles.goalFill, 
-                      { 
-                        width: `${Math.min(100, (goal.current_value / goal.target_value) * 100)}%`,
-                        backgroundColor: goal.completed ? '#10b981' : '#6366f1'
-                      }
-                    ]} 
-                  />
-                </View>
-                {goal.completed && (
-                  <View style={styles.goalCompleted}>
-                    <Ionicons name="checkmark-circle" size={16} color="#10b981" />
-                  </View>
-                )}
-              </View>
-            ))}
-          </View>
-        </View>
 
         {/* Recent Activities */}
         <RecentActivitiesWidget />
@@ -546,85 +508,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6b7280',
   },
-  goalsSection: {
-    backgroundColor: '#f8fafc',
-    marginHorizontal: 16,
-    marginBottom: 16,
-    borderRadius: 16,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
   sectionTitle: {
     fontSize: 20,
     fontWeight: '700',
     color: '#1e293b',
     marginBottom: 16,
   },
-  goalsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  goalCard: {
-    width: (width - 80) / 2,
-    backgroundColor: '#f8fafc',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    alignItems: 'center',
-    position: 'relative',
-  },
-  goalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  goalType: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#6b7280',
-    marginLeft: 8,
-    textAlign: 'center',
-  },
-  goalProgress: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  goalCurrent: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1e293b',
-  },
-  goalSeparator: {
-    fontSize: 16,
-    color: '#6b7280',
-    marginHorizontal: 4,
-  },
-  goalTarget: {
-    fontSize: 16,
-    color: '#6b7280',
-  },
-  goalBar: {
-    width: '100%',
-    height: 4,
-    backgroundColor: '#e5e7eb',
-    borderRadius: 2,
-  },
-  goalFill: {
-    height: '100%',
-    borderRadius: 2,
-  },
-  goalCompleted: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-  },
-
   achievementsSection: {
     backgroundColor: '#f8fafc',
     marginHorizontal: 16,

@@ -170,8 +170,9 @@ export class ProgressTrackingService {
         await this.updateDailyGoals(user.id, 'study_time', studyTimeMinutes);
       }
 
-      // Update streaks
+      // Update streaks (both specific and overall)
       await this.updateStreaks(user.id, 'game_play');
+      await this.updateStreaks(user.id, 'daily_study');
 
       console.log(`🎯 [${recordId}] Game activity recorded successfully - ALL OPERATIONS COMPLETE`);
       
@@ -233,8 +234,9 @@ export class ProgressTrackingService {
         await this.updateDailyGoals(user.id, 'study_time', studyTimeMinutes);
       }
 
-      // Update streaks
+      // Update streaks (both specific and overall)
       await this.updateStreaks(user.id, 'flashcard_review');
+      await this.updateStreaks(user.id, 'daily_study');
 
       console.log('✅ Flashcard activity recorded successfully');
       
@@ -291,8 +293,9 @@ export class ProgressTrackingService {
         await this.updateDailyGoals(user.id, 'study_time', studyTimeMinutes);
       }
 
-      // Update streaks
+      // Update streaks (both specific and overall)
       await this.updateStreaks(user.id, 'lesson_completion');
+      await this.updateStreaks(user.id, 'daily_study');
 
       console.log('✅ Lesson activity recorded successfully');
       
@@ -344,11 +347,19 @@ export class ProgressTrackingService {
           updates.consecutive_correct = 0;
         }
 
-        // Calculate mastery level (simple algorithm)
-        const totalAttempts = updates.correct_attempts + updates.incorrect_attempts;
+        // Calculate mastery level (based on recent performance)
         const masteryLevel = Math.round((updates.correct_attempts / totalAttempts) * 100);
         updates.mastery_level = masteryLevel;
-        updates.is_mastered = masteryLevel >= 80;
+        
+        // Mastery logic: Mastered if either:
+        // 1. First attempt was correct (immediate mastery)
+        // 2. Recent performance is good (3+ consecutive correct)
+        // 3. Overall accuracy is high (80%+) AND has at least 3 attempts
+        updates.is_mastered = (
+          (totalAttempts === 1 && data.isCorrect) ||  // First attempt correct
+          (updates.consecutive_correct >= 3) ||        // 3+ consecutive correct
+          (masteryLevel >= 80 && totalAttempts >= 3)   // 80%+ accuracy with enough attempts
+        );
 
         // Calculate next review date (spaced repetition)
         const daysUntilNext = data.isCorrect ? 
@@ -359,9 +370,8 @@ export class ProgressTrackingService {
         nextReviewDate.setDate(nextReviewDate.getDate() + daysUntilNext);
         updates.next_review_date = nextReviewDate.toISOString();
 
-        // Calculate retention score
-        const retentionScore = Math.max(0, masteryLevel - (updates.consecutive_incorrect * 5));
-        updates.retention_score = retentionScore;
+        // Calculate retention score (simple accuracy percentage)
+        updates.retention_score = totalAttempts > 0 ? Math.round((updates.correct_attempts / totalAttempts) * 100) : 0;
 
         const { error } = await supabase
           .from('user_flashcard_progress')
@@ -379,7 +389,7 @@ export class ProgressTrackingService {
           consecutive_correct: data.isCorrect ? 1 : 0,
           consecutive_incorrect: data.isCorrect ? 0 : 1,
           mastery_level: data.isCorrect ? 100 : 0,
-          is_mastered: data.isCorrect,
+          is_mastered: data.isCorrect, // First attempt correct = immediate mastery
           last_reviewed: now,
           next_review_date: new Date(Date.now() + (data.isCorrect ? 2 : 1) * 24 * 60 * 60 * 1000).toISOString(),
           retention_score: data.isCorrect ? 100 : 0,
@@ -616,7 +626,7 @@ export class ProgressTrackingService {
         .select('*')
         .eq('user_id', userId)
         .eq('streak_type', streakType)
-        .single();
+        .maybeSingle();
 
       if (existingStreak) {
         const lastActivityDate = existingStreak.last_activity_date;
@@ -639,6 +649,18 @@ export class ProgressTrackingService {
         }
 
         const newLongestStreak = Math.max(existingStreak.longest_streak, newCurrentStreak);
+
+        console.log('🔄 Updating streak:', {
+          userId,
+          streakType,
+          lastActivityDate,
+          yesterdayStr,
+          today,
+          oldCurrent: existingStreak.current_streak,
+          newCurrent: newCurrentStreak,
+          oldLongest: existingStreak.longest_streak,
+          newLongest: newLongestStreak
+        });
 
         const { error } = await supabase
           .from('user_streaks')

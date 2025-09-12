@@ -42,6 +42,7 @@ export default function LessonWalkthroughScreen() {
   const [completedExercises, setCompletedExercises] = useState<Set<string>>(new Set());
   const [currentExercise, setCurrentExercise] = useState<string>('');
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
+  const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
 
   const navigation = useNavigation();
   const route = useRoute();
@@ -58,7 +59,7 @@ export default function LessonWalkthroughScreen() {
       // Screen is focused - start timing
       if (isActive) {
         setSessionStartTime(new Date());
-        logger.debug('Lesson screen focused - starting active timer');
+        console.log('🕐 Lesson screen focused - starting active timer');
       }
       
       return () => {
@@ -66,7 +67,7 @@ export default function LessonWalkthroughScreen() {
         if (isActive && sessionStartTime) {
           const sessionDuration = Math.floor((new Date().getTime() - sessionStartTime.getTime()) / 1000);
           setTotalActiveTime(prev => prev + sessionDuration);
-          logger.debug(`Lesson screen blurred - accumulated ${sessionDuration}s, total: ${totalActiveTime + sessionDuration}s`);
+          console.log(`🕐 Lesson screen blurred - accumulated ${sessionDuration}s, total: ${totalActiveTime + sessionDuration}s`);
         }
       };
     }, [isActive, sessionStartTime, totalActiveTime])
@@ -177,11 +178,12 @@ export default function LessonWalkthroughScreen() {
     
     // Initialize progress in database
     try {
+      const maxPossibleScore = lessonVocabulary.length * 5; // 5 points per word across all exercises
       await LessonService.updateLessonProgress(lessonId, user.id, {
         started_at: now.toISOString(),
         completed_at: null,
         total_score: 0,
-        max_possible_score: 0,
+        max_possible_score: maxPossibleScore,
         time_spent_seconds: 0
       });
       
@@ -191,7 +193,7 @@ export default function LessonWalkthroughScreen() {
         started_at: now.toISOString(),
         completed_at: null,
         total_score: 0,
-        max_possible_score: 0,
+        max_possible_score: maxPossibleScore,
         time_spent_seconds: 0
       } : null);
     } catch (error) {
@@ -275,9 +277,9 @@ export default function LessonWalkthroughScreen() {
     };
     setExerciseScores(restoredScores);
     
-    // Try to load exact resume position from local storage
+    // Try to load exact resume position from local storage (only if not transitioning)
     const resumePosition = await loadResumePosition();
-    if (resumePosition && resumePosition.exercise && resumePosition.questionIndex !== undefined) {
+    if (resumePosition && resumePosition.exercise && resumePosition.questionIndex !== undefined && !isTransitioning) {
       setCurrentExercise(resumePosition.exercise);
       setCurrentQuestionIndex(resumePosition.questionIndex);
       setCurrentStep(resumePosition.exercise as ExerciseStep);
@@ -357,6 +359,13 @@ export default function LessonWalkthroughScreen() {
       }
     }
     
+    // Initialize active timing if not already active
+    if (!isActive) {
+      setIsActive(true);
+      setSessionStartTime(new Date());
+      console.log('🕐 Started lesson timing');
+    }
+    
     // Set current exercise tracking
     setCurrentExercise(exerciseType);
     setCurrentQuestionIndex(0);
@@ -376,6 +385,17 @@ export default function LessonWalkthroughScreen() {
 
     // Mark exercise as completed
     setCompletedExercises(prev => new Set([...prev, exerciseType]));
+
+    // Set transitioning flag to prevent resume position loading
+    setIsTransitioning(true);
+    
+    // Reset question index for next exercise
+    setCurrentQuestionIndex(0);
+    console.log(`🔄 Reset question index to 0 after completing ${exerciseType}`);
+
+    // Clear resume position to prevent carrying over question index to next exercise
+    await clearResumePosition();
+    console.log(`🧹 Cleared resume position after completing ${exerciseType}`);
 
     // Update progress in database using new service
     try {
@@ -429,6 +449,9 @@ export default function LessonWalkthroughScreen() {
     // Move to next step
     setTimeout(() => {
       setCurrentStep(nextStep);
+      setCurrentExercise(nextStep);
+      setIsTransitioning(false); // Clear transitioning flag
+      console.log(`🎯 Transitioning to ${nextStep} with question index 0`);
     }, 1000);
   };
 
@@ -441,6 +464,8 @@ export default function LessonWalkthroughScreen() {
       const currentSessionTime = Math.floor((new Date().getTime() - sessionStartTime.getTime()) / 1000);
       finalActiveTime += currentSessionTime;
     }
+    
+    console.log(`⏱️ Lesson completion timing: totalActiveTime=${totalActiveTime}s, isActive=${isActive}, sessionStartTime=${sessionStartTime}, finalActiveTime=${finalActiveTime}s`);
 
     const totalScore = Object.values(exerciseScores).reduce((sum, score) => sum + score, 0);
     const maxPossibleScore = lessonVocabulary.length * 5; // 5 exercises
@@ -537,11 +562,12 @@ export default function LessonWalkthroughScreen() {
     
     // Reset progress in database
     try {
+      const maxPossibleScore = lessonVocabulary.length * 5; // 5 points per word across all exercises
       await LessonService.updateLessonProgress(lessonId, user.id, {
         started_at: now.toISOString(),
         completed_at: null,
         total_score: 0,
-        max_possible_score: 0,
+        max_possible_score: maxPossibleScore,
         time_spent_seconds: 0
       });
       
@@ -551,7 +577,7 @@ export default function LessonWalkthroughScreen() {
         started_at: now.toISOString(),
         completed_at: null,
         total_score: 0,
-        max_possible_score: 0,
+        max_possible_score: maxPossibleScore,
         time_spent_seconds: 0
       } : null);
     } catch (error) {
@@ -808,7 +834,7 @@ export default function LessonWalkthroughScreen() {
           setCurrentQuestionIndex(questionIndex);
           saveResumePosition('flashcards', questionIndex);
         }}
-        initialQuestionIndex={currentQuestionIndex}
+        initialQuestionIndex={0}
       />
     );
   }
@@ -829,7 +855,7 @@ export default function LessonWalkthroughScreen() {
           setCurrentQuestionIndex(questionIndex);
           saveResumePosition('flashcard-quiz', questionIndex);
         }}
-        initialQuestionIndex={currentQuestionIndex}
+        initialQuestionIndex={0}
       />
     );
   }
@@ -850,7 +876,7 @@ export default function LessonWalkthroughScreen() {
           setCurrentQuestionIndex(questionIndex);
           saveResumePosition('sentence-scramble', questionIndex);
         }}
-        initialQuestionIndex={currentQuestionIndex}
+        initialQuestionIndex={0}
       />
     );
   }
@@ -871,7 +897,7 @@ export default function LessonWalkthroughScreen() {
           setCurrentQuestionIndex(questionIndex);
           saveResumePosition('word-scramble', questionIndex);
         }}
-        initialQuestionIndex={currentQuestionIndex}
+        initialQuestionIndex={0}
       />
     );
   }
@@ -889,7 +915,7 @@ export default function LessonWalkthroughScreen() {
           setCurrentQuestionIndex(questionIndex);
           saveResumePosition('fill-in-blank', questionIndex);
         }}
-        initialQuestionIndex={currentQuestionIndex}
+        initialQuestionIndex={0}
       />
     );
   }

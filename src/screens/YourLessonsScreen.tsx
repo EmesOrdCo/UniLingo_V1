@@ -83,7 +83,20 @@ export default function YourLessonsScreen() {
 
   const getProgressPercentage = (progress?: LessonProgress) => {
     if (!progress) return 0;
-    return Math.round((progress.words_learned / progress.total_words) * 100);
+    
+    // Calculate progress based on completion status and score
+    if (progress.completed_at) {
+      // Lesson is completed - 100% progress
+      return 100;
+    } else if (progress.started_at) {
+      // Lesson is started but not completed - calculate based on score
+      const scorePercentage = progress.max_possible_score > 0 
+        ? Math.round((progress.total_score / progress.max_possible_score) * 100)
+        : 0;
+      return Math.min(scorePercentage, 99); // Cap at 99% until completed
+    }
+    
+    return 0; // Not started
   };
 
   if (loading) {
@@ -195,7 +208,12 @@ export default function YourLessonsScreen() {
                       />
                     </View>
                     <Text style={styles.progressText}>
-                      {lesson.progress.words_learned} of {lesson.progress.total_words} words learned
+                      {lesson.progress.completed_at 
+                        ? 'Completed' 
+                        : lesson.progress.started_at 
+                          ? `${lesson.progress.total_score}/${lesson.progress.max_possible_score} points`
+                          : 'Not started'
+                      }
                     </Text>
                   </View>
                 )}

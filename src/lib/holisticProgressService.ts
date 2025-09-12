@@ -473,9 +473,9 @@ export class HolisticProgressService {
       // Get flashcard statistics
       const flashcardStats = await this.getFlashcardStats(userId);
 
-      return {
+      const result = {
         currentStreak: dailyStreak?.current_streak || 0,
-        longestStreak: dailyStreak?.current_streak || 0,
+        longestStreak: dailyStreak?.longest_streak || 0,
         todayProgress: todayProgress || null,
         weeklyProgress: weeklyProgress || [],
         monthlyProgress: monthlyProgress || [],
@@ -485,6 +485,14 @@ export class HolisticProgressService {
         levelProgress,
         flashcardStats,
       };
+      
+      console.log('📊 Streak data:', { 
+        current: dailyStreak?.current_streak, 
+        longest: dailyStreak?.longest_streak,
+        result: { currentStreak: result.currentStreak, longestStreak: result.longestStreak }
+      });
+      
+      return result;
     } catch (error) {
       console.error('Error fetching progress insights:', error);
       return null;
@@ -679,11 +687,15 @@ export class HolisticProgressService {
 
   static async getFlashcardStats(userId: string) {
     try {
+      console.log('🔍 Fetching flashcard stats for user:', userId);
+      
       // Get total cards count
       const { data: userFlashcards } = await supabase
         .from('user_flashcards')
         .select('id, topic')
         .eq('user_id', userId);
+      
+      console.log('📚 User flashcards found:', userFlashcards?.length || 0);
       
       // REMOVED: General flashcards table no longer exists
       const totalCards = userFlashcards?.length || 0;
@@ -694,27 +706,39 @@ export class HolisticProgressService {
         .select('is_mastered, retention_score')
         .eq('user_id', userId);
       
+      console.log('📊 Progress records found:', progressData?.length || 0);
+      
       const masteredCards = progressData?.filter(p => p.is_mastered)?.length || 0;
       
-      // Calculate average accuracy
-      const validProgress = progressData?.filter(p => p.retention_score !== null) || [];
-      const averageAccuracy = validProgress.length > 0
-        ? Math.round(validProgress.reduce((sum, p) => sum + p.retention_score, 0) / validProgress.length)
+      // Calculate average accuracy from user_activities (much simpler!)
+      const { data: flashcardActivities } = await supabase
+        .from('user_activities')
+        .select('accuracy_percentage')
+        .eq('user_id', userId)
+        .in('activity_type', ['flashcard', 'flashcard_review']);
+      
+      const validActivities = flashcardActivities?.filter(a => a.accuracy_percentage !== null) || [];
+      const averageAccuracy = validActivities.length > 0
+        ? Math.round(validActivities.reduce((sum, a) => sum + a.accuracy_percentage, 0) / validActivities.length)
         : 0;
       
-      // Get current streak from user_streaks table
-      const { data: streakData } = await supabase
-        .from('user_streaks')
-        .select('daily_flashcards')
-        .eq('user_id', userId)
-        .maybeSingle();
+      console.log('📈 Stats calculated:', { totalCards, masteredCards, averageAccuracy, validActivitiesCount: validActivities.length });
       
-      const dayStreak = streakData?.daily_flashcards || 0;
+      // Calculate day streak from user_activities (more reliable)
+      const { data: recentActivities } = await supabase
+        .from('user_activities')
+        .select('completed_at')
+        .eq('user_id', userId)
+        .in('activity_type', ['flashcard', 'flashcard_review'])
+        .not('completed_at', 'is', null)
+        .order('completed_at', { ascending: false });
+      
+      const dayStreak = this.calculateFlashcardStreak(recentActivities || []);
       
       // Find best and weakest topics based on accuracy
       const topicStats = await this.calculateTopicPerformance(userId, userFlashcards || []);
       
-      return {
+      const result = {
         totalCards,
         masteredCards,
         dayStreak,
@@ -722,6 +746,9 @@ export class HolisticProgressService {
         bestTopic: topicStats.bestTopic || 'None',
         weakestTopic: topicStats.weakestTopic || 'None',
       };
+      
+      console.log('✅ Final flashcard stats:', result);
+      return result;
     } catch (error) {
       console.error('Error fetching flashcard stats:', error);
       return {
@@ -733,6 +760,38 @@ export class HolisticProgressService {
         weakestTopic: 'None',
       };
     }
+  }
+
+  private static calculateFlashcardStreak(activities: any[]): number {
+    if (activities.length === 0) return 0;
+    
+    // Get unique study dates
+    const studyDates = new Set<string>();
+    activities.forEach(activity => {
+      if (activity.completed_at) {
+        const date = new Date(activity.completed_at).toISOString().split('T')[0];
+        studyDates.add(date);
+      }
+    });
+    
+    // Sort dates and calculate consecutive days
+    const sortedDates = Array.from(studyDates).sort().reverse();
+    let streak = 0;
+    const today = new Date().toISOString().split('T')[0];
+    
+    for (let i = 0; i < sortedDates.length; i++) {
+      const currentDate = new Date(sortedDates[i]);
+      const expectedDate = new Date(today);
+      expectedDate.setDate(expectedDate.getDate() - i);
+      
+      if (sortedDates[i] === expectedDate.toISOString().split('T')[0]) {
+        streak++;
+      } else {
+        break;
+      }
+    }
+    
+    return streak;
   }
 
   private static async calculateTopicPerformance(userId: string, userFlashcards: any[]) {

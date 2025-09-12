@@ -3,6 +3,8 @@ import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Image } from 'rea
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import DailyChallengeSection from './DailyChallengeSection';
+import { useAuth } from '../contexts/AuthContext';
+import { GeneralVocabService } from '../lib/generalVocabService';
 
 interface DashboardContentProps {
   progressData: any;
@@ -12,15 +14,16 @@ interface DashboardContentProps {
 export default function DashboardContent({ progressData, loadingProgress }: DashboardContentProps) {
   const [expandedUnit, setExpandedUnit] = useState<number | null>(null);
   const navigation = useNavigation();
+  const { user, profile } = useAuth();
   
   const units = [
     { 
       id: 1, 
-      title: 'add unit name here',
+      title: 'Basic Actions',
       lessons: [
-        { id: 1, title: 'Words', status: 'completed' },
-        { id: 2, title: 'Listen', status: 'locked' },
-        { id: 3, title: 'Write', status: 'locked' },
+        { id: 1, title: 'Words', status: 'active' },
+        { id: 2, title: 'Listen', status: 'active' },
+        { id: 3, title: 'Write', status: 'active' },
         { id: 4, title: 'Speak', status: 'locked' },
         { id: 5, title: 'Roleplay', status: 'locked' },
       ]
@@ -128,6 +131,75 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
 
   const handleUnitPress = (unitId: number) => {
     setExpandedUnit(expandedUnit === unitId ? null : unitId);
+  };
+
+  const handleLessonPress = async (unitId: number, lessonTitle: string) => {
+    console.log(`🎯 Lesson pressed: Unit ${unitId}, ${lessonTitle}`);
+    console.log(`👤 User:`, user ? 'exists' : 'null');
+    console.log(`🌍 Profile:`, profile ? 'exists' : 'null');
+    console.log(`🌍 Native language:`, profile?.native_language || 'not set');
+    
+    if (!user || !profile?.native_language) {
+      console.log('❌ User or native language not available');
+      return;
+    }
+
+    try {
+      console.log(`🎯 Starting ${lessonTitle} for Unit ${unitId}`);
+      
+      // Get vocabulary for Unit 1 (basic_actions - note the underscore!)
+      const vocabulary = await GeneralVocabService.getVocabByTopicGroup('basic_actions', profile.native_language);
+      console.log(`📚 Found ${vocabulary.length} vocabulary items`);
+      
+      if (vocabulary.length === 0) {
+        console.log('❌ No vocabulary found for basic actions');
+        return;
+      }
+
+      // Handle different lesson types
+      switch (lessonTitle) {
+        case 'Words':
+          // Navigate to Unit Words screen (flashcards + quiz)
+          console.log('📖 Navigating to UnitWords screen');
+          navigation.navigate('UnitWords', {
+            unitId: unitId,
+            unitTitle: unitId === 1 ? 'Basic Actions' : `Unit ${unitId}`,
+            topicGroup: unitId === 1 ? 'basic_actions' : 'general'
+          });
+          break;
+          
+        case 'Listen':
+          // Navigate to Unit Listen screen
+          console.log('🎧 Navigating to UnitListen screen');
+          navigation.navigate('UnitListen', {
+            unitId: unitId,
+            unitTitle: unitId === 1 ? 'Basic Actions' : `Unit ${unitId}`,
+            topicGroup: unitId === 1 ? 'basic_actions' : 'general'
+          });
+          break;
+          
+        case 'Write':
+          // Navigate to Unit Write screen (sentence scramble + word scramble)
+          console.log('✍️ Navigating to UnitWrite screen');
+          navigation.navigate('UnitWrite', {
+            unitId: unitId,
+            unitTitle: unitId === 1 ? 'Basic Actions' : `Unit ${unitId}`,
+            topicGroup: unitId === 1 ? 'basic_actions' : 'general'
+          });
+          break;
+          
+        case 'Speak':
+        case 'Roleplay':
+          // For now, just show a placeholder
+          console.log(`${lessonTitle} functionality not implemented yet`);
+          break;
+          
+        default:
+          console.log(`Unknown lesson type: ${lessonTitle}`);
+      }
+    } catch (error) {
+      console.error('❌ Error handling lesson press:', error);
+    }
   };
 
   const getStatusIcon = (status: string) => {
@@ -241,7 +313,12 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
             {expandedUnit === unit.id && unit.lessons.length > 0 && (
               <View style={styles.lessonsContainer}>
                 {unit.lessons.map((lesson) => (
-                  <View key={lesson.id} style={styles.lessonCard}>
+                  <TouchableOpacity 
+                    key={lesson.id} 
+                    style={styles.lessonCard}
+                    onPress={() => handleLessonPress(unit.id, lesson.title)}
+                    activeOpacity={0.7}
+                  >
                     <View style={styles.lessonContent}>
                       <View style={styles.lessonTitleRow}>
                         {getLessonIcon(lesson.title)}
@@ -263,7 +340,7 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
                       {getStatusButton(lesson.status)}
                       {getStatusIcon(lesson.status)}
                     </View>
-                  </View>
+                  </TouchableOpacity>
                 ))}
               </View>
             )}

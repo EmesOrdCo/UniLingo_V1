@@ -116,11 +116,12 @@ export default function RecentActivitiesWidget() {
                 break;
               
               case 'flashcard':
+              case 'flashcard_review':
                 activities.push({
                   id: activity.id,
                   type: 'flashcard',
                   title: 'Flashcard Review',
-                  description: `Reviewed ${activity.score || 0} flashcards`,
+                  description: `Completed flashcard session with ${activity.accuracy_percentage || 0}% accuracy`,
                   timestamp: activity.completed_at,
                   score: activity.accuracy_percentage,
                   timeSpent: activity.duration_seconds ? Math.floor(activity.duration_seconds / 60) : undefined

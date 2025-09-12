@@ -94,7 +94,7 @@ class OptimizedProgressService {
 
       const progressData: ProgressInsights = {
         currentStreak: dailyStreak?.current_streak || 0,
-        longestStreak: dailyStreak?.current_streak || 0,
+        longestStreak: dailyStreak?.longest_streak || 0,
         todayProgress: todayProgress || null,
         weeklyProgress: weeklyProgress || [],
         monthlyProgress: monthlyProgress || [],
@@ -285,6 +285,8 @@ class OptimizedProgressService {
         .eq('streak_type', 'daily_study')
         .maybeSingle();
 
+      console.log('🔍 Streak data from database:', streak);
+
       // Cache the result
       if (streak) {
         await ProgressCacheService.setCurrentStreak(userId, streak);
@@ -364,19 +366,19 @@ class OptimizedProgressService {
    */
   private static async getFlashcardStats(userId: string): Promise<any> {
     try {
-      const { data: stats } = await supabase
-        .from('user_flashcards')
-        .select('*')
-        .eq('user_id', userId);
-
-      return {
-        total: stats?.length || 0,
-        reviewed: stats?.filter(card => card.last_reviewed).length || 0,
-        mastered: stats?.filter(card => card.mastery_level >= 0.8).length || 0,
-      };
+      // Import HolisticProgressService to use its getFlashcardStats method
+      const { HolisticProgressService } = await import('./holisticProgressService');
+      return await HolisticProgressService.getFlashcardStats(userId);
     } catch (error) {
       console.error('Error getting flashcard stats:', error);
-      return { total: 0, reviewed: 0, mastered: 0 };
+      return {
+        totalCards: 0,
+        masteredCards: 0,
+        dayStreak: 0,
+        averageAccuracy: 0,
+        bestTopic: 'None',
+        weakestTopic: 'None',
+      };
     }
   }
 

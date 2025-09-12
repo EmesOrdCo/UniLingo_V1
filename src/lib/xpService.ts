@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { HolisticProgressService } from './holisticProgressService';
 
 export interface XPCalculation {
   baseXP: number;
@@ -202,7 +203,6 @@ export class XPService {
 
       // Update streak for any activity completion
       try {
-        const { HolisticProgressService } = await import('./holisticProgressService');
         await HolisticProgressService.updateStreak(userId, 'daily_study');
         console.log('✅ Streak updated for activity completion');
       } catch (streakError) {

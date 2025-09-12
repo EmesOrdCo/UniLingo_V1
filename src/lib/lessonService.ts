@@ -4,6 +4,7 @@ import OpenAI from 'openai';
 import OpenAIWithRateLimit from './openAIWithRateLimit';
 import * as FileSystem from 'expo-file-system';
 import { CostEstimator } from './costEstimator';
+import { HolisticProgressService } from './holisticProgressService';
 
 // Initialize OpenAI client with rate limiting
 const openai = new OpenAIWithRateLimit({
@@ -1004,7 +1005,6 @@ Return ONLY the JSON array:`;
 
       // Update streak for lesson completion
       try {
-        const { HolisticProgressService } = await import('./holisticProgressService');
         await HolisticProgressService.updateStreak(userId, 'daily_study');
         console.log('✅ Streak updated for lesson completion');
       } catch (streakError) {

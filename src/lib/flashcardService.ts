@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { DailyGoalsService } from './dailyGoalsService'
 
 export interface CreateFlashcardData {
   front: string
@@ -265,7 +266,6 @@ export class FlashcardService {
 
       // Update daily goals
       try {
-        const { DailyGoalsService } = await import('./dailyGoalsService');
         await DailyGoalsService.updateGoalProgress(userId, 'flashcards_reviewed', 1);
         
         if (timeSpent > 0) {

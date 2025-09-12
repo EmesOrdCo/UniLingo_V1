@@ -2,6 +2,10 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { User, Session } from '@supabase/supabase-js';
 import { UserProfileService, UserProfile } from '../lib/userProfileService';
+import { UserDataIsolationService } from '../lib/userDataIsolationService';
+import { ProfilePictureService } from '../lib/profilePictureService';
+import { SupabaseProfilePictureService } from '../lib/supabaseProfilePictureService';
+import { TTLProfilePictureService } from '../lib/ttlProfilePictureService';
 
 interface AuthContextType {
   user: User | null;
@@ -162,14 +166,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         try {
           // Use comprehensive user data isolation service
-          const { UserDataIsolationService } = await import('../lib/userDataIsolationService');
           await UserDataIsolationService.clearUserData(user.id);
           
           // Also clear individual profile picture caches as backup
-          const { ProfilePictureService } = await import('../lib/profilePictureService');
-          const { SupabaseProfilePictureService } = await import('../lib/supabaseProfilePictureService');
-          const { TTLProfilePictureService } = await import('../lib/ttlProfilePictureService');
-          
           await ProfilePictureService.clearCache(user.id);
           await SupabaseProfilePictureService.clearCache(user.id);
           await TTLProfilePictureService.clearCache(user.id);
