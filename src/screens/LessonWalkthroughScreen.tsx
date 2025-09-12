@@ -1,13 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, ActivityIndicator, AppState } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../contexts/AuthContext';
 import { LessonService, Lesson, LessonProgress } from '../lib/lessonService';
 import { XPService } from '../lib/xpService';
 import { ProgressTrackingService } from '../lib/progressTrackingService';
+import { logger } from '../lib/logger';
 import LessonFlashcards from '../components/lesson/LessonFlashcards';
 import LessonFlashcardQuiz from '../components/lesson/LessonFlashcardQuiz';
 import LessonSentenceScramble from '../components/lesson/LessonSentenceScramble';
@@ -35,6 +36,9 @@ export default function LessonWalkthroughScreen() {
     fillInBlank: 0
   });
   const [startTime, setStartTime] = useState<Date | null>(null);
+  const [totalActiveTime, setTotalActiveTime] = useState<number>(0); // Total active time in seconds
+  const [sessionStartTime, setSessionStartTime] = useState<Date | null>(null); // Current session start time
+  const [isActive, setIsActive] = useState<boolean>(false); // Whether user is currently active
   const [completedExercises, setCompletedExercises] = useState<Set<string>>(new Set());
   const [currentExercise, setCurrentExercise] = useState<string>('');
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
@@ -47,6 +51,71 @@ export default function LessonWalkthroughScreen() {
   useEffect(() => {
     loadLessonData();
   }, []);
+
+  // Track active time when screen is focused/blurred
+  useFocusEffect(
+    React.useCallback(() => {
+      // Screen is focused - start timing
+      if (isActive) {
+        setSessionStartTime(new Date());
+        logger.debug('Lesson screen focused - starting active timer');
+      }
+      
+      return () => {
+        // Screen is blurred - stop timing and accumulate
+        if (isActive && sessionStartTime) {
+          const sessionDuration = Math.floor((new Date().getTime() - sessionStartTime.getTime()) / 1000);
+          setTotalActiveTime(prev => prev + sessionDuration);
+          logger.debug(`Lesson screen blurred - accumulated ${sessionDuration}s, total: ${totalActiveTime + sessionDuration}s`);
+        }
+      };
+    }, [isActive, sessionStartTime, totalActiveTime])
+  );
+
+  // Save active time periodically to preserve it during resume
+  const saveActiveTime = async () => {
+    if (!isActive || !sessionStartTime) return;
+    
+    const currentSessionTime = Math.floor((new Date().getTime() - sessionStartTime.getTime()) / 1000);
+    const totalTime = totalActiveTime + currentSessionTime;
+    
+    try {
+      await LessonService.updateLessonProgress(lessonId, user?.id || '', {
+        time_spent_seconds: totalTime
+      });
+      logger.debug(`Saved active time: ${totalTime}s`);
+    } catch (error) {
+      logger.error('Error saving active time:', error);
+    }
+  };
+
+  // Save active time every 30 seconds
+  useEffect(() => {
+    if (!isActive) return;
+    
+    const interval = setInterval(saveActiveTime, 30000); // 30 seconds
+    return () => clearInterval(interval);
+  }, [isActive, totalActiveTime, sessionStartTime]);
+
+  // Track app state changes (background/foreground)
+  useEffect(() => {
+    const handleAppStateChange = (nextAppState: string) => {
+      if (nextAppState === 'background' && isActive && sessionStartTime) {
+        // App went to background - pause timing
+        const sessionDuration = Math.floor((new Date().getTime() - sessionStartTime.getTime()) / 1000);
+        setTotalActiveTime(prev => prev + sessionDuration);
+        setSessionStartTime(null);
+        logger.debug(`App backgrounded - paused timing, accumulated ${sessionDuration}s`);
+      } else if (nextAppState === 'active' && isActive && !sessionStartTime) {
+        // App came to foreground - resume timing
+        setSessionStartTime(new Date());
+        logger.debug('App foregrounded - resumed active timer');
+      }
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+    return () => subscription?.remove();
+  }, [isActive, sessionStartTime]);
 
   const loadLessonData = async () => {
     try {
@@ -138,6 +207,11 @@ export default function LessonWalkthroughScreen() {
     setStartTime(now);
     setCurrentStep('flashcards'); // Go directly to first exercise
     
+    // Initialize active timing
+    setIsActive(true);
+    setSessionStartTime(now);
+    setTotalActiveTime(0);
+    
     // Reset all scores and completed exercises
     setExerciseScores({
       flashcards: 0,
@@ -170,9 +244,15 @@ export default function LessonWalkthroughScreen() {
   const resumeLesson = async () => {
     if (!lessonProgress || !user) return;
     
-    // Use the original start time from database to preserve total time tracking
-    const originalStartTime = lessonProgress.started_at ? new Date(lessonProgress.started_at) : new Date();
-    setStartTime(originalStartTime);
+    // Initialize active timing for resume
+    setIsActive(true);
+    setSessionStartTime(new Date());
+    
+    // Restore the total active time from previous sessions
+    // We'll estimate this based on the time_spent_seconds in the database
+    // This is a fallback - ideally we'd store active time separately
+    const estimatedActiveTime = lessonProgress.time_spent_seconds || 0;
+    setTotalActiveTime(estimatedActiveTime);
     
     // Restore exercise scores based on progress
     // We'll estimate which exercises were completed based on total score
@@ -353,12 +433,22 @@ export default function LessonWalkthroughScreen() {
   };
 
   const handleLessonComplete = async () => {
-    if (!user || !startTime) return;
+    if (!user) return;
 
-    const timeSpent = Math.floor((new Date().getTime() - startTime.getTime()) / 1000);
+    // Calculate final active time
+    let finalActiveTime = totalActiveTime;
+    if (isActive && sessionStartTime) {
+      const currentSessionTime = Math.floor((new Date().getTime() - sessionStartTime.getTime()) / 1000);
+      finalActiveTime += currentSessionTime;
+    }
+
     const totalScore = Object.values(exerciseScores).reduce((sum, score) => sum + score, 0);
     const maxPossibleScore = lessonVocabulary.length * 5; // 5 exercises
     const accuracyPercentage = Math.round((totalScore / maxPossibleScore) * 100);
+
+    // Stop active timing
+    setIsActive(false);
+    setSessionStartTime(null);
 
     // Clear resume position since lesson is completed
     await clearResumePosition();
@@ -368,14 +458,14 @@ export default function LessonWalkthroughScreen() {
       await ProgressTrackingService.recordLessonActivity({
         activityType: 'lesson',
         activityName: lesson?.title || 'Lesson',
-        durationSeconds: timeSpent,
+        durationSeconds: finalActiveTime,
         score: totalScore,
         maxScore: maxPossibleScore,
         accuracyPercentage: accuracyPercentage,
         lessonId: lessonId,
       });
 
-      console.log('✅ Lesson activity recorded successfully');
+      logger.info(`Lesson activity recorded successfully - Active time: ${finalActiveTime}s`);
 
       // Award XP for completing the lesson
       try {
@@ -386,24 +476,24 @@ export default function LessonWalkthroughScreen() {
           maxPossibleScore,
           accuracyPercentage,
           lesson?.title || 'Lesson',
-          timeSpent
+          finalActiveTime
         );
         
         if (xpResult) {
-          console.log('🎯 XP awarded for lesson:', xpResult.totalXP, 'XP');
+          logger.info(`XP awarded for lesson: ${xpResult.totalXP} XP`);
         }
       } catch (xpError) {
-        console.error('❌ Error awarding XP for lesson:', xpError);
+        logger.error('Error awarding XP for lesson:', xpError);
       }
     } catch (error) {
-      console.error('❌ Error recording lesson activity:', error);
+      logger.error('Error recording lesson activity:', error);
     }
 
     // Complete lesson (with error handling)
     try {
-      await LessonService.completeLesson(lessonId, user.id, totalScore, maxPossibleScore, timeSpent);
+      await LessonService.completeLesson(lessonId, user.id, totalScore, maxPossibleScore, finalActiveTime);
     } catch (error) {
-      console.error('Error completing lesson:', error);
+      logger.error('Error completing lesson:', error);
       // Continue without database completion tracking
     }
     
