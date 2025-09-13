@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Image, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import DailyChallengeSection from './DailyChallengeSection';
@@ -13,6 +13,7 @@ interface DashboardContentProps {
 
 export default function DashboardContent({ progressData, loadingProgress }: DashboardContentProps) {
   const [expandedUnit, setExpandedUnit] = useState<number | null>(null);
+  const [isNavigating, setIsNavigating] = useState(false);
   const navigation = useNavigation();
   const { user, profile } = useAuth();
   
@@ -134,71 +135,63 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
   };
 
   const handleLessonPress = async (unitId: number, lessonTitle: string) => {
-    console.log(`🎯 Lesson pressed: Unit ${unitId}, ${lessonTitle}`);
-    console.log(`👤 User:`, user ? 'exists' : 'null');
-    console.log(`🌍 Profile:`, profile ? 'exists' : 'null');
-    console.log(`🌍 Native language:`, profile?.native_language || 'not set');
-    
-    if (!user || !profile?.native_language) {
-      console.log('❌ User or native language not available');
+    // Prevent multiple rapid taps
+    if (isNavigating) {
+      Alert.alert('Please wait', 'Lesson is already loading...');
       return;
     }
 
-    try {
-      console.log(`🎯 Starting ${lessonTitle} for Unit ${unitId}`);
-      
-      // Get vocabulary for Unit 1 (basic_actions - note the underscore!)
-      const vocabulary = await GeneralVocabService.getVocabByTopicGroup('basic_actions', profile.native_language);
-      console.log(`📚 Found ${vocabulary.length} vocabulary items`);
-      
-      if (vocabulary.length === 0) {
-        console.log('❌ No vocabulary found for basic actions');
-        return;
-      }
+    if (!user || !profile?.native_language) {
+      Alert.alert('Error', 'Please complete your profile setup first.');
+      return;
+    }
 
-      // Handle different lesson types
+    setIsNavigating(true);
+
+    try {
+      // Navigate immediately - don't block on vocabulary check
+      // The Unit screens will handle their own vocabulary loading with proper error handling
       switch (lessonTitle) {
         case 'Words':
-          // Navigate to Unit Words screen (flashcards + quiz)
-          console.log('📖 Navigating to UnitWords screen');
-          navigation.navigate('UnitWords', {
+          navigation.navigate('UnitWords' as never, {
             unitId: unitId,
-            unitTitle: unitId === 1 ? 'Basic Actions' : `Unit ${unitId}`,
-            topicGroup: unitId === 1 ? 'basic_actions' : 'general'
+            unitTitle: unitId === 1 ? 'Basic Concepts' : `Unit ${unitId}`,
+            topicGroup: unitId === 1 ? 'Basic Concepts' : 'general'
           });
           break;
           
         case 'Listen':
-          // Navigate to Unit Listen screen
-          console.log('🎧 Navigating to UnitListen screen');
-          navigation.navigate('UnitListen', {
+          navigation.navigate('UnitListen' as never, {
             unitId: unitId,
-            unitTitle: unitId === 1 ? 'Basic Actions' : `Unit ${unitId}`,
-            topicGroup: unitId === 1 ? 'basic_actions' : 'general'
+            unitTitle: unitId === 1 ? 'Basic Concepts' : `Unit ${unitId}`,
+            topicGroup: unitId === 1 ? 'Basic Concepts' : 'general'
           });
           break;
           
         case 'Write':
-          // Navigate to Unit Write screen (sentence scramble + word scramble)
-          console.log('✍️ Navigating to UnitWrite screen');
-          navigation.navigate('UnitWrite', {
+          navigation.navigate('UnitWrite' as never, {
             unitId: unitId,
-            unitTitle: unitId === 1 ? 'Basic Actions' : `Unit ${unitId}`,
-            topicGroup: unitId === 1 ? 'basic_actions' : 'general'
+            unitTitle: unitId === 1 ? 'Basic Concepts' : `Unit ${unitId}`,
+            topicGroup: unitId === 1 ? 'Basic Concepts' : 'general'
           });
           break;
           
         case 'Speak':
         case 'Roleplay':
-          // For now, just show a placeholder
-          console.log(`${lessonTitle} functionality not implemented yet`);
+          Alert.alert('Coming Soon', `${lessonTitle} functionality will be available soon!`);
           break;
           
         default:
-          console.log(`Unknown lesson type: ${lessonTitle}`);
+          Alert.alert('Error', 'Unknown lesson type. Please try again.');
       }
     } catch (error) {
       console.error('❌ Error handling lesson press:', error);
+      Alert.alert('Error', `Failed to start lesson: ${error.message || 'Unknown error'}`);
+    } finally {
+      // Reset navigation state after a longer delay to ensure screen has loaded
+      setTimeout(() => {
+        setIsNavigating(false);
+      }, 2000);
     }
   };
 
@@ -232,12 +225,22 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
     }
   };
 
-  const getStatusButton = (status: string) => {
+  const getStatusButton = (status: string, unitId: number, lessonTitle: string) => {
     if (status === 'active') {
       return (
-        <TouchableOpacity style={styles.startButton}>
-          <Ionicons name="lock-closed" size={16} color="#ffffff" />
-          <Text style={styles.startButtonText}>Start</Text>
+        <TouchableOpacity 
+          style={[styles.startButton, isNavigating && styles.startButtonDisabled]}
+          disabled={isNavigating}
+          onPress={() => handleLessonPress(unitId, lessonTitle)}
+        >
+          <Ionicons 
+            name={isNavigating ? "hourglass" : "play"} 
+            size={16} 
+            color="#ffffff" 
+          />
+          <Text style={styles.startButtonText}>
+            {isNavigating ? 'Loading...' : 'Start'}
+          </Text>
         </TouchableOpacity>
       );
     }
@@ -246,6 +249,16 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
 
   return (
     <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      {/* Loading Overlay */}
+      {isNavigating && (
+        <View style={styles.loadingOverlay}>
+          <View style={styles.loadingContainer}>
+            <Ionicons name="hourglass" size={24} color="#6466E9" />
+            <Text style={styles.loadingText}>Loading lesson...</Text>
+          </View>
+        </View>
+      )}
+
       {/* Daily Challenge */}
       <View style={styles.dailyChallengeContainer}>
         <DailyChallengeSection onPlay={(gameType) => {
@@ -315,9 +328,13 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
                 {unit.lessons.map((lesson) => (
                   <TouchableOpacity 
                     key={lesson.id} 
-                    style={styles.lessonCard}
+                    style={[
+                      styles.lessonCard,
+                      isNavigating && styles.lessonCardDisabled
+                    ]}
                     onPress={() => handleLessonPress(unit.id, lesson.title)}
                     activeOpacity={0.7}
+                    disabled={isNavigating}
                   >
                     <View style={styles.lessonContent}>
                       <View style={styles.lessonTitleRow}>
@@ -337,7 +354,7 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
                     </View>
                     
                     <View style={styles.lessonActions}>
-                      {getStatusButton(lesson.status)}
+                      {getStatusButton(lesson.status, unit.id, lesson.title)}
                       {getStatusIcon(lesson.status)}
                     </View>
                   </TouchableOpacity>
@@ -503,6 +520,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
+  lessonCardDisabled: {
+    backgroundColor: '#e5e7eb',
+    opacity: 0.6,
+  },
   lessonContent: {
     flex: 1,
     flexDirection: 'row',
@@ -542,6 +563,11 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     gap: 6,
   },
+  startButtonDisabled: {
+    backgroundColor: '#9ca3af',
+    opacity: 0.8,
+    transform: [{ scale: 0.98 }],
+  },
   startButtonText: {
     fontSize: 14,
     fontWeight: '600',
@@ -565,5 +591,34 @@ const styles = StyleSheet.create({
   },
   bottomSpacing: {
     height: 20,
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  loadingContainer: {
+    backgroundColor: '#ffffff',
+    padding: 20,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  loadingText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#374151',
   },
 });

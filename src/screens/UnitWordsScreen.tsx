@@ -13,6 +13,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { GeneralVocabService, ProcessedVocabItem } from '../lib/generalVocabService';
 import { ProgressTrackingService } from '../lib/progressTrackingService';
+import { SimpleUnitProgressService } from '../lib/simpleUnitProgressService';
 
 interface UnitWordsScreenProps {
   navigation: any;
@@ -24,7 +25,12 @@ export default function UnitWordsScreen() {
   const route = useRoute();
   const { user, profile } = useAuth();
   
-  const { unitId, unitTitle, topicGroup } = route.params || { unitId: 1, unitTitle: 'Basic Actions', topicGroup: 'basic_actions' };
+  const { unitId, unitTitle, topicGroup } = route.params || { unitId: 1, unitTitle: 'Basic Concepts', topicGroup: 'Basic Concepts' };
+  
+  // Extract CEFR level and unit number from unitId for now
+  // TODO: Update navigation to pass cefrLevel and unitNumber directly
+  const cefrLevel = 'A1';
+  const unitNumber = unitId;
   
   const [vocabulary, setVocabulary] = useState<ProcessedVocabItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,12 +50,35 @@ export default function UnitWordsScreen() {
   const loadVocabulary = async () => {
     try {
       setLoading(true);
+      console.log(`📚 Loading vocabulary for topic: ${topicGroup}, language: ${profile?.native_language}`);
+      
       const vocab = await GeneralVocabService.getVocabByTopicGroup(topicGroup, profile?.native_language || 'english');
-      setVocabulary(vocab);
       console.log(`📚 Loaded ${vocab.length} vocabulary items for ${topicGroup}`);
+      
+      if (vocab.length === 0) {
+        console.log('⚠️ No vocabulary found, showing error');
+        Alert.alert(
+          'No Vocabulary Available',
+          `No vocabulary found for "${topicGroup}". Please check your database setup.`,
+          [
+            { text: 'Go Back', onPress: () => navigation.goBack() },
+            { text: 'Retry', onPress: loadVocabulary }
+          ]
+        );
+        return;
+      }
+      
+      setVocabulary(vocab);
     } catch (error) {
-      console.error('Error loading vocabulary:', error);
-      Alert.alert('Error', 'Failed to load vocabulary. Please try again.');
+      console.error('❌ Error loading vocabulary:', error);
+      Alert.alert(
+        'Error Loading Vocabulary',
+        `Failed to load vocabulary: ${error.message || 'Unknown error'}`,
+        [
+          { text: 'Go Back', onPress: () => navigation.goBack() },
+          { text: 'Retry', onPress: loadVocabulary }
+        ]
+      );
     } finally {
       setLoading(false);
     }
@@ -106,6 +135,11 @@ export default function UnitWordsScreen() {
         maxScore: vocabulary.length,
         accuracyPercentage: accuracyPercentage,
       });
+      
+      // Record unit progress completion
+      if (user?.id) {
+        await SimpleUnitProgressService.recordLessonCompletion(user.id, cefrLevel, unitNumber, 'words');
+      }
       
       console.log('✅ Unit Words activity recorded');
     } catch (error) {

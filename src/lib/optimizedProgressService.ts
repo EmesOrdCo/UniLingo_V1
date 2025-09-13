@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 import ProgressCacheService from './progressCacheService';
-import { ProgressInsights } from './holisticProgressService';
+import { ProgressInsights, HolisticProgressService } from './holisticProgressService';
 
 class OptimizedProgressService {
   /**
@@ -366,8 +366,7 @@ class OptimizedProgressService {
    */
   private static async getFlashcardStats(userId: string): Promise<any> {
     try {
-      // Import HolisticProgressService to use its getFlashcardStats method
-      const { HolisticProgressService } = await import('./holisticProgressService');
+      // Use HolisticProgressService directly since it's now statically imported
       return await HolisticProgressService.getFlashcardStats(userId);
     } catch (error) {
       console.error('Error getting flashcard stats:', error);

@@ -84,7 +84,6 @@ export default function StudyCalendar({ studyDates, currentMonth }: StudyCalenda
         isFuture: isFuture(date),
       };
       
-      
       days.push(dayData);
     }
     
@@ -103,6 +102,9 @@ export default function StudyCalendar({ studyDates, currentMonth }: StudyCalenda
         isFuture: isFuture(date),
       });
     }
+    
+    console.log(`📅 Generated ${days.length} calendar days for ${getMonthName(selectedMonth)}`);
+    console.log(`📅 First day of week: ${firstDayOfWeek}, Last day number: ${lastDayNumber}`);
     
     setCalendarDays(days);
   };
@@ -210,16 +212,19 @@ export default function StudyCalendar({ studyDates, currentMonth }: StudyCalenda
 
       {/* Calendar Grid */}
       <View style={styles.calendarGrid}>
-        {calendarDays.map((day, index) => (
-          <View key={index} style={getDayStyle(day)}>
-            <Text style={getDayTextStyle(day)}>{day.day}</Text>
-            {day.isStudyDay && (
-              <View style={styles.studyIndicator}>
-                <Ionicons name="checkmark-circle" size={12} color="#ffffff" />
-              </View>
-            )}
-          </View>
-        ))}
+        {calendarDays.map((day, index) => {
+          console.log(`📅 Rendering day ${index}: ${day.day} (${day.isCurrentMonth ? 'current' : 'other'})`);
+          return (
+            <View key={index} style={getDayStyle(day)}>
+              <Text style={getDayTextStyle(day)}>{day.day}</Text>
+              {day.isStudyDay && (
+                <View style={styles.studyIndicator}>
+                  <Ionicons name="checkmark-circle" size={12} color="#ffffff" />
+                </View>
+              )}
+            </View>
+          );
+        })}
       </View>
 
       {/* Legend */}
@@ -285,7 +290,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   dayNameContainer: {
-    flex: 1,
+    width: '14.28%', // Match calendar day width
     alignItems: 'center',
   },
   dayNameText: {
@@ -297,13 +302,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     marginBottom: 16,
+    justifyContent: 'space-between',
   },
   calendarDay: {
-    width: (width - 80) / 7,
+    width: '14.28%', // 100% / 7 days = ~14.28%
     height: 40,
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
+    marginBottom: 4,
   },
   dayText: {
     fontSize: 14,

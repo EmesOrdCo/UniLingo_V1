@@ -163,7 +163,7 @@ export default function ProgressPageScreen() {
         <View style={styles.headerRight}>
           <View style={styles.streakBadge}>
             <Ionicons name="flame" size={16} color="#f59e0b" />
-            <Text style={styles.streakText}>0</Text>
+            <Text style={styles.streakText}>{progressData?.currentStreak || 0}</Text>
           </View>
           <View style={styles.profilePicture}>
             <Ionicons name="person" size={24} color="#6366f1" />
@@ -242,9 +242,14 @@ export default function ProgressPageScreen() {
             </View>
             <View style={styles.courseProgress}>
               <View style={styles.courseProgressBar}>
-                <View style={[styles.courseProgressFill, { width: '2%' }]} />
+                <View style={[
+                  styles.courseProgressFill, 
+                  { width: `${Math.min(100, (progressData?.levelProgress.progressPercentage || 0))}%` }
+                ]} />
               </View>
-              <Text style={styles.courseProgressText}>2%</Text>
+              <Text style={styles.courseProgressText}>
+                {Math.min(100, (progressData?.levelProgress.progressPercentage || 0))}%
+              </Text>
             </View>
           </View>
         </View>
@@ -257,65 +262,86 @@ export default function ProgressPageScreen() {
           </View>
           <View style={styles.learningStatsGrid}>
             <View style={styles.learningStatCard}>
-              <Text style={styles.learningStatNumber}>1</Text>
+              <Text style={styles.learningStatNumber}>
+                {progressData?.recentActivities?.filter(activity => 
+                  activity.activity_type === 'lesson' && activity.completed_at
+                ).length || 0}
+              </Text>
               <Text style={styles.learningStatLabel}>Complete lessons</Text>
             </View>
             <View style={styles.learningStatCard}>
-              <Text style={styles.learningStatNumber}>0</Text>
+              <Text style={styles.learningStatNumber}>
+                {progressData?.recentActivities?.filter(activity => 
+                  activity.activity_type === 'lesson' && activity.activity_name?.includes('Create')
+                ).length || 0}
+              </Text>
               <Text style={styles.learningStatLabel}>Lessons made</Text>
             </View>
             <View style={styles.learningStatCard}>
-              <Text style={styles.learningStatNumber}>0</Text>
+              <Text style={styles.learningStatNumber}>
+                {progressData?.flashcardStats?.masteredCards || 0}
+              </Text>
               <Text style={styles.learningStatLabel}>Complete flashcards</Text>
             </View>
             <View style={styles.learningStatCard}>
-              <Text style={styles.learningStatNumber}>2 min</Text>
+              <Text style={styles.learningStatNumber}>
+                {(() => {
+                  const totalMinutes = progressData?.recentActivities?.reduce((total, activity) => {
+                    return total + Math.round(activity.duration_seconds / 60);
+                  }, 0) || 0;
+                  return totalMinutes < 60 ? `${totalMinutes} min` : `${Math.floor(totalMinutes / 60)}h ${totalMinutes % 60}m`;
+                })()}
+              </Text>
               <Text style={styles.learningStatLabel}>Learning time</Text>
             </View>
           </View>
         </View>
 
-        {/* Your Vocabulary Section */}
-        <View style={styles.vocabularySection}>
-          <View style={styles.vocabularyHeader}>
-            <Ionicons name="chatbubble" size={20} color="#6366f1" />
-            <Text style={styles.vocabularyTitle}>Your vocabulary</Text>
-          </View>
-          <View style={styles.vocabularyCard}>
-            <View style={styles.vocabularyCardHeader}>
-              <Text style={styles.vocabularyTimeframe}>Last 14 days</Text>
-              <Ionicons name="chevron-forward" size={20} color="#6b7280" />
+        {/* Your Vocabulary Section - Hidden for now, keeping code for future use */}
+        {false && (
+          <View style={styles.vocabularySection}>
+            <View style={styles.vocabularyHeader}>
+              <Ionicons name="chatbubble" size={20} color="#6366f1" />
+              <Text style={styles.vocabularyTitle}>Your vocabulary</Text>
             </View>
-            <Text style={styles.vocabularyNumber}>4 new items</Text>
-            <View style={styles.vocabularyChart}>
-              <View style={styles.chartContainer}>
-                <View style={styles.chartBars}>
-                  {Array.from({ length: 14 }, (_, i) => (
-                    <View 
-                      key={i} 
-                      style={[
-                        styles.chartBar, 
-                        i === 7 ? styles.chartBarActive : styles.chartBarInactive,
-                        { height: i === 7 ? 60 : 8 }
-                      ]} 
-                    />
-                  ))}
+            <View style={styles.vocabularyCard}>
+              <View style={styles.vocabularyCardHeader}>
+                <Text style={styles.vocabularyTimeframe}>Last 14 days</Text>
+                <Ionicons name="chevron-forward" size={20} color="#6b7280" />
+              </View>
+              <Text style={styles.vocabularyNumber}>
+                {progressData?.flashcardStats?.totalCards || 0} new items
+              </Text>
+              <View style={styles.vocabularyChart}>
+                <View style={styles.chartContainer}>
+                  <View style={styles.chartBars}>
+                    {Array.from({ length: 14 }, (_, i) => (
+                      <View 
+                        key={i} 
+                        style={[
+                          styles.chartBar, 
+                          i === 7 ? styles.chartBarActive : styles.chartBarInactive,
+                          { height: i === 7 ? 60 : 8 }
+                        ]} 
+                      />
+                    ))}
+                  </View>
+                  <View style={styles.chartYAxis}>
+                    <Text style={styles.chartYLabel}>4</Text>
+                    <Text style={styles.chartYLabel}>3</Text>
+                    <Text style={styles.chartYLabel}>2</Text>
+                    <Text style={styles.chartYLabel}>1</Text>
+                    <Text style={styles.chartYLabel}>0</Text>
+                  </View>
                 </View>
-                <View style={styles.chartYAxis}>
-                  <Text style={styles.chartYLabel}>4</Text>
-                  <Text style={styles.chartYLabel}>3</Text>
-                  <Text style={styles.chartYLabel}>2</Text>
-                  <Text style={styles.chartYLabel}>1</Text>
-                  <Text style={styles.chartYLabel}>0</Text>
+                <View style={styles.chartXAxis}>
+                  <Text style={styles.chartXLabel}>1 Sep</Text>
+                  <Text style={styles.chartXLabel}>8 S...</Text>
                 </View>
               </View>
-              <View style={styles.chartXAxis}>
-                <Text style={styles.chartXLabel}>1 Sep</Text>
-                <Text style={styles.chartXLabel}>8 S...</Text>
-              </View>
             </View>
           </View>
-        </View>
+        )}
 
         {/* Study Calendar */}
         <View style={styles.calendarSection}>
