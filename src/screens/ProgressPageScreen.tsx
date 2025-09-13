@@ -17,13 +17,11 @@ import { useRefresh } from '../contexts/RefreshContext';
 import { HolisticProgressService, ProgressInsights } from '../lib/holisticProgressService';
 import OptimizedProgressService from '../lib/optimizedProgressService';
 import StudyCalendar from '../components/StudyCalendar';
-import DailyGoalsWidget from '../components/DailyGoalsWidget';
-import RecentActivitiesWidget from '../components/RecentActivitiesWidget';
 import ConsistentHeader from '../components/ConsistentHeader';
 
 const { width } = Dimensions.get('window');
 
-export default function ProgressDashboardScreen() {
+export default function ProgressPageScreen() {
   const navigation = useNavigation();
   const { user } = useAuth();
   const { refreshTrigger } = useRefresh();
@@ -133,14 +131,6 @@ export default function ProgressDashboardScreen() {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
-  const getStreakEmoji = (streak: number) => {
-    if (streak >= 30) return '🔥🔥🔥';
-    if (streak >= 20) return '🔥🔥';
-    if (streak >= 10) return '🔥';
-    if (streak >= 5) return '⚡';
-    if (streak >= 3) return '💪';
-    return '🌟';
-  };
 
   const getLevelColor = (level: string) => {
     switch (level.toLowerCase()) {
@@ -167,10 +157,19 @@ export default function ProgressDashboardScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
-      <ConsistentHeader 
-        pageName="Progress"
-      />
+      {/* Custom Header */}
+      <View style={styles.customHeader}>
+        <Text style={styles.headerTitle}>Progress</Text>
+        <View style={styles.headerRight}>
+          <View style={styles.streakBadge}>
+            <Ionicons name="flame" size={16} color="#f59e0b" />
+            <Text style={styles.streakText}>0</Text>
+          </View>
+          <View style={styles.profilePicture}>
+            <Ionicons name="person" size={24} color="#6366f1" />
+          </View>
+        </View>
+      </View>
 
       {/* Error Display */}
       {error && (
@@ -190,21 +189,130 @@ export default function ProgressDashboardScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        {/* Streak Section */}
-        <View style={styles.streakSection}>
-          <View style={styles.streakHeader}>
-            <Ionicons name="flame" size={32} color="#ef4444" />
-            <Text style={styles.streakTitle}>Study Streak</Text>
+
+        {/* Level Progress */}
+        <View style={styles.levelSection}>
+          <View style={styles.levelHeader}>
+            <Ionicons name="trophy" size={24} color={getLevelColor(progressData?.levelProgress.currentLevel || 'Beginner')} />
+            <Text style={styles.levelTitle}>Level Progress</Text>
           </View>
-          <View style={styles.streakContent}>
-            <View style={styles.streakMain}>
-              <Text style={styles.streakNumber}>{progressData?.currentStreak || 0}</Text>
-              <Text style={styles.streakLabel}>days</Text>
-              <Text style={styles.streakEmoji}>{getStreakEmoji(progressData?.currentStreak || 0)}</Text>
+          <View style={styles.levelCard}>
+            <View style={styles.levelContent}>
+              <View style={styles.levelInfo}>
+                <Text style={[styles.currentLevel, { color: getLevelColor(progressData?.levelProgress.currentLevel || 'Beginner') }]}>
+                  {progressData?.levelProgress.currentLevel || 'Beginner'}
+                </Text>
+                <Text style={styles.experiencePoints}>
+                  {progressData?.levelProgress.experiencePoints || 0} XP
+                </Text>
+              </View>
+              <View style={styles.progressBar}>
+                <View 
+                  style={[
+                    styles.progressFill, 
+                    { 
+                      width: `${progressData?.levelProgress.progressPercentage || 0}%`,
+                      backgroundColor: getLevelColor(progressData?.levelProgress.currentLevel || 'Beginner')
+                    }
+                  ]} 
+                />
+              </View>
+              <Text style={styles.nextLevel}>
+                Next: {progressData?.levelProgress.nextLevelThreshold || 100} XP
+              </Text>
             </View>
-            <View style={styles.streakStats}>
-              <Text style={styles.streakStat}>Longest: {progressData?.longestStreak || 0} days</Text>
-              <Text style={styles.streakStat}>Keep it up!</Text>
+          </View>
+        </View>
+
+        {/* Your Courses Section */}
+        <View style={styles.coursesSection}>
+          <View style={styles.coursesHeader}>
+            <Text style={styles.coursesTitle}>Your courses</Text>
+            <TouchableOpacity>
+              <Text style={styles.seeAllText}>See all</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.courseCard}>
+            <View style={styles.courseInfo}>
+              <Text style={styles.courseLevel}>A1.1</Text>
+              <Text style={styles.courseName}>Newcomer I (A1.1)</Text>
+            </View>
+            <View style={styles.courseBadge}>
+              <Text style={styles.courseBadgeText}>A1</Text>
+            </View>
+            <View style={styles.courseProgress}>
+              <View style={styles.courseProgressBar}>
+                <View style={[styles.courseProgressFill, { width: '2%' }]} />
+              </View>
+              <Text style={styles.courseProgressText}>2%</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Learning Stats Section */}
+        <View style={styles.learningStatsSection}>
+          <View style={styles.learningStatsHeader}>
+            <Ionicons name="trending-up" size={20} color="#6366f1" />
+            <Text style={styles.learningStatsTitle}>Learning stats</Text>
+          </View>
+          <View style={styles.learningStatsGrid}>
+            <View style={styles.learningStatCard}>
+              <Text style={styles.learningStatNumber}>1</Text>
+              <Text style={styles.learningStatLabel}>Complete lessons</Text>
+            </View>
+            <View style={styles.learningStatCard}>
+              <Text style={styles.learningStatNumber}>0</Text>
+              <Text style={styles.learningStatLabel}>Lessons made</Text>
+            </View>
+            <View style={styles.learningStatCard}>
+              <Text style={styles.learningStatNumber}>0</Text>
+              <Text style={styles.learningStatLabel}>Complete flashcards</Text>
+            </View>
+            <View style={styles.learningStatCard}>
+              <Text style={styles.learningStatNumber}>2 min</Text>
+              <Text style={styles.learningStatLabel}>Learning time</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Your Vocabulary Section */}
+        <View style={styles.vocabularySection}>
+          <View style={styles.vocabularyHeader}>
+            <Ionicons name="chatbubble" size={20} color="#6366f1" />
+            <Text style={styles.vocabularyTitle}>Your vocabulary</Text>
+          </View>
+          <View style={styles.vocabularyCard}>
+            <View style={styles.vocabularyCardHeader}>
+              <Text style={styles.vocabularyTimeframe}>Last 14 days</Text>
+              <Ionicons name="chevron-forward" size={20} color="#6b7280" />
+            </View>
+            <Text style={styles.vocabularyNumber}>4 new items</Text>
+            <View style={styles.vocabularyChart}>
+              <View style={styles.chartContainer}>
+                <View style={styles.chartBars}>
+                  {Array.from({ length: 14 }, (_, i) => (
+                    <View 
+                      key={i} 
+                      style={[
+                        styles.chartBar, 
+                        i === 7 ? styles.chartBarActive : styles.chartBarInactive,
+                        { height: i === 7 ? 60 : 8 }
+                      ]} 
+                    />
+                  ))}
+                </View>
+                <View style={styles.chartYAxis}>
+                  <Text style={styles.chartYLabel}>4</Text>
+                  <Text style={styles.chartYLabel}>3</Text>
+                  <Text style={styles.chartYLabel}>2</Text>
+                  <Text style={styles.chartYLabel}>1</Text>
+                  <Text style={styles.chartYLabel}>0</Text>
+                </View>
+              </View>
+              <View style={styles.chartXAxis}>
+                <Text style={styles.chartXLabel}>1 Sep</Text>
+                <Text style={styles.chartXLabel}>8 S...</Text>
+              </View>
             </View>
           </View>
         </View>
@@ -215,46 +323,6 @@ export default function ProgressDashboardScreen() {
           <StudyCalendar studyDates={studyDates} />
         </View>
 
-        {/* Daily Goals Widget */}
-        <View style={styles.goalsWidgetSection}>
-          <DailyGoalsWidget refreshTrigger={refreshTrigger} />
-        </View>
-
-        {/* Level Progress */}
-        <View style={styles.levelSection}>
-          <View style={styles.levelHeader}>
-            <Ionicons name="trophy" size={24} color={getLevelColor(progressData?.levelProgress.currentLevel || 'Beginner')} />
-            <Text style={styles.levelTitle}>Level Progress</Text>
-          </View>
-          <View style={styles.levelContent}>
-            <View style={styles.levelInfo}>
-              <Text style={[styles.currentLevel, { color: getLevelColor(progressData?.levelProgress.currentLevel || 'Beginner') }]}>
-                {progressData?.levelProgress.currentLevel || 'Beginner'}
-              </Text>
-              <Text style={styles.experiencePoints}>
-                {progressData?.levelProgress.experiencePoints || 0} XP
-              </Text>
-            </View>
-            <View style={styles.progressBar}>
-              <View 
-                style={[
-                  styles.progressFill, 
-                  { 
-                    width: `${progressData?.levelProgress.progressPercentage || 0}%`,
-                    backgroundColor: getLevelColor(progressData?.levelProgress.currentLevel || 'Beginner')
-                  }
-                ]} 
-              />
-            </View>
-            <Text style={styles.nextLevel}>
-              Next: {progressData?.levelProgress.nextLevelThreshold || 100} XP
-            </Text>
-          </View>
-        </View>
-
-
-        {/* Recent Activities */}
-        <RecentActivitiesWidget />
 
         {/* Achievements */}
         {progressData?.achievements.length > 0 && (
@@ -352,7 +420,6 @@ export default function ProgressDashboardScreen() {
 
 
 
-
         <View style={styles.bottomSpacing} />
       </ScrollView>
     </SafeAreaView>
@@ -378,85 +445,147 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
-  streakSection: {
-    backgroundColor: '#f8fafc',
-    margin: 16,
-    borderRadius: 20,
-    padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 4,
-  },
-  streakHeader: {
+  customHeader: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: '#ffffff',
   },
-  streakTitle: {
-    fontSize: 24,
+  headerTitle: {
+    fontSize: 28,
     fontWeight: '700',
     color: '#1e293b',
-    marginLeft: 12,
   },
-  streakContent: {
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  streakBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fef3c7',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    gap: 4,
+  },
+  streakText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#f59e0b',
+  },
+  profilePicture: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#e0e7ff',
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  streakMain: {
+  coursesSection: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+  coursesHeader: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
   },
-  streakNumber: {
-    fontSize: 48,
-    fontWeight: '800',
-    color: '#ef4444',
-    marginRight: 8,
-  },
-  streakLabel: {
+  coursesTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#6b7280',
-    marginRight: 12,
+    color: '#1e293b',
   },
-  streakEmoji: {
-    fontSize: 32,
+  seeAllText: {
+    fontSize: 14,
+    color: '#6366f1',
+    fontWeight: '500',
   },
-  streakStats: {
-    alignItems: 'center',
+  courseCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 20,
+    marginHorizontal: 0,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  streakStat: {
+  courseInfo: {
+    marginBottom: 16,
+  },
+  courseLevel: {
     fontSize: 14,
     color: '#6b7280',
     marginBottom: 4,
   },
-  calendarSection: {
-    backgroundColor: '#f8fafc',
-    margin: 16,
-    borderRadius: 20,
-    padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 4,
+  courseName: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1e293b',
   },
-  goalsWidgetSection: {
-    backgroundColor: '#f8fafc',
-    margin: 16,
-    borderRadius: 20,
-    padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 4,
+  courseBadge: {
+    position: 'absolute',
+    top: 20,
+    right: 20,
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#1e293b',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  levelSection: {
-    backgroundColor: '#f8fafc',
-    marginHorizontal: 16,
+  courseBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#1e293b',
+  },
+  courseProgress: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  courseProgressBar: {
+    flex: 1,
+    height: 4,
+    backgroundColor: '#e2e8f0',
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  courseProgressFill: {
+    height: '100%',
+    backgroundColor: '#6366f1',
+    borderRadius: 2,
+  },
+  courseProgressText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1e293b',
+  },
+  vocabularySection: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+  vocabularyHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 16,
+  },
+  vocabularyTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1e293b',
+    marginLeft: 8,
+  },
+  vocabularyCard: {
+    backgroundColor: '#ffffff',
     borderRadius: 16,
     padding: 20,
     shadowColor: '#000',
@@ -465,10 +594,137 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
   },
+  vocabularyCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  vocabularyTimeframe: {
+    fontSize: 14,
+    color: '#6b7280',
+  },
+  vocabularyNumber: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#1e293b',
+    marginBottom: 20,
+  },
+  vocabularyChart: {
+    marginTop: 8,
+  },
+  chartContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    height: 80,
+    marginBottom: 8,
+  },
+  chartBars: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    flex: 1,
+    height: 60,
+    justifyContent: 'space-between',
+    paddingRight: 8,
+  },
+  chartBar: {
+    width: 8,
+    borderRadius: 4,
+    marginHorizontal: 1,
+  },
+  chartBarActive: {
+    backgroundColor: '#10b981',
+  },
+  chartBarInactive: {
+    backgroundColor: '#e2e8f0',
+  },
+  chartYAxis: {
+    width: 20,
+    height: 60,
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+  },
+  chartYLabel: {
+    fontSize: 10,
+    color: '#6b7280',
+    textAlign: 'right',
+  },
+  chartXAxis: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 8,
+  },
+  chartXLabel: {
+    fontSize: 10,
+    color: '#6b7280',
+  },
+  learningStatsSection: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+  learningStatsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  learningStatsTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1e293b',
+    marginLeft: 8,
+  },
+  learningStatsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  learningStatCard: {
+    width: '48%',
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 20,
+    alignItems: 'center',
+    marginHorizontal: 0,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  learningStatNumber: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#1e293b',
+    marginBottom: 8,
+  },
+  learningStatLabel: {
+    fontSize: 14,
+    color: '#6b7280',
+    textAlign: 'center',
+  },
+  calendarSection: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+  levelSection: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
   levelHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 16,
+  },
+  levelCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   levelTitle: {
     fontSize: 18,
@@ -515,7 +771,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   achievementsSection: {
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#ffffff',
     marginHorizontal: 16,
     marginBottom: 16,
     borderRadius: 16,
@@ -567,7 +823,7 @@ const styles = StyleSheet.create({
 
   // Flashcards section styles
   flashcardsSection: {
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#ffffff',
     marginHorizontal: 16,
     marginBottom: 16,
     borderRadius: 16,
@@ -599,7 +855,7 @@ const styles = StyleSheet.create({
   },
   flashcardStatCard: {
     width: '48%',
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#ffffff',
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
@@ -659,6 +915,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 });
+
 
 
 

@@ -6,7 +6,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 
 // Import screens
-import ProgressDashboardScreen from './ProgressDashboardScreen';
+import ProgressPageScreen from './ProgressPageScreen';
 import GamesScreen from './GamesScreen';
 
 // Import components
@@ -130,7 +130,7 @@ function TabNavigator() {
       <Tab.Screen name="Home" component={OverviewTab} />
       <Tab.Screen name="Games" component={GamesScreen} />
       <Tab.Screen name="Lessons" component={LessonsTab} />
-      <Tab.Screen name="Progress" component={ProgressDashboardScreen} />
+      <Tab.Screen name="Progress" component={ProgressPageScreen} />
     </Tab.Navigator>
   );
 }
