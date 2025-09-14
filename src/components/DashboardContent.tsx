@@ -285,11 +285,6 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
         ) : null}
       </View>
 
-      {/* Unlock Courses Button */}
-      <TouchableOpacity style={styles.unlockButton}>
-        <Ionicons name="lock-closed" size={20} color="#ffffff" />
-        <Text style={styles.unlockButtonText}>Unlock all Spanish courses</Text>
-      </TouchableOpacity>
 
       <View style={styles.bottomSpacing} />
     </ScrollView>
@@ -503,22 +498,6 @@ const styles = StyleSheet.create({
   },
   startButtonText: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#ffffff',
-  },
-  unlockButton: {
-    margin: 20,
-    backgroundColor: '#6466E9',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    gap: 8,
-  },
-  unlockButtonText: {
-    fontSize: 16,
     fontWeight: '600',
     color: '#ffffff',
   },
