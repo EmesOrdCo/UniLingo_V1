@@ -10,6 +10,7 @@ import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 import { SubscriptionProvider, useSubscription } from './src/contexts/SubscriptionContext';
 import { ProfilePictureProvider } from './src/contexts/ProfilePictureContext';
 import { RefreshProvider, useRefresh } from './src/contexts/RefreshContext';
+import { SelectedUnitProvider } from './src/contexts/SelectedUnitContext';
 import { setRefreshTrigger } from './src/lib/progressTrackingService';
 import LoadingScreen from './src/components/LoadingScreen';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
@@ -189,12 +190,14 @@ export default function App() {
         <SubscriptionProvider>
           <ProfilePictureProvider>
             <RefreshProvider>
-              <NavigationContainer>
-                <ErrorBoundary>
-                  <AppNavigator />
-                  <StatusBar style="auto" />
-                </ErrorBoundary>
-              </NavigationContainer>
+              <SelectedUnitProvider>
+                <NavigationContainer>
+                  <ErrorBoundary>
+                    <AppNavigator />
+                    <StatusBar style="auto" />
+                  </ErrorBoundary>
+                </NavigationContainer>
+              </SelectedUnitProvider>
             </RefreshProvider>
           </ProfilePictureProvider>
         </SubscriptionProvider>

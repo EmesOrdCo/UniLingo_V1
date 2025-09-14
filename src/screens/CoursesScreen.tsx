@@ -1,78 +1,134 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import ConsistentHeader from '../components/ConsistentHeader';
+import { UnitDataService, UnitData } from '../lib/unitDataService';
+import { useAuth } from '../contexts/AuthContext';
+import { useSelectedUnit } from '../contexts/SelectedUnitContext';
 
 export default function CoursesScreen() {
   const [activeTab, setActiveTab] = useState<'levels'>('levels');
+  const [allUnits, setAllUnits] = useState<UnitData[]>([]);
+  const [loadingUnits, setLoadingUnits] = useState(true);
   const navigation = useNavigation();
+  const { user } = useAuth();
+  const { setSelectedUnit } = useSelectedUnit();
 
-  const courses = [
-    {
-      id: 1,
-      level: 'A1.1',
-      title: 'Beginner 1 (A1.1)',
-      units: 14,
-      progress: 2,
-      badge: 'A1',
-      status: 'active'
-    },
-    {
-      id: 2,
-      level: 'A1.2',
-      title: 'Beginner 2 (A1.2)',
-      units: 14,
-      progress: 0,
-      badge: 'A1',
-      status: 'locked'
-    },
-    {
-      id: 3,
-      level: 'A2.1',
-      title: 'Beginner 3 (A2.1)',
-      units: 8,
-      progress: 0,
-      badge: 'A2',
-      status: 'locked'
-    },
-    {
-      id: 4,
-      level: 'B1.1',
-      title: 'Intermediate 1 (B1.1)',
-      units: 10,
-      progress: 0,
-      badge: 'B1',
-      status: 'locked'
-    },
-    {
-      id: 5,
-      level: 'B1.2',
-      title: 'Intermediate 2 (B1.2)',
-      units: 11,
-      progress: 0,
-      badge: 'B1',
-      status: 'locked'
-    },
-    {
-      id: 6,
-      level: 'B2.1',
-      title: 'Intermediate 3 (B2.1)',
-      units: 13,
-      progress: 0,
-      badge: 'B2',
-      status: 'locked'
-    },
-    {
-      id: 7,
-      level: 'C1.1',
-      title: 'Advanced (C1)',
-      units: 4,
-      progress: 0,
-      badge: 'C1',
-      status: 'locked'
+  // Load all units on component mount
+  useEffect(() => {
+    loadAllUnits();
+  }, []);
+
+  const loadAllUnits = async () => {
+    try {
+      setLoadingUnits(true);
+      const dbUnits = await UnitDataService.getAllUnits();
+      
+      // Define all expected unit codes
+      const expectedUnits = [
+        'A1.1', 'A1.2', 'A1.3', 'A1.4', 'A1.5', 'A1.6',
+        'A2.1', 'A2.2', 'A2.3',
+        'B1.1', 'B1.2', 'B1.3',
+        'B2.1', 'B2.2', 'B2.3', 'B2.4',
+        'C1.1', 'C1.2', 'C1.3', 'C1.4',
+        'C2.1', 'C2.2'
+      ];
+      
+      // Create a map of existing units for quick lookup
+      const dbUnitsMap = new Map(dbUnits.map(unit => [unit.unit_code, unit]));
+      
+      // Get real data for units that don't have unit_code assignments yet
+      const allUnitsList = await Promise.all(expectedUnits.map(async (unitCode) => {
+        const existingUnit = dbUnitsMap.get(unitCode);
+        if (existingUnit) {
+          return existingUnit;
+        } else {
+          // For units without unit_code assignments, create placeholder with estimated data
+          const cefrLevel = unitCode.split('.')[0];
+          const estimatedData = await getEstimatedUnitData(unitCode, cefrLevel);
+          return {
+            unit_code: unitCode,
+            unit_title: UnitDataService.getUnitTitle(unitCode),
+            topic_groups: estimatedData.topic_groups,
+            total_words: estimatedData.total_words,
+            total_lessons: 5,
+            lessons_completed: 0,
+            status: 'not_started' as const
+          };
+        }
+      }));
+      
+      setAllUnits(allUnitsList);
+    } catch (error) {
+      console.error('Error loading units:', error);
+    } finally {
+      setLoadingUnits(false);
     }
-  ];
+  };
+
+  const getEstimatedUnitData = async (unitCode: string, cefrLevel: string) => {
+    try {
+      // Get all topic groups for this CEFR level
+      const data = await UnitDataService.getTopicGroupsByCefrLevel(cefrLevel);
+      
+      console.log(`🔍 ${unitCode}: Found ${data.length} topic groups for ${cefrLevel}`);
+      
+      if (!data || data.length === 0) {
+        // Fallback to estimated data
+        console.log(`⚠️ ${unitCode}: No data found, using fallback`);
+        return {
+          topic_groups: [`${unitCode} Topics`],
+          total_words: 100
+        };
+      }
+
+      // Distribute topic groups across units for this CEFR level
+      const unitNumber = parseInt(unitCode.split('.')[1]);
+      const totalUnits = getTotalUnitsForCefrLevel(cefrLevel);
+      const groupsPerUnit = Math.ceil(data.length / totalUnits);
+      const startIndex = (unitNumber - 1) * groupsPerUnit;
+      const endIndex = Math.min(startIndex + groupsPerUnit, data.length);
+      
+      const assignedGroups = data.slice(startIndex, endIndex);
+      const totalWords = assignedGroups.reduce((sum, group) => sum + group.word_count, 0);
+
+      console.log(`✅ ${unitCode}: Assigned ${assignedGroups.length} groups, ${totalWords} words`);
+
+      return {
+        topic_groups: assignedGroups.map(group => group.topic_group),
+        total_words: totalWords
+      };
+    } catch (error) {
+      console.error(`❌ Error getting estimated unit data for ${unitCode}:`, error);
+      return {
+        topic_groups: [`${unitCode} Topics`],
+        total_words: 100
+      };
+    }
+  };
+
+  const getTotalUnitsForCefrLevel = (cefrLevel: string): number => {
+    switch (cefrLevel) {
+      case 'A1': return 6;
+      case 'A2': return 3;
+      case 'B1': return 3;
+      case 'B2': return 4;
+      case 'C1': return 4;
+      case 'C2': return 2;
+      default: return 1;
+    }
+  };
+
+  const handleCourseSelect = (unit: UnitData) => {
+    console.log('🎯 Course selected:', unit.unit_code, unit.unit_title);
+    console.log('🎯 Setting selectedUnit in context:', unit);
+    // Set the selected unit in context
+    setSelectedUnit(unit);
+    // Navigate back to Dashboard
+    navigation.goBack();
+  };
+
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -103,46 +159,36 @@ export default function CoursesScreen() {
 
           {/* Course Cards */}
           <View style={styles.coursesContainer}>
-            {courses.map((course) => (
-              <TouchableOpacity key={course.id} style={styles.courseCard}>
-                <View style={styles.courseContent}>
-                  <View style={styles.courseInfo}>
-                    <Text style={styles.courseLevel}>{course.level}</Text>
-                    <Text style={styles.courseTitle}>{course.title}</Text>
-                    {course.status === 'active' && course.progress > 0 ? (
-                      <View style={styles.progressContainer}>
-                        <View style={styles.progressBar}>
-                          <View style={[styles.progressFill, { width: `${course.progress}%` }]} />
-                        </View>
-                        <Text style={styles.progressText}>{course.progress}%</Text>
+            {loadingUnits ? (
+              <View style={styles.loadingContainer}>
+                <Text style={styles.loadingText}>Loading courses...</Text>
+              </View>
+            ) : (
+              allUnits.map((unit) => (
+                <TouchableOpacity 
+                  key={unit.unit_code} 
+                  style={styles.courseCard}
+                  onPress={() => handleCourseSelect(unit)}
+                >
+                  <View style={styles.courseContent}>
+                    <View style={styles.courseInfo}>
+                      <Text style={styles.courseLevel}>{unit.unit_code}</Text>
+                      <Text style={styles.courseTitle}>{unit.unit_title}</Text>
+                      <Text style={styles.unitsText}>
+                        {unit.topic_groups.length} topics • {unit.total_words} words
+                      </Text>
+                    </View>
+                    <View style={styles.badgeContainer}>
+                      <View style={styles.badge}>
+                        <Text style={styles.badgeText}>{unit.unit_code.split('.')[0]}</Text>
                       </View>
-                    ) : (
-                      <Text style={styles.unitsText}>{course.units} units</Text>
-                    )}
-                  </View>
-                  <View style={styles.badgeContainer}>
-                    <View style={styles.badge}>
-                      <Text style={styles.badgeText}>{course.badge}</Text>
                     </View>
                   </View>
-                </View>
-              </TouchableOpacity>
-            ))}
+                </TouchableOpacity>
+              ))
+            )}
           </View>
 
-          {/* Placement Quiz Section */}
-          <View style={styles.placementSection}>
-            <Text style={styles.placementTitle}>Want to check your level?</Text>
-            <TouchableOpacity style={styles.placementButton}>
-              <Text style={styles.placementButtonText}>Take the placement quiz</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Unlock All Courses Button */}
-          <TouchableOpacity style={styles.unlockButton}>
-            <Ionicons name="lock-closed" size={20} color="#ffffff" />
-            <Text style={styles.unlockButtonText}>Unlock all Spanish courses</Text>
-          </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -219,6 +265,14 @@ const styles = StyleSheet.create({
   coursesContainer: {
     marginBottom: 32,
   },
+  loadingContainer: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#6b7280',
+  },
   courseCard: {
     backgroundColor: '#fef7ed',
     borderRadius: 12,
@@ -294,43 +348,5 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     color: '#000000',
-  },
-  placementSection: {
-    marginBottom: 24,
-    alignItems: 'center',
-  },
-  placementTitle: {
-    fontSize: 16,
-    color: '#000000',
-    marginBottom: 12,
-  },
-  placementButton: {
-    backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: '#000000',
-    borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-  },
-  placementButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000000',
-  },
-  unlockButton: {
-    backgroundColor: '#6466E9', // Purple color
-    borderRadius: 12,
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 20,
-  },
-  unlockButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#ffffff',
-    marginLeft: 8,
   },
 });

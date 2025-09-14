@@ -3,6 +3,7 @@ import { logger } from '../lib/logger';
 import { View, Text, StyleSheet, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { useRoute, useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 
 // Import screens
@@ -19,6 +20,7 @@ import { ProgressInsights } from '../lib/holisticProgressService';
 import OptimizedProgressService from '../lib/optimizedProgressService';
 import { useAuth } from '../contexts/AuthContext';
 import { useRefresh } from '../contexts/RefreshContext';
+import { useSelectedUnit } from '../contexts/SelectedUnitContext';
 
 const Tab = createBottomTabNavigator();
 
@@ -26,9 +28,13 @@ const Tab = createBottomTabNavigator();
 function OverviewTab() {
   const [progressData, setProgressData] = useState<ProgressInsights | null>(null);
   const [loadingProgress, setLoadingProgress] = useState(false);
+  const route = useRoute();
 
   const { user } = useAuth();
   const { refreshTrigger } = useRefresh();
+  const { selectedUnit } = useSelectedUnit();
+  
+  console.log('🏠 DashboardScreen - selectedUnit from context:', selectedUnit);
 
   // Load progress data
   useEffect(() => {

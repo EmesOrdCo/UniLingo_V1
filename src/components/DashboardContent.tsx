@@ -4,7 +4,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import DailyChallengeSection from './DailyChallengeSection';
 import { useAuth } from '../contexts/AuthContext';
+import { useSelectedUnit } from '../contexts/SelectedUnitContext';
 import { GeneralVocabService } from '../lib/generalVocabService';
+import { UnitDataService, UnitData } from '../lib/unitDataService';
 
 interface DashboardContentProps {
   progressData: any;
@@ -14,127 +16,43 @@ interface DashboardContentProps {
 export default function DashboardContent({ progressData, loadingProgress }: DashboardContentProps) {
   const [expandedUnit, setExpandedUnit] = useState<number | null>(null);
   const [isNavigating, setIsNavigating] = useState(false);
+  const [loadingUnits, setLoadingUnits] = useState(true);
   const navigation = useNavigation();
   const { user, profile } = useAuth();
+  const { selectedUnit, setSelectedUnit } = useSelectedUnit();
   
-  const units = [
-    { 
-      id: 1, 
-      title: 'Basic Actions',
-      lessons: [
-        { id: 1, title: 'Words', status: 'active' },
-        { id: 2, title: 'Listen', status: 'active' },
-        { id: 3, title: 'Write', status: 'active' },
-        { id: 4, title: 'Speak', status: 'locked' },
-        { id: 5, title: 'Roleplay', status: 'locked' },
-      ]
-    },
-    { 
-      id: 2, 
-      title: 'add unit name here',
-      lessons: [
-        { id: 1, title: 'Words', status: 'locked' },
-        { id: 2, title: 'Listen', status: 'locked' },
-        { id: 3, title: 'Write', status: 'locked' },
-        { id: 4, title: 'Speak', status: 'locked' },
-        { id: 5, title: 'Roleplay', status: 'locked' },
-      ]
-    },
-    { 
-      id: 3, 
-      title: 'add unit name here',
-      lessons: [
-        { id: 1, title: 'Words', status: 'locked' },
-        { id: 2, title: 'Listen', status: 'locked' },
-        { id: 3, title: 'Write', status: 'locked' },
-        { id: 4, title: 'Speak', status: 'locked' },
-        { id: 5, title: 'Roleplay', status: 'locked' },
-      ]
-    },
-    { 
-      id: 4, 
-      title: 'add unit name here',
-      lessons: [
-        { id: 1, title: 'Words', status: 'locked' },
-        { id: 2, title: 'Listen', status: 'locked' },
-        { id: 3, title: 'Write', status: 'locked' },
-        { id: 4, title: 'Speak', status: 'locked' },
-        { id: 5, title: 'Roleplay', status: 'locked' },
-      ]
-    },
-    { 
-      id: 5, 
-      title: 'add unit name here',
-      lessons: [
-        { id: 1, title: 'Words', status: 'locked' },
-        { id: 2, title: 'Listen', status: 'locked' },
-        { id: 3, title: 'Write', status: 'locked' },
-        { id: 4, title: 'Speak', status: 'locked' },
-        { id: 5, title: 'Roleplay', status: 'locked' },
-      ]
-    },
-    { 
-      id: 6, 
-      title: 'add unit name here',
-      lessons: [
-        { id: 1, title: 'Words', status: 'locked' },
-        { id: 2, title: 'Listen', status: 'locked' },
-        { id: 3, title: 'Write', status: 'locked' },
-        { id: 4, title: 'Speak', status: 'locked' },
-        { id: 5, title: 'Roleplay', status: 'locked' },
-      ]
-    },
-    { 
-      id: 7, 
-      title: 'add unit name here',
-      lessons: [
-        { id: 1, title: 'Words', status: 'locked' },
-        { id: 2, title: 'Listen', status: 'locked' },
-        { id: 3, title: 'Write', status: 'locked' },
-        { id: 4, title: 'Speak', status: 'locked' },
-        { id: 5, title: 'Roleplay', status: 'locked' },
-      ]
-    },
-    { 
-      id: 8, 
-      title: 'add unit name here',
-      lessons: [
-        { id: 1, title: 'Words', status: 'locked' },
-        { id: 2, title: 'Listen', status: 'locked' },
-        { id: 3, title: 'Write', status: 'locked' },
-        { id: 4, title: 'Speak', status: 'locked' },
-        { id: 5, title: 'Roleplay', status: 'locked' },
-      ]
-    },
-    { 
-      id: 9, 
-      title: 'add unit name here',
-      lessons: [
-        { id: 1, title: 'Words', status: 'locked' },
-        { id: 2, title: 'Listen', status: 'locked' },
-        { id: 3, title: 'Write', status: 'locked' },
-        { id: 4, title: 'Speak', status: 'locked' },
-        { id: 5, title: 'Roleplay', status: 'locked' },
-      ]
-    },
-    { 
-      id: 10, 
-      title: 'add unit name here',
-      lessons: [
-        { id: 1, title: 'Words', status: 'locked' },
-        { id: 2, title: 'Listen', status: 'locked' },
-        { id: 3, title: 'Write', status: 'locked' },
-        { id: 4, title: 'Speak', status: 'locked' },
-        { id: 5, title: 'Roleplay', status: 'locked' },
-      ]
-    },
-  ];
+  console.log('📊 DashboardContent - selectedUnit from context:', selectedUnit);
+  
+  // Load default A1.1 unit on component mount if no selectedUnit
+  useEffect(() => {
+    if (!selectedUnit) {
+      console.log('📊 Loading default unit');
+      loadDefaultUnit();
+    } else {
+      console.log('📊 Using selectedUnit from context:', selectedUnit);
+      setLoadingUnits(false);
+    }
+  }, [selectedUnit]);
 
-  const handleUnitPress = (unitId: number) => {
+  const loadDefaultUnit = async () => {
+    try {
+      setLoadingUnits(true);
+      const units = await UnitDataService.getAllUnits();
+      // Default to A1.1 if no unit is selected
+      const defaultUnit = units.find(unit => unit.unit_code === 'A1.1') || units[0];
+      setSelectedUnit(defaultUnit);
+    } catch (error) {
+      console.error('Error loading default unit:', error);
+    } finally {
+      setLoadingUnits(false);
+    }
+  };
+
+  const handleUnitPress = (unitId: string | number) => {
     setExpandedUnit(expandedUnit === unitId ? null : unitId);
   };
 
-  const handleLessonPress = async (unitId: number, lessonTitle: string) => {
+  const handleLessonPress = async (unitCode: string, lessonTitle: string, topicGroup?: string) => {
     // Prevent multiple rapid taps
     if (isNavigating) {
       Alert.alert('Please wait', 'Lesson is already loading...');
@@ -149,30 +67,36 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
     setIsNavigating(true);
 
     try {
+      // Use the provided topic group or default to first topic group of selected unit
+      const selectedTopicGroup = topicGroup || selectedUnit?.topic_groups[0] || 'Basic Concepts';
+
       // Navigate immediately - don't block on vocabulary check
       // The Unit screens will handle their own vocabulary loading with proper error handling
       switch (lessonTitle) {
         case 'Words':
           navigation.navigate('UnitWords' as never, {
-            unitId: unitId,
-            unitTitle: unitId === 1 ? 'Basic Concepts' : `Unit ${unitId}`,
-            topicGroup: unitId === 1 ? 'Basic Concepts' : 'general'
+            unitId: parseInt(unitCode.split('.')[1]),
+            unitTitle: selectedUnit?.unit_title || unitCode,
+            topicGroup: selectedTopicGroup,
+            unitCode: unitCode
           });
           break;
           
         case 'Listen':
           navigation.navigate('UnitListen' as never, {
-            unitId: unitId,
-            unitTitle: unitId === 1 ? 'Basic Concepts' : `Unit ${unitId}`,
-            topicGroup: unitId === 1 ? 'Basic Concepts' : 'general'
+            unitId: parseInt(unitCode.split('.')[1]),
+            unitTitle: selectedUnit?.unit_title || unitCode,
+            topicGroup: selectedTopicGroup,
+            unitCode: unitCode
           });
           break;
           
         case 'Write':
           navigation.navigate('UnitWrite' as never, {
-            unitId: unitId,
-            unitTitle: unitId === 1 ? 'Basic Concepts' : `Unit ${unitId}`,
-            topicGroup: unitId === 1 ? 'Basic Concepts' : 'general'
+            unitId: parseInt(unitCode.split('.')[1]),
+            unitTitle: selectedUnit?.unit_title || unitCode,
+            topicGroup: selectedTopicGroup,
+            unitCode: unitCode
           });
           break;
           
@@ -225,13 +149,13 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
     }
   };
 
-  const getStatusButton = (status: string, unitId: number, lessonTitle: string) => {
+  const getStatusButton = (status: string, unitId: string | number, lessonTitle: string, topicGroup?: string) => {
     if (status === 'active') {
       return (
         <TouchableOpacity 
           style={[styles.startButton, isNavigating && styles.startButtonDisabled]}
           disabled={isNavigating}
-          onPress={() => handleLessonPress(unitId, lessonTitle)}
+          onPress={() => handleLessonPress(unitId.toString(), lessonTitle, topicGroup)}
         >
           <Ionicons 
             name={isNavigating ? "hourglass" : "play"} 
@@ -269,12 +193,15 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
 
       {/* Course Overview Section */}
       <View style={styles.courseOverview}>
-        <Text style={styles.courseLevel}>A1.1</Text>
+        <Text style={styles.courseLevel}>{selectedUnit?.unit_code || 'A1.1'}</Text>
         <View style={styles.courseTitleRow}>
-          <Text style={styles.courseTitle}>Beginner I (A1.1)</Text>
+          <Text style={styles.courseTitle}>{selectedUnit?.unit_title || 'Foundation'}</Text>
           <TouchableOpacity 
             style={styles.changeButton}
-            onPress={() => navigation.navigate('Courses' as never)}
+            onPress={() => {
+              console.log('🔄 Change button pressed - navigating to Courses');
+              navigation.navigate('Courses' as never);
+            }}
           >
             <Text style={styles.changeButtonText}>Change</Text>
           </TouchableOpacity>
@@ -294,75 +221,68 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
 
       {/* Course Units Section */}
       <View style={styles.unitsSection}>
-        {units.map((unit) => (
-          <View key={unit.id} style={styles.unitContainer}>
-            <TouchableOpacity 
-              style={[
-                styles.unitCard,
-                expandedUnit === unit.id && styles.unitCardExpanded
-              ]}
-              onPress={() => handleUnitPress(unit.id)}
-            >
-              <View style={styles.unitHeader}>
-                <Text style={styles.unitNumber}>Unit {unit.id}</Text>
-                <View style={styles.unitProgressBar}>
-                  <View style={[styles.unitProgressFill, { width: unit.id === 1 ? '25%' : '0%' }]} />
-                </View>
-              </View>
-              
-              <Text style={styles.unitTitle}>{unit.title}</Text>
-              
-              <View style={styles.unitFooter}>
-                <Ionicons name="download-outline" size={20} color="#6b7280" />
-                <Ionicons 
-                  name={expandedUnit === unit.id ? "chevron-up" : "chevron-down"} 
-                  size={20} 
-                  color="#6b7280" 
-                />
-              </View>
-            </TouchableOpacity>
-
-            {/* Expanded Lessons */}
-            {expandedUnit === unit.id && unit.lessons.length > 0 && (
-              <View style={styles.lessonsContainer}>
-                {unit.lessons.map((lesson) => (
-                  <TouchableOpacity 
-                    key={lesson.id} 
-                    style={[
-                      styles.lessonCard,
-                      isNavigating && styles.lessonCardDisabled
-                    ]}
-                    onPress={() => handleLessonPress(unit.id, lesson.title)}
-                    activeOpacity={0.7}
-                    disabled={isNavigating}
-                  >
-                    <View style={styles.lessonContent}>
-                      <View style={styles.lessonTitleRow}>
-                        {getLessonIcon(lesson.title)}
-                        <Text style={styles.lessonTitle}>{lesson.title}</Text>
-                      </View>
-                      
-                      {lesson.status === 'active' && lesson.image && (
-                        <View style={styles.lessonImageContainer}>
-                          <Image 
-                            source={{ uri: lesson.image }} 
-                            style={styles.lessonImage}
-                            resizeMode="cover"
-                          />
-                        </View>
-                      )}
-                    </View>
-                    
-                    <View style={styles.lessonActions}>
-                      {getStatusButton(lesson.status, unit.id, lesson.title)}
-                      {getStatusIcon(lesson.status)}
-                    </View>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
+        {/* Selected Unit Topic Groups */}
+        {loadingUnits ? (
+          <View style={styles.loadingContainer}>
+            <Text style={styles.loadingText}>Loading units...</Text>
           </View>
-        ))}
+        ) : selectedUnit ? (
+          selectedUnit.topic_groups.map((topicGroup, index) => (
+            <View key={topicGroup} style={styles.unitContainer}>
+              <TouchableOpacity 
+                style={[
+                  styles.unitCard,
+                  expandedUnit === index && styles.unitCardExpanded
+                ]}
+                onPress={() => handleUnitPress(index)}
+              >
+                <View style={styles.unitHeader}>
+                  <Text style={styles.unitNumber}>Unit {index + 1}</Text>
+                  <View style={styles.unitProgressBar}>
+                    <View style={[styles.unitProgressFill, { width: '0%' }]} />
+                  </View>
+                </View>
+                
+                <Text style={styles.unitTitle}>{topicGroup}</Text>
+                <Text style={styles.unitSubtitle}>{selectedUnit.unit_code} • Topic Group</Text>
+                
+                <View style={styles.unitFooter}>
+                  <Ionicons name="download-outline" size={20} color="#6b7280" />
+                  <Ionicons 
+                    name={expandedUnit === index ? "chevron-up" : "chevron-down"} 
+                    size={20} 
+                    color="#6b7280" 
+                  />
+                </View>
+              </TouchableOpacity>
+
+              {/* Expanded Lessons */}
+              {expandedUnit === index && (
+                <View style={styles.lessonsContainer}>
+                  {UnitDataService.getLessonsForUnit(selectedUnit).map((lesson) => (
+                    <TouchableOpacity 
+                      key={lesson.id} 
+                      style={[
+                        styles.lessonCard,
+                        isNavigating && styles.lessonCardDisabled
+                      ]}
+                      onPress={() => handleLessonPress(selectedUnit.unit_code, lesson.title, topicGroup)}
+                      activeOpacity={0.7}
+                      disabled={isNavigating}
+                    >
+                      <View style={styles.lessonContent}>
+                        <View style={styles.lessonTitleRow}>
+                          <Text style={styles.lessonTitle}>{lesson.title}</Text>
+                          {getStatusButton(lesson.status, selectedUnit.unit_code, lesson.title, topicGroup)}
+                        </View>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </View>
+          ))
+        ) : null}
       </View>
 
       {/* Unlock Courses Button */}
@@ -494,6 +414,19 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#000000',
     marginBottom: 12,
+  },
+  unitSubtitle: {
+    fontSize: 14,
+    color: '#6b7280',
+    marginTop: 4,
+  },
+  loadingContainer: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#6b7280',
   },
   unitFooter: {
     flexDirection: 'row',

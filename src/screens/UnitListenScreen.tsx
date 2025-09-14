@@ -27,11 +27,11 @@ export default function UnitListenScreen() {
   const route = useRoute();
   const { user, profile } = useAuth();
   
-  const { unitId, unitTitle, topicGroup } = route.params || { unitId: 1, unitTitle: 'Basic Concepts', topicGroup: 'Basic Concepts' };
+  const { unitId, unitTitle, topicGroup, unitCode } = route.params || { unitId: 1, unitTitle: 'Basic Concepts', topicGroup: 'Basic Concepts', unitCode: 'A1.1' };
   
-  // Extract CEFR level and unit number from unitId for now
-  const cefrLevel = 'A1';
-  const unitNumber = unitId;
+  // Extract CEFR level and unit number from unitCode
+  const cefrLevel = unitCode ? unitCode.split('.')[0] : 'A1';
+  const unitNumber = unitCode ? parseInt(unitCode.split('.')[1]) : unitId;
   
   const [vocabulary, setVocabulary] = useState<ProcessedVocabItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -136,7 +136,7 @@ export default function UnitListenScreen() {
       
       await ProgressTrackingService.recordLessonActivity({
         activityType: 'lesson',
-        activityName: `${unitTitle} - Listen`,
+        activityName: `${topicGroup} - Listen`,
         durationSeconds: 300, // 5 minutes estimated
         score: score,
         maxScore: vocabulary.length,
@@ -169,7 +169,7 @@ export default function UnitListenScreen() {
           <TouchableOpacity onPress={() => navigation.goBack()}>
             <Ionicons name="arrow-back" size={24} color="#000000" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>{unitTitle} - Listen</Text>
+          <Text style={styles.headerTitle}>{topicGroup} - Listen</Text>
         </View>
         <View style={styles.loadingContainer}>
           <Text style={styles.loadingText}>Loading vocabulary...</Text>
@@ -185,7 +185,7 @@ export default function UnitListenScreen() {
           <TouchableOpacity onPress={() => navigation.goBack()}>
             <Ionicons name="arrow-back" size={24} color="#000000" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>{unitTitle} - Listen</Text>
+          <Text style={styles.headerTitle}>{topicGroup} - Listen</Text>
         </View>
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>No vocabulary found for this unit.</Text>
@@ -252,7 +252,7 @@ export default function UnitListenScreen() {
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="#000000" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{unitTitle} - Listen</Text>
+        <Text style={styles.headerTitle}>{topicGroup} - Listen</Text>
       </View>
       
       <View style={styles.progressContainer}>

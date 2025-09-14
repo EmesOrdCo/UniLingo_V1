@@ -1,0 +1,510 @@
+english_term,topic_group
+actor,People & Relationships
+audience,Arts, Media & Communication
+writer,Arts, Media & Communication
+scientist,Science & Technology
+secretary,Work & Business
+secret,Abstract Nouns & Concepts
+soldier,Law, Government & Society
+engineer,Work & Business
+nurse,Health & Body
+artist,Arts, Media & Communication
+visitor,People & Relationships
+guest,People & Relationships
+neighbor,People & Relationships
+owner,Work & Business
+senior,People & Relationships
+band,Sports & Leisure
+fan,Sports & Leisure
+colleague,Work & Business
+consumer,Finance & Shopping
+sum,Measurement & Quantity
+administration,Law, Government & Society
+ad,Finance & Shopping
+corporate,Work & Business
+employ,Work & Business
+sector,Work & Business
+finance,Finance & Shopping
+advertise,Finance & Shopping
+sight,Nature, Environment & Weather
+register,Education & Learning
+otherwise,Adverbs & Degree Words
+cool,Adjectives: Describing People & Things
+deliver,Verbs: Action & Movement
+hide,Verbs: Action & Movement
+tourist,Travel & Transport
+handle,Verbs: Action & Movement
+belong,Verbs: Thinking & Communication
+select,Work & Business
+map,Travel & Transport
+cry,Emotions & Attitudes
+expand,Verbs: Action & Movement
+leg,Health & Body
+examine,Science & Technology
+experiment,Science & Technology
+spread,Verbs: Action & Movement
+reader,Education & Learning
+heavy,Adjectives: Describing People & Things
+sample,Science & Technology
+assessment,Education & Learning
+consideration,Abstract Nouns & Concepts
+gold,Nature, Environment & Weather
+suggestion,Emotions & Attitudes
+novel,Arts, Media & Communication
+category,Education & Learning
+troop,Law, Government & Society
+proper,Adjectives: Describing People & Things
+affair,Law, Government & Society
+violence,Safety, Crime & Danger
+failure,Abstract Nouns & Concepts
+intend,Verbs: Thinking & Communication
+shift,Work & Business
+lawyer,Law, Government & Society
+council,Law, Government & Society
+minister,Law, Government & Society
+federal,Law, Government & Society
+spot,Nature, Environment & Weather
+pool,Nature, Environment & Weather
+presence,Abstract Nouns & Concepts
+locate,Verbs: Action & Movement
+neither,Adverbs & Degree Words
+chapter,Arts, Media & Communication
+square,Places & Buildings
+tape,Arts, Media & Communication
+complain,Emotions & Attitudes
+ignore,Verbs: Thinking & Communication
+duty,Law, Government & Society
+conflict,Safety, Crime & Danger
+editor,Arts, Media & Communication
+element,Science & Technology
+favor,Emotions & Attitudes
+peace,Law, Government & Society
+cash,Finance & Shopping
+afford,Finance & Shopping
+coffee,Food & Drink
+feed,Food & Drink
+fee,Finance & Shopping
+purchase,Finance & Shopping
+count,Measurement & Quantity
+cheap,Finance & Shopping
+expensive,Finance & Shopping
+payment,Finance & Shopping
+waste,Finance & Shopping
+satisfy,Emotions & Attitudes
+gun,Safety, Crime & Danger
+reality,Abstract Nouns & Concepts
+sex,Health & Body
+guide,Travel & Transport
+crowd,People & Relationships
+trend,Abstract Nouns & Concepts
+reform,Law, Government & Society
+settle,Verbs: Thinking & Communication
+
+english_term,topic_group
+flight,Travel & Transport
+plane,Travel & Transport
+ship,Travel & Transport
+taxi,Travel & Transport
+ticket,Travel & Transport
+rain,Nature, Environment & Weather
+busy,Adjectives: Describing People & Things
+importance,Abstract Nouns & Concepts
+transport,Travel & Transport
+description,Education & Learning
+remove,Verbs: Action & Movement
+anybody,People & Relationships
+strength,Health & Body
+dry,Adjectives: Describing People & Things
+user,Science & Technology
+monitor,Science & Technology
+lesson,Education & Learning
+roll,Verbs: Action & Movement
+tonight,Time & Sequence
+inform,Verbs: Thinking & Communication
+heat,Nature, Environment & Weather
+weather,Nature, Environment & Weather
+beat,Verbs: Action & Movement
+threat,Safety, Crime & Danger
+theater,Arts, Media & Communication
+repeat,Verbs: Action & Movement
+meal,Food & Drink
+dinner,Food & Drink
+lunch,Food & Drink
+cook,Food & Drink
+wine,Food & Drink
+egg,Food & Drink
+insurance,Finance & Shopping
+scheme,Law, Government & Society
+generate,Science & Technology
+connection,Science & Technology
+location,Places & Buildings
+mass,Measurement & Quantity
+video,Arts, Media & Communication
+bind,Verbs: Action & Movement
+flat,Home & Daily Life
+apart,Home & Daily Life
+bedroom,Home & Daily Life
+kitchen,Home & Daily Life
+chair,Home & Daily Life
+comfortable,Adjectives: Describing People & Things
+wind,Nature, Environment & Weather
+wash,Verbs: Action & Movement
+refuse,Verbs: Thinking & Communication
+appreciate,Emotions & Attitudes
+quick,Adjectives: Describing People & Things
+lay,Verbs: Action & Movement
+quote,Arts, Media & Communication
+investigation,Law, Government & Society
+copy,Arts, Media & Communication
+hall,Places & Buildings
+fresh,Adjectives: Describing People & Things
+announce,Verbs: Thinking & Communication
+pair,Clothing & Fashion
+majority,Abstract Nouns & Concepts
+healthy,Health & Body
+pain,Health & Body
+skin,Health & Body
+mouth,Health & Body
+earth,Nature, Environment & Weather
+nuclear,Science & Technology
+dear,Emotions & Attitudes
+tear,Health & Body
+smoke,Nature, Environment & Weather
+shoe,Clothing & Fashion
+labor,Work & Business
+pop,Arts, Media & Communication
+straight,Adjectives: Describing People & Things
+whereas,Adverbs & Degree Words
+solve,Verbs: Thinking & Communication
+destroy,Verbs: Action & Movement
+lift,Verbs: Action & Movement
+revenue,Finance & Shopping
+status,Abstract Nouns & Concepts
+collection,Abstract Nouns & Concepts
+software,Science & Technology
+code,Science & Technology
+equipment,Science & Technology
+tool,Science & Technology
+net,Science & Technology
+north,Places & Buildings
+fair,Adjectives: Describing People & Things
+request,Verbs: Thinking & Communication
+tough,Adjectives: Describing People & Things
+rich,Adjectives: Describing People & Things
+cycle,Travel & Transport
+boat,Travel & Transport
+brief,Adjectives: Describing People & Things
+display,Arts, Media & Communication
+capacity,Measurement & Quantity
+regular,Adjectives: Describing People & Things
+route,Travel & Transport
+vehicle,Travel & Transport
+surround,Verbs: Action & Movement
+twice,Time & Sequence
+brain,Health & Body
+winter,Nature, Environment & Weather
+beach,Places & Buildings
+wood,Nature, Environment & Weather
+flower,Nature, Environment & Weather
+flow,Nature, Environment & Weather
+farm,Nature, Environment & Weather
+
+english_term,topic_group
+wave,Nature, Environment & Weather
+driver,Travel & Transport
+river,Nature, Environment & Weather
+freedom,Abstract Nouns & Concepts
+promote,Work & Business
+crisis,Abstract Nouns & Concepts
+swim,Sports & Leisure
+somewhere,Places & Buildings
+expert,Work & Business
+invite,People & Relationships
+surface,Nature, Environment & Weather
+jump,Verbs: Action & Movement
+conclude,Verbs: Thinking & Communication
+football,Sports & Leisure
+ball,Sports & Leisure
+concert,Arts, Media & Communication
+funny,Adjectives: Feelings & Reactions
+print,Arts, Media & Communication
+relax,Sports & Leisure
+contribute,Work & Business
+budget,Finance & Shopping
+mix,Food & Drink
+defense,Safety, Crime & Danger
+entire,Adjectives: Describing People & Things
+survey,Education & Learning
+block,Places & Buildings
+award,Work & Business
+suit,Clothing & Fashion
+climb,Sports & Leisure
+blow,Verbs: Action & Movement
+glass,Home & Daily Life
+telephone,Science & Technology
+blood,Health & Body
+advice,Emotions & Attitudes
+admit,Verbs: Thinking & Communication
+lady,People & Relationships
+decade,Time & Sequence
+additional,Adjectives: Describing People & Things
+radio,Arts, Media & Communication
+tradition,Arts, Media & Communication
+broad,Adjectives: Describing People & Things
+adopt,Verbs: Action & Movement
+glad,Emotions & Attitudes
+load,Verbs: Action & Movement
+sentence,Education & Learning
+expression,Emotions & Attitudes
+email,Science & Technology
+pleasure,Emotions & Attitudes
+decrease,Measurement & Quantity
+civil,Law, Government & Society
+tire,Travel & Transport
+deny,Verbs: Thinking & Communication
+strange,Adjectives: Describing People & Things
+annual,Time & Sequence
+schedule,Education & Learning
+stress,Health & Body
+respond,Verbs: Thinking & Communication
+south,Places & Buildings
+branch,Places & Buildings
+border,Places & Buildings
+chief,People & Relationships
+gather,Verbs: Action & Movement
+regulation,Law, Government & Society
+assess,Education & Learning
+delivery,Work & Business
+stone,Nature, Environment & Weather
+gift,People & Relationships
+hurt,Health & Body
+onto,Adverbs & Degree Words
+commit,Verbs: Thinking & Communication
+citizen,Law, Government & Society
+quiet,Adjectives: Describing People & Things
+cup,Food & Drink
+aid,Health & Body
+afraid,Emotions & Attitudes
+attitude,Emotions & Attitudes
+aware,Emotions & Attitudes
+familiar,Adjectives: Describing People & Things
+famous,People & Relationships
+excite,Emotions & Attitudes
+hate,Emotions & Attitudes
+unless,Adverbs & Degree Words
+perspective,Abstract Nouns & Concepts
+objective,Abstract Nouns & Concepts
+critical,Adjectives: Feelings & Reactions
+impossible,Adjectives: Describing People & Things
+executive,Work & Business
+excellent,Adjectives: Feelings & Reactions
+physical,Health & Body
+component,Science & Technology
+traffic,Travel & Transport
+appeal,Emotions & Attitudes
+trial,Law, Government & Society
+bag,Clothing & Fashion
+fashion,Clothing & Fashion
+enable,Verbs: Thinking & Communication
+powerful,Adjectives: Describing People & Things
+relative,People & Relationships
+grant,Law, Government & Society
+religious,Law, Government & Society
+
+english_term,topic_group
+representative,Law, Government & Society
+obvious,Adjectives: Describing People & Things
+vary,Verbs: Thinking & Communication
+usual,Adjectives: Describing People & Things
+alternative,Abstract Nouns & Concepts
+industrial,Work & Business
+domestic,Home & Daily Life
+medical,Health & Body
+responsible,Adjectives: Feelings & Reactions
+independent,Adjectives: Describing People & Things
+primary,Education & Learning
+negative,Adjectives: Feelings & Reactions
+global,Nature, Environment & Weather
+museum,Arts, Media & Communication
+library,Education & Learning
+distance,Measurement & Quantity
+confidence,Emotions & Attitudes
+island,Places & Buildings
+slow,Adjectives: Describing People & Things
+contribution,Abstract Nouns & Concepts
+district,Places & Buildings
+battle,Safety, Crime & Danger
+shoot,Safety, Crime & Danger
+recommend,Verbs: Thinking & Communication
+temperature,Nature, Environment & Weather
+marriage,People & Relationships
+taste,Food & Drink
+suspect,Safety, Crime & Danger
+extra,Adjectives: Describing People & Things
+coach,Sports & Leisure
+recall,Verbs: Thinking & Communication
+length,Measurement & Quantity
+truth,Abstract Nouns & Concepts
+percentage,Measurement & Quantity
+scale,Measurement & Quantity
+volume,Measurement & Quantity
+extent,Measurement & Quantity
+edge,Places & Buildings
+principle,Abstract Nouns & Concepts
+engage,Verbs: Thinking & Communication
+plus,Measurement & Quantity
+complex,Adjectives: Describing People & Things
+murder,Safety, Crime & Danger
+circumstance,Abstract Nouns & Concepts
+bomb,Safety, Crime & Danger
+partner,People & Relationships
+opposite,Adjectives: Describing People & Things
+divide,Verbs: Action & Movement
+convince,Verbs: Thinking & Communication
+left,Adjectives: Describing People & Things
+bird,Nature, Environment & Weather
+burn,Verbs: Action & Movement
+prison,Safety, Crime & Danger
+accident,Safety, Crime & Danger
+arrest,Safety, Crime & Danger
+crime,Safety, Crime & Danger
+weapon,Safety, Crime & Danger
+dangerous,Safety, Crime & Danger
+danger,Safety, Crime & Danger
+safety,Safety, Crime & Danger
+safe,Safety, Crime & Danger
+warn,Safety, Crime & Danger
+shock,Emotions & Attitudes
+emerge,Verbs: Action & Movement
+photo,Arts, Media & Communication
+camp,Sports & Leisure
+overall,Abstract Nouns & Concepts
+arrangement,Abstract Nouns & Concepts
+arrange,Verbs: Action & Movement
+switch,Verbs: Action & Movement
+host,People & Relationships
+moreover,Adverbs & Degree Words
+tour,Travel & Transport
+army,Law, Government & Society
+belief,Abstract Nouns & Concepts
+bottom,Places & Buildings
+camera,Arts, Media & Communication
+cancer,Health & Body
+corner,Places & Buildings
+delay,Travel & Transport
+desire,Emotions & Attitudes
+double,Measurement & Quantity
+error,Abstract Nouns & Concepts
+escape,Verbs: Action & Movement
+gas,Nature, Environment & Weather
+hang,Verbs: Action & Movement
+horse,Nature, Environment & Weather
+invest,Finance & Shopping
+launch,Verbs: Action & Movement
+manner,Abstract Nouns & Concepts
+nobody,People & Relationships
+noise,Nature, Environment & Weather
+none,Adverbs & Degree Words
+oppose,Verbs: Thinking & Communication
+ought,Verbs: Thinking & Communication
+pack,Travel & Transport
+path,Places & Buildings
+proceed,Verbs: Action & Movement
+remind,Verbs: Thinking & Communication
+reply,Verbs: Thinking & Communication
+ride,Travel & Transport
+scene,Arts, Media & Communication
+shake,Verbs: Action & Movement
+speed,Travel & Transport
+spirit,Emotions & Attitudes
+spring,Nature, Environment & Weather
+stick,Verbs: Action & Movement
+studio,Arts, Media & Communication
+sun,Nature, Environment & Weather
+title,Arts, Media & Communication
+trust,Emotions & Attitudes
+union,Law, Government & Society
+warm,Adjectives: Describing People & Things
+
+english_term,topic_group
+active,Adjectives: Describing People & Things
+actual,Adjectives: Describing People & Things
+commercial,Work & Business
+cultural,Arts, Media & Communication
+environmental,Nature, Environment & Weather
+equal,Abstract Nouns & Concepts
+essential,Adjectives: Describing People & Things
+historical,Arts, Media & Communication
+initial,Time & Sequence
+prevent,Verbs: Action & Movement
+reveal,Verbs: Thinking & Communication
+survive,Health & Body
+technical,Science & Technology
+wonderful,Adjectives: Feelings & Reactions
+speaker,Arts, Media & Communication
+concept,Abstract Nouns & Concepts
+combine,Verbs: Action & Movement
+collect,Verbs: Action & Movement
+background,Abstract Nouns & Concepts
+transfer,Verbs: Action & Movement
+observe,Science & Technology
+politics,Law, Government & Society
+conduct,Verbs: Thinking & Communication
+participate,Verbs: Thinking & Communication
+confirm,Verbs: Thinking & Communication
+struggle,Verbs: Action & Movement
+perfect,Adjectives: Feelings & Reactions
+exchange,Finance & Shopping
+attract,Verbs: Thinking & Communication
+appropriate,Adjectives: Describing People & Things
+demonstrate,Verbs: Thinking & Communication
+mountain,Nature, Environment & Weather
+correct,Adjectives: Describing People & Things
+progress,Abstract Nouns & Concepts
+committee,Law, Government & Society
+mistake,Abstract Nouns & Concepts
+decline,Verbs: Action & Movement
+difficulty,Abstract Nouns & Concepts
+technique,Science & Technology
+connect,Verbs: Thinking & Communication
+absolutely,Adverbs & Degree Words
+apparently,Adverbs & Degree Words
+basically,Adverbs & Degree Words
+carefully,Adverbs & Degree Words
+currently,Adverbs & Degree Words
+directly,Adverbs & Degree Words
+eventually,Adverbs & Degree Words
+extremely,Adverbs & Degree Words
+fairly,Adverbs & Degree Words
+fully,Adverbs & Degree Words
+hardly,Adverbs & Degree Words
+highly,Adverbs & Degree Words
+mainly,Adverbs & Degree Words
+mostly,Adverbs & Degree Words
+normally,Adverbs & Degree Words
+possibly,Adverbs & Degree Words
+relatively,Adverbs & Degree Words
+slightly,Adverbs & Degree Words
+totally,Adverbs & Degree Words
+unfortunately,Adverbs & Degree Words
+manufacture,Work & Business
+effective,Adjectives: Describing People & Things
+topic,Education & Learning
+content,Arts, Media & Communication
+text,Education & Learning
+context,Education & Learning
+contrast,Education & Learning
+consequence,Abstract Nouns & Concepts
+construction,Work & Business
+ensure,Verbs: Thinking & Communication
+improvement,Work & Business
+institution,Education & Learning
+introduction,Education & Learning
+occasion,Time & Sequence
+package,Travel & Transport
+photograph,Arts, Media & Communication
+procedure,Education & Learning
+reaction,Science & Technology
+requirement,Abstract Nouns & Concepts
+acquire,Verbs: Thinking & Communication
+
