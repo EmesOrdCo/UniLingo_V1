@@ -45,11 +45,10 @@ import { FlashcardService } from '../lib/flashcardService';
 import { GameStatisticsService } from '../lib/gameStatisticsService';
 import { supabase } from '../lib/supabase';
 import ConsistentHeader from '../components/ConsistentHeader';
-import DailyChallengeSection from '../components/DailyChallengeSection';
-import { DailyChallengeService } from '../lib/dailyChallengeService';
 import FavouritesSection from '../components/FavouritesSection';
 import AllGamesSection from '../components/AllGamesSection';
 import GameStatsSection from '../components/GameStatsSection';
+import LevelProgressWidget from '../components/LevelProgressWidget';
 import FlashcardQuizGame from '../components/games/FlashcardQuizGame';
 import LessonSentenceScramble from '../components/lesson/LessonSentenceScramble';
 import WordScrambleGame from '../components/games/WordScrambleGame';
@@ -61,13 +60,16 @@ import SpeedChallengeGame from '../components/games/SpeedChallengeGame';
 
 const { width } = Dimensions.get('window');
 
-export default function GamesScreen() {
+export default function GamesScreen({ route }: { route?: any }) {
   const screenId = React.useMemo(() => Math.random().toString(36).substr(2, 9), []);
   
   // console.log(`🎮 [${screenId}] GamesScreen component rendered`); // Debug logging disabled
   
   const navigation = useNavigation();
   const { user, profile } = useAuth();
+  
+  // Check if we need to launch a specific game from navigation params
+  const launchGame = route?.params?.launchGame;
   
   // State for games and data
   const [flashcards, setFlashcards] = useState<any[]>([]);
@@ -152,7 +154,42 @@ export default function GamesScreen() {
   // Fetch flashcards and topics
   useEffect(() => {
     const fetchGameData = async () => {
-      if (!user || !profile?.subjects?.[0]) return;
+      console.log(`🎮 fetchGameData called - user: ${!!user}, profile: ${!!profile}, subjects: ${profile?.subjects}`);
+      
+      if (!user) {
+        console.log(`🎮 No user, skipping flashcard load`);
+        return;
+      }
+      
+      if (!profile?.subjects?.[0]) {
+        console.log(`🎮 No subjects in profile, loading flashcards without subject filter`);
+        // Load flashcards without subject filter if no subjects
+        try {
+          const userFlashcards = await UserFlashcardService.getUserFlashcards(user.id);
+          const allCards = userFlashcards.filter(card => 
+            card.front && card.back && card.topic
+          );
+          
+          console.log(`🎮 Loaded ${allCards.length} flashcards for user (no subject filter)`);
+          setFlashcards(allCards);
+          
+          // Get unique topics
+          const uniqueTopics = Array.from(new Set(allCards.map(card => card.topic)));
+          const topicObjects = uniqueTopics.map(topic => ({
+            id: topic.toLowerCase().replace(/\s+/g, '-'),
+            name: topic,
+            icon: 'book-outline',
+            color: '#ef4444',
+            count: 0
+          }));
+          setTopics(topicObjects);
+          
+        } catch (error) {
+          console.error('❌ Error loading flashcards without subject:', error);
+          setFlashcards([]);
+        }
+        return;
+      }
       
       try {
         const userSubject = profile.subjects[0];
@@ -167,6 +204,7 @@ export default function GamesScreen() {
           card.front && card.back && card.topic
         );
         
+        console.log(`🎮 Loaded ${allCards.length} flashcards for user`);
         setFlashcards(allCards);
         
         // Get unique topics from user cards only
@@ -282,6 +320,7 @@ export default function GamesScreen() {
   const refreshGameStatistics = async () => {
     await loadGameStatistics();
   };
+
 
   // Flashcard functions
   const getTopicIcon = (iconName: string) => {
@@ -598,12 +637,30 @@ export default function GamesScreen() {
     }
   };
 
+  // Helper function to show popup error when no flashcards
+  const showNoFlashcardsError = () => {
+    Alert.alert(
+      'No Flashcards Available',
+      'Games require flashcards to work. Please create some flashcards first by going to the Flashcards section and adding vocabulary words.',
+      [
+        {
+          text: 'Go to Flashcards',
+          onPress: () => navigation.navigate('Flashcards' as never)
+        },
+        {
+          text: 'OK',
+          style: 'cancel'
+        }
+      ]
+    );
+  };
+
   // Handle daily challenge completion
 
   // Game start functions
   const startFlashcardQuiz = () => {
     if (flashcards.length === 0) {
-      Alert.alert('No Cards Available', 'Please add some flashcards first.');
+      showNoFlashcardsError();
       return;
     }
     setShowFlashcardQuizSetup(true);
@@ -667,7 +724,7 @@ export default function GamesScreen() {
 
   const startMemoryMatch = () => {
     if (flashcards.length === 0) {
-      Alert.alert('No Cards Available', 'Please add some flashcards first.');
+      showNoFlashcardsError();
       return;
     }
     setShowMemoryMatchSetup(true);
@@ -675,7 +732,7 @@ export default function GamesScreen() {
 
   const startWordScramble = () => {
     if (flashcards.length === 0) {
-      Alert.alert('No Cards Available', 'Please add some flashcards first.');
+      showNoFlashcardsError();
       return;
     }
     setShowWordScrambleSetup(true);
@@ -683,7 +740,7 @@ export default function GamesScreen() {
 
   const startHangman = () => {
     if (flashcards.length === 0) {
-      Alert.alert('No Cards Available', 'Please add some flashcards first.');
+      showNoFlashcardsError();
       return;
     }
     setShowHangmanSetup(true);
@@ -691,7 +748,7 @@ export default function GamesScreen() {
 
   const startSpeedChallenge = () => {
     if (flashcards.length === 0) {
-      Alert.alert('No Cards Available', 'Please add some flashcards first.');
+      showNoFlashcardsError();
       return;
     }
     setShowSpeedChallengeSetup(true);
@@ -699,7 +756,7 @@ export default function GamesScreen() {
 
   const startGravityGame = () => {
     if (flashcards.length === 0) {
-      Alert.alert('No Cards Available', 'Please add some flashcards first.');
+      showNoFlashcardsError();
       return;
     }
     setShowGravityGameSetup(true);
@@ -707,7 +764,7 @@ export default function GamesScreen() {
 
   const startTypeWhatYouHear = () => {
     if (flashcards.length === 0) {
-      Alert.alert('No Cards Available', 'Please add some flashcards first.');
+      showNoFlashcardsError();
       return;
     }
     setShowTypeWhatYouHearSetup(true);
@@ -715,7 +772,7 @@ export default function GamesScreen() {
 
   const startSentenceScramble = () => {
     if (flashcards.length === 0) {
-      Alert.alert('No Cards Available', 'Please add some flashcards first.');
+      showNoFlashcardsError();
       return;
     }
     setShowSentenceScrambleSetup(true);
@@ -1098,15 +1155,7 @@ export default function GamesScreen() {
     try {
       console.log(`🎮 [${screenId}] [${completionId}] Game completed with finalScore:`, finalScore, 'timeSpent:', timeSpent, 'totalAnswered:', totalAnswered, 'currentGame:', currentGame, 'gameCompleted:', gameCompleted, 'timeSinceLastCompletion:', now - lastCompletionTimeRef.current);
       
-      // Check if this is a daily challenge completion
-      if (currentGame && user) {
-        try {
-          await DailyChallengeService.completeChallenge(user.id, currentGame);
-          console.log(`✅ Daily challenge completed: ${currentGame}`);
-        } catch (error) {
-          console.error('Error completing daily challenge:', error);
-        }
-      }
+      
       
       // NUCLEAR OPTION: Debounce all completions within 5 seconds
       if (now - lastCompletionTimeRef.current < 5000) {
@@ -1259,6 +1308,9 @@ export default function GamesScreen() {
       }));
 
       console.log(`🎯 [${screenId}] [${completionId}] ALL DATABASE OPERATIONS COMPLETED SUCCESSFULLY`);
+      
+      // Refresh game statistics
+      await refreshGameStatistics();
       
     } catch (error) {
       console.error('❌ Error tracking game progress:', error);
@@ -1612,6 +1664,13 @@ export default function GamesScreen() {
         </View>
 
         
+
+
+        {/* Level Progress Widget */}
+        <LevelProgressWidget 
+          onRefresh={refreshGameStatistics}
+        />
+
         {/* Your Game Stats */}
         <GameStatsSection 
           stats={{

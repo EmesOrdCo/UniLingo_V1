@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
+import { useNavigation } from '@react-navigation/native';
 import { DailyChallengeService, DailyChallenge } from '../lib/dailyChallengeService';
+import { UserFlashcardService } from '../lib/userFlashcardService';
 
 interface DailyChallengeSectionProps {
   onPlay: (gameType: string) => void;
@@ -12,6 +14,7 @@ const DailyChallengeSection: React.FC<DailyChallengeSectionProps> = ({ onPlay })
   const [challenge, setChallenge] = useState<DailyChallenge | null>(null);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  const navigation = useNavigation();
 
   useEffect(() => {
     loadTodaysChallenge();
@@ -40,8 +43,38 @@ const DailyChallengeSection: React.FC<DailyChallengeSectionProps> = ({ onPlay })
     }
   };
 
-  const handlePlay = () => {
+  const handlePlay = async () => {
     if (challenge && !challenge.completed) {
+      // Check if user has flashcards
+      try {
+        const flashcards = await UserFlashcardService.getUserFlashcards(user!.id);
+        if (flashcards.length === 0) {
+          Alert.alert(
+            'No Flashcards Available',
+            'Games require flashcards to work. Please create some flashcards first by going to the Flashcards section and adding vocabulary words.',
+            [
+              {
+                text: 'Go to Flashcards',
+                onPress: () => navigation.navigate('Flashcards' as never)
+              },
+              {
+                text: 'OK',
+                style: 'cancel'
+              }
+            ]
+          );
+          return;
+        }
+      } catch (error) {
+        console.error('Error checking flashcards:', error);
+        Alert.alert(
+          'Error',
+          'Unable to check flashcards. Please try again.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+      
       onPlay(challenge.game_type);
     }
   };
@@ -83,10 +116,10 @@ const DailyChallengeSection: React.FC<DailyChallengeSectionProps> = ({ onPlay })
         <View style={styles.backgroundGradient}>
           <View style={styles.content}>
             <View style={styles.textContent}>
-              <Text style={styles.title}>Daily vocab challenge</Text>
-              <Text style={styles.description}>Practice words and phrases to maximize retention!</Text>
+              <Text style={styles.title}>Daily game challenge</Text>
+              <Text style={styles.description}>Play today's featured game to earn bonus XP!</Text>
               <TouchableOpacity style={styles.ctaButton} onPress={handlePlay}>
-                <Text style={styles.ctaButtonText}>Review now</Text>
+                <Text style={styles.ctaButtonText}>Play now</Text>
               </TouchableOpacity>
             </View>
             <View style={styles.iconContainer}>

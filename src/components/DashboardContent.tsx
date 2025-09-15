@@ -186,8 +186,10 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
       {/* Daily Challenge */}
       <View style={styles.dailyChallengeContainer}>
         <DailyChallengeSection onPlay={(gameType) => {
-          // Navigate to games screen when a daily challenge is played
-          console.log('Daily challenge played:', gameType);
+          // Navigate to games screen with the specific game type to launch
+          console.log('🎯 Daily challenge clicked:', gameType);
+          console.log('🎯 Navigating to Games with launchGame parameter:', gameType);
+          navigation.navigate('Games' as never, { launchGame: gameType } as never);
         }} />
       </View>
 

@@ -51,7 +51,7 @@ export class DailyChallengeService {
           challenge_date: today,
           game_type: data.activity_name,
           xp_reward: 50,
-          completed: true,
+          completed: data.completed_at !== null,
           completed_at: data.completed_at,
         };
       }
@@ -79,13 +79,33 @@ export class DailyChallengeService {
       // Select random game
       const randomGame = this.AVAILABLE_GAMES[Math.floor(Math.random() * this.AVAILABLE_GAMES.length)];
       
-      // Create new challenge (we'll store it in user_activities when completed)
+      // Create new challenge and store it in user_activities as a pending challenge
       const newChallenge: DailyChallenge = {
         challenge_date: today,
         game_type: randomGame,
         xp_reward: 50,
         completed: false,
       };
+
+      // Store the challenge in user_activities so it persists across sessions
+      const { error } = await supabase
+        .from('user_activities')
+        .insert({
+          user_id: userId,
+          activity_type: 'daily_challenge',
+          activity_name: randomGame,
+          score: 0,
+          max_score: 50,
+          accuracy_percentage: 0,
+          duration_seconds: 0,
+          completed_at: null, // null means not completed yet
+          created_at: new Date().toISOString(),
+        });
+
+      if (error) {
+        logger.error('Error storing daily challenge:', error);
+        return null;
+      }
 
       logger.info(`Created daily challenge: ${randomGame} for ${today}`);
       return newChallenge;
@@ -109,20 +129,41 @@ export class DailyChallengeService {
 
       // Award extra XP for daily challenge completion
       try {
-        await XPService.awardXP(userId, challenge.xp_reward, 'daily_challenge_completion', {
-          game_type: gameType,
-          challenge_date: challenge.challenge_date
-        });
+        await XPService.awardXP(
+          userId,
+          'game', // activityType
+          challenge.xp_reward, // score
+          challenge.xp_reward, // maxScore (same as score for bonus XP)
+          100, // accuracyPercentage (100% for completing daily challenge)
+          `Daily Challenge: ${gameType}`, // activityName
+          60 // durationSeconds (default 1 minute)
+        );
         logger.info(`Awarded ${challenge.xp_reward} XP for daily challenge completion`);
       } catch (xpError) {
         logger.error('Error awarding XP for daily challenge:', xpError);
         // Don't fail the challenge completion if XP fails
       }
 
-      // Log daily challenge completion to user_activities
+      // Mark the daily challenge as completed in user_activities
       try {
-        await ProgressTrackingService.recordDailyChallengeCompletion(userId, gameType);
-        logger.info(`Daily challenge completion logged to user_activities`);
+        const { error: updateError } = await supabase
+          .from('user_activities')
+          .update({
+            completed_at: new Date().toISOString(),
+            score: challenge.xp_reward,
+            accuracy_percentage: 100,
+            duration_seconds: 60, // Default 1 minute for daily challenge
+          })
+          .eq('user_id', userId)
+          .eq('activity_type', 'daily_challenge')
+          .eq('activity_name', gameType)
+          .is('completed_at', null); // Only update if not already completed
+
+        if (updateError) {
+          logger.error('Error updating daily challenge completion:', updateError);
+        } else {
+          logger.info(`Daily challenge marked as completed: ${gameType}`);
+        }
       } catch (logError) {
         logger.error('Error logging daily challenge completion:', logError);
         // Don't fail the challenge completion if logging fails
