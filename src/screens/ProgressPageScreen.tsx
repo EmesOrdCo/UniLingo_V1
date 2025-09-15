@@ -18,6 +18,7 @@ import { HolisticProgressService, ProgressInsights } from '../lib/holisticProgre
 import OptimizedProgressService from '../lib/optimizedProgressService';
 import StudyCalendar from '../components/StudyCalendar';
 import ConsistentHeader from '../components/ConsistentHeader';
+import StreakDetailsModal from '../components/StreakDetailsModal';
 
 const { width } = Dimensions.get('window');
 
@@ -30,6 +31,7 @@ export default function ProgressPageScreen() {
   const [progressData, setProgressData] = useState<ProgressInsights | null>(null);
   const [studyDates, setStudyDates] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [showStreakModal, setShowStreakModal] = useState(false);
 
   useEffect(() => {
     if (user?.id) {
@@ -60,6 +62,11 @@ export default function ProgressPageScreen() {
       
       console.log('🚀 Loading progress data...', forceRefresh ? '(force refresh)' : '(cache-first)');
       
+      // Clear cache for debugging (temporary)
+      if (forceRefresh) {
+        await OptimizedProgressService.clearUserCache(user!.id);
+      }
+      
       // Use optimized service with caching
       let data = await OptimizedProgressService.getProgressInsights(user!.id, forceRefresh);
       
@@ -80,7 +87,7 @@ export default function ProgressPageScreen() {
       setStudyDates(dates);
       
       // Ensure we always have some data structure
-      setProgressData(data || {
+      const finalData = data || {
         currentStreak: 0,
         longestStreak: 0,
         todayProgress: null,
@@ -102,7 +109,16 @@ export default function ProgressPageScreen() {
           bestTopic: 'None',
           weakestTopic: 'None',
         },
+      };
+      
+      console.log('📊 ProgressPage - Final streak data:', { 
+        currentStreak: finalData.currentStreak,
+        longestStreak: finalData.longestStreak,
+        forceRefresh,
+        userId: user!.id
       });
+      
+      setProgressData(finalData);
       
       console.log('✅ Progress data loaded successfully');
     } catch (error) {
@@ -161,10 +177,13 @@ export default function ProgressPageScreen() {
       <View style={styles.customHeader}>
         <Text style={styles.headerTitle}>Progress</Text>
         <View style={styles.headerRight}>
-          <View style={styles.streakBadge}>
+          <TouchableOpacity 
+            style={styles.streakBadge}
+            onPress={() => setShowStreakModal(true)}
+          >
             <Ionicons name="flame" size={16} color="#f59e0b" />
             <Text style={styles.streakText}>{progressData?.currentStreak || 0}</Text>
-          </View>
+          </TouchableOpacity>
           <View style={styles.profilePicture}>
             <Ionicons name="person" size={24} color="#6366f1" />
           </View>
@@ -448,6 +467,12 @@ export default function ProgressPageScreen() {
 
         <View style={styles.bottomSpacing} />
       </ScrollView>
+
+      {/* Streak Details Modal */}
+      <StreakDetailsModal 
+        visible={showStreakModal}
+        onClose={() => setShowStreakModal(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -497,11 +522,17 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 20,
     gap: 4,
+    // Add subtle shadow and press effect to indicate it's clickable
+    shadowColor: '#f59e0b',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   streakText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#f59e0b',
+    color: '#92400e',
   },
   profilePicture: {
     width: 40,

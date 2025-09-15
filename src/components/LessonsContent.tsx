@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, ActivityIndicator, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
@@ -106,6 +106,9 @@ export default function LessonsContent() {
         <View style={styles.sectionHeader}>
           <Ionicons name="chatbubble-outline" size={20} color="#8b5cf6" />
           <Text style={styles.sectionTitle}>Speak</Text>
+          <View style={[styles.comingSoonIndicator, styles.speakBadge]}>
+            <Text style={styles.comingSoonText}>Coming Soon</Text>
+          </View>
         </View>
         
         <TouchableOpacity 
@@ -127,6 +130,9 @@ export default function LessonsContent() {
         <View style={styles.sectionHeader}>
           <Ionicons name="headset-outline" size={20} color="#8b5cf6" />
           <Text style={styles.sectionTitle}>Listen</Text>
+          <View style={[styles.comingSoonIndicator, styles.listenBadge]}>
+            <Text style={styles.comingSoonText}>Coming Soon</Text>
+          </View>
         </View>
         
         <TouchableOpacity 
@@ -161,6 +167,9 @@ export default function LessonsContent() {
         <View style={styles.sectionHeader}>
           <Ionicons name="checkmark-circle-outline" size={20} color="#8b5cf6" />
           <Text style={styles.sectionTitle}>Write</Text>
+          <View style={[styles.comingSoonIndicator, styles.writeBadge]}>
+            <Text style={styles.comingSoonText}>Coming Soon</Text>
+          </View>
         </View>
         
         <TouchableOpacity 
@@ -289,11 +298,45 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     marginBottom: 16,
     gap: 8,
+    justifyContent: 'space-between',
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
     color: '#1e293b',
+    flex: 1,
+  },
+  comingSoonIndicator: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  speakBadge: {
+    backgroundColor: '#8b5cf6', // Matches Speak icon color
+    shadowColor: '#8b5cf6',
+  },
+  listenBadge: {
+    backgroundColor: '#6466E9', // Matches Listen activity icon color
+    shadowColor: '#6466E9',
+  },
+  writeBadge: {
+    backgroundColor: '#06b6d4', // Matches Write activity icon color
+    shadowColor: '#06b6d4',
+  },
+  comingSoonText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#ffffff',
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+    lineHeight: 14,
   },
   activityCard: {
     backgroundColor: '#ffffff',
@@ -309,6 +352,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 3,
+    position: 'relative',
   },
   activityContent: {
     flex: 1,

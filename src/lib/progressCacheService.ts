@@ -17,7 +17,6 @@ class ProgressCacheService {
   private static readonly KEYS = {
     PROGRESS_INSIGHTS: 'progress_insights',
     STUDY_DATES: 'study_dates',
-    CURRENT_STREAK: 'current_streak',
     RECENT_ACTIVITIES: 'recent_activities',
     TODAY_GOALS: 'today_goals',
   };
@@ -96,19 +95,6 @@ class ProgressCacheService {
     await this.setCachedData(`${this.KEYS.STUDY_DATES}_${userId}`, data, this.DEFAULT_TTL);
   }
 
-  /**
-   * Get cached current streak
-   */
-  static async getCurrentStreak(userId: string): Promise<any | null> {
-    return this.getCachedData<any>(`${this.KEYS.CURRENT_STREAK}_${userId}`);
-  }
-
-  /**
-   * Cache current streak
-   */
-  static async setCurrentStreak(userId: string, data: any): Promise<void> {
-    await this.setCachedData(`${this.KEYS.CURRENT_STREAK}_${userId}`, data, this.STREAK_TTL);
-  }
 
   /**
    * Get cached recent activities
@@ -146,7 +132,6 @@ class ProgressCacheService {
       const keys = [
         `${this.CACHE_PREFIX}${this.KEYS.PROGRESS_INSIGHTS}_${userId}`,
         `${this.CACHE_PREFIX}${this.KEYS.STUDY_DATES}_${userId}`,
-        `${this.CACHE_PREFIX}${this.KEYS.CURRENT_STREAK}_${userId}`,
         `${this.CACHE_PREFIX}${this.KEYS.RECENT_ACTIVITIES}_${userId}`,
         `${this.CACHE_PREFIX}${this.KEYS.TODAY_GOALS}_${userId}`,
       ];

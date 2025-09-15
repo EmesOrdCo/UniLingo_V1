@@ -13,7 +13,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { LessonService, Lesson, LessonProgress } from '../lib/lessonService';
-import ConsistentHeader from '../components/ConsistentHeader';
 
 export default function YourLessonsScreen() {
   const [lessons, setLessons] = useState<(Lesson & { vocab_count: number; progress?: LessonProgress })[]>([]);
@@ -102,7 +101,17 @@ export default function YourLessonsScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
-        <ConsistentHeader pageName="Your Lessons" />
+        {/* Header with back button */}
+        <View style={styles.header}>
+          <TouchableOpacity 
+            style={styles.backButton} 
+            onPress={() => navigation.goBack()}
+          >
+            <Ionicons name="arrow-back" size={24} color="#1e293b" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Your Lessons</Text>
+          <View style={styles.headerSpacer} />
+        </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#6366f1" />
           <Text style={styles.loadingText}>Loading your lessons...</Text>
@@ -113,12 +122,22 @@ export default function YourLessonsScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <ConsistentHeader pageName="Your Lessons" />
+      {/* Header with back button */}
+      <View style={styles.header}>
+        <TouchableOpacity 
+          style={styles.backButton} 
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="arrow-back" size={24} color="#1e293b" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Your Lessons</Text>
+        <View style={styles.headerSpacer} />
+      </View>
       
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Header Section */}
         <View style={styles.headerSection}>
-          <Text style={styles.headerTitle}>Your Lessons</Text>
+          <Text style={styles.sectionTitle}>Your Lessons</Text>
           <Text style={styles.headerSubtitle}>
             {lessons.length === 0 
               ? "You haven't created any lessons yet." 
@@ -248,6 +267,28 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#ffffff',
   },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: '#ffffff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  backButton: {
+    padding: 8,
+    marginRight: 12,
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#1e293b',
+    flex: 1,
+  },
+  headerSpacer: {
+    width: 40, // Same width as back button to center the title
+  },
   content: {
     flex: 1,
     paddingHorizontal: 20,
@@ -266,7 +307,7 @@ const styles = StyleSheet.create({
   headerSection: {
     paddingVertical: 24,
   },
-  headerTitle: {
+  sectionTitle: {
     fontSize: 28,
     fontWeight: '800',
     color: '#111827',

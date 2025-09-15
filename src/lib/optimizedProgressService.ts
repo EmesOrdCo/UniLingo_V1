@@ -50,8 +50,13 @@ class OptimizedProgressService {
    */
   private static async fetchAndCacheProgressInsights(userId: string): Promise<ProgressInsights | null> {
     try {
-      // Get current streak
-      const dailyStreak = await this.getCurrentStreak(userId);
+      // Get current streak using HolisticProgressService for proper calculation
+      const dailyStreak = await HolisticProgressService.getCurrentStreak(userId, 'daily_study');
+      console.log('🔍 OptimizedProgressService - Streak data:', { 
+        current: dailyStreak?.current_streak, 
+        longest: dailyStreak?.longest_streak,
+        userId 
+      });
       
       // Get today's progress using the smart query function
       const today = new Date().toISOString().split('T')[0];
@@ -233,6 +238,18 @@ class OptimizedProgressService {
   }
 
   /**
+   * Clear all cached data for a user (useful for debugging)
+   */
+  static async clearUserCache(userId: string): Promise<void> {
+    try {
+      await ProgressCacheService.clearUserCache(userId);
+      console.log('🗑️ Cleared all cached data for user:', userId);
+    } catch (error) {
+      console.error('Error clearing user cache:', error);
+    }
+  }
+
+  /**
    * Get study dates with caching
    */
   static async getStudyDates(userId: string): Promise<string[]> {
@@ -266,38 +283,6 @@ class OptimizedProgressService {
     }
   }
 
-  /**
-   * Get current streak with caching
-   */
-  private static async getCurrentStreak(userId: string): Promise<any> {
-    try {
-      // Try cache first
-      const cachedStreak = await ProgressCacheService.getCurrentStreak(userId);
-      if (cachedStreak) {
-        return cachedStreak;
-      }
-
-      // Fetch from database
-      const { data: streak } = await supabase
-        .from('user_streaks')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('streak_type', 'daily_study')
-        .maybeSingle();
-
-      console.log('🔍 Streak data from database:', streak);
-
-      // Cache the result
-      if (streak) {
-        await ProgressCacheService.setCurrentStreak(userId, streak);
-      }
-
-      return streak;
-    } catch (error) {
-      console.error('Error getting current streak:', error);
-      return null;
-    }
-  }
 
   /**
    * Get recent activities with caching
