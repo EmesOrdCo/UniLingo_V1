@@ -15,15 +15,17 @@ import { useThemeTokens } from '../../theme/useThemeTokens';
 import { useOnboardingStore } from '../state';
 import { billingClient, SubscriptionPlan } from '../billing';
 import { validateStep } from '../schema';
+import SubscriptionRedirectModal from '../../components/SubscriptionRedirectModal';
 
 export function PlansScreen() {
   const theme = useThemeTokens();
-  const { selectedPlan, updateField, nextStep, previousStep, markStepCompleted } = useOnboardingStore();
+  const { selectedPlan, updateField, nextStep, previousStep, markStepCompleted, completeOnboarding } = useOnboardingStore();
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [discountCode, setDiscountCode] = useState('');
   const [discountApplied, setDiscountApplied] = useState(false);
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
 
   useEffect(() => {
     loadPlans();
@@ -74,8 +76,15 @@ export function PlansScreen() {
       return;
     }
 
+    // Instead of proceeding to next step, show subscription redirect modal
+    setShowSubscriptionModal(true);
+  };
+
+  const handleSubscriptionModalClose = () => {
+    setShowSubscriptionModal(false);
+    // Complete onboarding after user interacts with subscription modal
     markStepCompleted(9);
-    nextStep();
+    completeOnboarding();
   };
 
   const formatPrice = (plan: SubscriptionPlan) => {
@@ -247,11 +256,12 @@ export function PlansScreen() {
   }
 
   return (
-    <OnboardingLayout
-      title="Please select a subscription"
-      onBack={previousStep}
-      showCloseButton={true}
-    >
+    <>
+      <OnboardingLayout
+        title="Please select a subscription"
+        onBack={previousStep}
+        showCloseButton={true}
+      >
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.featuresContainer}>
           <View style={styles.featureItem}>
@@ -379,6 +389,12 @@ export function PlansScreen() {
         />
       </ScrollView>
     </OnboardingLayout>
+    
+    <SubscriptionRedirectModal
+      visible={showSubscriptionModal}
+      onClose={handleSubscriptionModalClose}
+    />
+    </>
   );
 }
 

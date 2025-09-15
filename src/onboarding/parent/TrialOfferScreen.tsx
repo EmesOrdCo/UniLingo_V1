@@ -7,6 +7,7 @@ import { Screen, OnboardingButton } from '../ui';
 import { useOnboardingStore, useOnboardingField } from '../state';
 import { createBillingClient } from '../../billing/BillingClient';
 import { completeOnboarding } from '../completeOnboarding';
+import SubscriptionRedirectModal from '../../components/SubscriptionRedirectModal';
 
 export function TrialOfferScreen() {
   const theme = useThemeTokens();
@@ -15,68 +16,32 @@ export function TrialOfferScreen() {
   const { value: selectedPlanId } = useOnboardingField('selectedPlanId');
   
   const [loading, setLoading] = useState(false);
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
 
   // Handle start free trial
   const handleStartTrial = async () => {
-    const planId = selectedPlanId || 'annual';
-    setLoading(true);
+    // Instead of processing payment, show subscription redirect modal
+    setShowSubscriptionModal(true);
+  };
 
-    try {
-      const billingClient = createBillingClient();
-      const result = await billingClient.purchase(planId);
-
-      if (result.ok && result.entitlementActive) {
-        // Purchase successful - complete onboarding
-        const onboardingData = getData();
-        const completionResult = await completeOnboarding({ data: onboardingData });
-
-        if (completionResult.ok) {
-          // Onboarding completed successfully
-          Alert.alert(
-            'Welcome to UniLingo!',
-            'Your free trial has started. Enjoy learning!',
-            [{ text: 'Get Started', onPress: () => {
-              // Navigation will be handled by the OnboardingGate
-              // which will detect completion and show the main app
-            }}]
-          );
-        } else {
-          Alert.alert(
-            'Almost There!',
-            'Your trial started but we had trouble saving your preferences. You can update them later in settings.',
-            [{ text: 'Continue' }]
-          );
-        }
-      } else {
-        // Purchase failed
-        Alert.alert(
-          'Trial Start Failed',
-          result.message || 'Unable to start your free trial. Please try again.',
-          [{ text: 'OK' }]
-        );
-      }
-    } catch (error) {
-      console.error('Trial start error:', error);
-      Alert.alert(
-        'Error',
-        'Something went wrong starting your trial. Please try again.',
-        [{ text: 'OK' }]
-      );
-    } finally {
-      setLoading(false);
-    }
+  const handleSubscriptionModalClose = () => {
+    setShowSubscriptionModal(false);
+    // Complete onboarding after user interacts with subscription modal
+    const onboardingData = getData();
+    completeOnboarding({ data: onboardingData });
   };
 
   return (
-    <Screen
-      title="Need time to decide? Try it free for 7 days"
-      subtitle="Enjoy full access to lessons and more! Cancel anytime."
-      canContinue={true}
-      onBack={previousStep}
-      onContinue={handleStartTrial}
-      continueText={loading ? 'Starting trial...' : 'Start your free trial'}
-      showBackButton={true}
-    >
+    <>
+      <Screen
+        title="Need time to decide? Try it free for 7 days"
+        subtitle="Enjoy full access to lessons and more! Cancel anytime."
+        canContinue={true}
+        onBack={previousStep}
+        onContinue={handleStartTrial}
+        continueText={loading ? 'Starting trial...' : 'Start your free trial'}
+        showBackButton={true}
+      >
       <View style={styles.container}>
         {/* Professional Icon */}
         <View style={styles.iconContainer}>
@@ -132,6 +97,12 @@ export function TrialOfferScreen() {
         </View>
       </View>
     </Screen>
+    
+    <SubscriptionRedirectModal
+      visible={showSubscriptionModal}
+      onClose={handleSubscriptionModalClose}
+    />
+    </>
   );
 }
 

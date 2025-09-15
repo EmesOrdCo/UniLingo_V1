@@ -15,6 +15,7 @@ import { setRefreshTrigger } from './src/lib/progressTrackingService';
 import LoadingScreen from './src/components/LoadingScreen';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { NotificationService } from './src/lib/notificationService';
+import SubscriptionGate from './src/components/SubscriptionGate';
 
 // Import screens
 import HomeScreen from './src/screens/HomeScreen';
@@ -271,12 +272,14 @@ function AppNavigator() {
       );
     }
 
-    // For existing users, always show MainNavigator regardless of profile status
-    console.log('✅ User authenticated, showing MainNavigator');
+    // For existing users, show MainNavigator with subscription gate
+    console.log('✅ User authenticated, showing MainNavigator with subscription gate');
     return (
       <>
         <RefreshSetup />
-        <MainNavigator />
+        <SubscriptionGate>
+          <MainNavigator />
+        </SubscriptionGate>
       </>
     );
   } else {

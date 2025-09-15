@@ -56,8 +56,8 @@ export async function completeOnboarding({
         age_range: data.ageRange || null,
         how_did_you_hear: data.discoverySource || null, // Use existing 'how_did_you_hear' column
         wants_notifications: data.wantsNotifications || false,
-        payment_tier: data.selectedPlanId || null, // Use existing 'payment_tier' column
-        has_active_subscription: data.hasActiveSubscription || false,
+        payment_tier: 'pro', // Default to pro since website handles plan selection
+        has_active_subscription: false, // Set to false initially - will be updated after payment
         updated_at: new Date().toISOString(),
       };
 

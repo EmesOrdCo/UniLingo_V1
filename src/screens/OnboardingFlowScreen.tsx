@@ -9,7 +9,8 @@ import {
   Alert,
   FlatList,
   Platform,
-  Modal
+  Modal,
+  Linking
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -170,7 +171,7 @@ export default function OnboardingFlowScreen() {
     discountApplied: false,
   });
 
-  const totalSteps = 9;
+  const totalSteps = 7; // Reduced from 9 to 7 (removed plan selection and trial confirmation)
 
   // OTP verification is handled manually when user enters the code
 
@@ -234,8 +235,8 @@ export default function OnboardingFlowScreen() {
                 return;
               }
               
-              // Verify the OTP code
-              await verifyOTPAndCompleteOnboarding(otpCode, formData);
+              // Verify the OTP code and redirect to subscription
+              await verifyOTPAndRedirectToSubscription(otpCode, formData);
             }
           }
         ],
@@ -250,14 +251,14 @@ export default function OnboardingFlowScreen() {
     }
   };
 
-  const verifyOTPAndCompleteOnboarding = async (otpCode: string, formData: any) => {
+  const verifyOTPAndRedirectToSubscription = async (otpCode: string, formData: any) => {
     try {
       console.log('🔐 Verifying OTP code...');
       
       // Step 1: Verify the OTP code and get session
       const session = await verifyEmailCode(formData.email, otpCode);
       
-      // Step 2: Now save the user profile (session exists)
+      // Step 2: Save the user profile (session exists)
       await upsertProfile({
         name: formData.firstName,
         native_language: formData.nativeLanguage,
@@ -266,8 +267,9 @@ export default function OnboardingFlowScreen() {
         level: formData.proficiency.toLowerCase() as 'beginner' | 'intermediate' | 'expert',
         time_commit: formData.timeCommitment, // Use existing column name
         how_did_you_hear: formData.discoverySource, // Use existing column name
-        payment_tier: formData.selectedPlan, // Use existing column name
+        payment_tier: 'pro', // Default to pro since website handles plan selection
         wants_notifications: formData.wantsNotifications,
+        has_active_subscription: false, // Set to false initially - will be updated after payment
         created_at: new Date().toISOString(),
         last_active: new Date().toISOString(),
       });
@@ -278,15 +280,17 @@ export default function OnboardingFlowScreen() {
       // Refresh the profile in auth context
       await refreshProfile();
       
+      // Show success message and let user proceed to subscription gate
       Alert.alert(
         'Welcome to UniLingo! 🎉',
-        `Hi ${formData.firstName}! Your account has been created successfully.`,
+        `Hi ${formData.firstName}! Your account has been created successfully. You can now complete your account setup to unlock all features.`,
         [
           {
             text: 'Get Started',
             onPress: () => {
               // Navigation will be handled automatically by AppNavigator
               // since the new user flag is cleared and profile exists
+              // User will see the subscription gate where they can choose to complete setup
             }
           }
         ]
@@ -337,8 +341,6 @@ export default function OnboardingFlowScreen() {
         case 4: return true; // Notifications are optional
         case 5: return formData.discoverySource;
         case 6: return formData.firstName.trim() && formData.email.trim() && isValidEmail(formData.email) && formData.password.trim().length >= 6;
-        case 7: return formData.selectedPlan;
-        case 8: return true; // Trial confirmation
         default: return false;
       }
     })();
@@ -724,220 +726,6 @@ export default function OnboardingFlowScreen() {
               />
               <Text style={styles.passwordHint}>
                 Password must be at least 6 characters long
-              </Text>
-            </View>
-          </View>
-        );
-
-      case 7: // Payment Plans
-        return (
-          <View style={styles.stepContainer}>
-            <Text style={styles.stepTitle}>Choose your plan</Text>
-            <Text style={styles.stepSubtitle}>Select the subscription that works best for you</Text>
-            
-            <View style={styles.planOptions}>
-              <TouchableOpacity
-                style={[
-                  styles.planOption,
-                  formData.selectedPlan === 'monthly' && styles.planOptionSelected
-                ]}
-                onPress={() => setFormData(prev => ({ ...prev, selectedPlan: 'monthly' }))}
-              >
-                <View style={styles.planHeader}>
-                  <Text style={[
-                    styles.planTitle,
-                    formData.selectedPlan === 'monthly' && styles.planTitleSelected
-                  ]}>
-                    Monthly Plan
-                  </Text>
-                </View>
-                <Text style={[
-                  styles.planPrice,
-                  formData.selectedPlan === 'monthly' && styles.planPriceSelected
-                ]}>
-                  £14.99/month
-                </Text>
-                <Text style={[
-                  styles.planSubtext,
-                  formData.selectedPlan === 'monthly' && styles.planSubtextSelected
-                ]}>
-                  Billed monthly
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.planOption,
-                  formData.selectedPlan === 'annual' && styles.planOptionSelected
-                ]}
-                onPress={() => setFormData(prev => ({ ...prev, selectedPlan: 'annual' }))}
-              >
-                <View style={styles.planHeader}>
-                  <Text style={[
-                    styles.planTitle,
-                    formData.selectedPlan === 'annual' && styles.planTitleSelected
-                  ]}>
-                    Annual Plan
-                  </Text>
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText}>SAVE 50%</Text>
-                  </View>
-                </View>
-                <Text style={[
-                  styles.planPrice,
-                  formData.selectedPlan === 'annual' && styles.planPriceSelected
-                ]}>
-                  £7.50/month
-                </Text>
-                <Text style={[
-                  styles.planSubtext,
-                  formData.selectedPlan === 'annual' && styles.planSubtextSelected
-                ]}>
-                  £89.99 charged every 12 months
-                </Text>
-                <Text style={[
-                  styles.planTrial,
-                  formData.selectedPlan === 'annual' && styles.planTrialSelected
-                ]}>
-                  7-day free trial
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.planOption,
-                  formData.selectedPlan === 'lifetime' && styles.planOptionSelected
-                ]}
-                onPress={() => setFormData(prev => ({ ...prev, selectedPlan: 'lifetime' }))}
-              >
-                <View style={styles.planHeader}>
-                  <Text style={[
-                    styles.planTitle,
-                    formData.selectedPlan === 'lifetime' && styles.planTitleSelected
-                  ]}>
-                    Lifetime Plan
-                  </Text>
-                </View>
-                <Text style={[
-                  styles.planPrice,
-                  formData.selectedPlan === 'lifetime' && styles.planPriceSelected
-                ]}>
-                  £264.99
-                </Text>
-                <Text style={[
-                  styles.planSubtext,
-                  formData.selectedPlan === 'lifetime' && styles.planSubtextSelected
-                ]}>
-                  Pay once, learn forever
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Discount Code Section */}
-            <View style={styles.discountContainer}>
-              <Text style={styles.discountTitle}>Have a discount code?</Text>
-              <View style={styles.discountInputContainer}>
-                <TextInput
-                  style={[
-                    styles.discountInput,
-                    { 
-                      borderColor: formData.discountApplied ? '#22c55e' : '#e2e8f0',
-                    }
-                  ]}
-                  placeholder="Enter discount code"
-                  placeholderTextColor="#9ca3af"
-                  value={formData.discountCode || ''}
-                  onChangeText={(text) => setFormData(prev => ({ ...prev, discountCode: text }))}
-                  autoCapitalize="characters"
-                  autoCorrect={false}
-                />
-                <TouchableOpacity
-                  style={[
-                    styles.applyButton,
-                    { 
-                      backgroundColor: formData.discountApplied ? '#22c55e' : '#6366f1',
-                    }
-                  ]}
-                  onPress={() => {
-                    if (!formData.discountCode?.trim()) {
-                      Alert.alert('Invalid Code', 'Please enter a discount code.');
-                      return;
-                    }
-
-                    // Mock discount code validation
-                    const validCodes = ['SAVE20', 'WELCOME10', 'STUDENT15'];
-                    const code = formData.discountCode.trim().toUpperCase();
-                    
-                    if (validCodes.includes(code)) {
-                      setFormData(prev => ({ ...prev, discountApplied: true }));
-                      Alert.alert('Discount Applied!', `Your discount code "${code}" has been applied successfully.`);
-                    } else {
-                      Alert.alert('Invalid Code', 'The discount code you entered is not valid. Please try again.');
-                    }
-                  }}
-                  disabled={!formData.discountCode?.trim()}
-                >
-                  <Ionicons 
-                    name={formData.discountApplied ? "checkmark" : "arrow-forward"} 
-                    size={20} 
-                    color="#ffffff" 
-                  />
-                </TouchableOpacity>
-              </View>
-              {formData.discountApplied && (
-                <Text style={styles.discountAppliedText}>
-                  ✓ Discount code applied successfully!
-                </Text>
-              )}
-            </View>
-          </View>
-        );
-
-      case 8: // Trial Confirmation
-        return (
-          <View style={styles.stepContainer}>
-            <View style={styles.trialIconContainer}>
-              <Ionicons name="rocket" size={60} color="#6366f1" />
-            </View>
-            <Text style={styles.stepTitle}>
-              {formData.selectedPlan === 'monthly' 
-                ? 'Start your subscription' 
-                : 'Start your free trial'}
-            </Text>
-            <Text style={styles.stepSubtitle}>
-              {formData.selectedPlan === 'monthly' 
-                ? 'Start your subscription at £14.99/month'
-                : formData.selectedPlan === 'annual' 
-                ? 'Enjoy 7 days free, then £7.50/month' 
-                : 'Get lifetime access for £264.99'}
-            </Text>
-            
-            <View style={styles.trialBenefits}>
-              <View style={styles.benefitItem}>
-                <Ionicons name="checkmark-circle" size={20} color="#22c55e" />
-                <Text style={styles.benefitText}>Full access to all lessons</Text>
-              </View>
-              <View style={styles.benefitItem}>
-                <Ionicons name="checkmark-circle" size={20} color="#22c55e" />
-                <Text style={styles.benefitText}>Personalized learning path</Text>
-              </View>
-              <View style={styles.benefitItem}>
-                <Ionicons name="checkmark-circle" size={20} color="#22c55e" />
-                <Text style={styles.benefitText}>Progress tracking</Text>
-              </View>
-              <View style={styles.benefitItem}>
-                <Ionicons name="checkmark-circle" size={20} color="#22c55e" />
-                <Text style={styles.benefitText}>Cancel anytime</Text>
-              </View>
-            </View>
-
-            <View style={styles.trialTerms}>
-              <Text style={styles.termsText}>
-                {formData.selectedPlan === 'monthly' 
-                  ? 'Your subscription starts immediately at £14.99/month. You can cancel anytime in your account settings.'
-                  : formData.selectedPlan === 'annual' 
-                  ? 'Your free trial starts immediately. You can cancel anytime in your account settings. After 7 days, you\'ll be charged £89.99 for 12 months of access.'
-                  : 'One-time payment of £264.99. No recurring charges. Lifetime access to all features.'}
               </Text>
             </View>
           </View>

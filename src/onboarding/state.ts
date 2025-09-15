@@ -5,7 +5,7 @@ import { debounce } from 'lodash';
 import { AgeRange, DiscoverySource } from './constants';
 
 // Onboarding step definitions
-export const TOTAL_ONBOARDING_STEPS = 12; // 10 child + 2 parent screens
+export const TOTAL_ONBOARDING_STEPS = 10; // 9 child + 1 subscription redirect screen
 
 // Step indices
 export const CHILD_ONBOARDING_STEPS = {
@@ -21,8 +21,7 @@ export const CHILD_ONBOARDING_STEPS = {
 } as const;
 
 export const PARENT_ONBOARDING_STEPS = {
-  PLANS: 9,
-  TRIAL_OFFER: 10,
+  SUBSCRIPTION_REDIRECT: 9,
 } as const;
 
 // Onboarding data interface
@@ -37,7 +36,6 @@ export type OnboardingData = {
   discoverySource?: DiscoverySource;
   firstName?: string;
   email?: string;
-  selectedPlanId?: 'annual' | 'lifetime';
   hasActiveSubscription?: boolean;
 };
 

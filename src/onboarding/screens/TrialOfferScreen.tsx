@@ -12,34 +12,26 @@ import { useThemeTokens } from '../../theme/useThemeTokens';
 import { useOnboardingStore } from '../state';
 import { billingClient } from '../billing';
 import { validateStep } from '../schema';
+import SubscriptionRedirectModal from '../../components/SubscriptionRedirectModal';
 
 export function TrialOfferScreen() {
   const theme = useThemeTokens();
   const { selectedPlan, trialStarted, updateField, nextStep, previousStep, markStepCompleted, completeOnboarding } = useOnboardingStore();
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
 
   const handleStartTrial = async () => {
-    if (!selectedPlan) return;
-    
-    setLoading(true);
-    setErrors({});
-    
-    try {
-      const result = await billingClient.startTrial(selectedPlan);
-      
-      if (result.success) {
-        updateField('trialStarted', true);
-        markStepCompleted(10);
-        completeOnboarding();
-      } else {
-        setErrors({ general: result.error || 'Failed to start trial' });
-      }
-    } catch (error) {
-      setErrors({ general: 'An error occurred. Please try again.' });
-    } finally {
-      setLoading(false);
-    }
+    // Instead of processing payment, show subscription redirect modal
+    setShowSubscriptionModal(true);
+  };
+
+  const handleSubscriptionModalClose = () => {
+    setShowSubscriptionModal(false);
+    // Complete onboarding after user interacts with subscription modal
+    updateField('trialStarted', true);
+    markStepCompleted(10);
+    completeOnboarding();
   };
 
   const handleSkipTrial = () => {
@@ -97,12 +89,13 @@ export function TrialOfferScreen() {
   });
 
   return (
-    <OnboardingLayout
-      title="Need time to decide? Try it free for 7 days"
-      subtitle="Enjoy full access to lessons and more! Cancel anytime."
-      onBack={previousStep}
-      showCloseButton={true}
-    >
+    <>
+      <OnboardingLayout
+        title="Need time to decide? Try it free for 7 days"
+        subtitle="Enjoy full access to lessons and more! Cancel anytime."
+        onBack={previousStep}
+        showCloseButton={true}
+      >
       <View style={styles.iconContainer}>
         <View style={styles.giftIcon}>
           <Ionicons
@@ -138,10 +131,16 @@ export function TrialOfferScreen() {
         />
       </View>
 
-      {errors.general && (
-        <Text style={styles.errorText}>{errors.general}</Text>
-      )}
-    </OnboardingLayout>
-  );
-}
+        {errors.general && (
+          <Text style={styles.errorText}>{errors.general}</Text>
+        )}
+      </OnboardingLayout>
+      
+      <SubscriptionRedirectModal
+        visible={showSubscriptionModal}
+        onClose={handleSubscriptionModalClose}
+      />
+      </>
+    );
+  }
 

@@ -21,7 +21,7 @@ export function OnboardingGate({ onComplete }: OnboardingGateProps) {
   }, [isCompleted, onComplete]);
 
   // Determine which stack to show based on current step
-  const shouldShowParentStack = currentStep >= 9; // Steps 9-11 are parent screens
+  const shouldShowParentStack = currentStep >= 9; // Step 9 is subscription redirect screen
 
   if (shouldShowParentStack) {
     return (

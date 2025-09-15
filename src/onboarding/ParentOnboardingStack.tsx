@@ -1,9 +1,8 @@
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 
-// Import parent onboarding screens
-import { PlansScreen } from './screens/PlansScreen';
-import { TrialOfferScreen } from './screens/TrialOfferScreen';
+// Import subscription redirect screen
+import { SubscriptionRedirectScreen } from './screens/SubscriptionRedirectScreen';
 
 const Stack = createStackNavigator();
 
@@ -17,12 +16,8 @@ export function ParentOnboardingStack() {
       }}
     >
       <Stack.Screen
-        name="Plans"
-        component={PlansScreen}
-      />
-      <Stack.Screen
-        name="TrialOffer"
-        component={TrialOfferScreen}
+        name="SubscriptionRedirect"
+        component={SubscriptionRedirectScreen}
       />
     </Stack.Navigator>
   );

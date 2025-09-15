@@ -21,6 +21,7 @@ interface AuthContextType {
   createTestUser: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   clearNewUserFlag: () => void; // Added to clear the flag after profile setup
+  refreshSubscriptionStatus: () => Promise<void>; // Added to refresh subscription status
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -215,6 +216,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const refreshSubscriptionStatus = async () => {
+    if (user?.id) {
+      console.log('🔄 Refreshing subscription status for user:', user.id);
+      await fetchUserProfile(user.id);
+    }
+  };
+
   const clearNewUserFlag = () => {
     setIsNewUser(false);
   };
@@ -233,6 +241,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     createTestUser,
     refreshProfile,
     clearNewUserFlag,
+    refreshSubscriptionStatus,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

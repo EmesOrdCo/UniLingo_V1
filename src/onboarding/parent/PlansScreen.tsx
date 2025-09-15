@@ -6,6 +6,7 @@ import { Screen, CardOption, OnboardingButton } from '../ui';
 import { useOnboardingStore, useOnboardingField } from '../state';
 import { createBillingClient, Plan } from '../../billing/BillingClient';
 import { Ionicons } from '@expo/vector-icons';
+import SubscriptionRedirectModal from '../../components/SubscriptionRedirectModal';
 
 export function PlansScreen() {
   const theme = useThemeTokens();
@@ -18,6 +19,7 @@ export function PlansScreen() {
   const [restoring, setRestoring] = useState(false);
   const [discountCode, setDiscountCode] = useState('');
   const [discountApplied, setDiscountApplied] = useState(false);
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
 
   // Set default plan
   useEffect(() => {
@@ -49,42 +51,8 @@ export function PlansScreen() {
   const handleSubscribe = async () => {
     if (!selectedPlanId) return;
 
-    const selectedPlan = plans.find(p => p.id === selectedPlanId);
-    if (!selectedPlan) return;
-
-    setLoading(true);
-
-    try {
-      const billingClient = createBillingClient();
-      const result = await billingClient.purchase(selectedPlanId);
-
-      if (result.ok && result.entitlementActive) {
-        // Purchase successful
-        if (selectedPlan.trial) {
-          // Has trial - go to trial offer screen
-          nextStep();
-        } else {
-          // No trial - complete onboarding
-          completeOnboarding();
-        }
-      } else {
-        // Purchase failed
-        Alert.alert(
-          'Purchase Failed',
-          result.message || 'Unable to complete purchase. Please try again.',
-          [{ text: 'OK' }]
-        );
-      }
-    } catch (error) {
-      console.error('Purchase error:', error);
-      Alert.alert(
-        'Error',
-        'Something went wrong. Please try again.',
-        [{ text: 'OK' }]
-      );
-    } finally {
-      setLoading(false);
-    }
+    // Instead of processing payment, show subscription redirect modal
+    setShowSubscriptionModal(true);
   };
 
   // Handle restore purchases
@@ -151,15 +119,22 @@ export function PlansScreen() {
 
   const selectedPlan = plans.find(p => p.id === selectedPlanId);
 
+  const handleSubscriptionModalClose = () => {
+    setShowSubscriptionModal(false);
+    // Complete onboarding after user interacts with subscription modal
+    completeOnboarding();
+  };
+
   return (
-    <Screen
-      title="Please select a subscription"
-      subtitle="Choose the plan that works best for you"
-      canContinue={!!selectedPlanId}
-      onBack={previousStep}
-      onContinue={handleSubscribe}
-      continueText={loading ? 'Processing...' : 'Subscribe now'}
-    >
+    <>
+      <Screen
+        title="Please select a subscription"
+        subtitle="Choose the plan that works best for you"
+        canContinue={!!selectedPlanId}
+        onBack={previousStep}
+        onContinue={handleSubscribe}
+        continueText={loading ? 'Processing...' : 'Subscribe now'}
+      >
       <View style={styles.container}>
         {/* Checklist */}
         <View style={styles.checklistContainer}>
@@ -294,6 +269,12 @@ export function PlansScreen() {
         </View>
       </View>
     </Screen>
+    
+    <SubscriptionRedirectModal
+      visible={showSubscriptionModal}
+      onClose={handleSubscriptionModalClose}
+    />
+    </>
   );
 }
 
