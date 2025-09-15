@@ -166,6 +166,8 @@ export default function OnboardingFlowScreen() {
     email: '',
     password: '',
     selectedPlan: '',
+    discountCode: '',
+    discountApplied: false,
   });
 
   const totalSteps = 9;
@@ -737,6 +739,35 @@ export default function OnboardingFlowScreen() {
               <TouchableOpacity
                 style={[
                   styles.planOption,
+                  formData.selectedPlan === 'monthly' && styles.planOptionSelected
+                ]}
+                onPress={() => setFormData(prev => ({ ...prev, selectedPlan: 'monthly' }))}
+              >
+                <View style={styles.planHeader}>
+                  <Text style={[
+                    styles.planTitle,
+                    formData.selectedPlan === 'monthly' && styles.planTitleSelected
+                  ]}>
+                    Monthly Plan
+                  </Text>
+                </View>
+                <Text style={[
+                  styles.planPrice,
+                  formData.selectedPlan === 'monthly' && styles.planPriceSelected
+                ]}>
+                  £14.99/month
+                </Text>
+                <Text style={[
+                  styles.planSubtext,
+                  formData.selectedPlan === 'monthly' && styles.planSubtextSelected
+                ]}>
+                  Billed monthly
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.planOption,
                   formData.selectedPlan === 'annual' && styles.planOptionSelected
                 ]}
                 onPress={() => setFormData(prev => ({ ...prev, selectedPlan: 'annual' }))}
@@ -801,6 +832,64 @@ export default function OnboardingFlowScreen() {
                 </Text>
               </TouchableOpacity>
             </View>
+
+            {/* Discount Code Section */}
+            <View style={styles.discountContainer}>
+              <Text style={styles.discountTitle}>Have a discount code?</Text>
+              <View style={styles.discountInputContainer}>
+                <TextInput
+                  style={[
+                    styles.discountInput,
+                    { 
+                      borderColor: formData.discountApplied ? '#22c55e' : '#e2e8f0',
+                    }
+                  ]}
+                  placeholder="Enter discount code"
+                  placeholderTextColor="#9ca3af"
+                  value={formData.discountCode || ''}
+                  onChangeText={(text) => setFormData(prev => ({ ...prev, discountCode: text }))}
+                  autoCapitalize="characters"
+                  autoCorrect={false}
+                />
+                <TouchableOpacity
+                  style={[
+                    styles.applyButton,
+                    { 
+                      backgroundColor: formData.discountApplied ? '#22c55e' : '#6366f1',
+                    }
+                  ]}
+                  onPress={() => {
+                    if (!formData.discountCode?.trim()) {
+                      Alert.alert('Invalid Code', 'Please enter a discount code.');
+                      return;
+                    }
+
+                    // Mock discount code validation
+                    const validCodes = ['SAVE20', 'WELCOME10', 'STUDENT15'];
+                    const code = formData.discountCode.trim().toUpperCase();
+                    
+                    if (validCodes.includes(code)) {
+                      setFormData(prev => ({ ...prev, discountApplied: true }));
+                      Alert.alert('Discount Applied!', `Your discount code "${code}" has been applied successfully.`);
+                    } else {
+                      Alert.alert('Invalid Code', 'The discount code you entered is not valid. Please try again.');
+                    }
+                  }}
+                  disabled={!formData.discountCode?.trim()}
+                >
+                  <Ionicons 
+                    name={formData.discountApplied ? "checkmark" : "arrow-forward"} 
+                    size={20} 
+                    color="#ffffff" 
+                  />
+                </TouchableOpacity>
+              </View>
+              {formData.discountApplied && (
+                <Text style={styles.discountAppliedText}>
+                  ✓ Discount code applied successfully!
+                </Text>
+              )}
+            </View>
           </View>
         );
 
@@ -810,9 +899,15 @@ export default function OnboardingFlowScreen() {
             <View style={styles.trialIconContainer}>
               <Ionicons name="rocket" size={60} color="#6366f1" />
             </View>
-            <Text style={styles.stepTitle}>Start your free trial</Text>
+            <Text style={styles.stepTitle}>
+              {formData.selectedPlan === 'monthly' 
+                ? 'Start your subscription' 
+                : 'Start your free trial'}
+            </Text>
             <Text style={styles.stepSubtitle}>
-              {formData.selectedPlan === 'annual' 
+              {formData.selectedPlan === 'monthly' 
+                ? 'Start your subscription at £14.99/month'
+                : formData.selectedPlan === 'annual' 
                 ? 'Enjoy 7 days free, then £7.50/month' 
                 : 'Get lifetime access for £264.99'}
             </Text>
@@ -838,7 +933,9 @@ export default function OnboardingFlowScreen() {
 
             <View style={styles.trialTerms}>
               <Text style={styles.termsText}>
-                {formData.selectedPlan === 'annual' 
+                {formData.selectedPlan === 'monthly' 
+                  ? 'Your subscription starts immediately at £14.99/month. You can cancel anytime in your account settings.'
+                  : formData.selectedPlan === 'annual' 
                   ? 'Your free trial starts immediately. You can cancel anytime in your account settings. After 7 days, you\'ll be charged £89.99 for 12 months of access.'
                   : 'One-time payment of £264.99. No recurring charges. Lifetime access to all features.'}
               </Text>
@@ -1404,5 +1501,43 @@ const styles = StyleSheet.create({
   subjectCardTextSelected: {
     color: '#6366f1',
     fontWeight: '600',
+  },
+  discountContainer: {
+    marginTop: 24,
+    gap: 12,
+  },
+  discountTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1e293b',
+    textAlign: 'center',
+  },
+  discountInputContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    alignItems: 'center',
+  },
+  discountInput: {
+    flex: 1,
+    height: 48,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    fontSize: 16,
+    backgroundColor: '#fff',
+    color: '#1e293b',
+  },
+  applyButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  discountAppliedText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#22c55e',
+    textAlign: 'center',
   },
 });

@@ -5,6 +5,8 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  TextInput,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { OnboardingLayout } from '../components/OnboardingLayout';
@@ -20,6 +22,8 @@ export function PlansScreen() {
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [discountCode, setDiscountCode] = useState('');
+  const [discountApplied, setDiscountApplied] = useState(false);
 
   useEffect(() => {
     loadPlans();
@@ -42,6 +46,24 @@ export function PlansScreen() {
     setErrors({});
   };
 
+  const handleApplyDiscount = () => {
+    if (!discountCode.trim()) {
+      Alert.alert('Invalid Code', 'Please enter a discount code.');
+      return;
+    }
+
+    // Mock discount code validation
+    const validCodes = ['SAVE20', 'WELCOME10', 'STUDENT15'];
+    const code = discountCode.trim().toUpperCase();
+    
+    if (validCodes.includes(code)) {
+      setDiscountApplied(true);
+      Alert.alert('Discount Applied!', `Your discount code "${code}" has been applied successfully.`);
+    } else {
+      Alert.alert('Invalid Code', 'The discount code you entered is not valid. Please try again.');
+    }
+  };
+
   const handleContinue = () => {
     const validation = validateStep(9, {
       selectedPlan,
@@ -57,10 +79,11 @@ export function PlansScreen() {
   };
 
   const formatPrice = (plan: SubscriptionPlan) => {
+    const currencySymbol = plan.currency === 'GBP' ? '£' : '$';
     if (plan.period === 'lifetime') {
-      return `$${plan.price}`;
+      return `${currencySymbol}${plan.price}`;
     }
-    return `$${plan.price} per ${plan.period === 'yearly' ? 'year' : 'month'}`;
+    return `${currencySymbol}${plan.price} per ${plan.period === 'yearly' ? 'year' : 'month'}`;
   };
 
   const styles = StyleSheet.create({
@@ -153,6 +176,40 @@ export function PlansScreen() {
       fontSize: theme.fonts.sizes.sm,
       color: theme.colors.status.success,
       fontWeight: theme.fonts.weights.medium,
+    },
+    discountContainer: {
+      marginBottom: theme.spacing.lg,
+      gap: theme.spacing.sm,
+    },
+    discountTitle: {
+      fontSize: theme.fonts.sizes.md,
+      fontWeight: theme.fonts.weights.semibold,
+      textAlign: 'center',
+    },
+    discountInputContainer: {
+      flexDirection: 'row',
+      gap: theme.spacing.sm,
+      alignItems: 'center',
+    },
+    discountInput: {
+      flex: 1,
+      height: 48,
+      borderWidth: 1,
+      borderRadius: theme.radius.md,
+      paddingHorizontal: theme.spacing.md,
+      fontSize: theme.fonts.sizes.md,
+    },
+    applyButton: {
+      width: 48,
+      height: 48,
+      borderRadius: theme.radius.md,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    discountAppliedText: {
+      fontSize: theme.fonts.sizes.sm,
+      fontWeight: theme.fonts.weights.medium,
+      textAlign: 'center',
     },
     errorText: {
       fontSize: theme.fonts.sizes.sm,
@@ -262,6 +319,52 @@ export function PlansScreen() {
               <Text style={styles.planDescription}>{plan.description}</Text>
             </TouchableOpacity>
           ))}
+        </View>
+
+        {/* Discount Code Section */}
+        <View style={styles.discountContainer}>
+          <Text style={[styles.discountTitle, { color: theme.colors.text.primary }]}>
+            Have a discount code?
+          </Text>
+          <View style={styles.discountInputContainer}>
+            <TextInput
+              style={[
+                styles.discountInput,
+                { 
+                  borderColor: discountApplied ? theme.colors.status.success : theme.colors.border.primary,
+                  backgroundColor: theme.colors.background.primary,
+                  color: theme.colors.text.primary,
+                }
+              ]}
+              placeholder="Enter discount code"
+              placeholderTextColor={theme.colors.text.secondary}
+              value={discountCode}
+              onChangeText={setDiscountCode}
+              autoCapitalize="characters"
+              autoCorrect={false}
+            />
+            <TouchableOpacity
+              style={[
+                styles.applyButton,
+                { 
+                  backgroundColor: discountApplied ? theme.colors.status.success : theme.colors.primary,
+                }
+              ]}
+              onPress={handleApplyDiscount}
+              disabled={!discountCode.trim()}
+            >
+              <Ionicons 
+                name={discountApplied ? "checkmark" : "arrow-forward"} 
+                size={20} 
+                color={theme.colors.text.inverse} 
+              />
+            </TouchableOpacity>
+          </View>
+          {discountApplied && (
+            <Text style={[styles.discountAppliedText, { color: theme.colors.status.success }]}>
+              ✓ Discount code applied successfully!
+            </Text>
+          )}
         </View>
 
         {errors.selectedPlan && (

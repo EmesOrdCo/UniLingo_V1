@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export type Plan = {
-  id: 'annual' | 'lifetime';
+  id: 'monthly' | 'annual' | 'lifetime';
   title: string;
   priceText: string;
   subText?: string;
@@ -28,6 +28,16 @@ class MockBillingClient implements BillingClient {
 
   async getAvailablePlans(): Promise<Plan[]> {
     return [
+      {
+        id: 'monthly',
+        title: '1 month',
+        priceText: '$14.99 per month',
+        subText: 'Billed monthly',
+        trial: { days: 7 },
+        isSubscription: true,
+        priceAmount: 14.99,
+        currency: 'USD',
+      },
       {
         id: 'annual',
         title: '12 months',

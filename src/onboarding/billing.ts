@@ -107,10 +107,10 @@ export class MockBillingClient implements BillingClient {
     return [
       {
         id: 'monthly',
-        name: 'Monthly',
+        name: 'Monthly Plan',
         description: 'Full access to all features',
         price: 12.99,
-        currency: 'USD',
+        currency: 'GBP',
         period: 'monthly',
         features: [
           'All 14 languages included',
@@ -121,10 +121,10 @@ export class MockBillingClient implements BillingClient {
       },
       {
         id: 'yearly',
-        name: '12 months',
+        name: 'Annual Plan',
         description: 'Best value - Save 50%',
         price: 7.50,
-        currency: 'USD',
+        currency: 'GBP',
         period: 'yearly',
         isPopular: true,
         discount: {
@@ -140,10 +140,10 @@ export class MockBillingClient implements BillingClient {
       },
       {
         id: 'lifetime',
-        name: 'Lifetime',
+        name: 'Lifetime Plan',
         description: 'Pay once, learn forever',
         price: 264.99,
-        currency: 'USD',
+        currency: 'GBP',
         period: 'lifetime',
         features: [
           'All 14 languages included',

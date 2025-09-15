@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Alert, Linking } from 'react-native';
+import { View, Text, StyleSheet, Alert, Linking, TextInput, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useThemeTokens } from '../../theme/useThemeTokens';
 import { Screen, CardOption, OnboardingButton } from '../ui';
 import { useOnboardingStore, useOnboardingField } from '../state';
 import { createBillingClient, Plan } from '../../billing/BillingClient';
+import { Ionicons } from '@expo/vector-icons';
 
 export function PlansScreen() {
   const theme = useThemeTokens();
@@ -15,6 +16,8 @@ export function PlansScreen() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(false);
   const [restoring, setRestoring] = useState(false);
+  const [discountCode, setDiscountCode] = useState('');
+  const [discountApplied, setDiscountApplied] = useState(false);
 
   // Set default plan
   useEffect(() => {
@@ -117,12 +120,31 @@ export function PlansScreen() {
     }
   };
 
+  // Handle discount code application
+  const handleApplyDiscount = () => {
+    if (!discountCode.trim()) {
+      Alert.alert('Invalid Code', 'Please enter a discount code.');
+      return;
+    }
+
+    // Mock discount code validation
+    const validCodes = ['SAVE20', 'WELCOME10', 'STUDENT15'];
+    const code = discountCode.trim().toUpperCase();
+    
+    if (validCodes.includes(code)) {
+      setDiscountApplied(true);
+      Alert.alert('Discount Applied!', `Your discount code "${code}" has been applied successfully.`);
+    } else {
+      Alert.alert('Invalid Code', 'The discount code you entered is not valid. Please try again.');
+    }
+  };
+
   // Handle show all plans (placeholder)
   const handleShowAllPlans = () => {
     // For now, just show an alert
     Alert.alert(
       'All Plans',
-      'Annual and Lifetime plans are currently available.',
+      'Monthly, Annual and Lifetime plans are currently available.',
       [{ text: 'OK' }]
     );
   };
@@ -195,6 +217,52 @@ export function PlansScreen() {
               )}
             </View>
           ))}
+        </View>
+
+        {/* Discount Code Section */}
+        <View style={styles.discountContainer}>
+          <Text style={[styles.discountTitle, { color: theme.colors.textDark }]}>
+            Have a discount code?
+          </Text>
+          <View style={styles.discountInputContainer}>
+            <TextInput
+              style={[
+                styles.discountInput,
+                { 
+                  borderColor: discountApplied ? '#22c55e' : theme.colors.border,
+                  backgroundColor: theme.colors.surface,
+                  color: theme.colors.textDark,
+                }
+              ]}
+              placeholder="Enter discount code"
+              placeholderTextColor={theme.colors.textLight}
+              value={discountCode}
+              onChangeText={setDiscountCode}
+              autoCapitalize="characters"
+              autoCorrect={false}
+            />
+            <TouchableOpacity
+              style={[
+                styles.applyButton,
+                { 
+                  backgroundColor: discountApplied ? '#22c55e' : theme.colors.primary,
+                }
+              ]}
+              onPress={handleApplyDiscount}
+              disabled={!discountCode.trim()}
+            >
+              <Ionicons 
+                name={discountApplied ? "checkmark" : "arrow-forward"} 
+                size={20} 
+                color="#ffffff" 
+              />
+            </TouchableOpacity>
+          </View>
+          {discountApplied && (
+            <Text style={[styles.discountAppliedText, { color: '#22c55e' }]}>
+              ✓ Discount code applied successfully!
+            </Text>
+          )}
         </View>
 
         {/* Show All Plans Link */}
@@ -277,6 +345,39 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 8,
     marginLeft: 16,
+  },
+  discountContainer: {
+    gap: 12,
+  },
+  discountTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  discountInputContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    alignItems: 'center',
+  },
+  discountInput: {
+    flex: 1,
+    height: 48,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    fontSize: 16,
+  },
+  applyButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  discountAppliedText: {
+    fontSize: 14,
+    fontWeight: '500',
+    textAlign: 'center',
   },
   linkContainer: {
     alignItems: 'center',
