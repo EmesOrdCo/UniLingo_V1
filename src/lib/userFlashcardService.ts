@@ -36,9 +36,25 @@ export class UserFlashcardService {
   // Get all flashcards for the current user
   static async getUserFlashcards(filters: UserFlashcardFilters = {}): Promise<UserFlashcard[]> {
     try {
+      // Get the authenticated user
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      if (!user) {
+        throw new Error('User not authenticated')
+      }
+
+      console.log('🔍 getUserFlashcards - user.id:', user.id, 'type:', typeof user.id);
+      
+      // Ensure user.id is a string
+      if (typeof user.id !== 'string') {
+        console.error('❌ Invalid user.id type:', typeof user.id, 'value:', user.id);
+        throw new Error('user.id must be a string');
+      }
+
       let query = supabase
         .from('user_flashcards')
         .select('*')
+        .eq('user_id', user.id) // Filter by authenticated user
         .order('created_at', { ascending: false })
 
       // Apply filters
@@ -204,7 +220,14 @@ export class UserFlashcardService {
   // Get topics for a specific user from user flashcards
   static async getUserFlashcardTopicsByUserId(userId: string): Promise<string[]> {
     try {
-      console.log('🔍 Fetching topics for user:', userId);
+      console.log('🔍 Fetching topics for user:', userId, 'type:', typeof userId);
+      
+      // Ensure userId is a string
+      if (typeof userId !== 'string') {
+        console.error('❌ Invalid userId type:', typeof userId, 'value:', userId);
+        throw new Error('userId must be a string');
+      }
+      
       const { data, error } = await supabase
         .from('user_flashcards')
         .select('topic')

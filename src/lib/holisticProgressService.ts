@@ -31,7 +31,7 @@ export interface StudySession {
 export interface UserStreak {
   id?: string;
   user_id: string;
-  streak_type: 'daily_study' | 'weekly_lessons' | 'monthly_goals';
+  streak_type: 'daily_study';
   current_streak: number;
   longest_streak: number;
   last_activity_date?: Date;

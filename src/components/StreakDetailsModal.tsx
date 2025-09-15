@@ -11,8 +11,6 @@ interface StreakDetailsModalProps {
 
 interface StreakInfo {
   daily_study?: { current_streak: number; longest_streak: number };
-  weekly_lessons?: { current_streak: number; longest_streak: number };
-  monthly_goals?: { current_streak: number; longest_streak: number };
 }
 
 export default function StreakDetailsModal({ visible, onClose }: StreakDetailsModalProps) {
@@ -29,16 +27,10 @@ export default function StreakDetailsModal({ visible, onClose }: StreakDetailsMo
   const loadStreakInfo = async () => {
     try {
       setLoading(true);
-      const [dailyStreak, weeklyStreak, monthlyStreak] = await Promise.all([
-        HolisticProgressService.getCurrentStreak(user!.id, 'daily_study'),
-        HolisticProgressService.getCurrentStreak(user!.id, 'weekly_lessons'),
-        HolisticProgressService.getCurrentStreak(user!.id, 'monthly_goals'),
-      ]);
+      const dailyStreak = await HolisticProgressService.getCurrentStreak(user!.id, 'daily_study');
 
       setStreakInfo({
         daily_study: dailyStreak || { current_streak: 0, longest_streak: 0 },
-        weekly_lessons: weeklyStreak || { current_streak: 0, longest_streak: 0 },
-        monthly_goals: monthlyStreak || { current_streak: 0, longest_streak: 0 },
       });
     } catch (error) {
       console.error('Error loading streak info:', error);
@@ -116,78 +108,7 @@ export default function StreakDetailsModal({ visible, onClose }: StreakDetailsMo
                   </Text>
                 </View>
 
-                {/* Weekly Lessons Streak */}
-                <View style={styles.streakCard}>
-                  <View style={styles.streakHeader}>
-                    <Ionicons name="school" size={24} color="#10b981" />
-                    <Text style={styles.streakTitle}>Weekly Lessons</Text>
-                  </View>
-                  <View style={styles.streakStats}>
-                    <View style={styles.streakStat}>
-                      <Text style={styles.streakNumber}>
-                        {streakInfo.weekly_lessons?.current_streak || 0}
-                      </Text>
-                      <Text style={styles.streakLabel}>Weeks</Text>
-                    </View>
-                    <View style={styles.streakStat}>
-                      <Text style={styles.streakNumber}>
-                        {streakInfo.weekly_lessons?.longest_streak || 0}
-                      </Text>
-                      <Text style={styles.streakLabel}>Best</Text>
-                    </View>
-                  </View>
-                  <Text style={styles.streakMessage}>
-                    {getStreakEmoji(streakInfo.weekly_lessons?.current_streak || 0)} {' '}
-                    {getStreakMessage(streakInfo.weekly_lessons?.current_streak || 0)}
-                  </Text>
-                </View>
 
-                {/* Monthly Goals Streak */}
-                <View style={styles.streakCard}>
-                  <View style={styles.streakHeader}>
-                    <Ionicons name="trophy" size={24} color="#f59e0b" />
-                    <Text style={styles.streakTitle}>Monthly Goals</Text>
-                  </View>
-                  <View style={styles.streakStats}>
-                    <View style={styles.streakStat}>
-                      <Text style={styles.streakNumber}>
-                        {streakInfo.monthly_goals?.current_streak || 0}
-                      </Text>
-                      <Text style={styles.streakLabel}>Months</Text>
-                    </View>
-                    <View style={styles.streakStat}>
-                      <Text style={styles.streakNumber}>
-                        {streakInfo.monthly_goals?.longest_streak || 0}
-                      </Text>
-                      <Text style={styles.streakLabel}>Best</Text>
-                    </View>
-                  </View>
-                  <Text style={styles.streakMessage}>
-                    {getStreakEmoji(streakInfo.monthly_goals?.current_streak || 0)} {' '}
-                    {getStreakMessage(streakInfo.monthly_goals?.current_streak || 0)}
-                  </Text>
-                </View>
-
-                {/* Streak Tips */}
-                <View style={styles.tipsCard}>
-                  <Text style={styles.tipsTitle}>💡 Streak Tips</Text>
-                  <View style={styles.tipItem}>
-                    <Ionicons name="checkmark-circle" size={16} color="#10b981" />
-                    <Text style={styles.tipText}>Study for at least 15 minutes daily</Text>
-                  </View>
-                  <View style={styles.tipItem}>
-                    <Ionicons name="checkmark-circle" size={16} color="#10b981" />
-                    <Text style={styles.tipText}>Complete at least one lesson per week</Text>
-                  </View>
-                  <View style={styles.tipItem}>
-                    <Ionicons name="checkmark-circle" size={16} color="#10b981" />
-                    <Text style={styles.tipText}>Review flashcards regularly</Text>
-                  </View>
-                  <View style={styles.tipItem}>
-                    <Ionicons name="checkmark-circle" size={16} color="#10b981" />
-                    <Text style={styles.tipText}>Set achievable monthly goals</Text>
-                  </View>
-                </View>
               </>
             )}
           </ScrollView>
@@ -283,31 +204,5 @@ const styles = StyleSheet.create({
     color: '#374151',
     textAlign: 'center',
     lineHeight: 22,
-  },
-  tipsCard: {
-    backgroundColor: '#f0f9ff',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#bae6fd',
-  },
-  tipsTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#0369a1',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  tipItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  tipText: {
-    fontSize: 16,
-    color: '#0c4a6e',
-    marginLeft: 12,
-    flex: 1,
   },
 });

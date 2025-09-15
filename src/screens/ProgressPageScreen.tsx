@@ -364,15 +364,27 @@ export default function ProgressPageScreen() {
 
         {/* Study Calendar */}
         <View style={styles.calendarSection}>
-          <Text style={styles.sectionTitle}>📅 Study Calendar</Text>
-          <StudyCalendar studyDates={studyDates} />
+          <View style={styles.sectionTitleContainer}>
+            <View style={styles.sectionIconContainer}>
+              <Ionicons name="calendar" size={24} color="#06b6d4" />
+            </View>
+            <Text style={styles.sectionTitle}>Study Calendar</Text>
+          </View>
+          <View style={styles.calendarWrapper}>
+            <StudyCalendar studyDates={studyDates} />
+          </View>
         </View>
 
 
         {/* Achievements */}
         {progressData?.achievements.length > 0 && (
           <View style={styles.achievementsSection}>
-            <Text style={styles.sectionTitle}>🏆 Recent Achievements</Text>
+            <View style={styles.sectionTitleContainer}>
+              <View style={styles.sectionIconContainer}>
+                <Ionicons name="trophy" size={24} color="#f59e0b" />
+              </View>
+              <Text style={styles.sectionTitle}>Recent Achievements</Text>
+            </View>
             <View style={styles.achievementsList}>
               {progressData.achievements.slice(0, 3).map((achievement, index) => (
                 <View key={index} style={styles.achievementCard}>
@@ -401,60 +413,50 @@ export default function ProgressPageScreen() {
         )}
 
         {/* Flashcards Progress */}
-        <View style={styles.flashcardsSection}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>📚 Flashcards Progress</Text>
-            <TouchableOpacity 
-              style={styles.refreshButton} 
-              onPress={onRefresh}
-              disabled={refreshing}
-            >
-              <Ionicons 
-                name={refreshing ? "sync" : "refresh"} 
-                size={20} 
-                color={refreshing ? "#10b981" : "#6366f1"} 
-              />
-            </TouchableOpacity>
+        <View style={styles.flashcardsProgressSection}>
+          <View style={styles.flashcardsProgressHeader}>
+            <Ionicons name="library" size={20} color="#6366f1" />
+            <Text style={styles.flashcardsProgressTitle}>Flashcard Progress</Text>
           </View>
           <View style={styles.flashcardsGrid}>
             <View style={styles.flashcardStatCard}>
-              <View style={styles.flashcardStatIcon}>
-                <Ionicons name="book" size={24} color="#6366f1" />
+              <View style={[styles.flashcardStatIcon, styles.totalCardsIcon]}>
+                <Ionicons name="library-outline" size={28} color="#ffffff" />
               </View>
               <Text style={styles.flashcardStatNumber}>{progressData?.flashcardStats?.totalCards || 0}</Text>
               <Text style={styles.flashcardStatLabel}>Total Cards</Text>
             </View>
             <View style={styles.flashcardStatCard}>
-              <View style={styles.flashcardStatIcon}>
-                <Ionicons name="checkmark-circle" size={24} color="#10b981" />
+              <View style={[styles.flashcardStatIcon, styles.masteredCardsIcon]}>
+                <Ionicons name="star" size={28} color="#ffffff" />
               </View>
               <Text style={styles.flashcardStatNumber}>{progressData?.flashcardStats?.masteredCards || 0}</Text>
               <Text style={styles.flashcardStatLabel}>Mastered</Text>
             </View>
             <View style={styles.flashcardStatCard}>
-              <View style={styles.flashcardStatIcon}>
-                <Ionicons name="trending-up" size={24} color="#06b6d4" />
+              <View style={[styles.flashcardStatIcon, styles.accuracyIcon]}>
+                <Ionicons name="target" size={28} color="#ffffff" />
               </View>
               <Text style={styles.flashcardStatNumber}>{progressData?.flashcardStats?.averageAccuracy || 0}%</Text>
-              <Text style={styles.flashcardStatLabel}>Avg Accuracy</Text>
+              <Text style={styles.flashcardStatLabel}>Accuracy</Text>
             </View>
             <View style={styles.flashcardStatCard}>
-              <View style={styles.flashcardStatIcon}>
-                <Ionicons name="flame" size={24} color="#f59e0b" />
+              <View style={[styles.flashcardStatIcon, styles.streakIcon]}>
+                <Ionicons name="flame" size={28} color="#ffffff" />
               </View>
               <Text style={styles.flashcardStatNumber}>{progressData?.flashcardStats?.dayStreak || 0}</Text>
-              <Text style={styles.flashcardStatLabel}>Day Streak</Text>
+              <Text style={styles.flashcardStatLabel}>Streak</Text>
             </View>
             <View style={styles.flashcardStatCard}>
-              <View style={styles.flashcardStatIcon}>
-                <Ionicons name="trophy" size={24} color="#f59e0b" />
+              <View style={[styles.flashcardStatIcon, styles.bestTopicIcon]}>
+                <Ionicons name="medal" size={28} color="#ffffff" />
               </View>
               <Text style={styles.flashcardStatNumber}>{progressData?.flashcardStats?.bestTopic || 'None'}</Text>
               <Text style={styles.flashcardStatLabel}>Best Topic</Text>
             </View>
             <View style={styles.flashcardStatCard}>
-              <View style={styles.flashcardStatIcon}>
-                <Ionicons name="alert-circle" size={24} color="#ef4444" />
+              <View style={[styles.flashcardStatIcon, styles.needsWorkIcon]}>
+                <Ionicons name="bulb-outline" size={28} color="#ffffff" />
               </View>
               <Text style={styles.flashcardStatNumber}>{progressData?.flashcardStats?.weakestTopic || 'None'}</Text>
               <Text style={styles.flashcardStatLabel}>Needs Work</Text>
@@ -719,12 +721,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
   },
+  flashcardsProgressSection: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
   learningStatsHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 16,
   },
+  flashcardsProgressHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
   learningStatsTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1e293b',
+    marginLeft: 8,
+  },
+  flashcardsProgressTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#1e293b',
@@ -763,6 +780,9 @@ const styles = StyleSheet.create({
   calendarSection: {
     paddingHorizontal: 20,
     paddingVertical: 16,
+  },
+  calendarWrapper: {
+    marginTop: 16,
   },
   levelSection: {
     paddingHorizontal: 20,
@@ -825,7 +845,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '700',
     color: '#1e293b',
-    marginBottom: 16,
+    letterSpacing: -0.3,
   },
   achievementsSection: {
     backgroundColor: '#ffffff',
@@ -879,23 +899,29 @@ const styles = StyleSheet.create({
 
 
   // Flashcards section styles
-  flashcardsSection: {
-    backgroundColor: '#ffffff',
-    marginHorizontal: 16,
-    marginBottom: 16,
-    borderRadius: 16,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
+  },
+  sectionTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  sectionIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#f8fafc',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
   },
   refreshButton: {
     padding: 8,
@@ -913,32 +939,70 @@ const styles = StyleSheet.create({
   flashcardStatCard: {
     width: '48%',
     backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 16,
+    padding: 20,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: '#f1f5f9',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+    marginBottom: 16,
   },
   flashcardStatIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  // Individual icon styles with gradients
+  totalCardsIcon: {
+    backgroundColor: '#6366f1',
+    backgroundImage: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+  },
+  masteredCardsIcon: {
+    backgroundColor: '#10b981',
+    backgroundImage: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+  },
+  accuracyIcon: {
+    backgroundColor: '#06b6d4',
+    backgroundImage: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)',
+  },
+  streakIcon: {
+    backgroundColor: '#f59e0b',
+    backgroundImage: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+  },
+  bestTopicIcon: {
+    backgroundColor: '#8b5cf6',
+    backgroundImage: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+  },
+  needsWorkIcon: {
+    backgroundColor: '#f97316',
+    backgroundImage: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
   },
   flashcardStatNumber: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 20,
+    fontWeight: '800',
     color: '#1e293b',
-    marginBottom: 4,
+    marginBottom: 6,
     textAlign: 'center',
+    letterSpacing: -0.5,
   },
   flashcardStatLabel: {
-    fontSize: 12,
-    color: '#6b7280',
+    fontSize: 13,
+    color: '#64748b',
     textAlign: 'center',
-    fontWeight: '500',
+    fontWeight: '600',
+    letterSpacing: 0.2,
   },
 
   bottomSpacing: {

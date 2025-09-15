@@ -48,7 +48,6 @@ import ConsistentHeader from '../components/ConsistentHeader';
 import FavouritesSection from '../components/FavouritesSection';
 import AllGamesSection from '../components/AllGamesSection';
 import GameStatsSection from '../components/GameStatsSection';
-import LevelProgressWidget from '../components/LevelProgressWidget';
 import FlashcardQuizGame from '../components/games/FlashcardQuizGame';
 import LessonSentenceScramble from '../components/lesson/LessonSentenceScramble';
 import WordScrambleGame from '../components/games/WordScrambleGame';
@@ -165,7 +164,7 @@ export default function GamesScreen({ route }: { route?: any }) {
         console.log(`🎮 No subjects in profile, loading flashcards without subject filter`);
         // Load flashcards without subject filter if no subjects
         try {
-          const userFlashcards = await UserFlashcardService.getUserFlashcards(user.id);
+          const userFlashcards = await UserFlashcardService.getUserFlashcards();
           const allCards = userFlashcards.filter(card => 
             card.front && card.back && card.topic
           );
@@ -1666,10 +1665,6 @@ export default function GamesScreen({ route }: { route?: any }) {
         
 
 
-        {/* Level Progress Widget */}
-        <LevelProgressWidget 
-          onRefresh={refreshGameStatistics}
-        />
 
         {/* Your Game Stats */}
         <GameStatsSection 

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Image, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import DailyChallengeSection from './DailyChallengeSection';
 import { useAuth } from '../contexts/AuthContext';
 import { useSelectedUnit } from '../contexts/SelectedUnitContext';
 import { GeneralVocabService } from '../lib/generalVocabService';
@@ -183,15 +182,6 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
         </View>
       )}
 
-      {/* Daily Challenge */}
-      <View style={styles.dailyChallengeContainer}>
-        <DailyChallengeSection onPlay={(gameType) => {
-          // Navigate to games screen with the specific game type to launch
-          console.log('🎯 Daily challenge clicked:', gameType);
-          console.log('🎯 Navigating to Games with launchGame parameter:', gameType);
-          navigation.navigate('Games' as never, { launchGame: gameType } as never);
-        }} />
-      </View>
 
       {/* Course Overview Section */}
       <View style={styles.courseOverview}>
@@ -262,23 +252,20 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
               {expandedUnit === index && (
                 <View style={styles.lessonsContainer}>
                   {UnitDataService.getLessonsForUnit(selectedUnit).map((lesson) => (
-                    <TouchableOpacity 
+                    <View 
                       key={lesson.id} 
                       style={[
                         styles.lessonCard,
                         isNavigating && styles.lessonCardDisabled
                       ]}
-                      onPress={() => handleLessonPress(selectedUnit.unit_code, lesson.title, topicGroup)}
-                      activeOpacity={0.7}
-                      disabled={isNavigating}
                     >
                       <View style={styles.lessonContent}>
-                        <View style={styles.lessonTitleRow}>
-                          <Text style={styles.lessonTitle}>{lesson.title}</Text>
-                          {getStatusButton(lesson.status, selectedUnit.unit_code, lesson.title, topicGroup)}
-                        </View>
+                        <Text style={styles.lessonTitle}>{lesson.title}</Text>
                       </View>
-                    </TouchableOpacity>
+                      <View style={styles.lessonActions}>
+                        {getStatusButton(lesson.status, selectedUnit.unit_code, lesson.title, topicGroup)}
+                      </View>
+                    </View>
                   ))}
                 </View>
               )}
@@ -298,17 +285,34 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#ffffff',
   },
-  dailyChallengeContainer: {
-    paddingHorizontal: 20,
-  },
   courseOverview: {
-    padding: 20,
-    backgroundColor: '#ffffff',
+    padding: 28,
+    backgroundColor: '#f0f4ff',
+    margin: 16,
+    borderRadius: 20,
+    shadowColor: '#6366f1',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 6,
+    borderWidth: 3,
+    borderColor: '#6366f1',
   },
   courseLevel: {
     fontSize: 14,
-    color: '#6b7280',
+    color: '#ffffff',
     marginBottom: 4,
+    fontWeight: '700',
+    backgroundColor: '#6366f1',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 14,
+    alignSelf: 'flex-start',
+    shadowColor: '#6366f1',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
   },
   courseTitleRow: {
     flexDirection: 'row',
@@ -335,16 +339,24 @@ const styles = StyleSheet.create({
   },
   progressBar: {
     flex: 1,
-    height: 8,
-    backgroundColor: '#e5e7eb',
-    borderRadius: 4,
+    height: 10,
+    backgroundColor: '#f1f5f9',
+    borderRadius: 8,
     marginRight: 12,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
   },
   progressFill: {
     width: '2%',
     height: '100%',
-    backgroundColor: '#6466E9',
-    borderRadius: 4,
+    backgroundColor: '#6366f1',
+    borderRadius: 6,
+    shadowColor: '#6366f1',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 2,
   },
   progressText: {
     fontSize: 14,
@@ -352,17 +364,23 @@ const styles = StyleSheet.create({
     color: '#000000',
   },
   changeButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     borderWidth: 1,
-    borderColor: '#000000',
-    borderRadius: 6,
+    borderColor: '#6366f1',
+    borderRadius: 8,
     marginLeft: 12,
+    backgroundColor: '#f8fafc',
+    shadowColor: '#6366f1',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   changeButtonText: {
     fontSize: 14,
-    fontWeight: '500',
-    color: '#000000',
+    fontWeight: '600',
+    color: '#6366f1',
   },
   unitsSection: {
     padding: 20,
@@ -373,10 +391,17 @@ const styles = StyleSheet.create({
   },
   unitCard: {
     backgroundColor: '#ffffff',
-    padding: 16,
-    borderRadius: 12,
+    padding: 20,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: '#e5e7eb',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
+    borderLeftWidth: 3,
+    borderLeftColor: '#6366f1',
   },
   unitCardExpanded: {
     borderBottomLeftRadius: 0,
@@ -396,15 +421,18 @@ const styles = StyleSheet.create({
   },
   unitProgressBar: {
     flex: 1,
-    height: 4,
-    backgroundColor: '#e5e7eb',
-    borderRadius: 2,
+    height: 6,
+    backgroundColor: '#f1f5f9',
+    borderRadius: 4,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
   },
   unitProgressFill: {
     width: '0%',
     height: '100%',
-    backgroundColor: '#6466E9',
-    borderRadius: 2,
+    backgroundColor: '#6366f1',
+    borderRadius: 3,
   },
   unitTitle: {
     fontSize: 16,
@@ -440,15 +468,24 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     paddingHorizontal: 16,
     paddingBottom: 16,
+    borderLeftWidth: 3,
+    borderLeftColor: '#6366f1',
   },
   lessonCard: {
     backgroundColor: '#f8fafc',
-    padding: 16,
+    padding: 18,
     marginBottom: 12,
-    borderRadius: 12,
+    borderRadius: 14,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.02,
+    shadowRadius: 4,
+    elevation: 1,
   },
   lessonCardDisabled: {
     backgroundColor: '#e5e7eb',
@@ -456,14 +493,7 @@ const styles = StyleSheet.create({
   },
   lessonContent: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  lessonTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    flex: 1,
+    justifyContent: 'center',
   },
   lessonTitle: {
     fontSize: 16,
@@ -482,16 +512,22 @@ const styles = StyleSheet.create({
   lessonActions: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'flex-end',
     gap: 12,
   },
   startButton: {
-    backgroundColor: '#000000',
+    backgroundColor: '#6366f1',
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 10,
     gap: 6,
+    shadowColor: '#6366f1',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   startButtonDisabled: {
     backgroundColor: '#9ca3af',

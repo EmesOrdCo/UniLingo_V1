@@ -15,7 +15,7 @@ interface SubscriptionGateProps {
 }
 
 export default function SubscriptionGate({ children }: SubscriptionGateProps) {
-  const { user, profile, refreshSubscriptionStatus } = useAuth();
+  const { user, profile, refreshSubscriptionStatus, signOut } = useAuth();
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -77,6 +77,17 @@ export default function SubscriptionGate({ children }: SubscriptionGateProps) {
     }
   };
 
+  const handleBackToLanding = async () => {
+    // Sign out user to return to landing page
+    try {
+      await signOut();
+      console.log('✅ User signed out, returning to landing page');
+    } catch (error) {
+      console.error('Error signing out:', error);
+      Alert.alert('Error', 'Failed to return to landing page. Please try again.');
+    }
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.content}>
@@ -129,6 +140,19 @@ export default function SubscriptionGate({ children }: SubscriptionGateProps) {
         <Text style={styles.helpText}>
           After completing setup, you'll have full access to all UniLingo features.
         </Text>
+
+        {/* Back to Landing Button */}
+        <TouchableOpacity
+          style={styles.backToLandingButton}
+          onPress={handleBackToLanding}
+        >
+          <Ionicons 
+            name="arrow-back" 
+            size={20} 
+            color="#6b7280" 
+          />
+          <Text style={styles.backToLandingText}>Back to Landing</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -245,5 +269,20 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     textAlign: 'center',
     lineHeight: 20,
+    marginBottom: 24,
+  },
+  backToLandingButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  backToLandingText: {
+    fontSize: 16,
+    color: '#6b7280',
+    fontWeight: '500',
+    marginLeft: 8,
+    textDecorationLine: 'underline',
   },
 });

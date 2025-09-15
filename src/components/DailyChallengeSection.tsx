@@ -47,7 +47,7 @@ const DailyChallengeSection: React.FC<DailyChallengeSectionProps> = ({ onPlay })
     if (challenge && !challenge.completed) {
       // Check if user has flashcards
       try {
-        const flashcards = await UserFlashcardService.getUserFlashcards(user!.id);
+        const flashcards = await UserFlashcardService.getUserFlashcards();
         if (flashcards.length === 0) {
           Alert.alert(
             'No Flashcards Available',
