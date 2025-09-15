@@ -19,6 +19,7 @@ import OptimizedProgressService from '../lib/optimizedProgressService';
 import StudyCalendar from '../components/StudyCalendar';
 import ConsistentHeader from '../components/ConsistentHeader';
 import StreakDetailsModal from '../components/StreakDetailsModal';
+import { LessonService } from '../lib/lessonService';
 
 const { width } = Dimensions.get('window');
 
@@ -30,6 +31,7 @@ export default function ProgressPageScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [progressData, setProgressData] = useState<ProgressInsights | null>(null);
   const [studyDates, setStudyDates] = useState<string[]>([]);
+  const [lessonsCount, setLessonsCount] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
   const [showStreakModal, setShowStreakModal] = useState(false);
 
@@ -85,6 +87,10 @@ export default function ProgressPageScreen() {
       // Load study dates for calendar (also cached)
       const dates = await OptimizedProgressService.getStudyDates(user!.id);
       setStudyDates(dates);
+      
+      // Load lessons count (same logic as YourLessonsScreen)
+      const userLessons = await LessonService.getUserLessonsWithProgress(user!.id);
+      setLessonsCount(userLessons.length);
       
       // Ensure we always have some data structure
       const finalData = data || {
@@ -290,9 +296,7 @@ export default function ProgressPageScreen() {
             </View>
             <View style={styles.learningStatCard}>
               <Text style={styles.learningStatNumber}>
-                {progressData?.recentActivities?.filter(activity => 
-                  activity.activity_type === 'lesson' && activity.activity_name?.includes('Create')
-                ).length || 0}
+                {lessonsCount}
               </Text>
               <Text style={styles.learningStatLabel}>Lessons made</Text>
             </View>

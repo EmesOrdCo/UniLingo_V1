@@ -4,8 +4,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { useSelectedUnit } from '../contexts/SelectedUnitContext';
+import { useRefresh } from '../contexts/RefreshContext';
 import { GeneralVocabService } from '../lib/generalVocabService';
 import { UnitDataService, UnitData } from '../lib/unitDataService';
+import DailyGoalsWidget from './DailyGoalsWidget';
 
 interface DashboardContentProps {
   progressData: any;
@@ -19,6 +21,7 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
   const navigation = useNavigation();
   const { user, profile } = useAuth();
   const { selectedUnit, setSelectedUnit } = useSelectedUnit();
+  const { refreshTrigger } = useRefresh();
   
   console.log('📊 DashboardContent - selectedUnit from context:', selectedUnit);
   
@@ -182,6 +185,10 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
         </View>
       )}
 
+      {/* Daily Goals Widget */}
+      <View style={styles.dailyGoalsContainer}>
+        <DailyGoalsWidget refreshTrigger={refreshTrigger} />
+      </View>
 
       {/* Course Overview Section */}
       <View style={styles.courseOverview}>
@@ -297,6 +304,10 @@ const styles = StyleSheet.create({
     elevation: 6,
     borderWidth: 3,
     borderColor: '#6366f1',
+  },
+  dailyGoalsContainer: {
+    marginHorizontal: 16,
+    marginBottom: 16,
   },
   courseLevel: {
     fontSize: 14,
