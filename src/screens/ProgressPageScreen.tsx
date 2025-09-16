@@ -164,6 +164,18 @@ export default function ProgressPageScreen() {
     }
   };
 
+  const getLevelIcon = (level: string) => {
+    switch (level.toLowerCase()) {
+      case 'beginner': return 'star-outline';
+      case 'elementary': return 'star';
+      case 'intermediate': return 'star-half';
+      case 'advanced': return 'trophy-outline';
+      case 'expert': return 'trophy';
+      case 'master': return 'diamond-outline';
+      default: return 'star-outline';
+    }
+  };
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
@@ -205,19 +217,31 @@ export default function ProgressPageScreen() {
         {/* Level Progress */}
         <View style={styles.levelSection}>
           <View style={styles.sectionTitleContainer}>
-            <Ionicons name="trophy" size={24} color={getLevelColor(progressData?.levelProgress.currentLevel || 'Beginner')} />
+            <Ionicons name={getLevelIcon(progressData?.levelProgress.currentLevel || 'Beginner')} size={24} color={getLevelColor(progressData?.levelProgress.currentLevel || 'Beginner')} />
             <Text style={styles.sectionTitle}>Level Progress</Text>
           </View>
+          
           <View style={styles.levelCard}>
-            <View style={styles.levelContent}>
-              <View style={styles.levelInfo}>
-                <Text style={[styles.currentLevel, { color: getLevelColor(progressData?.levelProgress.currentLevel || 'Beginner') }]}>
+            <View style={styles.levelInfoContainer}>
+              <View style={styles.currentLevelContainer}>
+                <Text style={styles.levelLabel}>Current Level</Text>
+                <Text style={[styles.levelName, { color: getLevelColor(progressData?.levelProgress.currentLevel || 'Beginner') }]}>
                   {progressData?.levelProgress.currentLevel || 'Beginner'}
                 </Text>
-                <Text style={styles.experiencePoints}>
-                  {progressData?.levelProgress.experiencePoints || 0} XP
-                </Text>
               </View>
+
+              <View style={styles.xpContainer}>
+                <Text style={styles.xpLabel}>Experience Points</Text>
+                <Text style={styles.xpValue}>{progressData?.levelProgress.experiencePoints || 0} XP</Text>
+              </View>
+            </View>
+
+            <View style={styles.progressContainer}>
+              <View style={styles.progressHeader}>
+                <Text style={styles.progressLabel}>Progress to Next Level</Text>
+                <Text style={styles.progressPercentage}>{progressData?.levelProgress.progressPercentage || 0}%</Text>
+              </View>
+              
               <View style={styles.progressBar}>
                 <View 
                   style={[
@@ -229,9 +253,24 @@ export default function ProgressPageScreen() {
                   ]} 
                 />
               </View>
-              <Text style={styles.nextLevel}>
-                Next: {progressData?.levelProgress.nextLevelThreshold || 100} XP
+              
+              <Text style={styles.nextLevelText}>
+                {(progressData?.levelProgress.nextLevelThreshold || 100) - (progressData?.levelProgress.experiencePoints || 0)} XP to next level
               </Text>
+            </View>
+
+            <View style={styles.statsContainer}>
+              <View style={styles.statItem}>
+                <Ionicons name="trending-up" size={16} color="#10b981" />
+                <Text style={styles.statLabel}>Total XP</Text>
+                <Text style={styles.statValue}>{progressData?.levelProgress.experiencePoints || 0}</Text>
+              </View>
+              
+              <View style={styles.statItem}>
+                <Ionicons name="flag" size={16} color="#3b82f6" />
+                <Text style={styles.statLabel}>Next Level</Text>
+                <Text style={styles.statValue}>{progressData?.levelProgress.nextLevelThreshold || 100}</Text>
+              </View>
             </View>
           </View>
         </View>
@@ -679,31 +718,62 @@ const styles = StyleSheet.create({
     padding: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  levelContent: {
-    alignItems: 'center',
-  },
-  levelInfo: {
+  levelInfoContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 16,
   },
-  currentLevel: {
+  currentLevelContainer: {
+    flex: 1,
+  },
+  levelLabel: {
+    fontSize: 12,
+    color: '#64748b',
+    marginBottom: 4,
+  },
+  levelName: {
     fontSize: 24,
     fontWeight: '700',
-    marginRight: 12,
   },
-  experiencePoints: {
-    fontSize: 16,
+  xpContainer: {
+    flex: 1,
+    alignItems: 'flex-end',
+  },
+  xpLabel: {
+    fontSize: 12,
+    color: '#64748b',
+    marginBottom: 4,
+  },
+  xpValue: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#1e293b',
+  },
+  progressContainer: {
+    marginBottom: 16,
+  },
+  progressHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  progressLabel: {
+    fontSize: 14,
     color: '#64748b',
   },
+  progressPercentage: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1e293b',
+  },
   progressBar: {
-    width: '100%',
     height: 8,
-    backgroundColor: '#e5e7eb',
+    backgroundColor: '#f1f5f9',
     borderRadius: 4,
     marginBottom: 8,
   },
@@ -711,9 +781,31 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRadius: 4,
   },
-  nextLevel: {
-    fontSize: 14,
+  nextLevelText: {
+    fontSize: 12,
     color: '#64748b',
+    textAlign: 'center',
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#f1f5f9',
+  },
+  statItem: {
+    alignItems: 'center',
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#64748b',
+    marginTop: 4,
+  },
+  statValue: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1e293b',
+    marginTop: 2,
   },
   sectionTitle: {
     fontSize: 20,

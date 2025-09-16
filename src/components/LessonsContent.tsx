@@ -75,7 +75,7 @@ export default function LessonsContent() {
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Create Your First Lesson Card */}
       <View style={styles.createLessonCard}>
-        <Text style={styles.createLessonTitle}>Create Your First Lesson</Text>
+        <Text style={styles.createLessonTitle}>Create an AI Lesson</Text>
         <Text style={styles.createLessonDescription}>
           Upload PDF course notes to generate an interactive vocabulary lesson.
         </Text>

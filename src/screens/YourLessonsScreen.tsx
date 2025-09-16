@@ -12,6 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
+import { useRefresh } from '../contexts/RefreshContext';
 import { LessonService, Lesson, LessonProgress } from '../lib/lessonService';
 
 export default function YourLessonsScreen() {
@@ -20,6 +21,7 @@ export default function YourLessonsScreen() {
   
   const navigation = useNavigation();
   const { user } = useAuth();
+  const { refreshTrigger } = useRefresh();
 
   // Fetch user's lessons when component comes into focus
   useFocusEffect(
@@ -27,6 +29,14 @@ export default function YourLessonsScreen() {
       fetchUserLessons();
     }, [user])
   );
+
+  // Add refresh trigger to reload data when lessons are created
+  useEffect(() => {
+    if (user?.id && refreshTrigger) {
+      console.log('🔄 Refresh trigger detected, reloading lessons...');
+      fetchUserLessons();
+    }
+  }, [refreshTrigger, user]);
 
   const fetchUserLessons = async () => {
     if (!user) {
@@ -135,19 +145,8 @@ export default function YourLessonsScreen() {
       </View>
       
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Header Section */}
-        <View style={styles.headerSection}>
-          <Text style={styles.sectionTitle}>Your Lessons</Text>
-          <Text style={styles.headerSubtitle}>
-            {lessons.length === 0 
-              ? "You haven't created any lessons yet." 
-              : `You have ${lessons.length} lesson${lessons.length !== 1 ? 's' : ''} created.`
-            }
-          </Text>
-        </View>
-
         {/* Create Lesson Button */}
-        <TouchableOpacity style={styles.createLessonButton} onPress={handleCreateLesson}>
+        <TouchableOpacity style={[styles.createLessonButton, styles.createLessonButtonWithMargin]} onPress={handleCreateLesson}>
           <View style={styles.createLessonContent}>
             <View style={styles.createLessonIcon}>
               <Ionicons name="add" size={24} color="#ffffff" />
@@ -165,10 +164,10 @@ export default function YourLessonsScreen() {
             </View>
             <Text style={styles.emptyStateTitle}>No lessons yet</Text>
             <Text style={styles.emptyStateSubtitle}>
-              Create your first lesson by uploading a PDF or document to get started with personalized learning.
+              Create an AI lesson by uploading a PDF or document to get started with personalized learning.
             </Text>
             <TouchableOpacity style={styles.emptyStateButton} onPress={handleCreateLesson}>
-              <Text style={styles.emptyStateButtonText}>Create Your First Lesson</Text>
+              <Text style={styles.emptyStateButtonText}>Create an AI Lesson</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -331,6 +330,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 4,
+  },
+  createLessonButtonWithMargin: {
+    marginTop: 20,
   },
   createLessonContent: {
     flexDirection: 'row',
