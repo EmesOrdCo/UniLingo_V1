@@ -56,6 +56,7 @@ import HangmanGame from '../components/games/HangmanGame';
 import GravityGame from '../components/games/GravityGame';
 import TypeWhatYouHearGame from '../components/games/TypeWhatYouHearGame';
 import SpeedChallengeGame from '../components/games/SpeedChallengeGame';
+import SentenceScrambleGame from '../components/games/SentenceScrambleGame';
 
 const { width } = Dimensions.get('window');
 
@@ -1404,10 +1405,11 @@ export default function GamesScreen({ route }: { route?: any }) {
         console.log(`🎧 [${screenId}] Creating TypeWhatYouHearGame component`);
         return <TypeWhatYouHearGame {...gameProps} onPlayAgain={handleTypeWhatYouHearPlayAgain} />;
       case 'Sentence Scramble':
-        return <LessonSentenceScramble 
-          vocabulary={filteredFlashcards} 
-          onComplete={handleGameComplete} 
+        return <SentenceScrambleGame 
+          gameData={gameData} 
           onClose={closeGameModal} 
+          onGameComplete={handleGameComplete}
+          onPlayAgain={handleSentenceScramblePlayAgain}
         />;
       default:
         return null;

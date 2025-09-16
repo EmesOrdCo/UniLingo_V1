@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, ActivityIndicator, AppState } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -49,6 +49,10 @@ export default function LessonWalkthroughScreen() {
   const { user } = useAuth();
   const { lessonId, lessonTitle } = route.params as RouteParams;
 
+  // Use refs for timing values to prevent infinite loops
+  const sessionStartTimeRef = useRef<Date | null>(null);
+  const totalActiveTimeRef = useRef<number>(0);
+
   useEffect(() => {
     loadLessonData();
   }, []);
@@ -58,27 +62,29 @@ export default function LessonWalkthroughScreen() {
     React.useCallback(() => {
       // Screen is focused - start timing
       if (isActive) {
-        setSessionStartTime(new Date());
+        sessionStartTimeRef.current = new Date();
+        setSessionStartTime(sessionStartTimeRef.current);
         console.log('🕐 Lesson screen focused - starting active timer');
       }
       
       return () => {
         // Screen is blurred - stop timing and accumulate
-        if (isActive && sessionStartTime) {
-          const sessionDuration = Math.floor((new Date().getTime() - sessionStartTime.getTime()) / 1000);
-          setTotalActiveTime(prev => prev + sessionDuration);
-          console.log(`🕐 Lesson screen blurred - accumulated ${sessionDuration}s, total: ${totalActiveTime + sessionDuration}s`);
+        if (isActive && sessionStartTimeRef.current) {
+          const sessionDuration = Math.floor((new Date().getTime() - sessionStartTimeRef.current.getTime()) / 1000);
+          totalActiveTimeRef.current += sessionDuration;
+          setTotalActiveTime(totalActiveTimeRef.current);
+          console.log(`🕐 Lesson screen blurred - accumulated ${sessionDuration}s, total: ${totalActiveTimeRef.current}s`);
         }
       };
-    }, [isActive, sessionStartTime, totalActiveTime])
+    }, [isActive]) // Only depend on isActive to prevent infinite loops
   );
 
   // Save active time periodically to preserve it during resume
   const saveActiveTime = async () => {
-    if (!isActive || !sessionStartTime) return;
+    if (!isActive || !sessionStartTimeRef.current) return;
     
-    const currentSessionTime = Math.floor((new Date().getTime() - sessionStartTime.getTime()) / 1000);
-    const totalTime = totalActiveTime + currentSessionTime;
+    const currentSessionTime = Math.floor((new Date().getTime() - sessionStartTimeRef.current.getTime()) / 1000);
+    const totalTime = totalActiveTimeRef.current + currentSessionTime;
     
     try {
       await LessonService.updateLessonProgress(lessonId, user?.id || '', {
@@ -96,27 +102,30 @@ export default function LessonWalkthroughScreen() {
     
     const interval = setInterval(saveActiveTime, 30000); // 30 seconds
     return () => clearInterval(interval);
-  }, [isActive, totalActiveTime, sessionStartTime]);
+  }, [isActive]); // Removed totalActiveTime and sessionStartTime to prevent infinite loop
 
   // Track app state changes (background/foreground)
   useEffect(() => {
     const handleAppStateChange = (nextAppState: string) => {
-      if (nextAppState === 'background' && isActive && sessionStartTime) {
+      if (nextAppState === 'background' && isActive && sessionStartTimeRef.current) {
         // App went to background - pause timing
-        const sessionDuration = Math.floor((new Date().getTime() - sessionStartTime.getTime()) / 1000);
-        setTotalActiveTime(prev => prev + sessionDuration);
+        const sessionDuration = Math.floor((new Date().getTime() - sessionStartTimeRef.current.getTime()) / 1000);
+        totalActiveTimeRef.current += sessionDuration;
+        setTotalActiveTime(totalActiveTimeRef.current);
+        sessionStartTimeRef.current = null;
         setSessionStartTime(null);
         logger.debug(`App backgrounded - paused timing, accumulated ${sessionDuration}s`);
-      } else if (nextAppState === 'active' && isActive && !sessionStartTime) {
+      } else if (nextAppState === 'active' && isActive && !sessionStartTimeRef.current) {
         // App came to foreground - resume timing
-        setSessionStartTime(new Date());
+        sessionStartTimeRef.current = new Date();
+        setSessionStartTime(sessionStartTimeRef.current);
         logger.debug('App foregrounded - resumed active timer');
       }
     };
 
     const subscription = AppState.addEventListener('change', handleAppStateChange);
     return () => subscription?.remove();
-  }, [isActive, sessionStartTime]);
+  }, [isActive]); // Only depend on isActive to prevent infinite loops
 
   const loadLessonData = async () => {
     try {
@@ -211,7 +220,9 @@ export default function LessonWalkthroughScreen() {
     
     // Initialize active timing
     setIsActive(true);
+    sessionStartTimeRef.current = now;
     setSessionStartTime(now);
+    totalActiveTimeRef.current = 0;
     setTotalActiveTime(0);
     
     // Reset all scores and completed exercises
@@ -248,12 +259,15 @@ export default function LessonWalkthroughScreen() {
     
     // Initialize active timing for resume
     setIsActive(true);
-    setSessionStartTime(new Date());
+    const now = new Date();
+    sessionStartTimeRef.current = now;
+    setSessionStartTime(now);
     
     // Restore the total active time from previous sessions
     // We'll estimate this based on the time_spent_seconds in the database
     // This is a fallback - ideally we'd store active time separately
     const estimatedActiveTime = lessonProgress.time_spent_seconds || 0;
+    totalActiveTimeRef.current = estimatedActiveTime;
     setTotalActiveTime(estimatedActiveTime);
     
     // Restore exercise scores based on progress
@@ -320,6 +334,32 @@ export default function LessonWalkthroughScreen() {
     }
   };
 
+  // Memoized progress update functions to prevent infinite loops
+  const handleFlashcardsProgressUpdate = useCallback((questionIndex: number) => {
+    setCurrentQuestionIndex(questionIndex);
+    saveResumePosition('flashcards', questionIndex);
+  }, []);
+
+  const handleFlashcardQuizProgressUpdate = useCallback((questionIndex: number) => {
+    setCurrentQuestionIndex(questionIndex);
+    saveResumePosition('flashcard-quiz', questionIndex);
+  }, []);
+
+  const handleSentenceScrambleProgressUpdate = useCallback((questionIndex: number) => {
+    setCurrentQuestionIndex(questionIndex);
+    saveResumePosition('sentence-scramble', questionIndex);
+  }, []);
+
+  const handleWordScrambleProgressUpdate = useCallback((questionIndex: number) => {
+    setCurrentQuestionIndex(questionIndex);
+    saveResumePosition('word-scramble', questionIndex);
+  }, []);
+
+  const handleFillInBlankProgressUpdate = useCallback((questionIndex: number) => {
+    setCurrentQuestionIndex(questionIndex);
+    saveResumePosition('fill-in-blank', questionIndex);
+  }, []);
+
   const loadResumePosition = async () => {
     try {
       const resumeData = await AsyncStorage.getItem(`lesson_resume_${lessonId}`);
@@ -362,7 +402,9 @@ export default function LessonWalkthroughScreen() {
     // Initialize active timing if not already active
     if (!isActive) {
       setIsActive(true);
-      setSessionStartTime(new Date());
+      const now = new Date();
+      sessionStartTimeRef.current = now;
+      setSessionStartTime(now);
       console.log('🕐 Started lesson timing');
     }
     
@@ -830,10 +872,7 @@ export default function LessonWalkthroughScreen() {
           console.log('Flashcards close button pressed');
           navigation.goBack();
         }}
-        onProgressUpdate={(questionIndex) => {
-          setCurrentQuestionIndex(questionIndex);
-          saveResumePosition('flashcards', questionIndex);
-        }}
+        onProgressUpdate={handleFlashcardsProgressUpdate}
         initialQuestionIndex={0}
       />
     );
@@ -851,10 +890,7 @@ export default function LessonWalkthroughScreen() {
           console.log('Flashcard quiz close button pressed');
           navigation.goBack();
         }}
-        onProgressUpdate={(questionIndex) => {
-          setCurrentQuestionIndex(questionIndex);
-          saveResumePosition('flashcard-quiz', questionIndex);
-        }}
+        onProgressUpdate={handleFlashcardQuizProgressUpdate}
         initialQuestionIndex={0}
       />
     );
@@ -872,10 +908,7 @@ export default function LessonWalkthroughScreen() {
           console.log('Sentence scramble close button pressed');
           navigation.goBack();
         }}
-        onProgressUpdate={(questionIndex) => {
-          setCurrentQuestionIndex(questionIndex);
-          saveResumePosition('sentence-scramble', questionIndex);
-        }}
+        onProgressUpdate={handleSentenceScrambleProgressUpdate}
         initialQuestionIndex={0}
       />
     );
@@ -893,10 +926,7 @@ export default function LessonWalkthroughScreen() {
           console.log('Word scramble close button pressed');
           navigation.goBack();
         }}
-        onProgressUpdate={(questionIndex) => {
-          setCurrentQuestionIndex(questionIndex);
-          saveResumePosition('word-scramble', questionIndex);
-        }}
+        onProgressUpdate={handleWordScrambleProgressUpdate}
         initialQuestionIndex={0}
       />
     );
@@ -911,10 +941,7 @@ export default function LessonWalkthroughScreen() {
           console.log('Fill in the blank close button pressed');
           navigation.goBack();
         }}
-        onProgressUpdate={(questionIndex) => {
-          setCurrentQuestionIndex(questionIndex);
-          saveResumePosition('fill-in-blank', questionIndex);
-        }}
+        onProgressUpdate={handleFillInBlankProgressUpdate}
         initialQuestionIndex={0}
       />
     );

@@ -37,7 +37,7 @@ export default function LessonFlashcardQuiz({ vocabulary, onComplete, onClose, o
     if (onProgressUpdate) {
       onProgressUpdate(currentQuestion);
     }
-  }, [currentQuestion, onProgressUpdate]);
+  }, [currentQuestion]); // Removed onProgressUpdate from dependencies to prevent infinite loops
 
   const generateQuestions = () => {
     const quizQuestions: QuizQuestion[] = [];
@@ -61,10 +61,10 @@ export default function LessonFlashcardQuiz({ vocabulary, onComplete, onClose, o
       const shuffledDefinitionOptions = definitionOptions.sort(() => Math.random() - 0.5);
       
       quizQuestions.push({
-        question: `What is the translation of "${vocab.keywords}"?`,
+        question: `What is the definition of "${vocab.keywords}"?`,
         correctAnswer: vocab.definition,
         options: shuffledDefinitionOptions,
-        type: 'translation'
+        type: 'definition'
       });
 
       // Create translation question

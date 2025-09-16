@@ -107,26 +107,37 @@ const MemoryMatchGame: React.FC<MemoryMatchGameProps> = ({ gameData, onClose, on
     return (
       <View style={styles.gameContainer}>
         <View style={styles.completionContainer}>
-          <Text style={styles.completionTitle}>🎉 Memory Match Complete!</Text>
-          <Text style={styles.completionSubtitle}>Great job!</Text>
+          <View style={styles.completionIcon}>
+            <Ionicons name="trophy" size={48} color="#f59e0b" />
+          </View>
+          <Text style={styles.completionTitle}>Memory Match Complete!</Text>
+          <Text style={styles.completionSubtitle}>Excellent work! You've matched all pairs.</Text>
           
           <View style={styles.statsContainer}>
             <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Moves</Text>
+              <View style={styles.statIconContainer}>
+                <Ionicons name="refresh" size={20} color="#6366f1" />
+              </View>
               <Text style={styles.statValue}>{moves}</Text>
+              <Text style={styles.statLabel}>Moves</Text>
             </View>
             <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Time</Text>
+              <View style={styles.statIconContainer}>
+                <Ionicons name="time" size={20} color="#059669" />
+              </View>
               <Text style={styles.statValue}>{gameTime}s</Text>
+              <Text style={styles.statLabel}>Time</Text>
             </View>
           </View>
           
           <View style={styles.actionButtons}>
-            <TouchableOpacity style={styles.resetButton} onPress={handlePlayAgain}>
-              <Text style={styles.resetButtonText}>Play Again</Text>
+            <TouchableOpacity style={styles.playAgainButton} onPress={handlePlayAgain}>
+              <Ionicons name="refresh" size={20} color="#ffffff" />
+              <Text style={styles.playAgainButtonText}>Play Again</Text>
             </TouchableOpacity>
             
             <TouchableOpacity style={styles.exitButton} onPress={handleReturnToMenu}>
+              <Ionicons name="home" size={20} color="#64748b" />
               <Text style={styles.exitButtonText}>Return to Menu</Text>
             </TouchableOpacity>
           </View>
@@ -140,8 +151,16 @@ const MemoryMatchGame: React.FC<MemoryMatchGameProps> = ({ gameData, onClose, on
       {/* Game Header */}
       <View style={styles.gameHeader}>
         <View style={styles.headerInfo}>
-          <Text style={styles.movesText}>Moves: {moves}</Text>
-          <Text style={styles.pairsText}>Pairs: {matchedPairs.length / 2}/{cards.length / 2}</Text>
+          <View style={styles.statContainer}>
+            <Ionicons name="refresh" size={18} color="#6366f1" />
+            <Text style={styles.movesText}>{moves}</Text>
+            <Text style={styles.statLabel}>Moves</Text>
+          </View>
+          <View style={styles.statContainer}>
+            <Ionicons name="checkmark-circle" size={18} color="#059669" />
+            <Text style={styles.pairsText}>{matchedPairs.length / 2}/{cards.length / 2}</Text>
+            <Text style={styles.statLabel}>Pairs</Text>
+          </View>
         </View>
       </View>
 
@@ -165,10 +184,15 @@ const MemoryMatchGame: React.FC<MemoryMatchGameProps> = ({ gameData, onClose, on
               {isFlipped ? (
                 <View style={styles.cardContent}>
                   <Text style={styles.cardText}>{card.question}</Text>
+                  {isMatched && (
+                    <View style={styles.matchIndicator}>
+                      <Ionicons name="checkmark-circle" size={16} color="#059669" />
+                    </View>
+                  )}
                 </View>
               ) : (
                 <View style={styles.cardBack}>
-                  <Ionicons name="help-circle" size={32} color="#94a3b8" />
+                  <Ionicons name="help-circle" size={28} color="#6366f1" />
                 </View>
               )}
             </TouchableOpacity>
@@ -186,88 +210,126 @@ const styles = StyleSheet.create({
   },
   gameHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
     backgroundColor: '#ffffff',
     borderBottomWidth: 1,
     borderBottomColor: '#e2e8f0',
-  },
-  headerInfo: {
-    flexDirection: 'row',
-    gap: 20,
-  },
-  movesText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1e293b',
-  },
-  pairsText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1e293b',
-  },
-  resetButton: {
-    flex: 1,
-    backgroundColor: '#6466E9',
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  gameGrid: {
-    flex: 1,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    padding: 16,
-    gap: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  card: {
-    width: 80,
-    height: 80,
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#e2e8f0',
-    justifyContent: 'center',
-    alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 2,
   },
+  headerInfo: {
+    flexDirection: 'row',
+    gap: 24,
+  },
+  statContainer: {
+    alignItems: 'center',
+    gap: 4,
+  },
+  movesText: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#6366f1',
+  },
+  pairsText: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#059669',
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#64748b',
+    fontWeight: '500',
+  },
+  gameGrid: {
+    flex: 1,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    padding: 20,
+    gap: 12,
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+    paddingTop: 24,
+  },
+  card: {
+    width: 85,
+    height: 85,
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: '#e2e8f0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
+  },
   cardFlipped: {
-    borderColor: '#6466E9',
+    borderColor: '#6366f1',
     backgroundColor: '#f0f4ff',
+    shadowColor: '#6366f1',
+    shadowOpacity: 0.15,
+    transform: [{ scale: 1.02 }],
   },
   cardMatched: {
-    borderColor: '#10b981',
+    borderColor: '#059669',
     backgroundColor: '#f0fdf4',
+    shadowColor: '#059669',
+    shadowOpacity: 0.15,
   },
   cardContent: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 8,
+    position: 'relative',
   },
   cardText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     color: '#1e293b',
     textAlign: 'center',
+    lineHeight: 16,
   },
   cardBack: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
+  matchIndicator: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+  },
   completionContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 40,
+    backgroundColor: '#ffffff',
+    margin: 20,
+    borderRadius: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  completionIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#fef3c7',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
   },
   completionTitle: {
     fontSize: 28,
@@ -277,46 +339,74 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   completionSubtitle: {
-    fontSize: 18,
+    fontSize: 16,
     color: '#64748b',
     textAlign: 'center',
     marginBottom: 40,
+    lineHeight: 24,
   },
   statsContainer: {
     flexDirection: 'row',
-    gap: 40,
+    gap: 48,
     marginBottom: 40,
   },
   statItem: {
+    alignItems: 'center',
+    gap: 8,
+  },
+  statIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#f1f5f9',
+    justifyContent: 'center',
     alignItems: 'center',
   },
   statLabel: {
     fontSize: 14,
     color: '#64748b',
-    marginBottom: 8,
+    fontWeight: '500',
   },
   statValue: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: '700',
-    color: '#6466E9',
+    color: '#1e293b',
   },
   actionButtons: {
     flexDirection: 'row',
-    gap: 12,
-    marginTop: 24,
+    gap: 16,
+    width: '100%',
   },
-  resetButtonText: {
+  playAgainButton: {
+    flex: 1,
+    backgroundColor: '#6366f1',
+    paddingVertical: 16,
+    borderRadius: 16,
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
+    shadowColor: '#6366f1',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  playAgainButtonText: {
     fontSize: 16,
     fontWeight: '600',
     color: '#ffffff',
   },
   exitButton: {
     flex: 1,
-    backgroundColor: '#f1f5f9',
+    backgroundColor: '#f8fafc',
     paddingVertical: 16,
-    borderRadius: 12,
+    borderRadius: 16,
     alignItems: 'center',
-    borderWidth: 1,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
+    borderWidth: 2,
     borderColor: '#e2e8f0',
   },
   exitButtonText: {

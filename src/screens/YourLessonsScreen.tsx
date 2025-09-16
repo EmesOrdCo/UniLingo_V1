@@ -230,7 +230,7 @@ export default function YourLessonsScreen() {
                         ? 'Completed' 
                         : lesson.progress.started_at 
                           ? `${lesson.progress.total_score}/${lesson.progress.max_possible_score} points`
-                          : 'Not started'
+                          : 'Start'
                       }
                     </Text>
                   </View>
@@ -238,15 +238,15 @@ export default function YourLessonsScreen() {
 
                 <View style={styles.lessonFooter}>
                   <View style={styles.lessonStatus}>
-                    {lesson.progress && lesson.progress.words_learned > 0 ? (
+                    {lesson.progress && lesson.progress.started_at ? (
                       <View style={styles.statusBadge}>
-                        <Ionicons name="checkmark-circle" size={16} color="#10b981" />
-                        <Text style={styles.statusText}>In Progress</Text>
+                        <Ionicons name="play-circle" size={16} color="#6366f1" />
+                        <Text style={styles.statusText}>Continue</Text>
                       </View>
                     ) : (
                       <View style={styles.statusBadge}>
                         <Ionicons name="play-circle" size={16} color="#6366f1" />
-                        <Text style={styles.statusText}>Not Started</Text>
+                        <Text style={styles.statusText}>Start</Text>
                       </View>
                     )}
                   </View>

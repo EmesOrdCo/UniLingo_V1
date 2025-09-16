@@ -47,7 +47,7 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
     if (onProgressUpdate) {
       onProgressUpdate(currentQuestionIndex);
     }
-  }, [currentQuestionIndex, onProgressUpdate]);
+  }, [currentQuestionIndex]); // Removed onProgressUpdate from dependencies to prevent infinite loops
 
   const handleCheckAnswer = () => {
     if (!userAnswer.trim()) return;
@@ -138,19 +138,72 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
           <Text style={styles.headerTitle}>Fill in the Blank Complete!</Text>
           <View style={styles.placeholder} />
         </View>
-        
-        <View style={styles.completionContainer}>
-          <View style={styles.completionIcon}>
-            <Ionicons name="checkmark-circle" size={80} color="#10b981" />
+
+        <ScrollView style={styles.completionScrollView} showsVerticalScrollIndicator={false}>
+          <View style={styles.completionContainer}>
+            {/* Trophy Icon */}
+            <View style={styles.trophyContainer}>
+              <Ionicons name="trophy" size={80} color="#f59e0b" />
+            </View>
+            
+            {/* Completion Title */}
+            <Text style={styles.completionTitle}>🎉 Outstanding Work!</Text>
+            <Text style={styles.completionSubtitle}>Fill in the Blank Complete</Text>
+            
+            {/* Stats Card */}
+            <View style={styles.statsCard}>
+              <View style={styles.statItem}>
+                <View style={styles.statIconContainer}>
+                  <Ionicons name="checkmark-circle" size={24} color="#10b981" />
+                </View>
+                <Text style={styles.statValue}>{score}</Text>
+                <Text style={styles.statLabel}>Correct</Text>
+              </View>
+              
+              <View style={styles.statDivider} />
+              
+              <View style={styles.statItem}>
+                <View style={styles.statIconContainer}>
+                  <Ionicons name="document-text" size={24} color="#6366f1" />
+                </View>
+                <Text style={styles.statValue}>{questions.length}</Text>
+                <Text style={styles.statLabel}>Total</Text>
+              </View>
+              
+              <View style={styles.statDivider} />
+              
+              <View style={styles.statItem}>
+                <View style={styles.statIconContainer}>
+                  <Ionicons name="trending-up" size={24} color="#8b5cf6" />
+                </View>
+                <Text style={styles.statValue}>{Math.round((score / questions.length) * 100)}%</Text>
+                <Text style={styles.statLabel}>Accuracy</Text>
+              </View>
+            </View>
+            
+            {/* Performance Message */}
+            <View style={styles.performanceContainer}>
+              <Text style={styles.performanceText}>
+                {score === questions.length 
+                  ? "Perfect! You filled in every blank correctly! 🌟"
+                  : score >= questions.length * 0.8
+                  ? "Excellent! You're mastering vocabulary in context! 🎯"
+                  : score >= questions.length * 0.6
+                  ? "Great job! Keep practicing to improve! 💪"
+                  : "Nice try! Practice makes perfect! 🚀"
+                }
+              </Text>
+            </View>
+            
+            {/* Continue Button */}
+            <TouchableOpacity style={styles.completeButton} onPress={() => onComplete(score)}>
+              <View style={styles.completeButtonContent}>
+                <Ionicons name="arrow-forward" size={20} color="#ffffff" />
+                <Text style={styles.completeButtonText}>Continue to Next Exercise</Text>
+              </View>
+            </TouchableOpacity>
           </View>
-          <Text style={styles.completionTitle}>Great Job!</Text>
-          <Text style={styles.completionScore}>
-            You scored {score} out of {questions.length}
-          </Text>
-          <Text style={styles.completionPercentage}>
-            {Math.round((score / questions.length) * 100)}% correct
-          </Text>
-        </View>
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -479,26 +532,122 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 40,
+    padding: 20,
   },
-  completionIcon: {
+  completionScrollView: {
+    flex: 1,
+  },
+  trophyContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#fef3c7',
+    justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: 24,
+    shadowColor: '#f59e0b',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   completionTitle: {
-    fontSize: 28,
+    fontSize: 32,
+    fontWeight: '800',
+    color: '#1e293b',
+    textAlign: 'center',
+    marginBottom: 8,
+    letterSpacing: -0.5,
+  },
+  completionSubtitle: {
+    fontSize: 18,
+    color: '#64748b',
+    textAlign: 'center',
+    marginBottom: 32,
+    fontWeight: '500',
+  },
+  statsCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 20,
+    padding: 24,
+    marginBottom: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
+  },
+  statItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  statIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#f8fafc',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  statValue: {
+    fontSize: 24,
     fontWeight: '700',
     color: '#1e293b',
-    marginBottom: 16,
+    marginBottom: 4,
   },
-  completionScore: {
-    fontSize: 20,
+  statLabel: {
+    fontSize: 14,
     color: '#64748b',
-    marginBottom: 8,
+    fontWeight: '500',
   },
-  completionPercentage: {
+  statDivider: {
+    width: 1,
+    height: 60,
+    backgroundColor: '#e2e8f0',
+    marginHorizontal: 16,
+  },
+  performanceContainer: {
+    backgroundColor: '#f8fafc',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 32,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  performanceText: {
+    fontSize: 16,
+    color: '#374151',
+    textAlign: 'center',
+    lineHeight: 24,
+    fontWeight: '500',
+  },
+  completeButton: {
+    backgroundColor: '#6366f1',
+    borderRadius: 16,
+    paddingVertical: 18,
+    paddingHorizontal: 32,
+    shadowColor: '#6366f1',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  completeButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  completeButtonText: {
+    color: '#ffffff',
     fontSize: 18,
-    color: '#6366f1',
-    fontWeight: '600',
+    fontWeight: '700',
+    marginLeft: 8,
   },
 });
 

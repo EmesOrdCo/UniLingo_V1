@@ -71,7 +71,7 @@ const GravityGame: React.FC<GravityGameProps> = ({ gameData, onClose, onGameComp
         correctAnswer: randomQuestion.correctAnswer,
         x: Math.random() * (width - 100) + 50, // Random x position
         y: -50, // Start above screen
-        speed: meteorSpeed,
+        speed: randomQuestion.fallSpeed || meteorSpeed, // Use fallSpeed from gameData, fallback to meteorSpeed
         destroyed: false
       };
       
@@ -81,29 +81,38 @@ const GravityGame: React.FC<GravityGameProps> = ({ gameData, onClose, onGameComp
 
   const moveMeteors = () => {
     setMeteors(prev => {
-      const updatedMeteors = prev.map(meteor => ({
-        ...meteor,
-        y: meteor.y + meteor.speed
-      }));
+      const updatedMeteors = prev.map(meteor => {
+        // Hard-coded: Prevent meteors from going too far down
+        const newY = meteor.y + meteor.speed;
+        const maxY = height - 250; // Hard-coded maximum Y position
+        
+        return {
+          ...meteor,
+          y: Math.min(newY, maxY) // Hard-coded: Cap the Y position
+        };
+      });
 
-      // Check for meteors that hit the planet (bottom of screen)
-      const hitMeteors = updatedMeteors.filter(meteor => meteor.y > height - 200 && !meteor.destroyed);
+      // Hard-coded: Check for meteors that hit the planet (much earlier collision)
+      const hitMeteors = updatedMeteors.filter(meteor => meteor.y >= height - 250 && !meteor.destroyed);
       
       if (hitMeteors.length > 0) {
-        // Reduce lives for each meteor that hits
-        const newLives = lives - hitMeteors.length;
-        setLives(newLives);
-        
-        if (newLives <= 0) {
-          finalScoreRef.current = score;
-          setGameOver(true);
-          if (meteorSpawnInterval.current) clearInterval(meteorSpawnInterval.current);
-          if (meteorMoveInterval.current) clearInterval(meteorMoveInterval.current);
-        }
+        // Fix: Use functional state update to get current lives value
+        setLives(currentLives => {
+          const newLives = currentLives - hitMeteors.length;
+          
+          if (newLives <= 0) {
+            finalScoreRef.current = score;
+            setGameOver(true);
+            if (meteorSpawnInterval.current) clearInterval(meteorSpawnInterval.current);
+            if (meteorMoveInterval.current) clearInterval(meteorMoveInterval.current);
+          }
+          
+          return newLives;
+        });
       }
 
-      // Remove meteors that are off screen or destroyed
-      return updatedMeteors.filter(meteor => meteor.y < height + 100 && !meteor.destroyed);
+      // Hard-coded: Remove meteors that reach the collision zone or are destroyed
+      return updatedMeteors.filter(meteor => meteor.y < height - 250 && !meteor.destroyed);
     });
   };
 
@@ -123,7 +132,8 @@ const GravityGame: React.FC<GravityGameProps> = ({ gameData, onClose, onGameComp
           if ((score + 1) % 5 === 0) {
             setCurrentWave(prev => prev + 1);
             setGameSpeed(prev => Math.max(1000, prev - 200)); // Faster spawning
-            setMeteorSpeed(prev => Math.min(6, prev + 0.5)); // Faster falling
+            // Note: Individual meteor speeds are now controlled by gameData.fallSpeed
+            // Wave progression only affects spawn rate, not individual meteor speed
           }
           
           return { ...meteor, destroyed: true };
@@ -241,7 +251,7 @@ const GravityGame: React.FC<GravityGameProps> = ({ gameData, onClose, onGameComp
         </View>
       </View>
 
-      {/* Game Area */}
+      {/* Game Area - Only for meteors and planet */}
       <View style={styles.gameArea}>
         {/* Meteors */}
         {meteors.map((meteor) => (
@@ -266,27 +276,27 @@ const GravityGame: React.FC<GravityGameProps> = ({ gameData, onClose, onGameComp
           <Ionicons name="planet" size={100} color="#3b82f6" />
           <Text style={styles.planetText}>EARTH</Text>
         </View>
+      </View>
 
-        {/* Input Area */}
-        <View style={styles.inputArea}>
-          <Text style={styles.instructionText}>
-            Type the correct answer to destroy meteors!
-          </Text>
-          <TextInput
-            style={styles.textInput}
-            value={userInput}
-            onChangeText={setUserInput}
-            onSubmitEditing={handleInputSubmit}
-            placeholder="Type your answer..."
-            placeholderTextColor="#94a3b8"
-            autoCapitalize="none"
-            autoCorrect={false}
-            returnKeyType="done"
-          />
-          <TouchableOpacity style={styles.submitButton} onPress={handleInputSubmit}>
-            <Text style={styles.submitButtonText}>DESTROY!</Text>
-          </TouchableOpacity>
-        </View>
+      {/* Input Area - Completely separate from game area */}
+      <View style={styles.inputArea}>
+        <Text style={styles.instructionText}>
+          Type the correct answer to destroy meteors!
+        </Text>
+        <TextInput
+          style={styles.textInput}
+          value={userInput}
+          onChangeText={setUserInput}
+          onSubmitEditing={handleInputSubmit}
+          placeholder="Type your answer..."
+          placeholderTextColor="#94a3b8"
+          autoCapitalize="none"
+          autoCorrect={false}
+          returnKeyType="done"
+        />
+        <TouchableOpacity style={styles.submitButton} onPress={handleInputSubmit}>
+          <Text style={styles.submitButtonText}>DESTROY!</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -298,11 +308,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#0f172a',
   },
   gameHeader: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 20,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: 'rgba(15,23,42,0.95)',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.1)',
   },
   headerInfo: {
     flexDirection: 'row',
@@ -326,13 +343,15 @@ const styles = StyleSheet.create({
   gameArea: {
     flex: 1,
     position: 'relative',
+    paddingTop: 80, // Space for fixed header
+    overflow: 'hidden', // Hard-coded: Clip any content that goes beyond bounds
   },
   meteor: {
     position: 'absolute',
     alignItems: 'center',
     justifyContent: 'center',
     width: 80,
-    height: 60,
+    height: 80, // Increased to accommodate text labels
   },
   meteorText: {
     fontSize: 12,
@@ -347,10 +366,11 @@ const styles = StyleSheet.create({
   },
   planet: {
     position: 'absolute',
-    bottom: 50,
-    left: width / 2 - 50,
+    top: '50%', // Center vertically
+    left: width / 2 - 50, // Center horizontally
     alignItems: 'center',
     justifyContent: 'center',
+    transform: [{ translateY: -50 }], // Adjust for perfect centering
   },
   planetText: {
     fontSize: 14,
@@ -363,9 +383,12 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: 'rgba(0,0,0,0.8)',
+    zIndex: 10,
+    backgroundColor: 'rgba(15,23,42,0.95)',
     padding: 20,
     alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.1)',
   },
   instructionText: {
     fontSize: 16,
