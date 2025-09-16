@@ -77,7 +77,7 @@ const TypeWhatYouHearReview: React.FC<TypeWhatYouHearReviewProps> = ({
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <Ionicons name="close" size={24} color="#64748b" />
           </TouchableOpacity>
-          <Text style={styles.title}>Type What You Hear Results</Text>
+          <Text style={styles.title}>Listen & Type Results</Text>
           <View style={styles.placeholder} />
         </View>
 

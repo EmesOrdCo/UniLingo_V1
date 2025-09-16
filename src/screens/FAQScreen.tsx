@@ -29,7 +29,7 @@ const faqData: FAQItem[] = [
   {
     id: '4',
     question: 'What are the different game types available?',
-    answer: 'UniLingo offers various games including Word Scramble, Sentence Scramble, Memory Match, Hangman, Speed Challenge, Gravity Game, and Type What You Hear. Each game focuses on different language skills like vocabulary, grammar, listening, and spelling.'
+    answer: 'UniLingo offers various games including Word Scramble, Sentence Scramble, Memory Match, Hangman, Speed Challenge, Gravity Game, and Listen & Type. Each game focuses on different language skills like vocabulary, grammar, listening, and spelling.'
   },
   {
     id: '6',

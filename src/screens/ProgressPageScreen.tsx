@@ -18,7 +18,6 @@ import { HolisticProgressService, ProgressInsights } from '../lib/holisticProgre
 import OptimizedProgressService from '../lib/optimizedProgressService';
 import StudyCalendar from '../components/StudyCalendar';
 import ConsistentHeader from '../components/ConsistentHeader';
-import StreakDetailsModal from '../components/StreakDetailsModal';
 import { LessonService } from '../lib/lessonService';
 
 const { width } = Dimensions.get('window');
@@ -33,7 +32,6 @@ export default function ProgressPageScreen() {
   const [studyDates, setStudyDates] = useState<string[]>([]);
   const [lessonsCount, setLessonsCount] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
-  const [showStreakModal, setShowStreakModal] = useState(false);
 
   useEffect(() => {
     if (user?.id) {
@@ -162,7 +160,7 @@ export default function ProgressPageScreen() {
       case 'advanced': return '#ef4444';
       case 'expert': return '#8b5cf6';
       case 'master': return '#6466E9';
-      default: return '#6b7280';
+      default: return '#64748b';
     }
   };
 
@@ -179,22 +177,11 @@ export default function ProgressPageScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Custom Header */}
-      <View style={styles.customHeader}>
-        <Text style={styles.headerTitle}>Progress</Text>
-        <View style={styles.headerRight}>
-          <TouchableOpacity 
-            style={styles.streakBadge}
-            onPress={() => setShowStreakModal(true)}
-          >
-            <Ionicons name="flame" size={16} color="#f59e0b" />
-            <Text style={styles.streakText}>{progressData?.currentStreak || 0}</Text>
-          </TouchableOpacity>
-          <View style={styles.profilePicture}>
-            <Ionicons name="person" size={24} color="#6366f1" />
-          </View>
-        </View>
-      </View>
+      {/* Consistent Header with Profile Avatar */}
+      <ConsistentHeader 
+        pageName="Progress"
+        streakCount={progressData?.currentStreak || 0}
+      />
 
       {/* Error Display */}
       {error && (
@@ -217,9 +204,9 @@ export default function ProgressPageScreen() {
 
         {/* Level Progress */}
         <View style={styles.levelSection}>
-          <View style={styles.levelHeader}>
+          <View style={styles.sectionTitleContainer}>
             <Ionicons name="trophy" size={24} color={getLevelColor(progressData?.levelProgress.currentLevel || 'Beginner')} />
-            <Text style={styles.levelTitle}>Level Progress</Text>
+            <Text style={styles.sectionTitle}>Level Progress</Text>
           </View>
           <View style={styles.levelCard}>
             <View style={styles.levelContent}>
@@ -249,41 +236,11 @@ export default function ProgressPageScreen() {
           </View>
         </View>
 
-        {/* Your Courses Section */}
-        <View style={styles.coursesSection}>
-          <View style={styles.coursesHeader}>
-            <Text style={styles.coursesTitle}>Your courses</Text>
-            <TouchableOpacity>
-              <Text style={styles.seeAllText}>See all</Text>
-            </TouchableOpacity>
-          </View>
-          <View style={styles.courseCard}>
-            <View style={styles.courseInfo}>
-              <Text style={styles.courseLevel}>A1.1</Text>
-              <Text style={styles.courseName}>Newcomer I (A1.1)</Text>
-            </View>
-            <View style={styles.courseBadge}>
-              <Text style={styles.courseBadgeText}>A1</Text>
-            </View>
-            <View style={styles.courseProgress}>
-              <View style={styles.courseProgressBar}>
-                <View style={[
-                  styles.courseProgressFill, 
-                  { width: `${Math.min(100, (progressData?.levelProgress.progressPercentage || 0))}%` }
-                ]} />
-              </View>
-              <Text style={styles.courseProgressText}>
-                {Math.min(100, (progressData?.levelProgress.progressPercentage || 0))}%
-              </Text>
-            </View>
-          </View>
-        </View>
-
         {/* Learning Stats Section */}
         <View style={styles.learningStatsSection}>
-          <View style={styles.learningStatsHeader}>
-            <Ionicons name="trending-up" size={20} color="#6366f1" />
-            <Text style={styles.learningStatsTitle}>Learning stats</Text>
+          <View style={styles.sectionTitleContainer}>
+            <Ionicons name="trending-up" size={24} color="#6366f1" />
+            <Text style={styles.sectionTitle}>Learning Stats</Text>
           </View>
           <View style={styles.learningStatsGrid}>
             <View style={styles.learningStatCard}>
@@ -320,17 +277,45 @@ export default function ProgressPageScreen() {
           </View>
         </View>
 
+        {/* Your Courses Section */}
+        <View style={styles.coursesSection}>
+          <View style={styles.sectionTitleContainer}>
+            <Ionicons name="book" size={24} color="#6366f1" />
+            <Text style={styles.sectionTitle}>Your Courses</Text>
+          </View>
+          <View style={styles.courseCard}>
+            <View style={styles.courseInfo}>
+              <Text style={styles.courseLevel}>A1.1</Text>
+              <Text style={styles.courseName}>Newcomer I (A1.1)</Text>
+            </View>
+            <View style={styles.courseBadge}>
+              <Text style={styles.courseBadgeText}>A1</Text>
+            </View>
+            <View style={styles.courseProgress}>
+              <View style={styles.courseProgressBar}>
+                <View style={[
+                  styles.courseProgressFill, 
+                  { width: `${Math.min(100, (progressData?.levelProgress.progressPercentage || 0))}%` }
+                ]} />
+              </View>
+              <Text style={styles.courseProgressText}>
+                {Math.min(100, (progressData?.levelProgress.progressPercentage || 0))}%
+              </Text>
+            </View>
+          </View>
+        </View>
+
         {/* Your Vocabulary Section - Hidden for now, keeping code for future use */}
         {false && (
           <View style={styles.vocabularySection}>
-            <View style={styles.vocabularyHeader}>
-              <Ionicons name="chatbubble" size={20} color="#6366f1" />
-              <Text style={styles.vocabularyTitle}>Your vocabulary</Text>
+            <View style={styles.sectionTitleContainer}>
+              <Ionicons name="chatbubble" size={24} color="#6366f1" />
+              <Text style={styles.sectionTitle}>Your Vocabulary</Text>
             </View>
             <View style={styles.vocabularyCard}>
               <View style={styles.vocabularyCardHeader}>
                 <Text style={styles.vocabularyTimeframe}>Last 14 days</Text>
-                <Ionicons name="chevron-forward" size={20} color="#6b7280" />
+                <Ionicons name="chevron-forward" size={20} color="#64748b" />
               </View>
               <Text style={styles.vocabularyNumber}>
                 {progressData?.flashcardStats?.totalCards || 0} new items
@@ -369,9 +354,7 @@ export default function ProgressPageScreen() {
         {/* Study Calendar */}
         <View style={styles.calendarSection}>
           <View style={styles.sectionTitleContainer}>
-            <View style={styles.sectionIconContainer}>
-              <Ionicons name="calendar" size={24} color="#06b6d4" />
-            </View>
+            <Ionicons name="calendar" size={24} color="#6366f1" />
             <Text style={styles.sectionTitle}>Study Calendar</Text>
           </View>
           <View style={styles.calendarWrapper}>
@@ -384,9 +367,7 @@ export default function ProgressPageScreen() {
         {progressData?.achievements.length > 0 && (
           <View style={styles.achievementsSection}>
             <View style={styles.sectionTitleContainer}>
-              <View style={styles.sectionIconContainer}>
-                <Ionicons name="trophy" size={24} color="#f59e0b" />
-              </View>
+              <Ionicons name="trophy" size={24} color="#f59e0b" />
               <Text style={styles.sectionTitle}>Recent Achievements</Text>
             </View>
             <View style={styles.achievementsList}>
@@ -418,9 +399,9 @@ export default function ProgressPageScreen() {
 
         {/* Flashcards Progress */}
         <View style={styles.flashcardsProgressSection}>
-          <View style={styles.flashcardsProgressHeader}>
-            <Ionicons name="library" size={20} color="#6366f1" />
-            <Text style={styles.flashcardsProgressTitle}>Flashcard Progress</Text>
+          <View style={styles.sectionTitleContainer}>
+            <Ionicons name="library" size={24} color="#6366f1" />
+            <Text style={styles.sectionTitle}>Flashcard Progress</Text>
           </View>
           <View style={styles.flashcardsGrid}>
             <View style={styles.flashcardStatCard}>
@@ -474,11 +455,6 @@ export default function ProgressPageScreen() {
         <View style={styles.bottomSpacing} />
       </ScrollView>
 
-      {/* Streak Details Modal */}
-      <StreakDetailsModal 
-        visible={showStreakModal}
-        onClose={() => setShowStreakModal(false)}
-      />
     </SafeAreaView>
   );
 }
@@ -497,76 +473,14 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#6b7280',
+    color: '#64748b',
   },
   content: {
     flex: 1,
   },
-  customHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#ffffff',
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#1e293b',
-  },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  streakBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fef3c7',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    gap: 4,
-    // Add subtle shadow and press effect to indicate it's clickable
-    shadowColor: '#f59e0b',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  streakText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#92400e',
-  },
-  profilePicture: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#e0e7ff',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   coursesSection: {
     paddingHorizontal: 20,
-    paddingVertical: 16,
-  },
-  coursesHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  coursesTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1e293b',
-  },
-  seeAllText: {
-    fontSize: 14,
-    color: '#6366f1',
-    fontWeight: '500',
+    paddingVertical: 20,
   },
   courseCard: {
     backgroundColor: '#ffffff',
@@ -584,7 +498,7 @@ const styles = StyleSheet.create({
   },
   courseLevel: {
     fontSize: 14,
-    color: '#6b7280',
+    color: '#64748b',
     marginBottom: 4,
   },
   courseName: {
@@ -634,18 +548,7 @@ const styles = StyleSheet.create({
   },
   vocabularySection: {
     paddingHorizontal: 20,
-    paddingVertical: 16,
-  },
-  vocabularyHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  vocabularyTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1e293b',
-    marginLeft: 8,
+    paddingVertical: 20,
   },
   vocabularyCard: {
     backgroundColor: '#ffffff',
@@ -665,7 +568,7 @@ const styles = StyleSheet.create({
   },
   vocabularyTimeframe: {
     fontSize: 14,
-    color: '#6b7280',
+    color: '#64748b',
   },
   vocabularyNumber: {
     fontSize: 24,
@@ -709,7 +612,7 @@ const styles = StyleSheet.create({
   },
   chartYLabel: {
     fontSize: 10,
-    color: '#6b7280',
+    color: '#64748b',
     textAlign: 'right',
   },
   chartXAxis: {
@@ -719,37 +622,15 @@ const styles = StyleSheet.create({
   },
   chartXLabel: {
     fontSize: 10,
-    color: '#6b7280',
+    color: '#64748b',
   },
   learningStatsSection: {
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 20,
   },
   flashcardsProgressSection: {
     paddingHorizontal: 20,
-    paddingVertical: 16,
-  },
-  learningStatsHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  flashcardsProgressHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  learningStatsTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1e293b',
-    marginLeft: 8,
-  },
-  flashcardsProgressTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1e293b',
-    marginLeft: 8,
+    paddingVertical: 20,
   },
   learningStatsGrid: {
     flexDirection: 'row',
@@ -778,24 +659,19 @@ const styles = StyleSheet.create({
   },
   learningStatLabel: {
     fontSize: 14,
-    color: '#6b7280',
+    color: '#64748b',
     textAlign: 'center',
   },
   calendarSection: {
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 20,
   },
   calendarWrapper: {
-    marginTop: 16,
+    // marginTop removed - now handled by sectionTitleContainer marginBottom
   },
   levelSection: {
     paddingHorizontal: 20,
-    paddingVertical: 16,
-  },
-  levelHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
+    paddingVertical: 20,
   },
   levelCard: {
     backgroundColor: '#ffffff',
@@ -806,12 +682,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 2,
-  },
-  levelTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1e293b',
-    marginLeft: 12,
   },
   levelContent: {
     alignItems: 'center',
@@ -828,7 +698,7 @@ const styles = StyleSheet.create({
   },
   experiencePoints: {
     fontSize: 16,
-    color: '#6b7280',
+    color: '#64748b',
   },
   progressBar: {
     width: '100%',
@@ -843,7 +713,7 @@ const styles = StyleSheet.create({
   },
   nextLevel: {
     fontSize: 14,
-    color: '#6b7280',
+    color: '#64748b',
   },
   sectionTitle: {
     fontSize: 20,
@@ -913,19 +783,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-  },
-  sectionIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#f8fafc',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
+    marginBottom: 16,
   },
   refreshButton: {
     padding: 8,
@@ -974,24 +832,24 @@ const styles = StyleSheet.create({
     backgroundImage: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
   },
   masteredCardsIcon: {
-    backgroundColor: '#10b981',
-    backgroundImage: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+    backgroundColor: '#8b5cf6',
+    backgroundImage: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
   },
   accuracyIcon: {
-    backgroundColor: '#06b6d4',
-    backgroundImage: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)',
+    backgroundColor: '#6466E9',
+    backgroundImage: 'linear-gradient(135deg, #6466E9 0%, #6366f1 100%)',
   },
   streakIcon: {
-    backgroundColor: '#f59e0b',
-    backgroundImage: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+    backgroundColor: '#06b6d4',
+    backgroundImage: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)',
   },
   bestTopicIcon: {
     backgroundColor: '#8b5cf6',
     backgroundImage: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
   },
   needsWorkIcon: {
-    backgroundColor: '#f97316',
-    backgroundImage: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)',
+    backgroundColor: '#6466E9',
+    backgroundImage: 'linear-gradient(135deg, #6466E9 0%, #6366f1 100%)',
   },
   flashcardStatNumber: {
     fontSize: 20,

@@ -149,7 +149,7 @@ const TypeWhatYouHearGame: React.FC<TypeWhatYouHearGameProps> = ({ gameData, onC
     return (
       <View style={styles.gameContainer}>
         <View style={styles.completionContainer}>
-          <Text style={styles.completionTitle}>🎉 Type What You Hear Complete!</Text>
+          <Text style={styles.completionTitle}>🎉 Listen & Type Complete!</Text>
           <Text style={styles.completionSubtitle}>Great job!</Text>
           
           <View style={styles.statsContainer}>

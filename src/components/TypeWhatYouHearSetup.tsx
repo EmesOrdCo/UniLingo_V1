@@ -159,7 +159,7 @@ const TypeWhatYouHearSetup: React.FC<TypeWhatYouHearSetupProps> = ({
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <Ionicons name="close" size={24} color="#64748b" />
           </TouchableOpacity>
-          <Text style={styles.title}>Type What You Hear Setup</Text>
+          <Text style={styles.title}>Listen & Type Setup</Text>
           <View style={styles.placeholder} />
         </View>
 
@@ -392,7 +392,7 @@ const TypeWhatYouHearSetup: React.FC<TypeWhatYouHearSetupProps> = ({
 
           {/* Start Button */}
           <TouchableOpacity style={styles.startButton} onPress={handleStartGame}>
-            <Text style={styles.startButtonText}>Start Type What You Hear</Text>
+            <Text style={styles.startButtonText}>Start Listen & Type</Text>
             <Ionicons name="play" size={20} color="white" />
           </TouchableOpacity>
         </View>

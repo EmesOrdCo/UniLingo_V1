@@ -20,7 +20,7 @@ export class DailyChallengeService {
     'Hangman',
     'Speed Challenge',
     'Planet Defense',
-    'Type What You Hear',
+    'Listen & Type',
     'Sentence Scramble'
   ];
 

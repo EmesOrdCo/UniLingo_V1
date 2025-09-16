@@ -42,7 +42,7 @@ export class FavouriteGamesService {
         { name: 'Speed Challenge', category: 'vocabulary' },
         { name: 'Sentence Scramble', category: 'grammar' },
         { name: 'Planet Defense', category: 'vocabulary' },
-        { name: 'Type What You Hear', category: 'listening' },
+        { name: 'Listen & Type', category: 'listening' },
       ];
 
       // Get user's favourite games

@@ -46,7 +46,7 @@ import { GameStatisticsService } from '../lib/gameStatisticsService';
 import { supabase } from '../lib/supabase';
 import ConsistentHeader from '../components/ConsistentHeader';
 import FavouritesSection from '../components/FavouritesSection';
-import AllGamesSection from '../components/AllGamesSection';
+import HorizontalGamesSection from '../components/HorizontalGamesSection';
 import GameStatsSection from '../components/GameStatsSection';
 import FlashcardQuizGame from '../components/games/FlashcardQuizGame';
 import LessonSentenceScramble from '../components/lesson/LessonSentenceScramble';
@@ -86,7 +86,7 @@ export default function GamesScreen({ route }: { route?: any }) {
   const [selectedDifficulty, setSelectedDifficulty] = useState<string | null>(null);
   const [difficulties] = useState([
     { id: 'all', name: 'All Difficulties', color: '#6366f1', description: 'Mix of all levels' },
-    { id: 'beginner', name: 'Beginner', color: '#10b981', description: 'Basic concepts' },
+    { id: 'beginner', name: 'Beginner', color: '#059669', description: 'Basic concepts' },
     { id: 'intermediate', name: 'Intermediate', color: '#f59e0b', description: 'Core principles' },
     { id: 'expert', name: 'Expert', color: '#ef4444', description: 'Complex topics' },
   ]);
@@ -604,7 +604,7 @@ export default function GamesScreen({ route }: { route?: any }) {
       case 'Hangman': return 'game-controller';
       case 'Speed Challenge': return 'timer';
       case 'Planet Defense': return 'planet';
-      case 'Type What You Hear': return 'ear';
+      case 'Listen & Type': return 'ear';
       case 'Sentence Scramble': return 'document-text';
       default: return 'help-circle';
     }
@@ -617,7 +617,7 @@ export default function GamesScreen({ route }: { route?: any }) {
       case 'Hangman': return 'Word Game';
       case 'Speed Challenge': return 'Speed';
       case 'Planet Defense': return 'Arcade';
-      case 'Type What You Hear': return 'Listening';
+      case 'Listen & Type': return 'Listening';
       case 'Sentence Scramble': return 'Grammar';
       default: return 'Quiz';
     }
@@ -630,7 +630,7 @@ export default function GamesScreen({ route }: { route?: any }) {
       case 'Hangman': return startHangman;
       case 'Speed Challenge': return startSpeedChallenge;
       case 'Planet Defense': return startGravityGame;
-      case 'Type What You Hear': return startTypeWhatYouHear;
+      case 'Listen & Type': return startTypeWhatYouHear;
       case 'Sentence Scramble': return startSentenceScramble;
       default: return startFlashcardQuiz;
     }
@@ -1064,7 +1064,7 @@ export default function GamesScreen({ route }: { route?: any }) {
         filteredFlashcards = filteredFlashcards.filter(card => card.difficulty === options.difficulty);
       }
       
-      console.log('🔍 Type What You Hear filtered flashcards:', {
+      console.log('🔍 Listen & Type filtered flashcards:', {
         original: flashcards.length,
         filtered: filteredFlashcards.length,
         topic: options.selectedTopic,
@@ -1072,13 +1072,13 @@ export default function GamesScreen({ route }: { route?: any }) {
       });
       
       // Validate filtered flashcards
-      const validation = GameDataService.validateFlashcards(filteredFlashcards, 'Type What You Hear');
+      const validation = GameDataService.validateFlashcards(filteredFlashcards, 'Listen & Type');
       if (!validation.isValid) {
         Alert.alert('Cannot Start Game', validation.error || 'Invalid flashcard data');
         return;
       }
       
-      setCurrentGame('Type What You Hear');
+      setCurrentGame('Listen & Type');
       
       // Map difficulty from database format to game format
       let gameDifficulty: 'easy' | 'medium' | 'hard' | undefined;
@@ -1091,8 +1091,8 @@ export default function GamesScreen({ route }: { route?: any }) {
       setGameData(gameData);
       setShowGameModal(true);
     } catch (error) {
-      console.error('Error starting Type What You Hear:', error);
-      Alert.alert('Error', 'Failed to start Type What You Hear game. Please try again.');
+      console.error('Error starting Listen & Type:', error);
+      Alert.alert('Error', 'Failed to start Listen & Type game. Please try again.');
     }
   };
 
@@ -1400,7 +1400,7 @@ export default function GamesScreen({ route }: { route?: any }) {
         return <SpeedChallengeGame {...gameProps} onPlayAgain={handleSpeedChallengePlayAgain} />;
       case 'Planet Defense':
         return <GravityGame {...gameProps} />;
-      case 'Type What You Hear':
+      case 'Listen & Type':
         console.log(`🎧 [${screenId}] Creating TypeWhatYouHearGame component`);
         return <TypeWhatYouHearGame {...gameProps} onPlayAgain={handleTypeWhatYouHearPlayAgain} />;
       case 'Sentence Scramble':
@@ -1421,6 +1421,78 @@ export default function GamesScreen({ route }: { route?: any }) {
       />
       
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Your Game Stats */}
+        <GameStatsSection 
+          stats={{
+            today: realGameStats.gamesPlayedToday,
+            total: realGameStats.totalGamesPlayed,
+            accuracyPct: realGameStats.averageAccuracy,
+            totalMinutes: realGameStats.totalGamingTime,
+          }}
+        />
+        
+        {/* All Games - Horizontal Scroll */}
+        <HorizontalGamesSection 
+          games={[
+            { name: 'Flashcard Quiz', tag: 'Quiz', icon: 'help-circle', color: '#6366f1', bgColor: '#f0f4ff', onPress: startFlashcardQuiz },
+            { name: 'Memory Match', tag: 'Memory', icon: 'grid', color: '#059669', bgColor: '#f0fdf4', onPress: startMemoryMatch },
+            { name: 'Word Scramble', tag: 'Puzzle', icon: 'text', color: '#059669', bgColor: '#f0fdf4', onPress: startWordScramble },
+            { name: 'Hangman', tag: 'Word Game', icon: 'game-controller', color: '#8b5cf6', bgColor: '#f8fafc', onPress: startHangman },
+            { name: 'Speed Challenge', tag: 'Speed', icon: 'timer', color: '#dc2626', bgColor: '#fef2f2', onPress: startSpeedChallenge },
+            { name: 'Planet Defense', tag: 'Arcade', icon: 'planet', color: '#3b82f6', bgColor: '#dbeafe', onPress: startGravityGame },
+            { name: 'Listen & Type', tag: 'Listening', icon: 'ear', color: '#8b5cf6', bgColor: '#f3e8ff', onPress: startTypeWhatYouHear },
+            { name: 'Sentence Scramble', tag: 'Grammar', icon: 'document-text', color: '#ec4899', bgColor: '#fdf2f8', onPress: startSentenceScramble },
+          ].map((game) => ({
+            id: game.name,
+            title: game.name,
+            tag: game.tag,
+            cards: flashcards.length,
+            progress: 0.2,
+            icon: game.icon,
+            onPlay: game.onPress
+          }))}
+        />
+
+        {/* Review Flashcards Section */}
+        <View style={styles.section}>
+          <View style={styles.sectionTitleContainer}>
+            <Ionicons name="library" size={24} color="#6366f1" />
+            <Text style={styles.standardSectionTitle}>Review Your Flashcards</Text>
+          </View>
+          <Text style={styles.sectionDescription}>
+            Browse and review all your created flashcards
+          </Text>
+          
+          <View style={styles.reviewFlashcardsCard}>
+            <View style={styles.reviewStatsRow}>
+              <View style={styles.reviewStatItem}>
+                <Ionicons name="book" size={20} color="#6366f1" />
+                <View style={styles.reviewStatTextContainer}>
+                  <Text style={styles.reviewStatNumber}>{realFlashcardStats.totalCards}</Text>
+                  <Text style={styles.reviewStatLabel}>Total Cards</Text>
+                </View>
+              </View>
+              <View style={styles.reviewStatItem}>
+                <Ionicons name="bookmark" size={20} color="#6366f1" />
+                <View style={styles.reviewStatTextContainer}>
+                  <Text style={styles.reviewStatNumber}>{topics.length}</Text>
+                  <Text style={styles.reviewStatLabel}>Topics</Text>
+                </View>
+              </View>
+            </View>
+            
+            {realFlashcardStats.totalCards > 0 && (
+              <TouchableOpacity 
+                style={styles.browseButton}
+                onPress={loadBrowseFlashcards}
+              >
+                <Ionicons name="play-circle" size={24} color="#6366f1" />
+                <Text style={styles.browseButtonText}>Start Flashcards</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+
         {/* Create Flashcard Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
@@ -1446,7 +1518,7 @@ export default function GamesScreen({ route }: { route?: any }) {
               </TouchableOpacity>
               
               <TouchableOpacity style={styles.uploadNotesButton} onPress={() => navigation.navigate('Upload' as never)}>
-                <Ionicons name="document-text" size={24} color="#10b981" />
+                <Ionicons name="document-text" size={24} color="#059669" />
                 <Text style={styles.uploadNotesButtonText}>Make AI Flashcards</Text>
               </TouchableOpacity>
             </>
@@ -1581,14 +1653,14 @@ export default function GamesScreen({ route }: { route?: any }) {
                       style={[
                         styles.difficultyButton,
                         newFlashcard.difficulty === level && styles.selectedDifficulty,
-                        { borderColor: level === 'beginner' ? '#10b981' : level === 'intermediate' ? '#f59e0b' : '#ef4444' }
+                        { borderColor: level === 'beginner' ? '#059669' : level === 'intermediate' ? '#f59e0b' : '#ef4444' }
                       ]}
                       onPress={() => setNewFlashcard(prev => ({ ...prev, difficulty: level as 'beginner' | 'intermediate' | 'expert' }))}
                     >
                       <Text style={[
                         styles.difficultyText,
                         newFlashcard.difficulty === level && styles.selectedDifficultyText,
-                        { color: newFlashcard.difficulty === level ? '#ffffff' : level === 'beginner' ? '#10b981' : level === 'intermediate' ? '#f59e0b' : '#ef4444' }
+                        { color: newFlashcard.difficulty === level ? '#ffffff' : level === 'beginner' ? '#059669' : level === 'intermediate' ? '#f59e0b' : '#ef4444' }
                       ]}>
                         {level.charAt(0).toUpperCase() + level.slice(1)}
                       </Text>
@@ -1625,78 +1697,6 @@ export default function GamesScreen({ route }: { route?: any }) {
           )}
         </View>
 
-
-        {/* Review Flashcards Section */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name="library" size={24} color="#10b981" />
-            <Text style={styles.sectionTitle}>Review Your Flashcards</Text>
-          </View>
-          <Text style={styles.sectionDescription}>
-            Browse and review all your created flashcards
-          </Text>
-          
-          <View style={styles.reviewFlashcardsCard}>
-            <View style={styles.reviewStatsRow}>
-              <View style={styles.reviewStatItem}>
-                <Ionicons name="book" size={20} color="#10b981" />
-                <Text style={styles.reviewStatNumber}>{realFlashcardStats.totalCards}</Text>
-                <Text style={styles.reviewStatLabel}>Total Cards</Text>
-              </View>
-              <View style={styles.reviewStatItem}>
-                <Ionicons name="bookmark" size={20} color="#6366f1" />
-                <Text style={styles.reviewStatNumber}>{topics.length}</Text>
-                <Text style={styles.reviewStatLabel}>Topics</Text>
-              </View>
-            </View>
-            
-            {realFlashcardStats.totalCards > 0 && (
-              <TouchableOpacity 
-                style={styles.browseButton}
-                onPress={loadBrowseFlashcards}
-              >
-                <Ionicons name="play-circle" size={24} color="#6366f1" />
-                <Text style={styles.browseButtonText}>Start Flashcards</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        </View>
-
-        
-
-
-
-        {/* Your Game Stats */}
-        <GameStatsSection 
-          stats={{
-            today: realGameStats.gamesPlayedToday,
-            total: realGameStats.totalGamesPlayed,
-            accuracyPct: realGameStats.averageAccuracy,
-            totalMinutes: realGameStats.totalGamingTime,
-          }}
-        />
-        
-        {/* All Games - 2x4 Grid */}
-        <AllGamesSection 
-          games={[
-            { name: 'Flashcard Quiz', tag: 'Quiz', icon: 'help-circle', color: '#6366f1', bgColor: '#f0f4ff', onPress: startFlashcardQuiz },
-            { name: 'Memory Match', tag: 'Memory', icon: 'grid', color: '#10b981', bgColor: '#f0fdf4', onPress: startMemoryMatch },
-            { name: 'Word Scramble', tag: 'Puzzle', icon: 'text', color: '#16a34a', bgColor: '#f0fdf4', onPress: startWordScramble },
-            { name: 'Hangman', tag: 'Word Game', icon: 'game-controller', color: '#8b5cf6', bgColor: '#f8fafc', onPress: startHangman },
-            { name: 'Speed Challenge', tag: 'Speed', icon: 'timer', color: '#dc2626', bgColor: '#fef2f2', onPress: startSpeedChallenge },
-            { name: 'Planet Defense', tag: 'Arcade', icon: 'planet', color: '#3b82f6', bgColor: '#dbeafe', onPress: startGravityGame },
-            { name: 'Type What You Hear', tag: 'Listening', icon: 'ear', color: '#8b5cf6', bgColor: '#f3e8ff', onPress: startTypeWhatYouHear },
-            { name: 'Sentence Scramble', tag: 'Grammar', icon: 'document-text', color: '#ec4899', bgColor: '#fdf2f8', onPress: startSentenceScramble },
-          ].map((game) => ({
-            id: game.name,
-            title: game.name,
-            tag: game.tag,
-            cards: flashcards.length,
-            progress: 0.2,
-            icon: game.icon,
-            onPlay: game.onPress
-          }))}
-        />
       </ScrollView>
       
 
@@ -1968,6 +1968,18 @@ const styles = StyleSheet.create({
     color: '#1e293b',
     flex: 1,
   },
+  sectionTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 16,
+  },
+  standardSectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1e293b',
+    letterSpacing: -0.3,
+  },
   sectionDescription: {
     fontSize: 14,
     color: '#64748b',
@@ -2018,14 +2030,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: '#10b981',
+    borderColor: '#059669',
     borderStyle: 'dashed',
     gap: 8,
   },
   uploadNotesButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#10b981',
+    color: '#059669',
   },
   createForm: {
     backgroundColor: '#f8fafc',
@@ -2271,18 +2283,23 @@ const styles = StyleSheet.create({
   reviewStatsRow: {
     flexDirection: 'row',
     gap: 20,
-    marginBottom: 20,
+    marginBottom: 16,
   },
   reviewStatItem: {
     flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 12,
+  },
+  reviewStatTextContainer: {
+    flex: 1,
+    justifyContent: 'center',
   },
   reviewStatNumber: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: '700',
     color: '#1e293b',
-    marginTop: 4,
-    marginBottom: 4,
+    marginBottom: 2,
   },
   reviewStatLabel: {
     fontSize: 12,

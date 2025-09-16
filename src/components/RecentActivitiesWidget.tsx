@@ -219,7 +219,7 @@ export default function RecentActivitiesWidget() {
               return 'document-text';
             case 'Planet Defense':
               return 'planet';
-            case 'Type What You Hear':
+            case 'Listen & Type':
               return 'ear';
             case 'Gravity Game':
               return 'planet';
@@ -259,7 +259,7 @@ export default function RecentActivitiesWidget() {
               return '#ec4899';
             case 'Planet Defense':
               return '#3b82f6';
-            case 'Type What You Hear':
+            case 'Listen & Type':
               return '#8b5cf6';
             case 'Gravity Game':
               return '#3b82f6';
@@ -292,7 +292,7 @@ export default function RecentActivitiesWidget() {
           return '#fdf2f8';
         case 'Planet Defense':
           return '#dbeafe';
-        case 'Type What You Hear':
+        case 'Listen & Type':
           return '#f3e8ff';
         case 'Gravity Game':
           return '#dbeafe';

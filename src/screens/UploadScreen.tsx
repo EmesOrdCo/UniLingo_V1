@@ -43,8 +43,6 @@ export default function UploadScreen() {
   const [editableFlashcards, setEditableFlashcards] = useState<GeneratedFlashcard[]>([]);
   const [uniqueTopics, setUniqueTopics] = useState<string[]>([]);
   
-  // Study Configuration state
-  const [showNativeLanguage, setShowNativeLanguage] = useState(false);
 
   
   // Use ref to ensure we always have the latest generatedFlashcards value
@@ -430,7 +428,7 @@ export default function UploadScreen() {
         userSubject,
         topic,
         userNativeLanguage,
-        showNativeLanguage,
+        false,
         (progressUpdate) => {
           console.log('🔍 Progress update from AI:', progressUpdate);
           console.log('🔍 Progress cardsGenerated:', progressUpdate.cardsGenerated);
@@ -464,7 +462,7 @@ export default function UploadScreen() {
           user.id,
           userSubject,
           userNativeLanguage,
-          showNativeLanguage,
+          false,
           (progressUpdate) => setProgress(progressUpdate)
         );
       }
@@ -559,7 +557,7 @@ export default function UploadScreen() {
           user.id,
           userSubject,
           userNativeLanguage,
-          showNativeLanguage,
+          false,
           (progressUpdate) => setProgress(progressUpdate)
         );
         
@@ -722,30 +720,18 @@ export default function UploadScreen() {
         >
           <Ionicons name="arrow-back" size={24} color="#1e293b" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Study Configuration</Text>
-        <TouchableOpacity 
-          style={styles.emergencyButton} 
-          onPress={emergencyReset}
-        >
-          <Ionicons name="refresh-circle" size={24} color="#ef4444" />
-        </TouchableOpacity>
+        <Text style={styles.headerTitle}>AI Flashcard Generation</Text>
+        <View style={styles.headerSpacer} />
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Subject Display */}
-        <View style={styles.subjectCard}>
-          <View style={styles.subjectIcon}>
-            <Ionicons name="school" size={24} color="#6366f1" />
-          </View>
-          <View style={styles.subjectInfo}>
-            <Text style={styles.subjectLabel}>Subject</Text>
-            <Text style={styles.subjectValue}>{userSubject}</Text>
-          </View>
-        </View>
 
         {/* Topic Selection */}
         <View style={styles.topicSection}>
-          <Text style={styles.sectionTitle}>Select Topic</Text>
+          <View style={styles.sectionTitleContainer}>
+            <Ionicons name="folder" size={20} color="#6366f1" />
+            <Text style={styles.sectionTitle}>Select Topic</Text>
+          </View>
           {!showTopicInput ? (
             <View style={styles.topicSelectionContainer}>
               <TouchableOpacity
@@ -835,77 +821,12 @@ export default function UploadScreen() {
           )}
         </View>
 
-        {/* AI Selection Info */}
-        {selectedTopic === 'AI Selection' && (
-          <View style={styles.aiSelectionInfo}>
-            <View style={styles.aiSelectionInfoHeader}>
-              <Ionicons name="information-circle" size={20} color="#8b5cf6" />
-              <Text style={styles.aiSelectionInfoTitle}>AI Topic Detection</Text>
-            </View>
-            <Text style={styles.aiSelectionInfoText}>
-              AI will analyze your content and automatically create flashcards organized by natural topic divisions found in your notes. This includes:
-            </Text>
-            <View style={styles.aiSelectionFeatures}>
-              <View style={styles.aiFeature}>
-                <Ionicons name="checkmark-circle" size={16} color="#10b981" />
-                <Text style={styles.aiFeatureText}>Header-based topic separation</Text>
-              </View>
-              <View style={styles.aiFeature}>
-                <Ionicons name="checkmark-circle" size={16} color="#10b981" />
-                <Text style={styles.aiFeatureText}>Content theme analysis</Text>
-              </View>
-              <View style={styles.aiFeature}>
-                <Ionicons name="checkmark-circle" size={16} color="#10b981" />
-                <Text style={styles.aiFeatureText}>Automatic topic naming</Text>
-              </View>
-            </View>
-          </View>
-        )}
 
-        {/* Study Configuration Section */}
-        <View style={styles.studyConfigSection}>
-          <View style={styles.studyConfigHeader}>
-            <Ionicons name="settings" size={24} color="#6366f1" />
-            <Text style={styles.studyConfigTitle}>Study Configuration</Text>
-          </View>
-          <Text style={styles.studyConfigDescription}>
-            Configure your study session preferences
-          </Text>
-          
-          <View style={styles.studyConfigCard}>
-            {/* Language Preference */}
-            <View style={styles.fullWidthLanguageOptions}>
-              <TouchableOpacity 
-                style={[
-                  styles.fullWidthLanguageOption, 
-                  !showNativeLanguage && styles.selectedFullWidthLanguageOption
-                ]}
-                onPress={() => setShowNativeLanguage(false)}
-              >
-                <Ionicons name="flag" size={16} color="#3b82f6" />
-                <Text style={styles.fullWidthLanguageOptionText}>English Front</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[
-                  styles.fullWidthLanguageOption, 
-                  showNativeLanguage && styles.selectedFullWidthLanguageOption
-                ]}
-                onPress={() => setShowNativeLanguage(true)}
-              >
-                <Ionicons name="globe" size={16} color="#10b981" />
-                <Text style={styles.fullWidthLanguageOptionText}>
-                  {profile?.native_language || 'Native'} Front
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-          </View>
-        </View>
 
         {/* Upload Area */}
         <View style={styles.uploadArea}>
           <View style={styles.uploadIcon}>
-            <Ionicons name="cloud-upload" size={56} color="#6366f1" />
+            <Ionicons name="cloud-upload" size={32} color="#6366f1" />
           </View>
           <Text style={styles.uploadTitle}>Upload Your Course Notes</Text>
           <Text style={styles.uploadSubtitle}>
@@ -928,7 +849,7 @@ export default function UploadScreen() {
 
         </View>
 
-        {/* Info Section */}
+        {/* How it works */}
         <View style={styles.infoSection}>
           <Text style={styles.infoTitle}>How it works</Text>
           <View style={styles.infoSteps}>
@@ -1000,104 +921,56 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 24,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
     backgroundColor: '#f8fafc',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.12,
-    shadowRadius: 20,
-    elevation: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
   },
   backButton: {
     padding: 8,
     marginRight: 12,
   },
-  emergencyButton: {
-    padding: 8,
-    marginLeft: 12,
-  },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: '800',
+    fontSize: 20,
+    fontWeight: '700',
     color: '#1e293b',
     flex: 1,
-    letterSpacing: -0.3,
   },
   headerSpacer: {
     width: 40,
   },
   content: {
     flex: 1,
-    padding: 20,
-  },
-  subjectCard: {
-    backgroundColor: '#f8fafc',
-    borderRadius: 20,
-    padding: 24,
-    marginBottom: 32,
-    flexDirection: 'row',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 8,
-    borderWidth: 1,
-    borderColor: '#f1f5f9',
-  },
-  subjectIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#f0f9ff',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 20,
-    shadowColor: '#6366f1',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  subjectInfo: {
-    flex: 1,
-  },
-  subjectLabel: {
-    fontSize: 15,
-    color: '#64748b',
-    marginBottom: 6,
-    fontWeight: '500',
-  },
-  subjectValue: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#1e293b',
-    letterSpacing: -0.3,
+    padding: 16,
   },
   topicSection: {
-    backgroundColor: '#f8fafc',
-    borderRadius: 20,
-    padding: 28,
-    marginBottom: 32,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 8,
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
     borderWidth: 1,
-    borderColor: '#f1f5f9',
+    borderColor: '#e2e8f0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  sectionTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
   },
   sectionTitle: {
-    fontSize: 24,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '600',
     color: '#1e293b',
-    marginBottom: 28,
-    letterSpacing: -0.3,
+    marginLeft: 8,
   },
   topicSelectionContainer: {
     flexDirection: 'row',
-    gap: 16,
+    gap: 12,
     alignItems: 'center',
   },
   topicDropdown: {
@@ -1105,43 +978,44 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 18,
-    borderWidth: 2,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderWidth: 1,
     borderColor: '#e2e8f0',
-    borderRadius: 16,
+    borderRadius: 8,
     backgroundColor: '#f8fafc',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.02,
+    shadowRadius: 2,
+    elevation: 1,
   },
   topicDropdownText: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#1e293b',
     fontWeight: '500',
+    flex: 1,
   },
   newTopicButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 18,
-    borderWidth: 2,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderWidth: 1,
     borderColor: '#6366f1',
-    borderRadius: 16,
+    borderRadius: 8,
     backgroundColor: '#f8fafc',
     shadowColor: '#6366f1',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowRadius: 2,
+    elevation: 1,
   },
   newTopicButtonText: {
     color: '#6366f1',
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: '600',
-    marginLeft: 6,
+    marginLeft: 4,
   },
   newTopicInputContainer: {
     gap: 12,
@@ -1202,13 +1076,13 @@ const styles = StyleSheet.create({
   topicOptionsContainer: {
     maxHeight: 200,
     marginTop: 16,
-    backgroundColor: '#f8fafc',
-    borderRadius: 16,
-    borderWidth: 2,
+    backgroundColor: 'white',
+    borderRadius: 12,
+    borderWidth: 1,
     borderColor: '#e2e8f0',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.08,
     shadowRadius: 8,
     elevation: 4,
   },
@@ -1222,52 +1096,57 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   uploadArea: {
-    backgroundColor: '#f8fafc',
-    borderRadius: 20,
-    padding: 40,
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 20,
     alignItems: 'center',
-    marginBottom: 32,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 8,
+    marginBottom: 20,
     borderWidth: 1,
-    borderColor: '#f1f5f9',
+    borderColor: '#e2e8f0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 2,
   },
   uploadIcon: {
-    marginBottom: 20,
+    marginBottom: 12,
     padding: 16,
-    backgroundColor: '#f8fafc',
-    borderRadius: 20,
+    backgroundColor: '#f0f9ff',
+    borderRadius: 16,
+    shadowColor: '#6366f1',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   uploadTitle: {
-    fontSize: 26,
-    fontWeight: 'bold',
+    fontSize: 18,
+    fontWeight: '600',
     color: '#1e293b',
     textAlign: 'center',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   uploadSubtitle: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#64748b',
     textAlign: 'center',
-    lineHeight: 24,
-    marginBottom: 32,
-    paddingHorizontal: 20,
+    lineHeight: 20,
+    marginBottom: 20,
+    paddingHorizontal: 10,
   },
   uploadButton: {
     backgroundColor: '#6366f1',
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 32,
-    paddingVertical: 18,
-    borderRadius: 16,
+    paddingHorizontal: 24,
+    paddingVertical: 14,
+    borderRadius: 8,
     shadowColor: '#6366f1',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   disabledButton: {
     backgroundColor: '#cbd5e1',
@@ -1276,61 +1155,60 @@ const styles = StyleSheet.create({
   },
   uploadButtonText: {
     color: '#ffffff',
-    fontSize: 17,
+    fontSize: 15,
     fontWeight: '600',
-    marginLeft: 10,
+    marginLeft: 8,
   },
   infoSection: {
-    backgroundColor: '#f8fafc',
-    borderRadius: 20,
-    padding: 32,
-    marginBottom: 32,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 8,
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#f1f5f9',
+    borderColor: '#e2e8f0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 2,
   },
   infoTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontWeight: '600',
     color: '#1e293b',
-    marginBottom: 20,
-    textAlign: 'center',
+    marginBottom: 12,
   },
   infoSteps: {
-    gap: 20,
+    gap: 12,
   },
   infoStep: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 20,
+    gap: 12,
   },
   stepNumber: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     backgroundColor: '#6366f1',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#6366f1',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
   },
   stepNumberText: {
     color: '#ffffff',
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 12,
+    fontWeight: '600',
   },
   stepText: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#64748b',
     flex: 1,
-    lineHeight: 24,
+    lineHeight: 18,
   },
   aiSelectionOption: {
     backgroundColor: '#f3f4f6',
@@ -1346,115 +1224,6 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     marginTop: 2,
   },
-  aiSelectionInfo: {
-    backgroundColor: '#f8fafc',
-    borderRadius: 20,
-    padding: 28,
-    marginBottom: 32,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  aiSelectionInfoHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  aiSelectionInfoTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#8b5cf6',
-    marginLeft: 10,
-  },
-  aiSelectionInfoText: {
-    fontSize: 15,
-    color: '#64748b',
-    lineHeight: 22,
-    marginBottom: 20,
-  },
-  aiSelectionFeatures: {
-    gap: 12,
-  },
-  aiFeature: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  aiFeatureText: {
-    fontSize: 15,
-    color: '#374151',
-    fontWeight: '500',
-  },
   
-  // Study Configuration Styles
-  studyConfigSection: {
-    backgroundColor: '#f8fafc',
-    borderRadius: 20,
-    padding: 28,
-    marginBottom: 32,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 8,
-    borderWidth: 1,
-    borderColor: '#f1f5f9',
-  },
-  studyConfigHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  studyConfigTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#1e293b',
-    marginLeft: 12,
-    letterSpacing: -0.3,
-  },
-  studyConfigDescription: {
-    fontSize: 16,
-    color: '#64748b',
-    marginBottom: 24,
-    lineHeight: 22,
-  },
-  studyConfigCard: {
-    backgroundColor: '#f8fafc',
-    borderRadius: 16,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    gap: 16,
-  },
-  fullWidthLanguageOptions: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  fullWidthLanguageOption: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    backgroundColor: '#f8fafc',
-    borderWidth: 2,
-    borderColor: '#e2e8f0',
-  },
-  selectedFullWidthLanguageOption: {
-    backgroundColor: '#f0f9ff',
-    borderColor: '#3b82f6',
-  },
-  fullWidthLanguageOptionText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#1e293b',
-    marginLeft: 8,
-  },
 
 });

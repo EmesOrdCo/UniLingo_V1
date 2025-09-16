@@ -16,9 +16,9 @@ interface GameStatsSectionProps {
 const GameStatsSection: React.FC<GameStatsSectionProps> = ({ stats }) => {
   return (
     <View style={styles.container}>
-      <View style={styles.statsTitleContainer}>
-        <Ionicons name="game-controller" size={20} color="#6466E9" style={styles.statsIcon} />
-        <Text style={styles.statsTitleText}>Your Game Stats</Text>
+      <View style={styles.sectionTitleContainer}>
+        <Ionicons name="game-controller" size={24} color="#6366f1" />
+        <Text style={styles.standardSectionTitle}>Your Game Stats</Text>
       </View>
       
       <View style={styles.statsGrid}>
@@ -61,19 +61,19 @@ const GameStatsSection: React.FC<GameStatsSectionProps> = ({ stats }) => {
 const styles = StyleSheet.create({
   container: {
     marginBottom: 24,
+    marginTop: 20,
   },
-  statsTitleContainer: {
+  sectionTitleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    gap: 12,
+    marginBottom: 16,
   },
-  statsIcon: {
-    marginRight: 8,
-  },
-  statsTitleText: {
+  standardSectionTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: '#1e293b',
+    letterSpacing: -0.3,
   },
   statsGrid: {
     flexDirection: 'row',

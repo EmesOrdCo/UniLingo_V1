@@ -199,7 +199,7 @@ const FlashcardQuizSetup: React.FC<FlashcardQuizSetupProps> = ({
           {/* Available Cards Info */}
           <View style={styles.infoCard}>
             <View style={styles.infoRow}>
-              <Ionicons name="information-circle" size={20} color="#6366f1" />
+              <Ionicons name="information-circle" size={18} color="#6366f1" />
               <Text style={styles.infoText}>
                 Available Cards: {currentAvailableCards}
                 {selectedTopic && selectedTopic !== '' ? ` (${selectedTopic} topic)` : ' (All topics)'}
@@ -451,16 +451,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 10,
     backgroundColor: 'white',
     borderBottomWidth: 1,
     borderBottomColor: '#e2e8f0',
   },
   closeButton: {
-    padding: 8,
+    padding: 6,
   },
   title: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
     color: '#1e293b',
   },
@@ -469,47 +469,47 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    padding: 16,
+    padding: 12,
   },
   contentTouchable: {
     flex: 1,
   },
   infoCard: {
     backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 16,
+    borderRadius: 8,
+    padding: 8,
+    marginBottom: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   infoText: {
-    marginLeft: 8,
-    fontSize: 14,
+    marginLeft: 6,
+    fontSize: 13,
     color: '#64748b',
   },
   section: {
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1e293b',
     marginBottom: 12,
   },
-  dropdownContainer: {
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1e293b',
     marginBottom: 8,
+  },
+  dropdownContainer: {
+    marginBottom: 6,
   },
   dropdown: {
     backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 12,
+    borderRadius: 8,
+    padding: 10,
     borderWidth: 1,
     borderColor: '#e2e8f0',
     flexDirection: 'row',
@@ -522,7 +522,7 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   dropdownText: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#1e293b',
     flex: 1,
   },
@@ -535,25 +535,25 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     backgroundColor: 'white',
-    borderRadius: 12,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: '#e2e8f0',
     borderTopWidth: 0,
     borderTopLeftRadius: 0,
     borderTopRightRadius: 0,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 3,
     zIndex: 1000,
-    maxHeight: 200,
+    maxHeight: 160,
   },
   dropdownScrollView: {
-    maxHeight: 200,
+    maxHeight: 160,
   },
   dropdownOption: {
-    padding: 12,
+    padding: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#f1f5f9',
   },
@@ -561,7 +561,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f0f4ff',
   },
   dropdownOptionText: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#1e293b',
   },
   dropdownOptionTextSelected: {
@@ -571,14 +571,14 @@ const styles = StyleSheet.create({
   optionsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 6,
   },
   optionCard: {
     flex: 1,
     minWidth: '45%',
     backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 12,
+    borderRadius: 8,
+    padding: 10,
     borderWidth: 2,
     borderColor: '#e2e8f0',
   },
@@ -596,10 +596,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   optionLabel: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     color: '#1e293b',
-    marginLeft: 8,
+    marginLeft: 6,
   },
   optionLabelSelected: {
     color: '#6366f1',
@@ -611,32 +611,32 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: '45%',
     backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 8,
+    padding: 12,
     borderWidth: 2,
     borderColor: '#e2e8f0',
     alignItems: 'center',
     justifyContent: 'center',
   },
   loadingText: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#64748b',
     fontStyle: 'italic',
   },
   startButton: {
     backgroundColor: '#6366f1',
-    borderRadius: 12,
-    padding: 14,
+    borderRadius: 8,
+    padding: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 8,
+    marginTop: 6,
   },
   startButtonText: {
     color: 'white',
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
-    marginRight: 8,
+    marginRight: 6,
   },
 });
 

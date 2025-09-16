@@ -217,31 +217,11 @@ export default function StudyCalendar({ studyDates, currentMonth }: StudyCalenda
           return (
             <View key={index} style={getDayStyle(day)}>
               <Text style={getDayTextStyle(day)}>{day.day}</Text>
-              {day.isStudyDay && (
-                <View style={styles.studyIndicator}>
-                  <Ionicons name="checkmark-circle" size={12} color="#ffffff" />
-                </View>
-              )}
             </View>
           );
         })}
       </View>
 
-      {/* Legend */}
-      <View style={styles.legend}>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendDot, styles.studyDayDot]} />
-          <Text style={styles.legendText}>Study Day</Text>
-        </View>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendDot, styles.todayDot]} />
-          <Text style={styles.legendText}>Today</Text>
-        </View>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendDot, styles.futureDot]} />
-          <Text style={styles.legendText}>Future</Text>
-        </View>
-      </View>
     </View>
   );
 }
@@ -326,7 +306,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   studyDay: {
-    backgroundColor: '#10b981', // Changed from '#d1fae5' to solid green
+    backgroundColor: '#059669', // Deeper green that better complements the purple theme
     borderRadius: 20,
   },
   studyDayText: {
@@ -344,40 +324,5 @@ const styles = StyleSheet.create({
   },
   otherMonthDayText: {
     color: '#cbd5e1',
-  },
-  studyIndicator: {
-    position: 'absolute',
-    bottom: 2,
-    right: 2,
-  },
-  legend: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#e2e8f0',
-  },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  legendDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    marginRight: 6,
-  },
-  studyDayDot: {
-    backgroundColor: '#10b981',
-  },
-  todayDot: {
-    backgroundColor: '#6366f1',
-  },
-  futureDot: {
-    backgroundColor: '#9ca3af',
-  },
-  legendText: {
-    fontSize: 12,
-    color: '#6b7280',
   },
 });
