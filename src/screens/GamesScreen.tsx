@@ -289,6 +289,47 @@ export default function GamesScreen({ route }: { route?: any }) {
     updateTopicCounts();
   }, [selectedDifficulty, topics, user, profile]);
 
+  // Handle automatic game launch from navigation params
+  useEffect(() => {
+    if (launchGame && flashcards.length > 0 && !isLoading) {
+      console.log('🚀 Auto-launching game from daily challenge:', launchGame);
+      
+      // Get default options from route params or use defaults
+      const gameOptions = route?.params?.gameOptions || {};
+      
+      // Auto-launch the game with default settings
+      setTimeout(() => {
+        switch (launchGame) {
+          case 'Flashcard Quiz':
+            handleFlashcardQuizSetupComplete(gameOptions);
+            break;
+          case 'Memory Match':
+            handleMemoryMatchSetupComplete(gameOptions);
+            break;
+          case 'Word Scramble':
+            handleWordScrambleSetupComplete(gameOptions);
+            break;
+          case 'Hangman':
+            handleHangmanSetupComplete(gameOptions);
+            break;
+          case 'Speed Challenge':
+            handleSpeedChallengeSetupComplete(gameOptions);
+            break;
+          case 'Planet Defense':
+            handleGravityGameSetupComplete(gameOptions);
+            break;
+          case 'Listen & Type':
+            handleTypeWhatYouHearSetupComplete(gameOptions);
+            break;
+          case 'Sentence Scramble':
+            handleSentenceScrambleSetupComplete(gameOptions);
+            break;
+          default:
+            console.warn('Unknown game type for auto-launch:', launchGame);
+        }
+      }, 500); // Small delay to ensure everything is loaded
+    }
+  }, [launchGame, flashcards.length, isLoading]);
 
   // Load real game statistics
   const loadGameStatistics = async () => {

@@ -71,7 +71,7 @@ export default function LevelProgressWidget({ onRefresh }: LevelProgressWidgetPr
       case 'intermediate': return '#f59e0b';
       case 'advanced': return '#ef4444';
       case 'expert': return '#8b5cf6';
-      case 'master': return '#6466E9';
+      case 'master': return '#8b5cf6';
       default: return '#6b7280';
     }
   };
@@ -92,7 +92,7 @@ export default function LevelProgressWidget({ onRefresh }: LevelProgressWidgetPr
     return (
       <View style={styles.container}>
         <View style={styles.loadingContainer}>
-          <Ionicons name="hourglass-outline" size={20} color="#6366f1" />
+          <Ionicons name="hourglass-outline" size={20} color="#8b5cf6" />
           <Text style={styles.loadingText}>Loading level...</Text>
         </View>
       </View>
@@ -129,7 +129,7 @@ export default function LevelProgressWidget({ onRefresh }: LevelProgressWidgetPr
             <Ionicons 
               name={refreshing ? "sync" : "refresh"} 
               size={20} 
-              color={refreshing ? "#10b981" : "#6366f1"} 
+              color={refreshing ? "#10b981" : "#8b5cf6"} 
             />
           </TouchableOpacity>
           <TouchableOpacity 
@@ -139,7 +139,7 @@ export default function LevelProgressWidget({ onRefresh }: LevelProgressWidgetPr
             <Ionicons 
               name="arrow-forward" 
               size={20} 
-              color="#6366f1" 
+              color="#8b5cf6" 
             />
           </TouchableOpacity>
         </View>

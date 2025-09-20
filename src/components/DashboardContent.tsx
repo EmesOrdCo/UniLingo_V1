@@ -8,6 +8,8 @@ import { useRefresh } from '../contexts/RefreshContext';
 import { GeneralVocabService } from '../lib/generalVocabService';
 import { UnitDataService, UnitData } from '../lib/unitDataService';
 import DailyGoalsWidget from './DailyGoalsWidget';
+import DailyChallengeBox from './DailyChallengeBox';
+import LevelProgressWidget from './LevelProgressWidget';
 
 interface DashboardContentProps {
   progressData: any;
@@ -185,102 +187,114 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
         </View>
       )}
 
+      {/* Daily Challenge Box */}
+      <DailyChallengeBox refreshTrigger={refreshTrigger} />
+
+      {/* Level Progress Widget */}
+      <View style={styles.levelProgressContainer}>
+        <LevelProgressWidget onRefresh={() => {}} />
+      </View>
+
       {/* Daily Goals Widget */}
       <View style={styles.dailyGoalsContainer}>
         <DailyGoalsWidget refreshTrigger={refreshTrigger} />
       </View>
 
-      {/* Course Overview Section */}
-      <View style={styles.courseOverview}>
-        <Text style={styles.courseLevel}>{selectedUnit?.unit_code || 'A1.1'}</Text>
-        <View style={styles.courseTitleRow}>
-          <Text style={styles.courseTitle}>{selectedUnit?.unit_title || 'Foundation'}</Text>
-          <TouchableOpacity 
-            style={styles.changeButton}
-            onPress={() => {
-              console.log('🔄 Change button pressed - navigating to Courses');
-              navigation.navigate('Courses' as never);
-            }}
-          >
-            <Text style={styles.changeButtonText}>Change</Text>
-          </TouchableOpacity>
-        </View>
-        <Text style={styles.courseDescription}>
-          Learn how to introduce yourself and answer simple questions about your basic needs.
-        </Text>
-        
-        {/* Progress Bar */}
-        <View style={styles.progressSection}>
-          <View style={styles.progressBar}>
-            <View style={styles.progressFill} />
-          </View>
-          <Text style={styles.progressText}>2%</Text>
-        </View>
-      </View>
-
-      {/* Course Units Section */}
-      <View style={styles.unitsSection}>
-        {/* Selected Unit Topic Groups */}
-        {loadingUnits ? (
-          <View style={styles.loadingContainer}>
-            <Text style={styles.loadingText}>Loading units...</Text>
-          </View>
-        ) : selectedUnit ? (
-          selectedUnit.topic_groups.map((topicGroup, index) => (
-            <View key={topicGroup} style={styles.unitContainer}>
+      {/* TEMPORARILY HIDDEN - Course Overview Section and Course Units Section */}
+      {false && (
+        <>
+          {/* Course Overview Section */}
+          <View style={styles.courseOverview}>
+            <Text style={styles.courseLevel}>{selectedUnit?.unit_code || 'A1.1'}</Text>
+            <View style={styles.courseTitleRow}>
+              <Text style={styles.courseTitle}>{selectedUnit?.unit_title || 'Foundation'}</Text>
               <TouchableOpacity 
-                style={[
-                  styles.unitCard,
-                  expandedUnit === index && styles.unitCardExpanded
-                ]}
-                onPress={() => handleUnitPress(index)}
+                style={styles.changeButton}
+                onPress={() => {
+                  console.log('🔄 Change button pressed - navigating to Courses');
+                  navigation.navigate('Courses' as never);
+                }}
               >
-                <View style={styles.unitHeader}>
-                  <Text style={styles.unitNumber}>Unit {index + 1}</Text>
-                  <View style={styles.unitProgressBar}>
-                    <View style={[styles.unitProgressFill, { width: '0%' }]} />
-                  </View>
-                </View>
-                
-                <Text style={styles.unitTitle}>{topicGroup}</Text>
-                <Text style={styles.unitSubtitle}>{selectedUnit.unit_code} • Topic Group</Text>
-                
-                <View style={styles.unitFooter}>
-                  <Ionicons name="download-outline" size={20} color="#6b7280" />
-                  <Ionicons 
-                    name={expandedUnit === index ? "chevron-up" : "chevron-down"} 
-                    size={20} 
-                    color="#6b7280" 
-                  />
-                </View>
+                <Text style={styles.changeButtonText}>Change</Text>
               </TouchableOpacity>
+            </View>
+            <Text style={styles.courseDescription}>
+              Learn how to introduce yourself and answer simple questions about your basic needs.
+            </Text>
+            
+            {/* Progress Bar */}
+            <View style={styles.progressSection}>
+              <View style={styles.progressBar}>
+                <View style={styles.progressFill} />
+              </View>
+              <Text style={styles.progressText}>2%</Text>
+            </View>
+          </View>
 
-              {/* Expanded Lessons */}
-              {expandedUnit === index && (
-                <View style={styles.lessonsContainer}>
-                  {UnitDataService.getLessonsForUnit(selectedUnit).map((lesson) => (
-                    <View 
-                      key={lesson.id} 
-                      style={[
-                        styles.lessonCard,
-                        isNavigating && styles.lessonCardDisabled
-                      ]}
-                    >
-                      <View style={styles.lessonContent}>
-                        <Text style={styles.lessonTitle}>{lesson.title}</Text>
-                      </View>
-                      <View style={styles.lessonActions}>
-                        {getStatusButton(lesson.status, selectedUnit.unit_code, lesson.title, topicGroup)}
+          {/* Course Units Section */}
+          <View style={styles.unitsSection}>
+            {/* Selected Unit Topic Groups */}
+            {loadingUnits ? (
+              <View style={styles.loadingContainer}>
+                <Text style={styles.loadingText}>Loading units...</Text>
+              </View>
+            ) : selectedUnit ? (
+              selectedUnit.topic_groups.map((topicGroup, index) => (
+                <View key={topicGroup} style={styles.unitContainer}>
+                  <TouchableOpacity 
+                    style={[
+                      styles.unitCard,
+                      expandedUnit === index && styles.unitCardExpanded
+                    ]}
+                    onPress={() => handleUnitPress(index)}
+                  >
+                    <View style={styles.unitHeader}>
+                      <Text style={styles.unitNumber}>Unit {index + 1}</Text>
+                      <View style={styles.unitProgressBar}>
+                        <View style={[styles.unitProgressFill, { width: '0%' }]} />
                       </View>
                     </View>
-                  ))}
-                </View>
-              )}
-            </View>
-          ))
-        ) : null}
-      </View>
+                    
+                    <Text style={styles.unitTitle}>{topicGroup}</Text>
+                    <Text style={styles.unitSubtitle}>{selectedUnit.unit_code} • Topic Group</Text>
+                    
+                    <View style={styles.unitFooter}>
+                      <Ionicons name="download-outline" size={20} color="#6b7280" />
+                      <Ionicons 
+                        name={expandedUnit === index ? "chevron-up" : "chevron-down"} 
+                        size={20} 
+                        color="#6b7280" 
+                      />
+                    </View>
+                  </TouchableOpacity>
 
+                  {/* Expanded Lessons */}
+                  {expandedUnit === index && (
+                    <View style={styles.lessonsContainer}>
+                      {UnitDataService.getLessonsForUnit(selectedUnit).map((lesson) => (
+                        <View 
+                          key={lesson.id} 
+                          style={[
+                            styles.lessonCard,
+                            isNavigating && styles.lessonCardDisabled
+                          ]}
+                        >
+                          <View style={styles.lessonContent}>
+                            <Text style={styles.lessonTitle}>{lesson.title}</Text>
+                          </View>
+                          <View style={styles.lessonActions}>
+                            {getStatusButton(lesson.status, selectedUnit.unit_code, lesson.title, topicGroup)}
+                          </View>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+                </View>
+              ))
+            ) : null}
+          </View>
+        </>
+      )}
 
       <View style={styles.bottomSpacing} />
     </ScrollView>
@@ -304,6 +318,10 @@ const styles = StyleSheet.create({
     elevation: 6,
     borderWidth: 3,
     borderColor: '#6366f1',
+  },
+  levelProgressContainer: {
+    marginHorizontal: 16,
+    marginBottom: 16,
   },
   dailyGoalsContainer: {
     marginHorizontal: 16,
