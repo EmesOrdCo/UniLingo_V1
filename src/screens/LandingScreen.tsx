@@ -52,56 +52,58 @@ export default function LandingScreen() {
   }, [fadeAnim]);
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <View style={styles.container}>
       {/* Background Image */}
       <ImageBackground
         source={require('../../assets/study-session-bg.png')}
         style={styles.backgroundImage}
         resizeMode="cover"
       >
-        {/* Header with Brand Name */}
-        <View style={styles.header}>
-          <View style={styles.logoContainer}>
-            <Text style={styles.brandName}>UniLingo</Text>
-          </View>
-        </View>
-
-        {/* Content Overlay Card */}
-        <View style={styles.overlayCard}>
-          <View style={styles.titleContainer}>
-            <Text style={styles.mainTitle}>Master academic English</Text>
-            <View style={styles.taglineContainer}>
-              <Text style={styles.forText}>for</Text>
-              <Animated.Text style={[styles.flickerText, { opacity: fadeAnim }]}>
-                {SUBJECTS[currentSubjectIndex]}
-              </Animated.Text>
+        <SafeAreaView style={styles.safeArea} edges={['top']}>
+          {/* Header with Brand Name */}
+          <View style={styles.header}>
+            <View style={styles.logoContainer}>
+              <Text style={styles.brandName}>UniLingo</Text>
             </View>
           </View>
-          
-          <Text style={styles.description}>
-            Transform your university notes into interactive learning experiences. 
-            Learn subject-specific vocabulary with AI-powered flashcards and exercises.
-          </Text>
-          
-          <TouchableOpacity 
-            style={styles.ctaButton}
-            onPress={() => navigation.navigate('OnboardingFlow' as never)}
-          >
-            <Text style={styles.ctaButtonText}>Start Learning Today</Text>
-            <Ionicons name="arrow-forward" size={20} color="#fff" />
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.loginLink}
-            onPress={() => navigation.navigate('Login' as never)}
-          >
-            <Text style={styles.loginLinkText}>
-              Already have an account? <Text style={styles.loginLinkBold}>Log in</Text>
+
+          {/* Content Overlay Card */}
+          <View style={styles.overlayCard}>
+            <View style={styles.titleContainer}>
+              <Text style={styles.mainTitle}>Master academic English</Text>
+              <View style={styles.taglineContainer}>
+                <Text style={styles.forText}>for</Text>
+                <Animated.Text style={[styles.flickerText, { opacity: fadeAnim }]}>
+                  {SUBJECTS[currentSubjectIndex]}
+                </Animated.Text>
+              </View>
+            </View>
+            
+            <Text style={styles.description}>
+              Transform your university notes into interactive learning experiences. 
+              Learn subject-specific vocabulary with AI-powered flashcards and exercises.
             </Text>
-          </TouchableOpacity>
-        </View>
+            
+            <TouchableOpacity 
+              style={styles.ctaButton}
+              onPress={() => navigation.navigate('OnboardingFlow' as never)}
+            >
+              <Text style={styles.ctaButtonText}>Start Learning Today</Text>
+              <Ionicons name="arrow-forward" size={20} color="#fff" />
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.loginLink}
+              onPress={() => navigation.navigate('Login' as never)}
+            >
+              <Text style={styles.loginLinkText}>
+                Already have an account? <Text style={styles.loginLinkBold}>Log in</Text>
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
       </ImageBackground>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -110,6 +112,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   backgroundImage: {
+    flex: 1,
+  },
+  safeArea: {
     flex: 1,
     justifyContent: 'space-between',
   },
