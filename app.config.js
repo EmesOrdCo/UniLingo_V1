@@ -20,7 +20,11 @@ export default {
       supportsTablet: true,
       infoPlist: {
         UIBackgroundModes: ["background-fetch", "background-processing"],
-        NSUserNotificationAlertStyle: "alert"
+        NSUserNotificationAlertStyle: "alert",
+        NSMicrophoneUsageDescription: "UniLingo uses the microphone for speech recognition and pronunciation practice to help you learn languages more effectively.",
+        NSSpeechRecognitionUsageDescription: "UniLingo uses speech recognition to analyze your pronunciation and provide feedback for language learning.",
+        NSDocumentReadUsageDescription: "UniLingo needs to access your documents to import PDF files and generate flashcards from your study materials.",
+        NSPhotoLibraryUsageDescription: "UniLingo may access your photo library to let you select images for your study materials."
       }
     },
     android: {

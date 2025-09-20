@@ -9,9 +9,9 @@ interface CacheEntry<T> {
 
 class ProgressCacheService {
   private static readonly CACHE_PREFIX = 'progress_cache_';
-  private static readonly DEFAULT_TTL = 5 * 60 * 1000; // 5 minutes in milliseconds
-  private static readonly STREAK_TTL = 2 * 60 * 1000; // 2 minutes for streaks (more dynamic)
-  private static readonly ACTIVITIES_TTL = 1 * 60 * 1000; // 1 minute for activities (most dynamic)
+  private static readonly DEFAULT_TTL = 10 * 60 * 1000; // 10 minutes in milliseconds
+  private static readonly STREAK_TTL = 5 * 60 * 1000; // 5 minutes for streaks (more dynamic)
+  private static readonly ACTIVITIES_TTL = 2 * 60 * 1000; // 2 minutes for activities (most dynamic)
 
   // Cache keys
   private static readonly KEYS = {

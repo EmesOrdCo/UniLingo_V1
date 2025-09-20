@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import ProgressCacheService from './progressCacheService';
+import MemoryCache from './memoryCache';
 import { ProgressInsights, HolisticProgressService } from './holisticProgressService';
 
 class OptimizedProgressService {
@@ -416,6 +417,7 @@ class OptimizedProgressService {
    */
   static async clearUserCache(userId: string): Promise<void> {
     await ProgressCacheService.clearUserCache(userId);
+    MemoryCache.clearUserCache(userId);
   }
 
   /**
@@ -424,6 +426,87 @@ class OptimizedProgressService {
   static async forceRefresh(userId: string): Promise<ProgressInsights | null> {
     await this.clearUserCache(userId);
     return await this.getProgressInsights(userId, true);
+  }
+
+  /**
+   * Prefetch progress data in background for faster loading
+   * Call this when the app starts or user navigates near the progress screen
+   */
+  static async prefetchProgressData(userId: string): Promise<void> {
+    try {
+      console.log('🚀 Prefetching progress data in background...');
+      
+      // Check if we already have fresh data
+      const isFresh = await ProgressCacheService.isCacheFresh(`progress_insights_${userId}`);
+      if (isFresh) {
+        console.log('📦 Progress data already fresh, skipping prefetch');
+        return;
+      }
+      
+      // Prefetch in background without blocking
+      this.fetchAndCacheProgressInsights(userId).catch(error => {
+        console.log('⚠️ Background prefetch failed (non-critical):', error);
+      });
+      
+      // Also prefetch study dates
+      this.getStudyDates(userId).catch(error => {
+        console.log('⚠️ Background prefetch of study dates failed (non-critical):', error);
+      });
+      
+    } catch (error) {
+      // Silent fail for prefetch
+      console.log('⚠️ Prefetch error (non-critical):', error);
+    }
+  }
+
+  /**
+   * Get progress insights with immediate cache return and background refresh
+   * This provides the fastest possible user experience
+   */
+  static async getProgressInsightsFast(userId: string): Promise<ProgressInsights | null> {
+    try {
+      const memoryKey = `progress_insights_${userId}`;
+      
+      // First, check memory cache for instant access
+      const memoryData = MemoryCache.get<ProgressInsights>(memoryKey);
+      if (memoryData) {
+        console.log('⚡ Returning data from memory cache (instant)');
+        return memoryData;
+      }
+      
+      // Second, check AsyncStorage cache
+      const cachedData = await ProgressCacheService.getProgressInsights(userId);
+      if (cachedData) {
+        console.log('📦 Returning cached progress data from storage');
+        
+        // Store in memory cache for next time
+        MemoryCache.set(memoryKey, cachedData);
+        
+        // Check if cache is stale and refresh in background
+        const isFresh = await ProgressCacheService.isCacheFresh(`progress_insights_${userId}`);
+        if (!isFresh) {
+          console.log('🔄 Refreshing stale data in background...');
+          this.refreshProgressInsightsInBackground(userId);
+        }
+        
+        return cachedData;
+      }
+      
+      // No cache available, fetch fresh data
+      console.log('🌐 No cache available, fetching fresh data...');
+      const freshData = await this.fetchAndCacheProgressInsights(userId);
+      
+      // Store in memory cache
+      if (freshData) {
+        MemoryCache.set(memoryKey, freshData);
+      }
+      
+      return freshData;
+      
+    } catch (error) {
+      console.error('Error getting fast progress insights:', error);
+      return null;
+    }
   }
 }
 

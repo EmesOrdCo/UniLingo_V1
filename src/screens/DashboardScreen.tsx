@@ -36,10 +36,12 @@ function OverviewTab() {
   
   console.log('🏠 DashboardScreen - selectedUnit from context:', selectedUnit);
 
-  // Load progress data
+  // Load progress data and prefetch for progress page
   useEffect(() => {
     if (user?.id) {
       loadProgressData();
+      // Prefetch progress data for faster progress page loading
+      OptimizedProgressService.prefetchProgressData(user.id);
     }
   }, [user?.id]);
 
@@ -53,7 +55,9 @@ function OverviewTab() {
   const loadProgressData = async (forceRefresh: boolean = false) => {
     try {
       setLoadingProgress(true);
-      const data = await OptimizedProgressService.getProgressInsights(user!.id, forceRefresh);
+      const data = forceRefresh 
+        ? await OptimizedProgressService.getProgressInsights(user!.id, true)
+        : await OptimizedProgressService.getProgressInsightsFast(user!.id);
       setProgressData(data);
     } catch (error) {
       console.error('Error loading progress data:', error);

@@ -70,7 +70,7 @@ export default function VoiceSettingsModal({
     try {
       // For OpenAI-based voice, we just need to check API key
       const apiKey = ENV.OPENAI_API_KEY;
-      if (apiKey && apiKey !== 'b214f483e4c5441a980832bf84db4501') {
+      if (apiKey && apiKey.startsWith('sk-') && apiKey.length > 20) {
         onVoiceToggle(true);
         Alert.alert('Success', 'OpenAI API key configured! Voice features enabled.');
       } else {

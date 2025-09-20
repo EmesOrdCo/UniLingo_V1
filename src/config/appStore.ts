@@ -4,17 +4,17 @@ import { Platform } from 'react-native';
 // Update these links when your app is published to the app stores
 
 export const APP_STORE_CONFIG = {
-  // iOS App Store
+  // iOS App Store - UPDATE THESE BEFORE PUBLISHING
   iOS: {
-    appStoreId: '1234567890', // Replace with your actual iOS App Store ID
-    appStoreUrl: 'https://apps.apple.com/app/unilingo/id1234567890', // Replace with actual URL
+    appStoreId: 'REPLACE_WITH_ACTUAL_APP_STORE_ID', // Get this from App Store Connect
+    appStoreUrl: 'REPLACE_WITH_ACTUAL_APP_STORE_URL', // Get this from App Store Connect
     appName: 'UniLingo',
   },
   
-  // Google Play Store
+  // Google Play Store - UPDATE THESE BEFORE PUBLISHING
   Android: {
-    packageName: 'com.unilingo.app', // Replace with your actual package name
-    playStoreUrl: 'https://play.google.com/store/apps/details?id=com.unilingo.app', // Replace with actual URL
+    packageName: 'REPLACE_WITH_ACTUAL_PACKAGE_NAME', // Update in app.json
+    playStoreUrl: 'REPLACE_WITH_ACTUAL_PLAY_STORE_URL', // Get this from Google Play Console
     appName: 'UniLingo',
   },
 };

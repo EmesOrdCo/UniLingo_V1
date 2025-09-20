@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -55,7 +55,7 @@ export default function ProgressPageScreen() {
     }, [user?.id])
   );
 
-  const loadProgressData = async (forceRefresh: boolean = false) => {
+  const loadProgressData = useCallback(async (forceRefresh: boolean = false) => {
     try {
       setLoading(true);
       setError(null); // Clear any previous errors
@@ -67,31 +67,53 @@ export default function ProgressPageScreen() {
         await OptimizedProgressService.clearUserCache(user!.id);
       }
       
-      // Use optimized service with caching
-      let data = await OptimizedProgressService.getProgressInsights(user!.id, forceRefresh);
+      // Parallelize data loading for faster performance
+      const [data, dates, userLessons] = await Promise.allSettled([
+        forceRefresh 
+          ? OptimizedProgressService.getProgressInsights(user!.id, true)
+          : OptimizedProgressService.getProgressInsightsFast(user!.id),
+        OptimizedProgressService.getStudyDates(user!.id),
+        LessonService.getUserLessonsWithProgress(user!.id)
+      ]);
+      
+      // Handle progress insights
+      let progressInsights = null;
+      if (data.status === 'fulfilled') {
+        progressInsights = data.value;
+      } else {
+        console.error('Error loading progress insights:', data.reason);
+      }
       
       // If no data exists, initialize user progress
-      if (!data) {
+      if (!progressInsights) {
         console.log('No progress data found, initializing user progress...');
         try {
           await HolisticProgressService.initializeUserProgress(user!.id);
-          data = await OptimizedProgressService.getProgressInsights(user!.id, true);
+          progressInsights = await OptimizedProgressService.getProgressInsights(user!.id, true);
         } catch (initError) {
           console.error('Error initializing user progress:', initError);
           // Continue with empty data if initialization fails
         }
       }
       
-      // Load study dates for calendar (also cached)
-      const dates = await OptimizedProgressService.getStudyDates(user!.id);
-      setStudyDates(dates);
+      // Handle study dates
+      if (dates.status === 'fulfilled') {
+        setStudyDates(dates.value);
+      } else {
+        console.error('Error loading study dates:', dates.reason);
+        setStudyDates([]);
+      }
       
-      // Load lessons count (same logic as YourLessonsScreen)
-      const userLessons = await LessonService.getUserLessonsWithProgress(user!.id);
-      setLessonsCount(userLessons.length);
+      // Handle lessons count
+      if (userLessons.status === 'fulfilled') {
+        setLessonsCount(userLessons.value.length);
+      } else {
+        console.error('Error loading lessons:', userLessons.reason);
+        setLessonsCount(0);
+      }
       
       // Ensure we always have some data structure
-      const finalData = data || {
+      const finalData = progressInsights || {
         currentStreak: 0,
         longestStreak: 0,
         todayProgress: null,
@@ -131,13 +153,13 @@ export default function ProgressPageScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
-  const onRefresh = async () => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await loadProgressData(true); // Force refresh when user pulls to refresh
     setRefreshing(false);
-  };
+  }, [loadProgressData]);
 
   const formatTime = (minutes: number) => {
     if (minutes < 60) return `${minutes}m`;
@@ -176,13 +198,38 @@ export default function ProgressPageScreen() {
     }
   };
 
-  if (loading) {
+  // Skeleton loading component
+  const SkeletonCard = ({ width = '100%', height = 80 }: { width?: string | number, height?: number }) => (
+    <View style={[styles.skeletonCard, { width, height }]}>
+      <View style={styles.skeletonShimmer} />
+    </View>
+  );
+
+  if (loading && !progressData) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#6366f1" />
-          <Text style={styles.loadingText}>Loading your progress...</Text>
-        </View>
+        <ConsistentHeader pageName="Progress" />
+        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+          <View style={styles.skeletonContainer}>
+            {/* Streak cards skeleton */}
+            <View style={styles.streakRow}>
+              <SkeletonCard width="48%" height={100} />
+              <SkeletonCard width="48%" height={100} />
+            </View>
+            
+            {/* Today's progress skeleton */}
+            <SkeletonCard height={120} />
+            
+            {/* Level progress skeleton */}
+            <SkeletonCard height={100} />
+            
+            {/* Flashcard stats skeleton */}
+            <SkeletonCard height={140} />
+            
+            {/* Calendar skeleton */}
+            <SkeletonCard height={200} />
+          </View>
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -988,6 +1035,26 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 14,
     fontWeight: '500',
+  },
+  
+  // Skeleton loading styles
+  skeletonContainer: {
+    padding: 16,
+  },
+  skeletonCard: {
+    backgroundColor: '#f8fafc',
+    borderRadius: 12,
+    marginBottom: 16,
+    overflow: 'hidden',
+  },
+  skeletonShimmer: {
+    flex: 1,
+    backgroundColor: '#e2e8f0',
+    opacity: 0.7,
+  },
+  streakRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
   },
 });
 

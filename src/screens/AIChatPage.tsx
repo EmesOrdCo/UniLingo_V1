@@ -87,7 +87,7 @@ export default function AIChatPage() {
       // For OpenAI-based voice, we don't need special permissions
       // Just check if API key is available
       const apiKey = ENV.OPENAI_API_KEY;
-      if (apiKey && apiKey !== 'b214f483e4c5441a980832bf84db4501') {
+      if (apiKey && apiKey.startsWith('sk-') && apiKey.length > 20) {
         setVoiceEnabled(true);
         setSpeechPermission(true);
         console.log('✅ OpenAI voice capabilities initialized');
@@ -162,10 +162,10 @@ export default function AIChatPage() {
           hasApiKey: !!apiKey,
           apiKeyLength: apiKey?.length,
           apiKeyStartsWith: apiKey?.substring(0, 10) + '...',
-          isOldKey: apiKey === 'b214f483e4c5441a980832bf84db4501'
+          isValidKey: apiKey?.startsWith('sk-') && apiKey.length > 20
         });
         
-        if (!apiKey || apiKey === 'b214f483e4c5441a980832bf84db4501') {
+        if (!apiKey || !apiKey.startsWith('sk-') || apiKey.length < 20) {
           throw new Error('OpenAI API key not properly configured. Please check your environment variables.');
         }
 
