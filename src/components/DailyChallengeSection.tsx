@@ -123,7 +123,7 @@ const DailyChallengeSection: React.FC<DailyChallengeSectionProps> = ({ onPlay })
               </TouchableOpacity>
             </View>
             <View style={styles.iconContainer}>
-              <Ionicons name="flame" size={36} color="#6366f1" />
+              <Ionicons name="flame" size={36} color="#8b5cf6" />
             </View>
           </View>
         </View>
@@ -150,8 +150,8 @@ const styles = StyleSheet.create({
   },
   backgroundGradient: {
     flex: 1,
-    backgroundColor: '#e0e7ff',
-    backgroundImage: 'radial-gradient(120% 100% at -10% -20%, #f1f5f9 0%, #e0e7ff 40%, #c7d2fe 70%)',
+    backgroundColor: '#f3e8ff',
+    backgroundImage: 'radial-gradient(120% 100% at -10% -20%, #faf5ff 0%, #f3e8ff 40%, #e9d5ff 70%)',
   },
   completedBackgroundGradient: {
     flex: 1,
@@ -187,7 +187,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   ctaButton: {
-    backgroundColor: '#6366f1',
+    backgroundColor: '#8b5cf6',
     paddingHorizontal: 80,
     paddingVertical: 12,
     borderRadius: 20,
