@@ -322,74 +322,6 @@ export default function ProgressPageScreen() {
           </View>
         </View>
 
-        {/* Learning Stats Section */}
-        <View style={styles.learningStatsSection}>
-          <View style={styles.sectionTitleContainer}>
-            <Ionicons name="trending-up" size={24} color="#6366f1" />
-            <Text style={styles.sectionTitle}>Learning Stats</Text>
-          </View>
-          <View style={styles.learningStatsGrid}>
-            <View style={styles.learningStatCard}>
-              <Text style={styles.learningStatNumber}>
-                {progressData?.recentActivities?.filter(activity => 
-                  activity.activity_type === 'lesson' && activity.completed_at
-                ).length || 0}
-              </Text>
-              <Text style={styles.learningStatLabel}>Complete lessons</Text>
-            </View>
-            <View style={styles.learningStatCard}>
-              <Text style={styles.learningStatNumber}>
-                {lessonsCount}
-              </Text>
-              <Text style={styles.learningStatLabel}>Lessons made</Text>
-            </View>
-            <View style={styles.learningStatCard}>
-              <Text style={styles.learningStatNumber}>
-                {progressData?.flashcardStats?.masteredCards || 0}
-              </Text>
-              <Text style={styles.learningStatLabel}>Complete flashcards</Text>
-            </View>
-            <View style={styles.learningStatCard}>
-              <Text style={styles.learningStatNumber}>
-                {(() => {
-                  const totalMinutes = progressData?.recentActivities?.reduce((total, activity) => {
-                    return total + Math.round(activity.duration_seconds / 60);
-                  }, 0) || 0;
-                  return totalMinutes < 60 ? `${totalMinutes} min` : `${Math.floor(totalMinutes / 60)}h ${totalMinutes % 60}m`;
-                })()}
-              </Text>
-              <Text style={styles.learningStatLabel}>Learning time</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Your Courses Section */}
-        <View style={styles.coursesSection}>
-          <View style={styles.sectionTitleContainer}>
-            <Ionicons name="book" size={24} color="#6366f1" />
-            <Text style={styles.sectionTitle}>Your Courses</Text>
-          </View>
-          <View style={styles.courseCard}>
-            <View style={styles.courseInfo}>
-              <Text style={styles.courseLevel}>A1.1</Text>
-              <Text style={styles.courseName}>Newcomer I (A1.1)</Text>
-            </View>
-            <View style={styles.courseBadge}>
-              <Text style={styles.courseBadgeText}>A1</Text>
-            </View>
-            <View style={styles.courseProgress}>
-              <View style={styles.courseProgressBar}>
-                <View style={[
-                  styles.courseProgressFill, 
-                  { width: `${Math.min(100, (progressData?.levelProgress.progressPercentage || 0))}%` }
-                ]} />
-              </View>
-              <Text style={styles.courseProgressText}>
-                {Math.min(100, (progressData?.levelProgress.progressPercentage || 0))}%
-              </Text>
-            </View>
-          </View>
-        </View>
 
         {/* Your Vocabulary Section - Hidden for now, keeping code for future use */}
         {false && (
@@ -564,74 +496,6 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
-  coursesSection: {
-    paddingHorizontal: 20,
-    paddingVertical: 20,
-  },
-  courseCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    padding: 20,
-    marginHorizontal: 0,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  courseInfo: {
-    marginBottom: 16,
-  },
-  courseLevel: {
-    fontSize: 14,
-    color: '#64748b',
-    marginBottom: 4,
-  },
-  courseName: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1e293b',
-  },
-  courseBadge: {
-    position: 'absolute',
-    top: 20,
-    right: 20,
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: '#1e293b',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  courseBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#1e293b',
-  },
-  courseProgress: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  courseProgressBar: {
-    flex: 1,
-    height: 4,
-    backgroundColor: '#e2e8f0',
-    borderRadius: 2,
-    overflow: 'hidden',
-  },
-  courseProgressFill: {
-    height: '100%',
-    backgroundColor: '#6366f1',
-    borderRadius: 2,
-  },
-  courseProgressText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1e293b',
-  },
   vocabularySection: {
     paddingHorizontal: 20,
     paddingVertical: 20,
@@ -710,50 +574,16 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: '#64748b',
   },
-  learningStatsSection: {
-    paddingHorizontal: 20,
-    paddingVertical: 20,
-  },
-  flashcardsProgressSection: {
-    paddingHorizontal: 20,
-    paddingVertical: 20,
-  },
-  learningStatsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  learningStatCard: {
-    width: '48%',
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    padding: 20,
-    alignItems: 'center',
-    marginHorizontal: 0,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  learningStatNumber: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#1e293b',
-    marginBottom: 8,
-  },
-  learningStatLabel: {
-    fontSize: 14,
-    color: '#64748b',
-    textAlign: 'center',
-  },
   calendarSection: {
     paddingHorizontal: 20,
     paddingVertical: 20,
   },
   calendarWrapper: {
     // marginTop removed - now handled by sectionTitleContainer marginBottom
+  },
+  flashcardsProgressSection: {
+    paddingHorizontal: 20,
+    paddingVertical: 20,
   },
   levelSection: {
     paddingHorizontal: 20,

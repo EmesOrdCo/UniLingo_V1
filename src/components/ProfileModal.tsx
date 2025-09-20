@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Modal, Image, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Modal, Image, Alert, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../contexts/AuthContext';
@@ -103,6 +103,22 @@ export default function ProfileModal({ visible, onClose }: ProfileModalProps) {
     }
   };
 
+  const handleManageAccount = async () => {
+    try {
+      const manageAccountUrl = 'https://unilingo.co.uk/manage-account';
+      
+      const supported = await Linking.canOpenURL(manageAccountUrl);
+      if (supported) {
+        await Linking.openURL(manageAccountUrl);
+      } else {
+        Alert.alert('Error', 'Cannot open manage account page');
+      }
+    } catch (error) {
+      console.error('Error opening manage account:', error);
+      Alert.alert('Error', 'Failed to open manage account page');
+    }
+  };
+
   return (
     <Modal
       visible={visible}
@@ -159,6 +175,13 @@ export default function ProfileModal({ visible, onClose }: ProfileModalProps) {
             <TouchableOpacity style={styles.profileActionButton}>
               <Ionicons name="settings" size={20} color="#6366f1" />
               <Text style={styles.profileActionText}>Settings</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.profileActionButton}
+              onPress={handleManageAccount}
+            >
+              <Ionicons name="shield-checkmark" size={20} color="#6366f1" />
+              <Text style={styles.profileActionText}>Manage your account</Text>
             </TouchableOpacity>
             <TouchableOpacity 
               style={[styles.profileActionButton, styles.signOutButton]}

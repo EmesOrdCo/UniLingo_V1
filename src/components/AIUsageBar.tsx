@@ -27,6 +27,8 @@ const AIUsageBar: React.FC = () => {
       setSpendingPercentage(percentage);
     } catch (error) {
       console.error('Error loading token usage:', error);
+      // Set to 0 if there's an error - this is non-critical functionality
+      setSpendingPercentage(0);
     } finally {
       setLoading(false);
     }

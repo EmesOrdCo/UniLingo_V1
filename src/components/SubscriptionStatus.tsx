@@ -84,13 +84,31 @@ export default function SubscriptionStatus({ onUpgrade }: SubscriptionStatusProp
         )}
       </View>
 
-      {currentPlan?.expiresAt && (
+      {currentPlan?.renewalDate && (
         <View style={styles.expiryContainer}>
           <Text style={styles.expiryLabel}>
             {isTrial ? 'Trial expires:' : 'Renews:'}
           </Text>
           <Text style={styles.expiryDate}>
-            {currentPlan.expiresAt.toLocaleDateString()}
+            {currentPlan.renewalDate.toLocaleDateString()}
+          </Text>
+        </View>
+      )}
+
+      {currentPlan?.cost && (
+        <View style={styles.costContainer}>
+          <Text style={styles.costLabel}>Cost:</Text>
+          <Text style={styles.costAmount}>
+            ${currentPlan.cost}/{currentPlan.planType === 'yearly' ? 'year' : 'month'}
+          </Text>
+        </View>
+      )}
+
+      {currentPlan?.planType && (
+        <View style={styles.planTypeContainer}>
+          <Text style={styles.planTypeLabel}>Plan:</Text>
+          <Text style={styles.planTypeText}>
+            {currentPlan.planType === 'yearly' ? 'Annual' : 'Monthly'} Billing
           </Text>
         </View>
       )}
@@ -107,11 +125,6 @@ export default function SubscriptionStatus({ onUpgrade }: SubscriptionStatusProp
             <Text style={styles.featureText}>{feature}</Text>
           </View>
         ))}
-        {currentPlan?.features.length > 3 && (
-          <Text style={styles.moreFeaturesText}>
-            +{currentPlan.features.length - 3} more features
-          </Text>
-        )}
       </View>
     </View>
   );
@@ -197,6 +210,44 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#1f2937',
   },
+  costContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: '#f0f9ff',
+    borderRadius: 8,
+  },
+  costLabel: {
+    fontSize: 14,
+    color: '#6b7280',
+  },
+  costAmount: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1f2937',
+  },
+  planTypeContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: '#f0fdf4',
+    borderRadius: 8,
+  },
+  planTypeLabel: {
+    fontSize: 14,
+    color: '#6b7280',
+  },
+  planTypeText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1f2937',
+  },
   featuresContainer: {
     marginTop: 8,
   },
@@ -216,12 +267,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#6b7280',
     flex: 1,
-  },
-  moreFeaturesText: {
-    fontSize: 12,
-    color: '#9ca3af',
-    fontStyle: 'italic',
-    marginTop: 4,
   },
   loadingText: {
     fontSize: 14,

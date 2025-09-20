@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { useSelectedUnit } from '../contexts/SelectedUnitContext';
+import { DailyChallengeService, DailyChallenge } from '../lib/dailyChallengeService';
 
 interface DailyChallengeBoxProps {
   refreshTrigger?: number;
@@ -86,38 +87,76 @@ const DAILY_CHALLENGES = [
 ];
 
 export default function DailyChallengeBox({ refreshTrigger }: DailyChallengeBoxProps) {
-  const [todaysChallenge, setTodaysChallenge] = useState(DAILY_CHALLENGES[0]);
+  const [challenge, setChallenge] = useState<DailyChallenge | null>(null);
   const [isCompleted, setIsCompleted] = useState(false);
   const [isLaunching, setIsLaunching] = useState(false);
+  const [loading, setLoading] = useState(true);
   const navigation = useNavigation();
   const { user } = useAuth();
   const { selectedUnit } = useSelectedUnit();
 
-  // Calculate today's challenge based on current date
+  // Load today's challenge
   useEffect(() => {
-    const today = new Date();
-    // Use a more reliable method to calculate day of year
-    const start = new Date(today.getFullYear(), 0, 0);
-    const diff = today.getTime() - start.getTime();
-    const dayOfYear = Math.floor(diff / (1000 * 60 * 60 * 24));
-    
-    // Ensure we get a different challenge each day
-    const challengeIndex = dayOfYear % DAILY_CHALLENGES.length;
-    const selectedChallenge = DAILY_CHALLENGES[challengeIndex];
-    
-    console.log(`🎯 Daily Challenge: Day ${dayOfYear} -> Challenge ${challengeIndex} (${selectedChallenge.title})`);
-    setTodaysChallenge(selectedChallenge);
-    
-    // Check if challenge is completed (could be implemented with AsyncStorage or backend)
-    // For now, we'll just simulate it based on a simple check
-    const completionKey = `daily_challenge_${today.toDateString()}_${selectedChallenge.id}`;
-    // You could use AsyncStorage here: AsyncStorage.getItem(completionKey)
-    setIsCompleted(false);
-  }, [refreshTrigger]);
+    if (user?.id) {
+      loadTodaysChallenge();
+    }
+  }, [user?.id, refreshTrigger]);
+
+  const loadTodaysChallenge = async () => {
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      console.log('🎯 Loading today\'s daily challenge...');
+      
+      // Get today's challenge
+      let todaysChallenge = await DailyChallengeService.getTodaysChallenge(user.id);
+      
+      // Create challenge if it doesn't exist
+      if (!todaysChallenge) {
+        console.log('🎯 No challenge found, creating new one...');
+        todaysChallenge = await DailyChallengeService.createTodaysChallenge(user.id);
+      }
+      
+      if (todaysChallenge) {
+        console.log('🎯 Daily Challenge loaded:', {
+          gameType: todaysChallenge.game_type,
+          completed: todaysChallenge.completed,
+          xpReward: todaysChallenge.xp_reward
+        });
+        
+        setChallenge(todaysChallenge);
+        setIsCompleted(todaysChallenge.completed);
+      } else {
+        console.error('❌ Failed to load or create daily challenge');
+        setChallenge(null);
+        setIsCompleted(false);
+      }
+    } catch (error) {
+      console.error('❌ Error loading daily challenge:', error);
+      setChallenge(null);
+      setIsCompleted(false);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleChallengePress = async () => {
     if (!user) {
       Alert.alert('Error', 'Please log in first.');
+      return;
+    }
+
+    if (!challenge) {
+      Alert.alert('Error', 'No challenge available today.');
+      return;
+    }
+
+    if (isCompleted) {
+      Alert.alert('Challenge Complete!', 'You\'ve already completed today\'s challenge. Come back tomorrow for a new one!');
       return;
     }
 
@@ -126,17 +165,17 @@ export default function DailyChallengeBox({ refreshTrigger }: DailyChallengeBoxP
     try {
       // Navigate to Games screen with launchGame parameter to directly start the game
       const gameMapping = {
-        'flashcard_quiz': 'Flashcard Quiz',
-        'gravity_game': 'Planet Defense',
-        'hangman': 'Hangman',
-        'memory_match': 'Memory Match',
-        'sentence_scramble': 'Sentence Scramble',
-        'speed_challenge': 'Speed Challenge',
-        'type_what_you_hear': 'Listen & Type',
-        'word_scramble': 'Word Scramble'
+        'Flashcard Quiz': 'Flashcard Quiz',
+        'Memory Match': 'Memory Match',
+        'Word Scramble': 'Word Scramble',
+        'Hangman': 'Hangman',
+        'Speed Challenge': 'Speed Challenge',
+        'Planet Defense': 'Planet Defense',
+        'Listen & Type': 'Listen & Type',
+        'Sentence Scramble': 'Sentence Scramble'
       };
 
-      if (todaysChallenge.id === 'daily_vocab') {
+      if (challenge.game_type === 'Daily Vocabulary') {
         // For daily vocab, navigate to vocabulary section
         if (selectedUnit) {
           navigation.navigate('UnitWords' as never, {
@@ -151,13 +190,16 @@ export default function DailyChallengeBox({ refreshTrigger }: DailyChallengeBoxP
         }
       } else {
         // For games, navigate to Games screen with launch parameter
-        const gameName = gameMapping[todaysChallenge.id];
+        const gameName = gameMapping[challenge.game_type];
         if (gameName) {
+          const gameOptions = getDefaultGameOptions(challenge.game_type);
+          console.log('🎯 Daily Challenge - Launching game:', gameName, 'with options:', gameOptions);
+          
           navigation.navigate('Games' as never, {
             launchGame: gameName,
             isDailyChallenge: true,
-            // Pass default game options for instant play
-            gameOptions: getDefaultGameOptions(todaysChallenge.id)
+            challengeId: challenge.challenge_date, // Pass challenge ID for completion tracking
+            gameOptions: gameOptions
           });
         } else {
           Alert.alert('Coming Soon', 'This challenge will be available soon!');
@@ -173,54 +215,54 @@ export default function DailyChallengeBox({ refreshTrigger }: DailyChallengeBoxP
   };
 
   // Get default game options for instant play
-  const getDefaultGameOptions = (gameId: string) => {
-    switch (gameId) {
-      case 'flashcard_quiz':
+  const getDefaultGameOptions = (gameType: string) => {
+    switch (gameType) {
+      case 'Flashcard Quiz':
         return {
           questionCount: 10,
-          languageMode: 'english',
+          languageMode: 'mixed',
           selectedTopic: 'All Topics',
           difficulty: 'all'
         };
-      case 'gravity_game':
+      case 'Planet Defense':
         return {
           difficulty: 'all',
           gravitySpeed: 1.0,
           selectedTopic: 'All Topics'
         };
-      case 'hangman':
+      case 'Hangman':
         return {
           wordCount: 10,
           difficulty: 'all',
           maxGuesses: 6,
           selectedTopic: 'All Topics'
         };
-      case 'memory_match':
+      case 'Memory Match':
         return {
           pairCount: 6,
           difficulty: 'all',
           selectedTopic: 'All Topics'
         };
-      case 'sentence_scramble':
+      case 'Sentence Scramble':
         return {
           sentenceCount: 10,
           difficulty: 'all',
           selectedTopic: 'All Topics'
         };
-      case 'speed_challenge':
+      case 'Speed Challenge':
         return {
           questionCount: 15,
           timeLimit: 60,
           difficulty: 'all',
           selectedTopic: 'All Topics'
         };
-      case 'type_what_you_hear':
+      case 'Listen & Type':
         return {
           wordCount: 10,
           difficulty: 'all',
           selectedTopic: 'All Topics'
         };
-      case 'word_scramble':
+      case 'Word Scramble':
         return {
           wordCount: 10,
           difficulty: 'all',
@@ -228,6 +270,22 @@ export default function DailyChallengeBox({ refreshTrigger }: DailyChallengeBoxP
         };
       default:
         return {};
+    }
+  };
+
+  // Get icon for game type
+  const getGameIcon = (gameType: string) => {
+    switch (gameType) {
+      case 'Flashcard Quiz': return 'help-circle';
+      case 'Memory Match': return 'grid';
+      case 'Word Scramble': return 'text';
+      case 'Hangman': return 'game-controller';
+      case 'Speed Challenge': return 'timer';
+      case 'Planet Defense': return 'planet';
+      case 'Listen & Type': return 'headset';
+      case 'Sentence Scramble': return 'shuffle';
+      case 'Daily Vocabulary': return 'book';
+      default: return 'trophy';
     }
   };
 
@@ -239,64 +297,82 @@ export default function DailyChallengeBox({ refreshTrigger }: DailyChallengeBoxP
           <Ionicons name="trophy" size={20} color="#8b5cf6" />
           <Text style={styles.headerTitle}>Daily Challenge</Text>
         </View>
-      </View>
-
-      {/* Challenge Card */}
-      <TouchableOpacity 
-        style={[styles.challengeCard, { borderLeftColor: todaysChallenge.color }]}
-        onPress={handleChallengePress}
-        disabled={isCompleted || isLaunching}
-      >
-        <View style={styles.challengeContent}>
-          <View style={styles.challengeLeft}>
-            <View style={[styles.iconContainer, { backgroundColor: todaysChallenge.color }]}>
-              <Ionicons 
-                name={todaysChallenge.icon} 
-                size={24} 
-                color="#ffffff" 
-              />
-            </View>
-            <View style={styles.challengeInfo}>
-              <Text style={styles.challengeTitle}>{todaysChallenge.title}</Text>
-              <Text style={styles.challengeDescription}>{todaysChallenge.description}</Text>
-            </View>
-          </View>
-          
-          <View style={styles.challengeRight}>
-            {isCompleted ? (
-              <View style={styles.completedBadge}>
-                <Ionicons name="checkmark-circle" size={20} color="#10b981" />
-                <Text style={styles.completedText}>Done!</Text>
-              </View>
-            ) : (
-              <View style={styles.playButton}>
-                <Ionicons 
-                  name={isLaunching ? "hourglass" : "play"} 
-                  size={16} 
-                  color="#8b5cf6" 
-                />
-              </View>
-            )}
-          </View>
-        </View>
-
-        {/* Progress indicator */}
-        {!isCompleted && (
-          <View style={styles.progressContainer}>
-            <View style={styles.progressBar}>
-              <View style={[styles.progressFill, { backgroundColor: todaysChallenge.color, width: '0%' }]} />
-            </View>
-            <Text style={styles.progressText}>
-              {isLaunching ? 'Launching challenge...' : "Start today's challenge"}
-            </Text>
+        {isCompleted && (
+          <View style={styles.completedBadge}>
+            <Ionicons name="checkmark-circle" size={16} color="#10b981" />
+            <Text style={styles.completedText}>Done!</Text>
           </View>
         )}
-      </TouchableOpacity>
+      </View>
 
-      {/* Daily rotation info */}
-      <Text style={styles.rotationInfo}>
-        🔄 Challenge changes daily • {todaysChallenge.type === 'game' ? 'Game' : 'Vocabulary'} focus today
-      </Text>
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingText}>Loading today's challenge...</Text>
+        </View>
+      ) : !challenge ? (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>No challenge available today</Text>
+        </View>
+      ) : (
+        <>
+          {/* Challenge Card */}
+          <TouchableOpacity 
+            style={[styles.challengeCard, { borderLeftColor: '#8b5cf6' }]}
+            onPress={handleChallengePress}
+            disabled={isCompleted || isLaunching}
+          >
+            <View style={styles.challengeContent}>
+              <View style={styles.challengeLeft}>
+                <View style={[styles.iconContainer, { backgroundColor: '#8b5cf6' }]}>
+                  <Ionicons 
+                    name={getGameIcon(challenge.game_type)} 
+                    size={24} 
+                    color="#ffffff" 
+                  />
+                </View>
+                <View style={styles.challengeInfo}>
+                  <Text style={styles.challengeTitle}>{challenge.game_type}</Text>
+                  <Text style={styles.challengeDescription}>
+                    {isCompleted 
+                      ? `Completed! +${challenge.xp_reward} XP earned`
+                      : `Complete to earn ${challenge.xp_reward} bonus XP`
+                    }
+                  </Text>
+                </View>
+              </View>
+              
+              <View style={styles.challengeRight}>
+                {isCompleted ? (
+                  <View style={styles.completedBadge}>
+                    <Ionicons name="checkmark-circle" size={20} color="#10b981" />
+                    <Text style={styles.completedText}>Done!</Text>
+                  </View>
+                ) : (
+                  <View style={styles.playButton}>
+                    <Ionicons 
+                      name={isLaunching ? "hourglass" : "play"} 
+                      size={16} 
+                      color="#8b5cf6" 
+                    />
+                  </View>
+                )}
+              </View>
+            </View>
+
+            {/* Progress indicator */}
+            {!isCompleted && (
+              <View style={styles.progressContainer}>
+                <View style={styles.progressBar}>
+                  <View style={[styles.progressFill, { backgroundColor: '#8b5cf6', width: '0%' }]} />
+                </View>
+                <Text style={styles.progressText}>
+                  {isLaunching ? 'Launching challenge...' : "Start today's challenge"}
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </>
+      )}
     </View>
   );
 }
@@ -422,10 +498,26 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     fontWeight: '500',
   },
-  rotationInfo: {
-    fontSize: 12,
-    color: '#9ca3af',
-    textAlign: 'center',
+  loadingContainer: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 14,
+    color: '#6b7280',
     fontStyle: 'italic',
+  },
+  errorContainer: {
+    padding: 20,
+    alignItems: 'center',
+    backgroundColor: '#fef2f2',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#fecaca',
+  },
+  errorText: {
+    fontSize: 14,
+    color: '#dc2626',
+    textAlign: 'center',
   },
 });

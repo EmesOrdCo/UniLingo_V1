@@ -34,10 +34,7 @@ export class SimpleTokenTracker {
         .eq('id', userId)
         .maybeSingle(); // Use maybeSingle() instead of single() for new users
 
-      if (error) {
-        console.error('Error getting current usage:', error);
-        return { inputTokens: 0, outputTokens: 0 };
-      }
+      if (error) throw error;
 
       // If no data found (new user), return zeros
       if (!data) {
@@ -51,7 +48,7 @@ export class SimpleTokenTracker {
       };
     } catch (error) {
       console.error('Error getting current usage:', error);
-      return { inputTokens: 0, outputTokens: 0 };
+      throw error;
     }
   }
 
@@ -68,7 +65,7 @@ export class SimpleTokenTracker {
       return data || 0;
     } catch (error) {
       console.error('Error calculating spending percentage:', error);
-      return 0;
+      throw error;
     }
   }
 
@@ -132,10 +129,7 @@ export class SimpleTokenTracker {
         .eq('id', userId)
         .maybeSingle(); // Use maybeSingle() for new users
 
-      if (error) {
-        console.error('Error checking reset date:', error);
-        return;
-      }
+      if (error) throw error;
 
       // If no data found (new user), skip reset check
       if (!data?.account_created_date) {
@@ -153,6 +147,7 @@ export class SimpleTokenTracker {
       }
     } catch (error) {
       console.error('Error checking reset date:', error);
+      throw error;
     }
   }
 }

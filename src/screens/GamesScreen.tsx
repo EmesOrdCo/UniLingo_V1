@@ -48,6 +48,7 @@ import ConsistentHeader from '../components/ConsistentHeader';
 import FavouritesSection from '../components/FavouritesSection';
 import HorizontalGamesSection from '../components/HorizontalGamesSection';
 import GameStatsSection from '../components/GameStatsSection';
+import { DailyChallengeService } from '../lib/dailyChallengeService';
 import FlashcardQuizGame from '../components/games/FlashcardQuizGame';
 import LessonSentenceScramble from '../components/lesson/LessonSentenceScramble';
 import WordScrambleGame from '../components/games/WordScrambleGame';
@@ -293,40 +294,58 @@ export default function GamesScreen({ route }: { route?: any }) {
   useEffect(() => {
     if (launchGame && flashcards.length > 0 && !isLoading) {
       console.log('🚀 Auto-launching game from daily challenge:', launchGame);
+      console.log('🎯 Route params:', route?.params);
       
       // Get default options from route params or use defaults
       const gameOptions = route?.params?.gameOptions || {};
+      console.log('🎮 Game options received:', gameOptions);
       
       // Auto-launch the game with default settings
       setTimeout(() => {
         switch (launchGame) {
           case 'Flashcard Quiz':
+            console.log('🎯 Launching Flashcard Quiz with options:', gameOptions);
             handleFlashcardQuizSetupComplete(gameOptions);
             break;
           case 'Memory Match':
+            console.log('🎯 Launching Memory Match with options:', gameOptions);
             handleMemoryMatchSetupComplete(gameOptions);
             break;
           case 'Word Scramble':
+            console.log('🎯 Launching Word Scramble with options:', gameOptions);
             handleWordScrambleSetupComplete(gameOptions);
             break;
           case 'Hangman':
+            console.log('🎯 Launching Hangman with options:', gameOptions);
             handleHangmanSetupComplete(gameOptions);
             break;
           case 'Speed Challenge':
+            console.log('🎯 Launching Speed Challenge with options:', gameOptions);
             handleSpeedChallengeSetupComplete(gameOptions);
             break;
           case 'Planet Defense':
+            console.log('🎯 Launching Planet Defense with options:', gameOptions);
             handleGravityGameSetupComplete(gameOptions);
             break;
           case 'Listen & Type':
+            console.log('🎯 Launching Listen & Type with options:', gameOptions);
             handleTypeWhatYouHearSetupComplete(gameOptions);
             break;
           case 'Sentence Scramble':
+            console.log('🎯 Launching Sentence Scramble with options:', gameOptions);
             handleSentenceScrambleSetupComplete(gameOptions);
             break;
           default:
             console.warn('Unknown game type for auto-launch:', launchGame);
         }
+        
+        // Clear the launch parameters to prevent re-triggering on subsequent visits
+        console.log('🧹 Clearing launch parameters to prevent re-triggering');
+        navigation.setParams({
+          launchGame: undefined,
+          gameOptions: undefined,
+          isDailyChallenge: undefined
+        });
       }, 500); // Small delay to ensure everything is loaded
     }
   }, [launchGame, flashcards.length, isLoading]);
@@ -1336,6 +1355,22 @@ export default function GamesScreen({ route }: { route?: any }) {
           }
         } catch (xpError) {
           console.error('❌ Error awarding XP:', xpError);
+        }
+      }
+
+      // Handle daily challenge completion
+      const isDailyChallenge = route?.params?.isDailyChallenge;
+      if (isDailyChallenge && user?.id) {
+        try {
+          console.log('🎯 Daily challenge completed! Marking as complete...');
+          const challengeCompleted = await DailyChallengeService.completeChallenge(user.id, gameName);
+          if (challengeCompleted) {
+            console.log('✅ Daily challenge marked as completed!');
+          } else {
+            console.log('⚠️ Daily challenge completion failed or already completed');
+          }
+        } catch (challengeError) {
+          console.error('❌ Error completing daily challenge:', challengeError);
         }
       }
 

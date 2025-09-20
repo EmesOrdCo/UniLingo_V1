@@ -80,6 +80,11 @@ const faqData: FAQItem[] = [
     id: '15',
     question: 'What should I do if I\'m having technical issues?',
     answer: 'If you\'re experiencing technical problems, try restarting the app first. If issues persist, use the "Contact Support" feature in your Profile page to reach our support team with details about your problem.'
+  },
+  {
+    id: '16',
+    question: 'How to cancel subscription?',
+    answer: 'To cancel your subscription, go to Settings in your Profile page, then tap "Manage your account". This will open the UniLingo website where you can cancel your subscription. You will continue to have access to premium features until the end of your current billing period.'
   }
 ];
 

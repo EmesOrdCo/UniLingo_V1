@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, Image } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, Image, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -8,7 +8,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { useProfilePicture } from '../contexts/ProfilePictureContext';
 import { HolisticProgressService } from '../lib/holisticProgressService';
 import { ProfilePictureService } from '../lib/profilePictureService';
-import { DeleteAccountService } from '../lib/deleteAccountService';
 import ShareInvitationModal from '../components/ShareInvitationModal';
 import ProfileAvatar from '../components/ProfileAvatar';
 import ContactSupportModal from '../components/ContactSupportModal';
@@ -147,107 +146,23 @@ export default function ProfilePage() {
     );
   };
 
-  const handleDeleteAccount = async () => {
-    if (!user?.id) {
-      Alert.alert('Error', 'User not authenticated');
-      return;
+  const handleManageAccount = async () => {
+    try {
+      const manageAccountUrl = 'https://unilingo.co.uk/manage-account';
+      
+      const supported = await Linking.canOpenURL(manageAccountUrl);
+      if (supported) {
+        await Linking.openURL(manageAccountUrl);
+      } else {
+        Alert.alert('Error', 'Cannot open manage account page');
+      }
+    } catch (error) {
+      console.error('Error opening manage account:', error);
+      Alert.alert('Error', 'Failed to open manage account page');
     }
-
-    // First confirmation dialog
-    Alert.alert(
-      'Delete Account',
-      'Are you sure you want to delete your account? This action will permanently remove all your data including:\n\n• All flashcards and lessons\n• Progress and statistics\n• Profile information\n• Subscription data\n\nThis action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Continue',
-          style: 'destructive',
-          onPress: () => {
-            // Second confirmation dialog with stronger warning
-            Alert.alert(
-              'Final Confirmation',
-              '⚠️ WARNING: This will permanently delete your account and ALL data.\n\nYou will lose:\n• All your learning progress\n• Flashcards and lessons\n• Account settings\n• Subscription information\n\nThis action is IRREVERSIBLE and cannot be undone.\n\nAre you absolutely sure?',
-              [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                  text: 'DELETE ACCOUNT',
-                  style: 'destructive',
-                  onPress: async () => {
-                    try {
-                      // Show loading state
-                      Alert.alert(
-                        'Deleting Account',
-                        'Please wait while we delete your account and all associated data...',
-                        [],
-                        { cancelable: false }
-                      );
-
-                      const result = await DeleteAccountService.deleteUserAccount(user.id);
-                      
-                      if (result.success) {
-                        Alert.alert(
-                          'Account Deleted',
-                          'Your account and all data have been permanently deleted. You will now be signed out.',
-                          [
-                            {
-                              text: 'OK',
-                              onPress: async () => {
-                                // Sign out after successful deletion
-                                await signOut();
-                              },
-                            },
-                          ]
-                        );
-                      } else {
-                        Alert.alert(
-                          'Deletion Failed',
-                          result.error || 'Failed to delete account. Please try again or contact support.',
-                          [{ text: 'OK' }]
-                        );
-                      }
-                    } catch (error) {
-                      console.error('Error deleting account:', error);
-                      Alert.alert(
-                        'Error',
-                        'An unexpected error occurred while deleting your account. Please try again or contact support.',
-                        [{ text: 'OK' }]
-                      );
-                    }
-                  },
-                },
-              ]
-            );
-          },
-        },
-      ]
-    );
   };
 
   const menuItems = [
-    {
-      id: 'progress',
-      title: 'My Progress',
-      icon: 'analytics-outline',
-      onPress: () => {
-        navigation.navigate('Progress' as never);
-      },
-    },
-    {
-      id: 'daily-goals',
-      title: 'Daily Goals',
-      icon: 'flag-outline',
-      onPress: () => {
-        navigation.navigate('DailyGoals' as never);
-      },
-    },
-    {
-      id: 'level-progress',
-      title: 'Level Progress',
-      icon: 'trending-up-outline',
-      onPress: () => {
-        navigation.navigate('LevelProgress' as never);
-      },
-    },
     {
       id: 'settings',
       title: 'Settings',
@@ -383,22 +298,22 @@ export default function ProfilePage() {
                     <Ionicons name="mail-outline" size={24} color="#374151" />
                     <View style={styles.settingTextContainer}>
                       <Text style={styles.settingTitle}>{user?.email || 'No email'}</Text>
-                      <Text style={styles.settingSubtitle}>You have limited access</Text>
                     </View>
                   </View>
                 </View>
+
+                <TouchableOpacity style={styles.settingItem} onPress={handleManageAccount}>
+                  <View style={styles.settingLeft}>
+                    <Ionicons name="shield-checkmark-outline" size={24} color="#374151" />
+                    <Text style={styles.settingTitle}>Manage your account</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+                </TouchableOpacity>
 
                 <TouchableOpacity style={styles.settingItem} onPress={handleSignOut}>
                   <View style={styles.settingLeft}>
                     <Ionicons name="log-out-outline" size={24} color="#374151" />
                     <Text style={styles.settingTitle}>Log out</Text>
-                  </View>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.settingItem} onPress={handleDeleteAccount}>
-                  <View style={styles.settingLeft}>
-                    <Ionicons name="trash-outline" size={24} color="#ef4444" />
-                    <Text style={[styles.settingTitle, styles.deleteAccountText]}>Delete account</Text>
                   </View>
                 </TouchableOpacity>
               </View>
@@ -676,9 +591,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-  },
-  deleteAccountText: {
-    color: '#ef4444',
   },
   orangeText: {
     color: '#6466E9',
