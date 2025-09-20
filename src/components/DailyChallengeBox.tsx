@@ -16,7 +16,7 @@ const DAILY_CHALLENGES = [
     title: 'Flashcard Quiz',
     description: 'Test your vocabulary knowledge',
     icon: 'card' as const,
-    color: '#8b5cf6',
+    color: '#6366f1',
     type: 'game'
   },
   {
@@ -24,7 +24,7 @@ const DAILY_CHALLENGES = [
     title: 'Gravity Defense',
     description: 'Destroy meteors with correct answers',
     icon: 'planet' as const,
-    color: '#ef4444',
+    color: '#4f46e5',
     type: 'game'
   },
   {
@@ -32,7 +32,7 @@ const DAILY_CHALLENGES = [
     title: 'Hangman Challenge',
     description: 'Guess the word letter by letter',
     icon: 'help-circle' as const,
-    color: '#f59e0b',
+    color: '#5b21b6',
     type: 'game'
   },
   {
@@ -40,7 +40,7 @@ const DAILY_CHALLENGES = [
     title: 'Memory Match',
     description: 'Match vocabulary pairs',
     icon: 'grid' as const,
-    color: '#10b981',
+    color: '#7c3aed',
     type: 'game'
   },
   {
@@ -48,7 +48,7 @@ const DAILY_CHALLENGES = [
     title: 'Sentence Scramble',
     description: 'Unscramble the sentences',
     icon: 'shuffle' as const,
-    color: '#3b82f6',
+    color: '#8b5cf6',
     type: 'game'
   },
   {
@@ -56,7 +56,7 @@ const DAILY_CHALLENGES = [
     title: 'Speed Challenge',
     description: 'Answer as fast as you can',
     icon: 'flash' as const,
-    color: '#f97316',
+    color: '#6366f1',
     type: 'game'
   },
   {
@@ -64,7 +64,7 @@ const DAILY_CHALLENGES = [
     title: 'Type What You Hear',
     description: 'Listen and type the words',
     icon: 'headset' as const,
-    color: '#06b6d4',
+    color: '#4338ca',
     type: 'game'
   },
   {
@@ -72,7 +72,7 @@ const DAILY_CHALLENGES = [
     title: 'Word Scramble',
     description: 'Unscramble the vocabulary',
     icon: 'text' as const,
-    color: '#8b5cf6',
+    color: '#6366f1',
     type: 'game'
   },
   {
@@ -80,7 +80,7 @@ const DAILY_CHALLENGES = [
     title: 'Daily Vocabulary',
     description: 'Learn new words today',
     icon: 'book' as const,
-    color: '#8b5cf6',
+    color: '#6366f1',
     type: 'vocab'
   }
 ];
@@ -236,7 +236,7 @@ export default function DailyChallengeBox({ refreshTrigger }: DailyChallengeBoxP
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Ionicons name="trophy" size={20} color="#f59e0b" />
+          <Ionicons name="trophy" size={20} color="#6366f1" />
           <Text style={styles.headerTitle}>Daily Challenge</Text>
         </View>
       </View>
@@ -273,7 +273,7 @@ export default function DailyChallengeBox({ refreshTrigger }: DailyChallengeBoxP
                 <Ionicons 
                   name={isLaunching ? "hourglass" : "play"} 
                   size={16} 
-                  color="#8b5cf6" 
+                  color="#6366f1" 
                 />
               </View>
             )}
@@ -383,11 +383,11 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#f3f0ff',
+    backgroundColor: '#eef2ff',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#8b5cf6',
+    borderColor: '#6366f1',
   },
   completedBadge: {
     flexDirection: 'row',
