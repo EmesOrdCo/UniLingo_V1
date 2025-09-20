@@ -48,7 +48,7 @@ export default function RegisterScreen() {
       } else {
         Alert.alert(
           'Success!',
-          'Account created successfully. Please check your email to verify your account.',
+          'Account created successfully. You can now sign in with your email and password.',
           [
             {
               text: 'OK',
