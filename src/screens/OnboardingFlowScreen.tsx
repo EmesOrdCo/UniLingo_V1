@@ -19,6 +19,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { UserProfileService } from '../lib/userProfileService';
 import { supabase } from '../lib/supabase';
 import { NotificationService } from '../lib/notificationService';
+import { completeOnboarding } from '../onboarding/completeOnboarding';
 import SubjectSelectionScreen from './SubjectSelectionScreen';
 
 // Comprehensive list of languages supported by ChatGPT/OpenAI
@@ -173,8 +174,6 @@ export default function OnboardingFlowScreen() {
 
   const totalSteps = 7; // Reduced from 9 to 7 (removed plan selection and trial confirmation)
 
-  // OTP verification is handled manually when user enters the code
-
   const nextStep = () => {
     console.log('🔄 nextStep called - currentStep:', currentStep, 'totalSteps:', totalSteps);
     console.log('📊 canProceed():', canProceed());
@@ -201,116 +200,49 @@ export default function OnboardingFlowScreen() {
     try {
       console.log('🚀 Starting onboarding completion...');
       
-      // Step 1: Send OTP code to user's email
-      console.log('📝 Sending OTP code to email:', formData.email);
-      const { data: otpData, error: otpError } = await supabase.auth.signInWithOtp({
-        email: formData.email,
-        options: { 
-          shouldCreateUser: true   // important for first-time users
-        }
-      });
-      console.log('sendEmailCode ->', { data: otpData, error: otpError });
+      // Step 1: Create user account with email and password
+      console.log('📝 Creating user account for:', formData.email);
+      const { error: signUpError } = await signUp(formData.email, formData.password);
       
-      if (otpError) {
-        Alert.alert('Error', otpError.message || 'Failed to send OTP. Please try again.');
+      if (signUpError) {
+        console.error('❌ Sign up failed:', signUpError);
+        Alert.alert('Error', signUpError.message || 'Failed to create account. Please try again.');
         return;
       }
 
-      console.log('✅ OTP code sent successfully to:', formData.email);
+      console.log('✅ User account created successfully!');
       
-      // Show OTP input modal
-      Alert.prompt(
-        'Enter Verification Code',
-        `We've sent a 6-digit code to ${formData.email}. Please enter it below:`,
-        [
-          {
-            text: 'Cancel',
-            style: 'cancel'
-          },
-          {
-            text: 'Verify',
-            onPress: async (otpCode) => {
-              if (!otpCode || otpCode.length !== 6) {
-                Alert.alert('Error', 'Please enter a valid 6-digit code.');
-                return;
-              }
-              
-              // Verify the OTP code and redirect to subscription
-              await verifyOTPAndRedirectToSubscription(otpCode, formData);
-            }
-          }
-        ],
-        'plain-text',
-        '',
-        'numeric'
-      );
-      
-    } catch (error) {
-      console.error('❌ Error sending OTP:', error);
-      Alert.alert('Error', 'Failed to send verification code. Please try again.');
-    }
-  };
+      // Step 2: Complete onboarding with profile data
+      const onboardingData = {
+        firstName: formData.firstName,
+        email: formData.email,
+        nativeLanguage: formData.nativeLanguage,
+        targetLanguage: formData.targetLanguage,
+        proficiency: formData.proficiency,
+        dailyCommitmentMinutes: parseInt(formData.timeCommitment) || null,
+        discoverySource: formData.discoverySource,
+        wantsNotifications: formData.wantsNotifications,
+        goals: [], // Not collected in this flow
+        ageRange: null, // Not collected in this flow
+      };
 
-  const verifyOTPAndRedirectToSubscription = async (otpCode: string, formData: any) => {
-    try {
-      console.log('🔐 Verifying OTP code...');
+      const result = await completeOnboarding({ data: onboardingData });
       
-      // Step 1: Verify the OTP code and get session
-      const session = await verifyEmailCode(formData.email, otpCode);
+      if (!result.ok) {
+        Alert.alert('Error', result.error || 'Failed to complete onboarding. Please try again.');
+        return;
+      }
+
+      console.log('✅ Onboarding completed successfully!');
       
-      // Step 2: Save the user profile (session exists)
-      await upsertProfile({
-        name: formData.firstName,
-        native_language: formData.nativeLanguage,
-        target_language: formData.targetLanguage,
-        subjects: [formData.subject], // Store actual subject instead of target language
-        level: formData.proficiency.toLowerCase() as 'beginner' | 'intermediate' | 'expert',
-        time_commit: formData.timeCommitment, // Use existing column name
-        how_did_you_hear: formData.discoverySource, // Use existing column name
-        payment_tier: 'pro', // Default to pro since website handles plan selection
-        wants_notifications: formData.wantsNotifications,
-        has_active_subscription: false, // Set to false initially - will be updated after payment
-        created_at: new Date().toISOString(),
-        last_active: new Date().toISOString(),
-      });
-      
-      // Clear the new user flag
+      // Step 3: Clear new user flag and refresh profile
       clearNewUserFlag();
-      
-      // Refresh the profile in auth context
       await refreshProfile();
       
-      // Show success message and let user proceed to subscription gate
-      Alert.alert(
-        'Welcome to UniLingo! 🎉',
-        `Hi ${formData.firstName}! Your account has been created successfully. You can now complete your account setup to unlock all features.`,
-        [
-          {
-            text: 'Get Started',
-            onPress: () => {
-              // Navigation will be handled automatically by AppNavigator
-              // since the new user flag is cleared and profile exists
-              // User will see the subscription gate where they can choose to complete setup
-            }
-          }
-        ]
-      );
-      
     } catch (error) {
-      console.error('❌ Error verifying OTP:', error);
-      Alert.alert('Error', 'Verification failed. Please try again.');
+      console.error('❌ Error completing onboarding:', error);
+      Alert.alert('Error', 'An unexpected error occurred. Please try again.');
     }
-  };
-
-  const verifyEmailCode = async (email: string, code: string) => {
-    const { data, error } = await supabase.auth.verifyOtp({
-      type: 'email',
-      email,
-      token: code.trim(),
-    });
-    console.log('verifyEmailCode ->', { session: !!data?.session, error });
-    if (error) throw error;
-    return data.session;
   };
 
   const upsertProfile = async (payload: Record<string, any>) => {

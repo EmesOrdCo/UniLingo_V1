@@ -147,7 +147,7 @@ export default function App() {
     };
   }, []);
 
-  // Setup deep linking for magic links
+  // Setup deep linking (removed magic link handling)
   useEffect(() => {
     console.log('🔗 Setting up deep linking...');
     
@@ -156,25 +156,14 @@ export default function App() {
       const initialUrl = await Linking.getInitialURL();
       if (initialUrl) {
         console.log('🔗 Initial URL:', initialUrl);
-        handleDeepLink(initialUrl);
+        // Handle other deep links if needed in the future
       }
     };
 
     // Handle URL when app is already running
     const handleUrl = (event: { url: string }) => {
       console.log('🔗 URL received:', event.url);
-      handleDeepLink(event.url);
-    };
-
-    // Handle deep link
-    const handleDeepLink = (url: string) => {
-      console.log('🔗 Processing deep link:', url);
-      
-      if (url.startsWith('unilingo://')) {
-        console.log('✅ Magic link detected!');
-        // The magic link will be handled by Supabase auth state change
-        // No additional action needed here
-      }
+      // Handle other deep links if needed in the future
     };
 
     // Set up listeners

@@ -21,13 +21,6 @@ export function PlansScreen() {
   const [discountApplied, setDiscountApplied] = useState(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
 
-  // Set default plan
-  useEffect(() => {
-    if (!selectedPlanId) {
-      setSelectedPlanId('annual');
-    }
-  }, [selectedPlanId, setSelectedPlanId]);
-
   // Load plans
   useEffect(() => {
     const loadPlans = async () => {

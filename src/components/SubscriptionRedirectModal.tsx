@@ -31,7 +31,7 @@ export default function SubscriptionRedirectModal({ visible, onClose }: Subscrip
 
     try {
       // Construct the subscription URL with user data
-      const subscriptionUrl = `https://unilingo.co.uk/subscription.html?user_id=${user.id}&email=${encodeURIComponent(user.email || '')}&token=${user.id}&plan=pro`;
+      const subscriptionUrl = `https://unilingo.co.uk/subscription.html?user_id=${user.id}&email=${encodeURIComponent(user.email || '')}&token=${user.id}`;
       
       console.log('🔗 Redirecting to account setup page:', subscriptionUrl);
 

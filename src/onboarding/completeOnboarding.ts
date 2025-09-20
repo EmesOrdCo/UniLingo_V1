@@ -53,10 +53,9 @@ export async function completeOnboarding({
         target_language: data.targetLanguage || null,
         level: data.proficiency || null, // Use existing 'level' column
         daily_commitment_minutes: data.dailyCommitmentMinutes || null,
-        age_range: data.ageRange || null,
         how_did_you_hear: data.discoverySource || null, // Use existing 'how_did_you_hear' column
         wants_notifications: data.wantsNotifications || false,
-        payment_tier: 'pro', // Default to pro since website handles plan selection
+        payment_tier: null, // Let website handle plan selection
         has_active_subscription: false, // Set to false initially - will be updated after payment
         updated_at: new Date().toISOString(),
       };
