@@ -263,8 +263,21 @@ export function PlansScreen() {
         {/* Legal Footer */}
         <View style={styles.legalContainer}>
           <Text style={[styles.legalText, { color: theme.colors.textLight }]}>
-            By subscribing, you agree to our Terms of Service and Privacy Policy. 
-            Subscriptions automatically renew unless cancelled at least 24 hours before the end of the current period.
+            By subscribing, you agree to our{' '}
+            <Text 
+              style={[styles.linkText, { color: theme.colors.primary }]}
+              onPress={() => navigation.navigate('TermsAndConditions' as never)}
+            >
+              Terms of Service
+            </Text>
+            {' '}and{' '}
+            <Text 
+              style={[styles.linkText, { color: theme.colors.primary }]}
+              onPress={() => navigation.navigate('PrivacyPolicy' as never)}
+            >
+              Privacy Policy
+            </Text>
+            . Subscriptions automatically renew unless cancelled at least 24 hours before the end of the current period.
           </Text>
         </View>
       </View>
@@ -381,6 +394,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 16,
     textAlign: 'center',
+  },
+  linkText: {
+    textDecorationLine: 'underline',
   },
 });
 

@@ -43,6 +43,7 @@ import OnboardingFlowScreen from './src/screens/OnboardingFlowScreen';
 import LandingScreen from './src/screens/LandingScreen';
 import FAQScreen from './src/screens/FAQScreen';
 import TermsAndConditionsScreen from './src/screens/TermsAndConditionsScreen';
+import PrivacyPolicyScreen from './src/screens/PrivacyPolicyScreen';
 import DailyGoalsScreen from './src/screens/DailyGoalsScreen';
 import LevelProgressScreen from './src/screens/LevelProgressScreen';
 import UnitDetailScreen from './src/screens/UnitDetailScreen';
@@ -87,6 +88,7 @@ function MainNavigator() {
       <Stack.Screen name="OnboardingFlow" component={OnboardingFlowScreen} />
       <Stack.Screen name="FAQ" component={FAQScreen} />
       <Stack.Screen name="TermsAndConditions" component={TermsAndConditionsScreen} />
+      <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
       <Stack.Screen name="DailyGoals" component={DailyGoalsScreen} />
       <Stack.Screen name="LevelProgress" component={LevelProgressScreen} />
       <Stack.Screen name="UnitDetail" component={UnitDetailScreen} />

@@ -255,8 +255,21 @@ export default function PaywallScreen({ onComplete }: PaywallScreenProps) {
           </TouchableOpacity>
 
           <Text style={styles.termsText}>
-            By subscribing, you agree to our Terms of Service and Privacy Policy.
-            Cancel anytime.
+            By subscribing, you agree to our{' '}
+            <Text 
+              style={styles.linkText}
+              onPress={() => navigation.navigate('TermsAndConditions' as never)}
+            >
+              Terms of Service
+            </Text>
+            {' '}and{' '}
+            <Text 
+              style={styles.linkText}
+              onPress={() => navigation.navigate('PrivacyPolicy' as never)}
+            >
+              Privacy Policy
+            </Text>
+            . Cancel anytime.
           </Text>
         </View>
       </ScrollView>
@@ -460,5 +473,9 @@ const styles = StyleSheet.create({
     color: '#9ca3af',
     textAlign: 'center',
     lineHeight: 16,
+  },
+  linkText: {
+    color: '#6366f1',
+    textDecorationLine: 'underline',
   },
 });

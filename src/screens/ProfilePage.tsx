@@ -420,6 +420,17 @@ export default function ProfilePage() {
                   <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
                 </TouchableOpacity>
 
+                <TouchableOpacity 
+                  style={styles.settingItem}
+                  onPress={() => navigation.navigate('PrivacyPolicy' as never)}
+                >
+                  <View style={styles.settingLeft}>
+                    <Ionicons name="shield-checkmark-outline" size={24} color="#374151" />
+                    <Text style={styles.settingTitle}>Privacy Policy</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+                </TouchableOpacity>
+
                 <View style={styles.settingItem}>
                   <View style={styles.settingLeft}>
                     <Ionicons name="information-circle-outline" size={24} color="#374151" />
