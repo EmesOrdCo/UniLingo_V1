@@ -8,6 +8,7 @@ import {
   Alert,
   Dimensions,
   TextInput,
+  InteractionManager,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -42,6 +43,8 @@ export default function UploadScreen() {
   const [showTopicEditModal, setShowTopicEditModal] = useState(false);
   const [editableFlashcards, setEditableFlashcards] = useState<GeneratedFlashcard[]>([]);
   const [uniqueTopics, setUniqueTopics] = useState<string[]>([]);
+  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [forceRefresh, setForceRefresh] = useState(0);
   
 
   
@@ -52,16 +55,18 @@ export default function UploadScreen() {
   useEffect(() => {
     console.log('🔍 generatedFlashcards state changed:', {
       count: generatedFlashcards.length,
-      isEmpty: generatedFlashcards.length === 0,
-      stack: new Error().stack?.split('\n').slice(1, 4).join('\n') // Get call stack
+      isEmpty: generatedFlashcards.length === 0
     });
+    console.log('🔍 generatedFlashcards useEffect completed');
   }, [generatedFlashcards]);
   
   // Debug: Track when review modal visibility changes
   useEffect(() => {
+    console.log('🔍 showReviewModal useEffect triggered:', { showReviewModal, flashcardsCount: generatedFlashcards.length });
     if (showReviewModal) {
       console.log('🔍 showReviewModal changed to true, current flashcards count:', generatedFlashcards.length);
     }
+    console.log('🔍 showReviewModal useEffect completed');
   }, [showReviewModal, generatedFlashcards]);
 
   // Debug: Track when topic edit modal visibility changes
@@ -244,8 +249,89 @@ export default function UploadScreen() {
         multiple: false,
       });
 
+      // Handle user cancellation gracefully
       if (!fileResult || !fileResult.assets || fileResult.assets.length === 0) {
-        throw new Error('No file selected');
+        console.log('📄 User cancelled PDF selection');
+        console.log('🔍 Starting cancellation cleanup...');
+        
+        clearTimeout(safetyTimeout); // Clear the safety timeout
+        console.log('🔍 Cleared safety timeout');
+        
+        // Clear any progress interval that might be running
+        if (progressIntervalRef.current) {
+          clearInterval(progressIntervalRef.current);
+          progressIntervalRef.current = null;
+          console.log('🔍 Cleared progress interval');
+        }
+        
+        console.log('🔍 About to update processing state...');
+        
+        // Use setTimeout to defer state updates and prevent blocking
+        setTimeout(() => {
+          console.log('🔍 Deferred state updates starting...');
+          
+          // Batch state updates to prevent conflicts
+          setIsProcessing(false);
+          console.log('🔍 Set isProcessing to false');
+          
+          setShowProgressModal(false);
+          console.log('🔍 Set showProgressModal to false');
+          
+          setShowReviewModal(false);
+          console.log('🔍 Set showReviewModal to false');
+          
+          setShowTopicEditModal(false);
+          console.log('🔍 Set showTopicEditModal to false');
+          
+          // Clear flashcards data
+          setGeneratedFlashcards([]);
+          console.log('🔍 Set generatedFlashcards to empty array');
+          
+          generatedFlashcardsRef.current = [];
+          console.log('🔍 Cleared generatedFlashcardsRef');
+          
+          // Reset progress
+          setProgress({
+            stage: 'uploading',
+            progress: 0,
+            message: 'Ready to upload',
+          });
+          console.log('🔍 Reset progress state');
+          
+          console.log('🔍 Deferred state updates completed');
+          
+          // Use InteractionManager to ensure UI is ready
+          InteractionManager.runAfterInteractions(() => {
+            console.log('🔍 InteractionManager: UI interactions completed');
+            
+            // Force a small delay to ensure everything is settled
+            setTimeout(() => {
+              console.log('🔍 Final UI settlement delay completed');
+              console.log('🔍 UI should now be fully responsive');
+              
+              // Force a UI refresh to break any stuck state
+              console.log('🔍 Triggering force refresh...');
+              setForceRefresh(prev => prev + 1);
+              console.log('🔍 Force refresh triggered');
+            }, 100);
+          });
+        }, 0);
+        
+        console.log('🔍 Cancellation cleanup complete, returning...');
+        
+        // Force reset the document picker to prevent any stuck state
+        try {
+          console.log('🔍 Attempting to force reset document picker...');
+          // @ts-ignore - accessing private method for emergency reset
+          if (UploadService.forceResetPicker) {
+            UploadService.forceResetPicker();
+            console.log('🔍 Document picker force reset completed');
+          }
+        } catch (e) {
+          console.log('🔍 Document picker force reset failed:', e);
+        }
+        
+        return; // Exit gracefully without error
       }
 
       const file = fileResult.assets[0];
@@ -302,6 +388,13 @@ export default function UploadScreen() {
       } catch (healthError) {
         console.error('❌ Backend health check failed:', healthError);
         clearTimeout(safetyTimeout);
+        
+        // Clear any progress interval that might be running
+        if (progressIntervalRef.current) {
+          clearInterval(progressIntervalRef.current);
+          progressIntervalRef.current = null;
+        }
+        
         setIsProcessing(false);
         setShowProgressModal(false);
         
@@ -356,6 +449,13 @@ export default function UploadScreen() {
       } catch (fetchError) {
         clearTimeout(timeoutId);
         clearTimeout(safetyTimeout);
+        
+        // Clear any progress interval that might be running
+        if (progressIntervalRef.current) {
+          clearInterval(progressIntervalRef.current);
+          progressIntervalRef.current = null;
+        }
+        
         console.error('❌ Backend fetch error:', fetchError);
         
         setIsProcessing(false);
@@ -415,7 +515,7 @@ export default function UploadScreen() {
       
       // Add progress updates during AI processing
       const startTime = Date.now();
-      const progressInterval = setInterval(() => {
+      progressIntervalRef.current = setInterval(() => {
         const elapsed = Math.floor((Date.now() - startTime) / 1000);
         setProgress(prev => ({
           ...prev,
@@ -436,7 +536,8 @@ export default function UploadScreen() {
         }
       );
       
-      clearInterval(progressInterval); // Clear progress updates when done
+      clearInterval(progressIntervalRef.current); // Clear progress updates when done
+      progressIntervalRef.current = null;
       console.log('🔍 AI flashcard generation completed, count:', flashcards.length);
       console.log('🔍 Generated flashcards:', flashcards.slice(0, 3)); // Log first 3 cards
       
@@ -504,6 +605,12 @@ export default function UploadScreen() {
     } catch (error) {
       console.error('Error processing PDF:', error);
       
+      // Clear any progress interval that might be running
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+      
       // Show user-friendly error message
       let errorMessage = 'An unexpected error occurred';
       if (error instanceof Error) {
@@ -525,8 +632,6 @@ export default function UploadScreen() {
         errorMessage = 'Document picker is busy. Please wait for any other file operations to complete.';
       } else if (errorMessage.includes('Please select a PDF file')) {
         errorMessage = 'Please select a valid PDF file (.pdf extension).';
-      } else if (errorMessage.includes('No file selected')) {
-        errorMessage = 'No file was selected. Please choose a PDF file to upload.';
       } else if (errorMessage.includes('PDF file not found')) {
         errorMessage = 'The selected PDF file could not be accessed. Please select it again.';
       } else if (errorMessage.includes('Failed to extract text from PDF')) {
@@ -643,12 +748,15 @@ export default function UploadScreen() {
     // Close progress modal and show appropriate review modal
     setShowProgressModal(false);
     
-    if (generatedFlashcards.length > 0) {
+    // Safety check: only proceed if we have flashcards and are not processing
+    if (generatedFlashcards.length > 0 && !isProcessing) {
       if (selectedTopic === 'AI Selection') {
         setShowTopicEditModal(true);
       } else {
         setShowReviewModal(true);
       }
+    } else {
+      console.log('🔍 handleContinue called but no flashcards or still processing, ignoring');
     }
   };
 
@@ -696,7 +804,7 @@ export default function UploadScreen() {
   // The error boundary in App.tsx should catch most errors
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView key={forceRefresh} style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity 

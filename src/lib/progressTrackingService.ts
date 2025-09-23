@@ -347,8 +347,12 @@ export class ProgressTrackingService {
           updates.consecutive_correct = 0;
         }
 
+        // Calculate total attempts for mastery calculations
+        const totalAttempts = (updates.correct_attempts || existingProgress.correct_attempts || 0) + 
+                             (updates.incorrect_attempts || existingProgress.incorrect_attempts || 0);
+
         // Calculate mastery level (based on recent performance)
-        const masteryLevel = Math.round((updates.correct_attempts / totalAttempts) * 100);
+        const masteryLevel = Math.round(((updates.correct_attempts || existingProgress.correct_attempts || 0) / totalAttempts) * 100);
         updates.mastery_level = masteryLevel;
         
         // Mastery logic: Mastered if either:
@@ -371,7 +375,7 @@ export class ProgressTrackingService {
         updates.next_review_date = nextReviewDate.toISOString();
 
         // Calculate retention score (simple accuracy percentage)
-        updates.retention_score = totalAttempts > 0 ? Math.round((updates.correct_attempts / totalAttempts) * 100) : 0;
+        updates.retention_score = totalAttempts > 0 ? Math.round(((updates.correct_attempts || existingProgress.correct_attempts || 0) / totalAttempts) * 100) : 0;
 
         const { error } = await supabase
           .from('user_flashcard_progress')

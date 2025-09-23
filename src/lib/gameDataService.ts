@@ -236,7 +236,7 @@ export class GameDataService {
     
     for (const card of shuffledCards) {
       questions.push({
-        question: `Type what you hear: "${card.front}"`,
+        question: 'Type what you hear:',
         correctAnswer: card.front,
         type: 'audio_recognition'
       });

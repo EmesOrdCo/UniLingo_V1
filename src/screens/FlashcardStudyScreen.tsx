@@ -496,61 +496,63 @@ export default function FlashcardStudyScreen() {
         </ScrollView>
         
         <View style={styles.reviewActions}>
-          <TouchableOpacity 
-            style={styles.repeatAllButton}
-            onPress={() => {
-              // Start a new session with all cards
-              setStudySession({
-                isActive: true,
-                isComplete: false,
-                flashcards: studySession.flashcards.sort(() => Math.random() - 0.5), // Shuffle all cards
-                currentIndex: 0,
-                showAnswer: false,
-                answers: [],
-                showNativeLanguage: studySession.showNativeLanguage,
-                startTime: new Date()
-              });
-            }}
-          >
-            <Ionicons name="refresh" size={24} color="#ffffff" />
-            <Text style={styles.repeatAllButtonText}>Repeat All</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.repeatIncorrectButton}
-            onPress={() => {
-              // Start a new session with only incorrect cards
-              const incorrectCards = studySession.flashcards.filter((card, index) => {
-                const answer = studySession.answers[index];
-                return answer === 'incorrect' || answer === 'hard';
-              });
-              
-              if (incorrectCards.length === 0) {
-                Alert.alert('No Cards to Repeat', 'Great job! You got all cards correct.');
-                return;
-              }
-              
-              setStudySession({
-                isActive: true,
-                isComplete: false,
-                flashcards: incorrectCards.sort(() => Math.random() - 0.5), // Shuffle incorrect cards
-                currentIndex: 0,
-                showAnswer: false,
-                answers: [],
-                showNativeLanguage: studySession.showNativeLanguage,
-                startTime: new Date()
-              });
-            }}
-          >
-            <Ionicons name="close-circle" size={24} color="#ffffff" />
-            <Text style={styles.repeatIncorrectButtonText}>Repeat Incorrect</Text>
-          </TouchableOpacity>
+          <View style={styles.buttonRow}>
+            <TouchableOpacity 
+              style={styles.repeatAllButton}
+              onPress={() => {
+                // Start a new session with all cards
+                setStudySession({
+                  isActive: true,
+                  isComplete: false,
+                  flashcards: studySession.flashcards.sort(() => Math.random() - 0.5), // Shuffle all cards
+                  currentIndex: 0,
+                  showAnswer: false,
+                  answers: [],
+                  showNativeLanguage: studySession.showNativeLanguage,
+                  startTime: new Date()
+                });
+              }}
+            >
+              <Ionicons name="refresh" size={20} color="#ffffff" />
+              <Text style={styles.repeatAllButtonText}>Repeat All</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.repeatIncorrectButton}
+              onPress={() => {
+                // Start a new session with only incorrect cards
+                const incorrectCards = studySession.flashcards.filter((card, index) => {
+                  const answer = studySession.answers[index];
+                  return answer === 'incorrect' || answer === 'hard';
+                });
+                
+                if (incorrectCards.length === 0) {
+                  Alert.alert('No Cards to Repeat', 'Great job! You got all cards correct.');
+                  return;
+                }
+                
+                setStudySession({
+                  isActive: true,
+                  isComplete: false,
+                  flashcards: incorrectCards.sort(() => Math.random() - 0.5), // Shuffle incorrect cards
+                  currentIndex: 0,
+                  showAnswer: false,
+                  answers: [],
+                  showNativeLanguage: studySession.showNativeLanguage,
+                  startTime: new Date()
+                });
+              }}
+            >
+              <Ionicons name="close-circle" size={20} color="#ffffff" />
+              <Text style={styles.repeatIncorrectButtonText}>Repeat Wrong</Text>
+            </TouchableOpacity>
+          </View>
           
           <TouchableOpacity 
             style={styles.backToSetupButton}
             onPress={() => navigation.goBack()}
           >
-            <Ionicons name="arrow-back" size={24} color="#ffffff" />
+            <Ionicons name="arrow-back" size={20} color="#ffffff" />
             <Text style={styles.backToSetupButtonText}>Back to Games</Text>
           </TouchableOpacity>
         </View>
@@ -933,12 +935,15 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   reviewActions: {
-    flexDirection: 'row',
-    gap: 12,
     padding: 20,
     backgroundColor: '#ffffff',
     borderTopWidth: 1,
     borderTopColor: '#e2e8f0',
+    gap: 12,
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    gap: 12,
   },
   repeatAllButton: {
     flex: 1,
@@ -947,13 +952,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     paddingVertical: 16,
+    paddingHorizontal: 16,
     backgroundColor: '#6366f1',
     borderRadius: 12,
+    shadowColor: '#6366f1',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   repeatAllButtonText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
     color: '#ffffff',
+    textAlign: 'center',
   },
   repeatIncorrectButton: {
     flex: 1,
@@ -962,28 +974,41 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     paddingVertical: 16,
+    paddingHorizontal: 16,
     backgroundColor: '#ef4444',
     borderRadius: 12,
+    shadowColor: '#ef4444',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   repeatIncorrectButtonText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
     color: '#ffffff',
+    textAlign: 'center',
   },
   backToSetupButton: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
     paddingVertical: 16,
+    paddingHorizontal: 20,
     backgroundColor: '#6b7280',
     borderRadius: 12,
+    shadowColor: '#6b7280',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   backToSetupButtonText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
     color: '#ffffff',
+    textAlign: 'center',
   },
   // Error styles
   errorContainer: {

@@ -240,27 +240,52 @@ export default function OnboardingFlowScreen() {
       await refreshProfile();
       
     } catch (error) {
-      console.error('❌ Error completing onboarding:', error);
+      if (__DEV__) {
+        console.error('❌ Error completing onboarding:', error);
+      }
       Alert.alert('Error', 'An unexpected error occurred. Please try again.');
     }
   };
 
   const upsertProfile = async (payload: Record<string, any>) => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) throw new Error('No session yet');   // prevents early write
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        if (__DEV__) {
+          console.error('❌ No session available for profile save');
+        }
+        throw new Error('No session available. Please try again.');
+      }
 
-    console.log('🔍 DEBUGGING PROFILE SAVE:');
-    console.log('   User ID:', session.user.id);
-    console.log('   User Email:', session.user.email);
-    console.log('   Profile Data:', payload);
+      if (__DEV__) {
+        console.log('🔍 DEBUGGING PROFILE SAVE:');
+        console.log('   User ID:', session.user.id);
+        console.log('   User Email:', session.user.email);
+        console.log('   Profile Data:', payload);
+      }
 
-    const { error } = await supabase.from('users').upsert({
-      id: session.user.id,
-      email: session.user.email,
-      ...payload,
-    });
-    console.log('upsertProfile ->', { error });
-    if (error) throw error;
+      const { error } = await supabase.from('users').upsert({
+        id: session.user.id,
+        email: session.user.email,
+        ...payload,
+      });
+      
+      if (__DEV__) {
+        console.log('upsertProfile ->', { error });
+      }
+      
+      if (error) {
+        if (__DEV__) {
+          console.error('❌ Profile save error:', error);
+        }
+        throw new Error('Failed to save profile. Please try again.');
+      }
+    } catch (error) {
+      if (__DEV__) {
+        console.error('❌ Upsert profile error:', error);
+      }
+      throw error;
+    }
   };
 
   const canProceed = () => {

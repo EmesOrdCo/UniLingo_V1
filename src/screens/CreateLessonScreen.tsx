@@ -61,8 +61,16 @@ export default function CreateLessonScreen() {
         multiple: false,
       });
 
+      // Handle user cancellation gracefully
       if (!fileResult || !fileResult.assets || fileResult.assets.length === 0) {
-        throw new Error('No file selected');
+        console.log('📄 User cancelled PDF selection');
+        setIsProcessing(false);
+        setProgress({
+          stage: 'ready',
+          progress: 0,
+          message: 'Ready to create lesson',
+        });
+        return; // Exit gracefully without error
       }
 
       const file = fileResult.assets[0];

@@ -16,6 +16,7 @@ import LoadingScreen from './src/components/LoadingScreen';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { NotificationService } from './src/lib/notificationService';
 import SubscriptionGate from './src/components/SubscriptionGate';
+import { setupGlobalErrorHandling } from './src/lib/errorHandler';
 
 // Import screens
 import HomeScreen from './src/screens/HomeScreen';
@@ -59,7 +60,9 @@ const Stack = createStackNavigator();
 
 // Main stack navigator
 function MainNavigator() {
-  logger.debug('MainNavigator rendering');
+  if (__DEV__) {
+    logger.debug('MainNavigator rendering');
+  }
   return (
     <Stack.Navigator
       initialRouteName="Dashboard"
@@ -136,25 +139,36 @@ function AuthStack() {
 }
 
 export default function App() {
+  // Setup global error handling for React Native
+  useEffect(() => {
+    setupGlobalErrorHandling();
+  }, []);
+
   // Setup notification listeners when app starts
   useEffect(() => {
-    console.log('🔔 Setting up notification listeners...');
+    if (__DEV__) {
+      console.log('🔔 Setting up notification listeners...');
+    }
     const cleanup = NotificationService.setupNotificationListeners();
     
     return () => {
-      console.log('🔔 Cleaning up notification listeners...');
+      if (__DEV__) {
+        console.log('🔔 Cleaning up notification listeners...');
+      }
       cleanup();
     };
   }, []);
 
   // Setup deep linking (removed magic link handling)
   useEffect(() => {
-    console.log('🔗 Setting up deep linking...');
+    if (__DEV__) {
+      console.log('🔗 Setting up deep linking...');
+    }
     
     // Handle initial URL (when app is opened from a link)
     const handleInitialURL = async () => {
       const initialUrl = await Linking.getInitialURL();
-      if (initialUrl) {
+      if (initialUrl && __DEV__) {
         console.log('🔗 Initial URL:', initialUrl);
         // Handle other deep links if needed in the future
       }
@@ -162,8 +176,10 @@ export default function App() {
 
     // Handle URL when app is already running
     const handleUrl = (event: { url: string }) => {
-      console.log('🔗 URL received:', event.url);
-      // Handle other deep links if needed in the future
+      if (__DEV__) {
+        console.log('🔗 URL received:', event.url);
+        // Handle other deep links if needed in the future
+      }
     };
 
     // Set up listeners
@@ -171,7 +187,9 @@ export default function App() {
     handleInitialURL();
 
     return () => {
-      console.log('🔗 Cleaning up deep linking...');
+      if (__DEV__) {
+        console.log('🔗 Cleaning up deep linking...');
+      }
       subscription?.remove();
     };
   }, []);
@@ -214,22 +232,30 @@ function AppNavigator() {
   const { user, loading, profile, profileLoading, isNewUser, clearNewUserFlag, refreshProfile } = useAuth();
   const { hasShownPaywall, setHasShownPaywall } = useSubscription();
 
-  console.log('🧭 AppNavigator - Loading:', loading, 'User:', user ? user.email : 'No user', 'Profile:', profile ? 'Complete' : 'Incomplete', 'IsNewUser:', isNewUser, 'HasShownPaywall:', hasShownPaywall);
+  if (__DEV__) {
+    console.log('🧭 AppNavigator - Loading:', loading, 'User:', user ? user.email : 'No user', 'Profile:', profile ? 'Complete' : 'Incomplete', 'IsNewUser:', isNewUser, 'HasShownPaywall:', hasShownPaywall);
+  }
 
   if (loading || profileLoading) {
-    console.log('⏳ Showing loading screen...');
+    if (__DEV__) {
+      console.log('⏳ Showing loading screen...');
+    }
     return <LoadingScreen />;
   }
 
   if (user) {
-    console.log('👤 User authenticated, checking profile status...');
-    console.log('📋 Profile exists:', !!profile, 'IsNewUser:', isNewUser);
-    console.log('👤 User email:', user.email);
-    console.log('📋 Profile data:', profile);
+    if (__DEV__) {
+      console.log('👤 User authenticated, checking profile status...');
+      console.log('📋 Profile exists:', !!profile, 'IsNewUser:', isNewUser);
+      console.log('👤 User email:', user.email);
+      console.log('📋 Profile data:', profile);
+    }
     
     // Show paywall for new users who haven't seen it yet
     if (isNewUser && !hasShownPaywall) {
-      console.log('💰 New user, showing paywall...');
+      if (__DEV__) {
+        console.log('💰 New user, showing paywall...');
+      }
       return (
         <Stack.Navigator
           screenOptions={{
@@ -251,7 +277,9 @@ function AppNavigator() {
     
     // Show onboarding flow for new users who just signed up
     if (isNewUser && !profile) {
-      console.log('📋 New user authenticated, showing onboarding flow');
+      if (__DEV__) {
+        console.log('📋 New user authenticated, showing onboarding flow');
+      }
       return (
         <Stack.Navigator
           screenOptions={{
@@ -264,7 +292,9 @@ function AppNavigator() {
     }
 
     // For existing users, show MainNavigator with subscription gate
-    console.log('✅ User authenticated, showing MainNavigator with subscription gate');
+    if (__DEV__) {
+      console.log('✅ User authenticated, showing MainNavigator with subscription gate');
+    }
     return (
       <>
         <RefreshSetup />
@@ -274,8 +304,10 @@ function AppNavigator() {
       </>
     );
   } else {
-    console.log('❌ No user, showing AuthStack');
-    console.log('🔍 Auth state check - user:', user, 'loading:', loading);
+    if (__DEV__) {
+      console.log('❌ No user, showing AuthStack');
+      console.log('🔍 Auth state check - user:', user, 'loading:', loading);
+    }
     return <AuthStack />;
   }
 }

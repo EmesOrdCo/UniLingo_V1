@@ -163,7 +163,7 @@ const TypeWhatYouHearGame: React.FC<TypeWhatYouHearGameProps> = ({ gameData, onC
             </View>
           </View>
           
-          <View style={styles.actionButtons}>
+          <View style={styles.completionActionButtons}>
             <TouchableOpacity style={styles.resetButton} onPress={handlePlayAgain}>
               <Text style={styles.resetButtonText}>Play Again</Text>
             </TouchableOpacity>
@@ -503,7 +503,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#ffffff',
   },
-  actionButtons: {
+  completionActionButtons: {
     flexDirection: 'row',
     gap: 12,
     marginTop: 24,

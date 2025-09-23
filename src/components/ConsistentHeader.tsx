@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { useProfilePicture } from '../contexts/ProfilePictureContext';
+import { useRefresh } from '../contexts/RefreshContext';
 import { HolisticProgressService } from '../lib/holisticProgressService';
 import StreakDetailsModal from './StreakDetailsModal';
 import ProfileAvatar from './ProfileAvatar';
@@ -21,7 +22,8 @@ export default function ConsistentHeader({
 }: ConsistentHeaderProps) {
   const navigation = useNavigation();
   const { user, profile } = useAuth();
-  const { refreshTrigger } = useProfilePicture();
+  const { refreshTrigger: profileRefreshTrigger } = useProfilePicture();
+  const { refreshTrigger } = useRefresh();
   const [currentStreak, setCurrentStreak] = useState(streakCount);
   const [showStreakModal, setShowStreakModal] = useState(false);
 
@@ -38,7 +40,7 @@ export default function ConsistentHeader({
     };
 
     fetchStreak();
-  }, [user?.id]);
+  }, [user?.id, refreshTrigger]); // Add refreshTrigger dependency
 
   return (
     <View style={styles.header}>
@@ -65,7 +67,7 @@ export default function ConsistentHeader({
           style={styles.profileButton}
           onPress={() => navigation.navigate('Profile' as never)}
         >
-          <ProfileAvatar size={32} color="#6366f1" refreshTrigger={refreshTrigger} />
+          <ProfileAvatar size={32} color="#6366f1" refreshTrigger={profileRefreshTrigger} />
         </TouchableOpacity>
       </View>
       

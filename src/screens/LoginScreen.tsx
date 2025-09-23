@@ -15,52 +15,97 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
+import { handleError } from '../lib/errorHandler';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   
   const navigation = useNavigation();
   const { signIn } = useAuth();
 
   const handleLogin = async () => {
+    // Clear any previous error messages
+    setErrorMessage('');
+    
     if (!email || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
+      setErrorMessage('Please fill in all fields');
+      return;
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setErrorMessage('Please enter a valid email address');
       return;
     }
 
     setLoading(true);
     try {
-      console.log('🚀 Starting login process...');
-      
       const { error } = await signIn(email, password);
       
       if (error) {
-        console.error('❌ Login failed:', error);
-        Alert.alert('Login Failed', 'Invalid email or password. Please check your credentials and try again.');
+        
+        // Handle specific error types with more helpful messages
+        if (error.message?.includes('Invalid login credentials')) {
+          setErrorMessage('Invalid email or password. Please check your credentials and try again.');
+        } else if (error.message?.includes('Email not confirmed')) {
+          setErrorMessage('Please check your email and click the confirmation link before signing in.');
+        } else if (error.message?.includes('Too many requests')) {
+          setErrorMessage('Too many login attempts. Please wait a moment before trying again.');
+        } else if (error.message?.includes('User not found')) {
+          setErrorMessage('No account found with this email address. Please check your email or sign up.');
+        } else {
+          setErrorMessage('Login failed. Please check your credentials and try again.');
+        }
         return;
       }
       
-      console.log('✅ Password login successful!');
-      // Navigation will be handled by AuthContext automatically
+      // Login successful - navigation will be handled by AuthContext automatically
       
     } catch (error) {
-      console.error('💥 Login error:', error);
-      Alert.alert('Error', 'An unexpected error occurred. Please try again.');
+      // Use the error handler for consistent error handling
+      const errorMessage = handleError(error, 'Login', {
+        showUserMessage: true,
+        fallbackMessage: 'An unexpected error occurred. Please try again.'
+      });
+      setErrorMessage(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
   const handleForgotPassword = () => {
-    // TODO: Implement forgot password functionality
-    Alert.alert('Forgot Password', 'Password reset functionality coming soon!');
+    // Clear any previous error messages
+    setErrorMessage('');
+    
+    if (!email) {
+      setErrorMessage('Please enter your email address first to reset your password.');
+      return;
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setErrorMessage('Please enter a valid email address to reset your password.');
+      return;
+    }
+
+    // TODO: Implement actual password reset functionality
+    setErrorMessage('Password reset functionality coming soon! Please contact support for assistance.');
   };
 
   const handleSignUp = () => {
     navigation.navigate('Register' as never);
+  };
+
+  const clearError = () => {
+    if (errorMessage) {
+      setErrorMessage('');
+    }
   };
 
   return (
@@ -101,7 +146,10 @@ export default function LoginScreen() {
                 style={styles.input}
                 placeholder="Email address"
                 value={email}
-                onChangeText={setEmail}
+                onChangeText={(text) => {
+                  setEmail(text);
+                  clearError();
+                }}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -114,7 +162,10 @@ export default function LoginScreen() {
                 style={styles.input}
                 placeholder="Password"
                 value={password}
-                onChangeText={setPassword}
+                onChangeText={(text) => {
+                  setPassword(text);
+                  clearError();
+                }}
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -137,6 +188,14 @@ export default function LoginScreen() {
             >
               <Text style={styles.forgotPasswordText}>Forgot password?</Text>
             </TouchableOpacity>
+            
+            {/* Error Message Display */}
+            {errorMessage ? (
+              <View style={styles.errorContainer}>
+                <Ionicons name="alert-circle" size={20} color="#ef4444" style={styles.errorIcon} />
+                <Text style={styles.errorText}>{errorMessage}</Text>
+              </View>
+            ) : null}
             
             <Text style={styles.helpText}>
               Enter your email and password to sign in to your account.
@@ -249,6 +308,26 @@ const styles = StyleSheet.create({
   forgotPasswordText: {
     fontSize: 14,
     color: '#6366f1',
+    fontWeight: '500',
+  },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fef2f2',
+    borderWidth: 1,
+    borderColor: '#fecaca',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 16,
+  },
+  errorIcon: {
+    marginRight: 8,
+  },
+  errorText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#dc2626',
     fontWeight: '500',
   },
   helpText: {

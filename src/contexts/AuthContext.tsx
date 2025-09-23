@@ -47,7 +47,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     UserProfileService.debugTableStructure();
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('🔍 Initial session check:', session ? 'Session found' : 'No session');
+      if (__DEV__) {
+        console.log('🔍 Initial session check:', session ? 'Session found' : 'No session');
+      }
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
@@ -62,8 +64,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      console.log('🔄 Auth state changed:', _event, session ? 'Session updated' : 'Session cleared');
-      console.log('👤 User:', session?.user?.email || 'No user');
+      if (__DEV__) {
+        console.log('🔄 Auth state changed:', _event, session ? 'Session updated' : 'Session cleared');
+        console.log('👤 User:', session?.user?.email || 'No user');
+      }
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
@@ -91,14 +95,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // If we found an existing profile, clear the new user flag
       if (userProfile) {
         setIsNewUser(false);
-        console.log('📋 Existing profile found, clearing new user flag');
+        if (__DEV__) {
+          console.log('📋 Existing profile found, clearing new user flag');
+        }
       } else {
-        console.log('📋 No existing profile found, keeping new user flag if set');
+        if (__DEV__) {
+          console.log('📋 No existing profile found, keeping new user flag if set');
+        }
       }
       
-      console.log('📋 User profile fetched:', userProfile ? 'Profile found' : 'No profile');
+      if (__DEV__) {
+        console.log('📋 User profile fetched:', userProfile ? 'Profile found' : 'No profile');
+      }
     } catch (error) {
-      console.error('❌ Error fetching user profile:', error);
+      if (__DEV__) {
+        console.error('❌ Error fetching user profile:', error);
+      }
       setProfile(null);
     } finally {
       setProfileLoading(false);
@@ -125,36 +137,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
           await fetchUserProfile(data.user.id);
         } catch (profileError) {
-          console.error('❌ Error fetching profile after sign-in:', profileError);
+          // Silently handle profile fetch errors to avoid App Store issues
           // Don't fail the sign-in if profile fetch fails
         }
       }
 
       return { error };
     } catch (error) {
-      console.error('❌ Sign in error:', error);
+      // Silently handle sign-in errors to avoid App Store issues
       return { error };
     }
   };
 
   const signUp = async (email: string, password: string) => {
     try {
-      console.log('🚀 Starting sign up process for:', email);
       const { error } = await supabase.auth.signUp({
         email,
         password,
       });
 
       if (!error) {
-        console.log('✅ Sign up successful, setting isNewUser = true');
         setIsNewUser(true); // Set flag to true if sign up is successful
-      } else {
-        console.log('❌ Sign up failed:', error);
       }
 
       return { error };
     } catch (error) {
-      console.error('❌ Sign up error:', error);
+      // Silently handle sign-up errors to avoid App Store issues
       return { error };
     }
   };
@@ -163,7 +171,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       // SECURITY FIX: Clear all user-specific data before signing out
       if (user?.id) {
-        console.log('🔒 SECURITY: Clearing all user-specific data for user:', user.id);
+        if (__DEV__) {
+          console.log('🔒 SECURITY: Clearing all user-specific data for user:', user.id);
+        }
         
         try {
           // Use comprehensive user data isolation service
@@ -174,18 +184,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           await SupabaseProfilePictureService.clearCache(user.id);
           await TTLProfilePictureService.clearCache(user.id);
           
-          console.log('✅ All user data cleared successfully');
+          if (__DEV__) {
+            console.log('✅ All user data cleared successfully');
+          }
         } catch (error) {
-          console.error('❌ Error clearing user data:', error);
+          if (__DEV__) {
+            console.error('❌ Error clearing user data:', error);
+          }
         }
       }
       
       await supabase.auth.signOut();
       setProfile(null);
       setIsNewUser(false); // Clear new user flag on sign out
-      console.log('👋 User signed out successfully');
+      if (__DEV__) {
+        console.log('👋 User signed out successfully');
+      }
     } catch (error) {
-      console.error('❌ Error signing out:', error);
+      if (__DEV__) {
+        console.error('❌ Error signing out:', error);
+      }
     }
   };
 
@@ -194,7 +212,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { error } = await supabase.auth.resetPasswordForEmail(email);
       return { error };
     } catch (error) {
-      console.error('❌ Password reset error:', error);
+      if (__DEV__) {
+        console.error('❌ Password reset error:', error);
+      }
       return { error };
     }
   };
@@ -207,18 +227,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (error) {
-        console.error('❌ Error creating test user:', error);
+        if (__DEV__) {
+          console.error('❌ Error creating test user:', error);
+        }
       } else {
-        console.log('✅ Test user created successfully');
+        if (__DEV__) {
+          console.log('✅ Test user created successfully');
+        }
       }
     } catch (error) {
-      console.error('❌ Error creating test user:', error);
+      if (__DEV__) {
+        console.error('❌ Error creating test user:', error);
+      }
     }
   };
 
   const refreshSubscriptionStatus = async () => {
     if (user?.id) {
-      console.log('🔄 Refreshing subscription status for user:', user.id);
+      if (__DEV__) {
+        console.log('🔄 Refreshing subscription status for user:', user.id);
+      }
       await fetchUserProfile(user.id);
     }
   };

@@ -27,22 +27,30 @@ export async function completeOnboarding({
   data: OnboardingData 
 }): Promise<OnboardingCompletionResponse> {
   try {
-    console.log('🎯 Completing onboarding with data:', data);
+    if (__DEV__) {
+      console.log('🎯 Completing onboarding with data:', data);
+    }
 
     // 1. Mark onboarding as complete
     await AsyncStorage.setItem(ONBOARDING_COMPLETE_KEY, 'true');
-    console.log('✅ Onboarding marked as complete');
+    if (__DEV__) {
+      console.log('✅ Onboarding marked as complete');
+    }
 
     // 2. Optionally sync to Supabase if available and authenticated
     try {
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       
       if (authError || !user) {
-        console.log('ℹ️ No authenticated user, skipping Supabase sync');
+        if (__DEV__) {
+          console.log('ℹ️ No authenticated user, skipping Supabase sync');
+        }
         return { ok: true };
       }
 
-      console.log('🔄 Syncing onboarding data to Supabase for user:', user.id);
+      if (__DEV__) {
+        console.log('🔄 Syncing onboarding data to Supabase for user:', user.id);
+      }
 
       // Upsert profile data
       const profileData = {
@@ -68,10 +76,14 @@ export async function completeOnboarding({
         });
 
       if (profileError) {
-        console.error('❌ Error upserting profile:', profileError);
+        if (__DEV__) {
+          console.error('❌ Error upserting profile:', profileError);
+        }
         // Don't fail onboarding for profile sync errors
       } else {
-        console.log('✅ Profile data synced to Supabase');
+        if (__DEV__) {
+          console.log('✅ Profile data synced to Supabase');
+        }
       }
 
       // Upsert profile goals
@@ -89,7 +101,9 @@ export async function completeOnboarding({
           .eq('user_id', user.id);
 
         if (deleteError) {
-          console.error('❌ Error deleting existing goals:', deleteError);
+          if (__DEV__) {
+            console.error('❌ Error deleting existing goals:', deleteError);
+          }
         }
 
         // Then insert new goals
@@ -98,23 +112,33 @@ export async function completeOnboarding({
           .insert(goalInserts);
 
         if (goalsError) {
-          console.error('❌ Error inserting goals:', goalsError);
+          if (__DEV__) {
+            console.error('❌ Error inserting goals:', goalsError);
+          }
           // Don't fail onboarding for goals sync errors
         } else {
-          console.log('✅ Profile goals synced to Supabase');
+          if (__DEV__) {
+            console.log('✅ Profile goals synced to Supabase');
+          }
         }
       }
 
     } catch (supabaseError) {
-      console.log('ℹ️ Supabase not available or error occurred, skipping sync:', supabaseError);
+      if (__DEV__) {
+        console.log('ℹ️ Supabase not available or error occurred, skipping sync:', supabaseError);
+      }
       // Don't fail onboarding if Supabase sync fails
     }
 
-    console.log('🎉 Onboarding completed successfully');
+    if (__DEV__) {
+      console.log('🎉 Onboarding completed successfully');
+    }
     return { ok: true };
 
   } catch (error) {
-    console.error('❌ Error completing onboarding:', error);
+    if (__DEV__) {
+      console.error('❌ Error completing onboarding:', error);
+    }
     return { 
       ok: false, 
       error: error instanceof Error ? error.message : 'Unknown error occurred' 
@@ -130,7 +154,9 @@ export async function isOnboardingComplete(): Promise<boolean> {
     const isComplete = await AsyncStorage.getItem(ONBOARDING_COMPLETE_KEY);
     return isComplete === 'true';
   } catch (error) {
-    console.error('❌ Error checking onboarding completion status:', error);
+    if (__DEV__) {
+      console.error('❌ Error checking onboarding completion status:', error);
+    }
     return false;
   }
 }
@@ -141,9 +167,13 @@ export async function isOnboardingComplete(): Promise<boolean> {
 export async function resetOnboardingCompletion(): Promise<void> {
   try {
     await AsyncStorage.removeItem(ONBOARDING_COMPLETE_KEY);
-    console.log('🔄 Onboarding completion status reset');
+    if (__DEV__) {
+      console.log('🔄 Onboarding completion status reset');
+    }
   } catch (error) {
-    console.error('❌ Error resetting onboarding completion:', error);
+    if (__DEV__) {
+      console.error('❌ Error resetting onboarding completion:', error);
+    }
     throw error;
   }
 }

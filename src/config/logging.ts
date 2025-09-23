@@ -13,6 +13,11 @@ import { LogLevel, logger } from '../lib/logger';
 // For development: Use LogLevel.INFO (default)
 // For debugging: Use LogLevel.DEBUG
 
-logger.setLogLevel(LogLevel.INFO); // Change this to control verbosity
+// Set log level based on environment
+if (__DEV__) {
+  logger.setLogLevel(LogLevel.INFO); // Development - show info and above
+} else {
+  logger.setLogLevel(LogLevel.ERROR); // Production - only show errors
+}
 
 export { logger };

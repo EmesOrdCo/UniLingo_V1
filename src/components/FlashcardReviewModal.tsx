@@ -32,7 +32,17 @@ export default function FlashcardReviewModal({
   onEditTopics,
 }: FlashcardReviewModalProps) {
   
-  // Debug: Log what the modal receives
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editedFlashcard, setEditedFlashcard] = useState<GeneratedFlashcard | null>(null);
+  const [selectedTopic, setSelectedTopic] = useState<string>('all');
+  const [showTopicFilter, setShowTopicFilter] = useState(false);
+
+  // Early return if modal is not visible or no flashcards
+  if (!visible || !flashcards || flashcards.length === 0) {
+    return null;
+  }
+
+  // Debug: Log what the modal receives (only when visible and has flashcards)
   console.log('🔍 FlashcardReviewModal received:', {
     visible,
     flashcardsCount: flashcards.length,
@@ -42,11 +52,6 @@ export default function FlashcardReviewModal({
     flashcardsType: typeof flashcards,
     isArray: Array.isArray(flashcards)
   });
-  
-  const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  const [editedFlashcard, setEditedFlashcard] = useState<GeneratedFlashcard | null>(null);
-  const [selectedTopic, setSelectedTopic] = useState<string>('all');
-  const [showTopicFilter, setShowTopicFilter] = useState(false);
 
   // Get unique topics from flashcards
   const uniqueTopics = ['all', ...Array.from(new Set(flashcards.map(card => card.topic)))];
