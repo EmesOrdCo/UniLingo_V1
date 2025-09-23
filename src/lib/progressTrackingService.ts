@@ -351,10 +351,6 @@ export class ProgressTrackingService {
         const totalAttempts = (updates.correct_attempts || existingProgress.correct_attempts || 0) + 
                              (updates.incorrect_attempts || existingProgress.incorrect_attempts || 0);
 
-        // Calculate mastery level (based on recent performance)
-        const masteryLevel = Math.round(((updates.correct_attempts || existingProgress.correct_attempts || 0) / totalAttempts) * 100);
-        updates.mastery_level = masteryLevel;
-        
         // Mastery logic: Mastered if either:
         // 1. First attempt was correct (immediate mastery)
         // 2. Recent performance is good (3+ consecutive correct)
@@ -362,7 +358,7 @@ export class ProgressTrackingService {
         updates.is_mastered = (
           (totalAttempts === 1 && data.isCorrect) ||  // First attempt correct
           (updates.consecutive_correct >= 3) ||        // 3+ consecutive correct
-          (masteryLevel >= 80 && totalAttempts >= 3)   // 80%+ accuracy with enough attempts
+          (updates.retention_score >= 80 && totalAttempts >= 3)   // 80%+ accuracy with enough attempts
         );
 
         // Calculate next review date (spaced repetition)
@@ -392,7 +388,6 @@ export class ProgressTrackingService {
           incorrect_attempts: data.isCorrect ? 0 : 1,
           consecutive_correct: data.isCorrect ? 1 : 0,
           consecutive_incorrect: data.isCorrect ? 0 : 1,
-          mastery_level: data.isCorrect ? 100 : 0,
           is_mastered: data.isCorrect, // First attempt correct = immediate mastery
           last_reviewed: now,
           next_review_date: new Date(Date.now() + (data.isCorrect ? 2 : 1) * 24 * 60 * 60 * 1000).toISOString(),

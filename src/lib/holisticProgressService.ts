@@ -703,12 +703,42 @@ export class HolisticProgressService {
       // Get mastered cards from progress table
       const { data: progressData } = await supabase
         .from('user_flashcard_progress')
-        .select('is_mastered, retention_score')
+        .select('is_mastered, retention_score, correct_attempts, incorrect_attempts, consecutive_correct')
         .eq('user_id', userId);
       
       console.log('📊 Progress records found:', progressData?.length || 0);
       
-      const masteredCards = progressData?.filter(p => p.is_mastered)?.length || 0;
+      // Calculate mastered cards based on the actual mastery logic
+      const masteredCards = progressData?.filter(p => {
+        const totalAttempts = (p.correct_attempts || 0) + (p.incorrect_attempts || 0);
+        
+        // Mastery logic: Mastered if either:
+        // 1. First attempt was correct (immediate mastery)
+        // 2. Recent performance is good (3+ consecutive correct)
+        // 3. Overall accuracy is high (80%+) AND has at least 3 attempts
+        const isMastered = (
+          (totalAttempts === 1 && p.correct_attempts === 1) ||  // First attempt correct
+          (p.consecutive_correct >= 3) ||                        // 3+ consecutive correct
+          (p.retention_score >= 80 && totalAttempts >= 3)        // 80%+ accuracy with enough attempts
+        );
+        
+        // Debug logging for mastery calculation
+        if (isMastered) {
+          console.log('🎯 Mastered card found:', {
+            correct_attempts: p.correct_attempts,
+            incorrect_attempts: p.incorrect_attempts,
+            totalAttempts,
+            consecutive_correct: p.consecutive_correct,
+            retention_score: p.retention_score,
+            is_mastered_db: p.is_mastered,
+            reason: totalAttempts === 1 && p.correct_attempts === 1 ? 'first_attempt_correct' :
+                   p.consecutive_correct >= 3 ? 'consecutive_correct' :
+                   'high_accuracy'
+          });
+        }
+        
+        return isMastered;
+      }).length || 0;
       
       // Calculate average accuracy from user_activities (much simpler!)
       const { data: flashcardActivities } = await supabase

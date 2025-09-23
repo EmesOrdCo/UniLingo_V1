@@ -29,7 +29,6 @@ export interface VocabularyProgress {
   incorrect_attempts: number;
   first_seen_at: string;
   last_practiced_at: string;
-  mastery_level: number;
   difficulty_rating: number;
   retention_score: number;
   notes?: string;
@@ -420,7 +419,6 @@ export class EnhancedProgressService {
             definition: vocab.definition,
             native_translation: vocab.native_translation,
             example_sentence_en: vocab.example_sentence_en,
-            mastery_level: 0,
             difficulty_rating: vocab.difficulty_rank || 1,
             retention_score: 0,
             correct_attempts: 0,
