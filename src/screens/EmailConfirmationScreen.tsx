@@ -185,7 +185,7 @@ export default function EmailConfirmationScreen() {
               onPress={handleContinueToOnboarding}
             >
               <Ionicons name="arrow-forward" size={20} color="#ffffff" />
-              <Text style={styles.continueButtonText}>Continue to Setup</Text>
+              <Text style={styles.continueButtonText}>Continue to Subscription</Text>
             </TouchableOpacity>
           </View>
 

@@ -175,9 +175,9 @@ export default function OnboardingFlowScreen({ route }: { route?: any }) {
   // Check if we're returning from email confirmation
   useEffect(() => {
     if (route?.params?.fromEmailConfirmation) {
-      // User has confirmed their email, now complete the onboarding
-      console.log('📧 Returning from email confirmation, completing onboarding...');
-      completeOnboardingAfterEmailConfirmation();
+      // User has confirmed their email, now redirect to subscription
+      console.log('📧 Returning from email confirmation, redirecting to subscription...');
+      redirectToSubscription();
     }
   }, [route?.params?.fromEmailConfirmation]);
 
@@ -226,11 +226,11 @@ export default function OnboardingFlowScreen({ route }: { route?: any }) {
     }
   };
 
-  const completeOnboardingAfterEmailConfirmation = async () => {
+  const redirectToSubscription = async () => {
     try {
-      console.log('🚀 Completing onboarding after email confirmation...');
+      console.log('🚀 Redirecting to subscription after email confirmation...');
       
-      // Step 2: Complete onboarding with profile data
+      // First, save the onboarding data to the database
       const onboardingData = {
         firstName: formData.firstName,
         email: formData.email,
@@ -247,19 +247,46 @@ export default function OnboardingFlowScreen({ route }: { route?: any }) {
       const result = await completeOnboarding({ data: onboardingData });
       
       if (!result.ok) {
-        Alert.alert('Error', result.error || 'Failed to complete onboarding. Please try again.');
+        Alert.alert('Error', result.error || 'Failed to save profile data. Please try again.');
         return;
       }
 
-      console.log('✅ Onboarding completed successfully!');
+      console.log('✅ Profile data saved successfully!');
       
-      // Step 3: Clear new user flag and refresh profile
-      clearNewUserFlag();
-      await refreshProfile();
+      // Now redirect to subscription website
+      if (user) {
+        const subscriptionUrl = `https://unilingo.co.uk/subscription.html?user_id=${user.id}&email=${encodeURIComponent(user.email || '')}&token=${user.id}`;
+        
+        console.log('🔗 Redirecting to subscription page:', subscriptionUrl);
+        
+        const { Linking } = require('react-native');
+        const canOpen = await Linking.canOpenURL(subscriptionUrl);
+        
+        if (canOpen) {
+          await Linking.openURL(subscriptionUrl);
+          
+          Alert.alert(
+            'Complete Registration',
+            'You will be redirected to complete your subscription. Once completed, you can return to the app.',
+            [
+              { 
+                text: 'OK', 
+                onPress: () => {
+                  // Clear new user flag and refresh profile
+                  clearNewUserFlag();
+                  refreshProfile();
+                }
+              },
+            ]
+          );
+        } else {
+          Alert.alert('Error', 'Cannot open subscription page. Please try again.');
+        }
+      }
       
     } catch (error) {
       if (__DEV__) {
-        console.error('❌ Error completing onboarding:', error);
+        console.error('❌ Error redirecting to subscription:', error);
       }
       Alert.alert('Error', 'An unexpected error occurred. Please try again.');
     }
