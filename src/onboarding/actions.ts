@@ -39,8 +39,27 @@ export async function setPlan(tier: string) {
 
 export async function createAccount(name: string, email: string, password: string) {
   OnboardingStore.set({ name, email, password });
-  // 1) Create auth user (also fires DB trigger to insert row if you added it)
-  await signUp(email, password, name);
-  // 2) Mirror into public.users (harmless if trigger already added an empty row)
-  await saveOnboarding({ name, email });
+  
+  try {
+    // 1) Create auth user (also fires DB trigger to insert row if you added it)
+    const result = await signUp(email, password, name);
+    
+    // Check for duplicate email error from our updated signUp function
+    if (result.error) {
+      throw new Error(result.error.message || 'Failed to create account');
+    }
+    
+    // 2) Mirror into public.users (harmless if trigger already added an empty row)
+    await saveOnboarding({ name, email });
+  } catch (error: any) {
+    // Handle duplicate email errors
+    if (error.message?.includes('already exists') || 
+        error.message?.includes('already registered') || 
+        error.message?.includes('User already registered') ||
+        error.message?.includes('email address is already in use')) {
+      throw new Error('An account with this email address already exists. Please try signing in instead.');
+    }
+    // Re-throw other errors
+    throw error;
+  }
 }

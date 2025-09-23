@@ -18,6 +18,7 @@ export default function RegisterScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const navigation = useNavigation();
 
   const handleRegister = async () => {
@@ -36,12 +37,18 @@ export default function RegisterScreen() {
       return;
     }
 
-    // Redirect to onboarding flow with pre-filled email and password
-    // This ensures consistent flow with "Start Learning Today"
-    navigation.navigate('OnboardingFlow' as never, { 
-      prefillEmail: email, 
-      prefillPassword: password 
-    } as never);
+    setIsLoading(true);
+    
+    try {
+      // Redirect to onboarding flow with pre-filled email and password
+      // This ensures consistent flow with "Start Learning Today"
+      navigation.navigate('OnboardingFlow' as never, { 
+        prefillEmail: email, 
+        prefillPassword: password 
+      } as never);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

@@ -102,16 +102,6 @@ export default function EmailConfirmationScreen() {
     }
   };
 
-  const handleOpenEmailApp = () => {
-    const emailUrl = `mailto:${email}`;
-    Linking.canOpenURL(emailUrl).then(supported => {
-      if (supported) {
-        Linking.openURL(emailUrl);
-      } else {
-        Alert.alert('Error', 'Cannot open email app. Please check your email manually.');
-      }
-    });
-  };
 
   const handleBackToLogin = () => {
     navigation.navigate('Login' as never);
@@ -171,14 +161,6 @@ export default function EmailConfirmationScreen() {
     }
   };
 
-  const handleContinueToOnboarding = () => {
-    // After email confirmation, continue to onboarding
-    // Pass a flag to indicate we're continuing from email confirmation
-    navigation.navigate('OnboardingFlow' as never, { 
-      fromEmailConfirmation: true,
-      prefillEmail: email 
-    } as never);
-  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -266,14 +248,6 @@ export default function EmailConfirmationScreen() {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.openEmailButton}
-              onPress={handleOpenEmailApp}
-            >
-              <Ionicons name="mail-open" size={20} color="#ffffff" />
-              <Text style={styles.openEmailButtonText}>Open Email App</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
               style={[
                 styles.resendButton,
                 (isResending || resendCooldown > 0) && styles.resendButtonDisabled
@@ -292,14 +266,6 @@ export default function EmailConfirmationScreen() {
               ]}>
                 {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend Email'}
               </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.continueButton}
-              onPress={handleContinueToOnboarding}
-            >
-              <Ionicons name="arrow-forward" size={20} color="#ffffff" />
-              <Text style={styles.continueButtonText}>Continue to Subscription</Text>
             </TouchableOpacity>
           </View>
 
@@ -434,26 +400,6 @@ const styles = StyleSheet.create({
   verifyButtonTextDisabled: {
     color: '#ffffff',
   },
-  openEmailButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    backgroundColor: '#6366f1',
-    borderRadius: 12,
-    shadowColor: '#6366f1',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  openEmailButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#ffffff',
-  },
   resendButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -476,26 +422,6 @@ const styles = StyleSheet.create({
   },
   resendButtonTextDisabled: {
     color: '#94a3b8',
-  },
-  continueButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    backgroundColor: '#10b981',
-    borderRadius: 12,
-    shadowColor: '#10b981',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  continueButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#ffffff',
   },
   helpContainer: {
     marginTop: 32,

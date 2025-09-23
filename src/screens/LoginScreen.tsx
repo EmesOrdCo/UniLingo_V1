@@ -113,7 +113,7 @@ export default function LoginScreen() {
   };
 
   const handleSignUp = () => {
-    navigation.navigate('Register' as never);
+    navigation.navigate('OnboardingFlow' as never);
   };
 
   const clearError = () => {

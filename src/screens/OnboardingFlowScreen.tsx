@@ -315,8 +315,29 @@ export default function OnboardingFlowScreen({ route }: { route?: any }) {
       const { error: signUpError } = await signUp(formData.email, formData.password, formData.firstName);
       
       if (signUpError) {
-        console.error('❌ Sign up failed:', signUpError);
-        Alert.alert('Error', signUpError.message || 'Failed to create account. Please try again.');
+        // Handle specific error cases
+        if (signUpError.message?.includes('already exists') || 
+            signUpError.message?.includes('already registered') || 
+            signUpError.message?.includes('User already registered') ||
+            signUpError.message?.includes('email address is already in use')) {
+          Alert.alert(
+            'Account Already Exists',
+            'An account with this email address already exists. Please try signing in instead.',
+            [
+              {
+                text: 'Sign In Instead',
+                onPress: () => navigation.navigate('Login' as never),
+              },
+              {
+                text: 'Try Different Email',
+                style: 'cancel',
+              },
+            ]
+          );
+        } else {
+          console.error('❌ Sign up failed:', signUpError);
+          Alert.alert('Error', signUpError.message || 'Failed to create account. Please try again.');
+        }
         return;
       }
 

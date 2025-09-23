@@ -151,13 +151,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signUp = async (email: string, password: string, name?: string) => {
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: { 
           data: { name }
         },
       });
+
+      // Check for duplicate email by examining user.identities
+      if (!error && data.user && data.user.identities && data.user.identities.length === 0) {
+        // Empty identities array means email is already registered
+        return { 
+          error: { 
+            message: 'An account with this email address already exists. Please try signing in instead.' 
+          } 
+        };
+      }
 
       if (!error) {
         setIsNewUser(true); // Set flag to true if sign up is successful
