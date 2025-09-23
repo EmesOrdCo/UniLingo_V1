@@ -55,7 +55,7 @@ export async function completeOnboarding({
       // Upsert profile data
       const profileData = {
         id: user.id,
-        first_name: data.firstName || null,
+        name: data.firstName || null, // Use 'name' column instead of 'first_name'
         email: data.email || null,
         native_language: data.nativeLanguage || null,
         target_language: data.targetLanguage || null,
