@@ -38,7 +38,6 @@ import ProgressPageScreen from './src/screens/ProgressPageScreen';
 import ProfilePage from './src/screens/ProfilePage';
 import CreateLessonScreen from './src/screens/CreateLessonScreen';
 import AIChatPage from './src/screens/AIChatPage';
-import PaywallScreen from './src/screens/PaywallScreen';
 import AssistantConfigScreen from './src/screens/AssistantConfigScreen';
 import LessonWalkthroughScreen from './src/screens/LessonWalkthroughScreen';
 import OnboardingFlowScreen from './src/screens/OnboardingFlowScreen';
@@ -86,7 +85,6 @@ function MainNavigator() {
       <Stack.Screen name="Profile" component={ProfilePage} />
       <Stack.Screen name="CreateLesson" component={CreateLessonScreen} />
       <Stack.Screen name="AIChat" component={AIChatPage} />
-      <Stack.Screen name="Paywall" component={PaywallScreenWrapper} />
       <Stack.Screen name="AssistantConfig" component={AssistantConfigScreen} />
       <Stack.Screen name="LessonWalkthrough" component={LessonWalkthroughScreen} />
       <Stack.Screen name="OnboardingFlow" component={OnboardingFlowScreen} />
@@ -108,19 +106,6 @@ function MainNavigator() {
 }
 
 
-// Paywall screen component for navigation
-function PaywallScreenWrapper() {
-  const navigation = useNavigation();
-  
-  return (
-    <PaywallScreen
-      onComplete={() => {
-        // Navigate back to previous screen
-        navigation.goBack();
-      }}
-    />
-  );
-}
 
 // Auth stack navigator
 function AuthStack() {
@@ -247,10 +232,9 @@ function RefreshSetup() {
 // App navigator that handles auth state and profile completion
 function AppNavigator() {
   const { user, loading, profile, profileLoading, isNewUser, clearNewUserFlag, refreshProfile } = useAuth();
-  const { hasShownPaywall, setHasShownPaywall } = useSubscription();
 
   if (__DEV__) {
-    console.log('🧭 AppNavigator - Loading:', loading, 'User:', user ? user.email : 'No user', 'Profile:', profile ? 'Complete' : 'Incomplete', 'IsNewUser:', isNewUser, 'HasShownPaywall:', hasShownPaywall);
+    console.log('🧭 AppNavigator - Loading:', loading, 'User:', user ? user.email : 'No user', 'Profile:', profile ? 'Complete' : 'Incomplete', 'IsNewUser:', isNewUser);
   }
 
   if (loading || profileLoading) {
@@ -268,45 +252,9 @@ function AppNavigator() {
       console.log('📋 Profile data:', profile);
     }
     
-    // Show paywall for new users who haven't seen it yet
-    if (isNewUser && !hasShownPaywall) {
-      if (__DEV__) {
-        console.log('💰 New user, showing paywall...');
-      }
-      return (
-        <Stack.Navigator
-          screenOptions={{
-            headerShown: false,
-          }}
-        >
-          <Stack.Screen name="Paywall">
-            {() => (
-              <PaywallScreen
-                onComplete={() => {
-                  setHasShownPaywall(true);
-                }}
-              />
-            )}
-          </Stack.Screen>
-        </Stack.Navigator>
-      );
-    }
+    // Paywall removed - users go directly to subscription website after onboarding
     
-    // Show onboarding flow for new users who just signed up
-    if (isNewUser && !profile) {
-      if (__DEV__) {
-        console.log('📋 New user authenticated, showing onboarding flow');
-      }
-      return (
-        <Stack.Navigator
-          screenOptions={{
-            headerShown: false,
-          }}
-        >
-          <Stack.Screen name="OnboardingFlow" component={OnboardingFlowScreen} />
-        </Stack.Navigator>
-      );
-    }
+    // Onboarding flow is handled within AuthStack, not here
 
     // For existing users, show MainNavigator with subscription gate
     if (__DEV__) {

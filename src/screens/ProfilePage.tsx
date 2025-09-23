@@ -247,7 +247,7 @@ export default function ProfilePage() {
         {/* Subscription Status */}
         <SubscriptionStatus 
           onUpgrade={() => {
-            navigation.navigate('Paywall' as never);
+            // Paywall removed - users go to subscription website
           }}
         />
 

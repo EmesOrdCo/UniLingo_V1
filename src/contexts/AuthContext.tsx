@@ -15,7 +15,7 @@ interface AuthContextType {
   profileLoading: boolean;
   isNewUser: boolean; // Added to track if user just signed up
   signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signUp: (email: string, password: string) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, name?: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: any }>;
   createTestUser: () => Promise<void>;
@@ -149,11 +149,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const signUp = async (email: string, password: string) => {
+  const signUp = async (email: string, password: string, name?: string) => {
     try {
       const { error } = await supabase.auth.signUp({
         email,
         password,
+        options: { 
+          data: { name }
+        },
       });
 
       if (!error) {

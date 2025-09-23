@@ -99,7 +99,7 @@ export default function SubscriptionStatus({ onUpgrade }: SubscriptionStatusProp
         <View style={styles.costContainer}>
           <Text style={styles.costLabel}>Cost:</Text>
           <Text style={styles.costAmount}>
-            ${currentPlan.cost}/{currentPlan.planType === 'yearly' ? 'year' : 'month'}
+            £{currentPlan.cost}/{currentPlan.planType === 'yearly' ? 'year' : 'month'}
           </Text>
         </View>
       )}

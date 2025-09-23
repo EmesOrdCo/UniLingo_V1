@@ -167,27 +167,40 @@ export default function OnboardingFlowScreen({ route }: { route?: any }) {
     firstName: '',
     email: route?.params?.prefillEmail || '',
     password: route?.params?.prefillPassword || '',
-    selectedPlan: '',
-    discountCode: '',
-    discountApplied: false,
   });
 
   // Check if we're returning from email confirmation
   useEffect(() => {
+    console.log('🔍 Email confirmation useEffect triggered:', {
+      fromEmailConfirmation: route?.params?.fromEmailConfirmation,
+      routeParams: route?.params,
+      currentStep: currentStep
+    });
+    
     if (route?.params?.fromEmailConfirmation) {
       // User has confirmed their email, now redirect to subscription
       console.log('📧 Returning from email confirmation, redirecting to subscription...');
       redirectToSubscription();
     }
-  }, [route?.params?.fromEmailConfirmation]);
+  }, [route?.params?.fromEmailConfirmation, currentStep]);
+
+  // Also check on component mount
+  useEffect(() => {
+    console.log('🔍 OnboardingFlowScreen mounted with params:', route?.params);
+    if (route?.params?.fromEmailConfirmation) {
+      console.log('📧 Component mount: Returning from email confirmation, redirecting to subscription...');
+      redirectToSubscription();
+    }
+  }, []);
 
   const totalSteps = 7; // Reduced from 9 to 7 (removed plan selection and trial confirmation)
 
-  // Check if user's email is confirmed
+  // Check if user's email is confirmed (only for existing users, not during signup)
   useEffect(() => {
     const checkEmailConfirmation = async () => {
-      if (user && !user.email_confirmed_at) {
-        // User is not confirmed, redirect to email confirmation
+      // Don't interfere with the onboarding flow when user is signing up
+      if (user && !user.email_confirmed_at && currentStep === 0) {
+        // Only check for existing users who return to onboarding, not during signup
         Alert.alert(
           'Email Confirmation Required',
           'Please confirm your email address before continuing with onboarding.',
@@ -202,7 +215,7 @@ export default function OnboardingFlowScreen({ route }: { route?: any }) {
     };
 
     checkEmailConfirmation();
-  }, [user, navigation]);
+  }, [user, navigation, currentStep]);
 
   const nextStep = () => {
     console.log('🔄 nextStep called - currentStep:', currentStep, 'totalSteps:', totalSteps);
@@ -229,6 +242,7 @@ export default function OnboardingFlowScreen({ route }: { route?: any }) {
   const redirectToSubscription = async () => {
     try {
       console.log('🚀 Redirecting to subscription after email confirmation...');
+      console.log('🔍 Current formData:', formData);
       
       // First, save the onboarding data to the database
       const onboardingData = {
@@ -298,7 +312,7 @@ export default function OnboardingFlowScreen({ route }: { route?: any }) {
       
       // Step 1: Create user account with email and password
       console.log('📝 Creating user account for:', formData.email);
-      const { error: signUpError } = await signUp(formData.email, formData.password);
+      const { error: signUpError } = await signUp(formData.email, formData.password, formData.firstName);
       
       if (signUpError) {
         console.error('❌ Sign up failed:', signUpError);
@@ -310,7 +324,22 @@ export default function OnboardingFlowScreen({ route }: { route?: any }) {
       
       // Step 1.5: Redirect to email confirmation
       console.log('📧 Redirecting to email confirmation...');
-      navigation.navigate('EmailConfirmation' as never, { email: formData.email } as never);
+      const onboardingData = {
+        firstName: formData.firstName,
+        email: formData.email,
+        nativeLanguage: formData.nativeLanguage,
+        targetLanguage: formData.targetLanguage,
+        proficiency: formData.proficiency,
+        dailyCommitmentMinutes: parseInt(formData.timeCommitment) || null,
+        discoverySource: formData.discoverySource,
+        wantsNotifications: formData.wantsNotifications,
+        goals: [], // Not collected in this flow
+        ageRange: null, // Not collected in this flow
+      };
+      navigation.navigate('EmailConfirmation' as never, { 
+        email: formData.email,
+        onboardingData: onboardingData
+      } as never);
       return; // Exit here, don't continue with onboarding until email is confirmed
       
     } catch (error) {
@@ -1073,103 +1102,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#64748b',
     marginTop: 4,
-  },
-  planOptions: {
-    gap: 16,
-  },
-  planOption: {
-    padding: 20,
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    borderWidth: 2,
-    borderColor: '#e2e8f0',
-  },
-  planOptionSelected: {
-    borderColor: '#6366f1',
-    backgroundColor: '#f0f4ff',
-  },
-  planHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  planTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1e293b',
-  },
-  planTitleSelected: {
-    color: '#6366f1',
-  },
-  badge: {
-    backgroundColor: '#f59e0b',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  badgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#fff',
-  },
-  planPrice: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#1e293b',
-    marginBottom: 4,
-  },
-  planPriceSelected: {
-    color: '#6366f1',
-  },
-  planSubtext: {
-    fontSize: 14,
-    color: '#64748b',
-    marginBottom: 8,
-  },
-  planSubtextSelected: {
-    color: '#6366f1',
-  },
-  planTrial: {
-    fontSize: 14,
-    color: '#22c55e',
-    fontWeight: '600',
-  },
-  planTrialSelected: {
-    color: '#16a34a',
-  },
-  trialIconContainer: {
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  trialIcon: {
-    fontSize: 64,
-  },
-  trialBenefits: {
-    gap: 12,
-    marginBottom: 24,
-  },
-  benefitItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  benefitText: {
-    fontSize: 16,
-    color: '#1e293b',
-  },
-  trialTerms: {
-    padding: 16,
-    backgroundColor: '#f8fafc',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
-  termsText: {
-    fontSize: 12,
-    color: '#64748b',
-    lineHeight: 18,
-    textAlign: 'center',
   },
   navigation: {
     flexDirection: 'row',

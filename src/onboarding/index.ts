@@ -1,7 +1,4 @@
 // Main onboarding components
-export { OnboardingGate } from './OnboardingGate';
-export { ChildOnboardingStack } from './ChildOnboardingStack';
-export { ParentOnboardingStack } from './ParentOnboardingStack';
 
 // State management
 export { 

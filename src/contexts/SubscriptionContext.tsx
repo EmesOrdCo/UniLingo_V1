@@ -17,8 +17,6 @@ interface SubscriptionPlan {
 interface SubscriptionContextType {
   currentPlan: SubscriptionPlan | null;
   isLoading: boolean;
-  hasShownPaywall: boolean;
-  setHasShownPaywall: (shown: boolean) => void;
   upgradeToPlan: (planId: string) => Promise<void>;
   cancelSubscription: () => Promise<void>;
   checkSubscriptionStatus: () => Promise<void>;
@@ -27,7 +25,6 @@ interface SubscriptionContextType {
 const SubscriptionContext = createContext<SubscriptionContextType | undefined>(undefined);
 
 const SUBSCRIPTION_STORAGE_KEY = 'user_subscription';
-const PAYWALL_SHOWN_KEY = 'paywall_shown';
 
 // Helper function to get free plan
 const getFreePlan = (): SubscriptionPlan => ({
@@ -95,7 +92,6 @@ interface SubscriptionProviderProps {
 export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ children }) => {
   const [currentPlan, setCurrentPlan] = useState<SubscriptionPlan | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [hasShownPaywall, setHasShownPaywall] = useState(false);
   const { user } = useAuth();
 
   // Load subscription data on mount and when user changes
@@ -163,9 +159,6 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
 
       setCurrentPlan(subscriptionPlan);
       
-      // Also load paywall shown status from storage
-      const paywallShown = await AsyncStorage.getItem(PAYWALL_SHOWN_KEY);
-      setHasShownPaywall(paywallShown === 'true');
       
     } catch (error) {
       console.error('Error loading subscription data:', error);
@@ -185,14 +178,6 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
     }
   };
 
-  const savePaywallShown = async (shown: boolean) => {
-    try {
-      await AsyncStorage.setItem(PAYWALL_SHOWN_KEY, shown.toString());
-      setHasShownPaywall(shown);
-    } catch (error) {
-      console.error('Error saving paywall shown status:', error);
-    }
-  };
 
   const upgradeToPlan = async (planId: string) => {
     try {
@@ -291,8 +276,6 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
   const value: SubscriptionContextType = {
     currentPlan,
     isLoading,
-    hasShownPaywall,
-    setHasShownPaywall: savePaywallShown,
     upgradeToPlan,
     cancelSubscription,
     checkSubscriptionStatus,

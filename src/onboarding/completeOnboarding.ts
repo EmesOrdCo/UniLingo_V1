@@ -52,6 +52,16 @@ export async function completeOnboarding({
         console.log('🔄 Syncing onboarding data to Supabase for user:', user.id);
       }
 
+      // Map proficiency to valid level values
+      const mapProficiencyToLevel = (proficiency: string) => {
+        switch (proficiency) {
+          case 'Beginner': return 'beginner';
+          case 'Intermediate': return 'intermediate';
+          case 'Advanced': return 'advanced';
+          default: return null;
+        }
+      };
+
       // Upsert profile data
       const profileData = {
         id: user.id,
@@ -59,7 +69,8 @@ export async function completeOnboarding({
         email: data.email || null,
         native_language: data.nativeLanguage || null,
         target_language: data.targetLanguage || null,
-        level: data.proficiency || null, // Use existing 'level' column
+        level: mapProficiencyToLevel(data.proficiency) || null, // Map to valid level values
+        subject: data.subject || null, // Add subject field
         daily_commitment_minutes: data.dailyCommitmentMinutes || null,
         how_did_you_hear: data.discoverySource || null, // Use existing 'how_did_you_hear' column
         wants_notifications: data.wantsNotifications || false,
