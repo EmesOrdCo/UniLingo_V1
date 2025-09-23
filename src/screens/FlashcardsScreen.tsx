@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,12 +9,14 @@ import {
   Alert,
   TextInput,
   Platform,
+  RefreshControl,
 } from 'react-native';
 import * as Speech from 'expo-speech';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
+import { useRefresh } from '../contexts/RefreshContext';
 import { FlashcardService } from '../lib/flashcardService';
 import { UserFlashcardService } from '../lib/userFlashcardService';
 import { ProgressTrackingService } from '../lib/progressTrackingService';
@@ -26,6 +28,8 @@ import ConsistentHeader from '../components/ConsistentHeader';
 const { width } = Dimensions.get('window');
 
 export default function FlashcardsScreen() {
+  const { refreshTrigger } = useRefresh();
+  const [refreshing, setRefreshing] = useState(false);
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
   const [selectedDifficulty, setSelectedDifficulty] = useState<string | null>(null);
   const [topics, setTopics] = useState<Array<{ id: string; name: string; icon: string; color: string; count: number }>>([]);
@@ -283,6 +287,23 @@ export default function FlashcardsScreen() {
   useEffect(() => {
     fetchRealFlashcardStats();
   }, [user]);
+
+  // Refresh data when refreshTrigger changes (from global refresh context)
+  useEffect(() => {
+    if (refreshTrigger > 0) {
+      fetchRealFlashcardStats();
+    }
+  }, [refreshTrigger]);
+
+  // Pull-to-refresh callback
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await fetchRealFlashcardStats();
+    } finally {
+      setRefreshing(false);
+    }
+  }, []);
 
   // Refresh data when screen comes into focus (e.g., after saving flashcards)
   useFocusEffect(
@@ -767,6 +788,46 @@ export default function FlashcardsScreen() {
     }
   };
 
+  const deleteFlashcard = async (cardId: string) => {
+    if (!user) return;
+    
+    Alert.alert(
+      'Delete Flashcard',
+      'Are you sure you want to delete this flashcard? This action cannot be undone.',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              // Delete from user_flashcards table (this is the only table that exists)
+              const { error: userFlashcardError } = await supabase
+                .from('user_flashcards')
+                .delete()
+                .eq('id', cardId);
+
+              if (userFlashcardError) {
+                throw userFlashcardError;
+              }
+
+              // Remove from local state
+              setBrowseFlashcards(prev => prev.filter(card => card.id !== cardId));
+              
+              Alert.alert('Success', 'Flashcard deleted successfully');
+            } catch (error) {
+              console.error('Error deleting flashcard:', error);
+              Alert.alert('Error', 'Failed to delete flashcard');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   // Start review session with all user flashcards
   const startReviewSession = async () => {
     if (!user || !profile?.subjects || profile.subjects.length === 0) return;
@@ -1217,7 +1278,13 @@ export default function FlashcardsScreen() {
         pageName="Flashcards"
       />
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.content} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
         {/* Create Flashcard Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
@@ -1836,14 +1903,22 @@ export default function FlashcardsScreen() {
                           <Text style={styles.browseCardDifficulty}>
                             {card.difficulty?.charAt(0).toUpperCase() + card.difficulty?.slice(1) || 'Intermediate'}
                           </Text>
-                          {card.pronunciation && (
+                          <View style={styles.browseCardActions}>
+                            {card.pronunciation && (
+                              <TouchableOpacity 
+                                style={styles.browseAudioButton}
+                                onPress={() => playPronunciation(card.front)}
+                              >
+                                <Ionicons name="volume-high" size={16} color="#6366f1" />
+                              </TouchableOpacity>
+                            )}
                             <TouchableOpacity 
-                              style={styles.browseAudioButton}
-                              onPress={() => playPronunciation(card.front)}
+                              style={styles.browseDeleteButton}
+                              onPress={() => deleteFlashcard(card.id)}
                             >
-                              <Ionicons name="volume-high" size={16} color="#6366f1" />
+                              <Ionicons name="trash-outline" size={16} color="#ef4444" />
                             </TouchableOpacity>
-                          )}
+                          </View>
                         </View>
                         
                         <View style={styles.browseCardContent}>
@@ -3308,8 +3383,20 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 6,
   },
+  browseCardActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   browseAudioButton: {
     padding: 4,
+  },
+  browseDeleteButton: {
+    padding: 4,
+    backgroundColor: '#fef2f2',
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#fecaca',
   },
   browseCardContent: {
     marginBottom: 8,

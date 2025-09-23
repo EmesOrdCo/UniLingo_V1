@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,13 +7,16 @@ import {
   ScrollView,
   Alert,
   Platform,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import * as Speech from 'expo-speech';
 import { useAuth } from '../contexts/AuthContext';
+import { useRefresh } from '../contexts/RefreshContext';
 import { UserFlashcardService } from '../lib/userFlashcardService';
+import { supabase } from '../lib/supabase';
 
 interface BrowseFlashcardsScreenProps {
   route: {
@@ -28,6 +31,8 @@ export default function BrowseFlashcardsScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const { user, profile } = useAuth();
+  const { refreshTrigger } = useRefresh();
+  const [refreshing, setRefreshing] = useState(false);
   
   const { topic, difficulty } = route.params || {};
   
@@ -53,6 +58,23 @@ export default function BrowseFlashcardsScreen() {
   // Load flashcards on component mount
   useEffect(() => {
     loadFlashcards();
+  }, [selectedTopic, selectedDifficulty]);
+
+  // Refresh data when refreshTrigger changes (from global refresh context)
+  useEffect(() => {
+    if (refreshTrigger > 0) {
+      loadFlashcards();
+    }
+  }, [refreshTrigger]);
+
+  // Pull-to-refresh callback
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await loadFlashcards();
+    } finally {
+      setRefreshing(false);
+    }
   }, [selectedTopic, selectedDifficulty]);
 
   // Load browse flashcards
@@ -212,6 +234,46 @@ export default function BrowseFlashcardsScreen() {
     }
   };
 
+  const deleteFlashcard = async (cardId: string) => {
+    if (!user) return;
+    
+    Alert.alert(
+      'Delete Flashcard',
+      'Are you sure you want to delete this flashcard? This action cannot be undone.',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              // Delete from user_flashcards table (this is the only table that exists)
+              const { error: userFlashcardError } = await supabase
+                .from('user_flashcards')
+                .delete()
+                .eq('id', cardId);
+
+              if (userFlashcardError) {
+                throw userFlashcardError;
+              }
+
+              // Remove from local state
+              setFlashcards(prev => prev.filter(card => card.id !== cardId));
+              
+              Alert.alert('Success', 'Flashcard deleted successfully');
+            } catch (error) {
+              console.error('Error deleting flashcard:', error);
+              Alert.alert('Error', 'Failed to delete flashcard');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   // Start study session with filtered cards
   const startStudySession = () => {
     if (flashcards.length === 0) {
@@ -367,7 +429,13 @@ export default function BrowseFlashcardsScreen() {
       )}
 
       {/* Flashcards List */}
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.content} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
         {loading ? (
           <View style={styles.loadingContainer}>
             <Text style={styles.loadingText}>Loading flashcards...</Text>
@@ -401,6 +469,12 @@ export default function BrowseFlashcardsScreen() {
                       </Text>
                     </View>
                   </View>
+                  <TouchableOpacity 
+                    style={styles.deleteButton}
+                    onPress={() => deleteFlashcard(card.id)}
+                  >
+                    <Ionicons name="trash-outline" size={18} color="#ef4444" />
+                  </TouchableOpacity>
                 </View>
                 
                 <View style={styles.flashcardContent}>
@@ -650,12 +724,22 @@ const styles = StyleSheet.create({
     borderColor: '#e2e8f0',
   },
   flashcardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 12,
   },
   flashcardMeta: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+  },
+  deleteButton: {
+    padding: 8,
+    backgroundColor: '#fef2f2',
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#fecaca',
   },
   flashcardTopic: {
     fontSize: 12,

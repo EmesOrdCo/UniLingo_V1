@@ -42,7 +42,7 @@ export function SubscriptionRedirectScreen() {
             
             <View style={styles.benefitItem}>
               <Ionicons name="checkmark-circle" size={20} color="#22c55e" />
-              <Text style={styles.benefitText}>Unlimited flashcards</Text>
+              <Text style={styles.benefitText}>AI flashcards</Text>
             </View>
             <View style={styles.benefitItem}>
               <Ionicons name="checkmark-circle" size={20} color="#22c55e" />

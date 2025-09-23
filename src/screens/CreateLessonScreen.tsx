@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
+import { useRefresh } from '../contexts/RefreshContext';
 import { getPdfProcessingUrl } from '../config/backendConfig';
 import { LessonService } from '../lib/lessonService';
 
@@ -23,6 +24,7 @@ import { supabase } from '../lib/supabase';
 const { width: screenWidth } = Dimensions.get('window');
 
 export default function CreateLessonScreen() {
+  const { triggerRefresh } = useRefresh();
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState({
     stage: 'ready',
@@ -32,6 +34,9 @@ export default function CreateLessonScreen() {
   
   const navigation = useNavigation();
   const { user, profile } = useAuth();
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [isCancelled, setIsCancelled] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Get user's subject and native language from profile
   const userSubject = profile?.subjects?.[0] || 'General';
@@ -47,6 +52,12 @@ export default function CreateLessonScreen() {
     }
 
     try {
+      // Reset cancellation state
+      setIsCancelled(false);
+      
+      // Create new AbortController for this upload session
+      abortControllerRef.current = new AbortController();
+      
       setIsProcessing(true);
       setProgress({
         stage: 'uploading',
@@ -64,6 +75,23 @@ export default function CreateLessonScreen() {
       // Handle user cancellation gracefully
       if (!fileResult || !fileResult.assets || fileResult.assets.length === 0) {
         console.log('📄 User cancelled PDF selection');
+        
+        // Set cancellation flag to stop all background processes
+        setIsCancelled(true);
+        console.log('🔍 Set cancellation flag to true');
+        
+        // Abort any ongoing requests
+        if (abortControllerRef.current) {
+          abortControllerRef.current.abort();
+          console.log('🔍 Aborted ongoing requests');
+        }
+        
+        // Clear any timeouts
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+          timeoutRef.current = null;
+        }
+        
         setIsProcessing(false);
         setProgress({
           stage: 'ready',
@@ -95,6 +123,7 @@ export default function CreateLessonScreen() {
       const webhookResponse = await fetch(getPdfProcessingUrl(), {
         method: 'POST',
         body: formData,
+        signal: abortControllerRef.current?.signal,
       });
 
       if (!webhookResponse.ok) {
@@ -114,6 +143,12 @@ export default function CreateLessonScreen() {
       const extractedText = webhookResult.result?.text || 'Text extraction failed';
       const pages = webhookResult.result?.pages || [];
 
+      // Check if cancelled before starting AI processing
+      if (isCancelled) {
+        console.log('🚫 Upload cancelled, stopping AI processing');
+        return;
+      }
+      
       // Generate vocabulary for the lesson
       setProgress({
         stage: 'processing',
@@ -138,7 +173,8 @@ export default function CreateLessonScreen() {
           keywords = await LessonService.extractKeywordsFromPages(
             pages,
             selectedSubject,
-            userNativeLanguage
+            userNativeLanguage,
+            abortControllerRef.current?.signal
           );
         } else {
           console.log('📄 Small PDF detected, using single extraction');
@@ -151,7 +187,8 @@ export default function CreateLessonScreen() {
           keywords = await LessonService.extractKeywordsFromPDF(
             extractedText,
             selectedSubject,
-            userNativeLanguage
+            userNativeLanguage,
+            abortControllerRef.current?.signal
           );
         }
         
@@ -164,7 +201,8 @@ export default function CreateLessonScreen() {
         
         const topics = await LessonService.groupKeywordsIntoTopic(
           keywords,
-          selectedSubject
+          selectedSubject,
+          abortControllerRef.current?.signal
         );
         
         console.log('📚 Generating vocabulary from topics...');
@@ -177,7 +215,8 @@ export default function CreateLessonScreen() {
         const topicVocabulary = await LessonService.generateVocabularyFromTopics(
           topics,
           selectedSubject,
-          userNativeLanguage
+          userNativeLanguage,
+          abortControllerRef.current?.signal
         );
 
         // Create multiple lessons (one per topic)
@@ -270,6 +309,9 @@ export default function CreateLessonScreen() {
         progress: 100,
         message: 'Lesson created successfully!',
       });
+
+      // Trigger global refresh to update lesson counts everywhere
+      triggerRefresh();
 
       // Show success message
       Alert.alert(

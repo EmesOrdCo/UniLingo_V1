@@ -392,14 +392,14 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   closeButton: {
-    backgroundColor: '#6366f1',
+    backgroundColor: '#f1f5f9',
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 8,
     alignSelf: 'center',
   },
   closeButtonText: {
-    color: '#ffffff',
+    color: '#64748b',
     fontSize: 16,
     fontWeight: '600',
   },

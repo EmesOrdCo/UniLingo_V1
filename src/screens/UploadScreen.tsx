@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
+import { useRefresh } from '../contexts/RefreshContext';
 import { UploadService, UploadProgress, GeneratedFlashcard } from '../lib/uploadService';
 import { UserFlashcardService } from '../lib/userFlashcardService';
 import { FlashcardService } from '../lib/flashcardService';
@@ -26,6 +27,7 @@ import { getPdfProcessingUrl, getBackendUrl, BACKEND_CONFIG } from '../config/ba
 const { width: screenWidth } = Dimensions.get('window');
 
 export default function UploadScreen() {
+  const { triggerRefresh } = useRefresh();
   const [selectedTopic, setSelectedTopic] = useState('');
   const [showTopicInput, setShowTopicInput] = useState(false);
   const [newTopicInput, setNewTopicInput] = useState('');
@@ -44,7 +46,12 @@ export default function UploadScreen() {
   const [editableFlashcards, setEditableFlashcards] = useState<GeneratedFlashcard[]>([]);
   const [uniqueTopics, setUniqueTopics] = useState<string[]>([]);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const safetyTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const backendTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const aiTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [forceRefresh, setForceRefresh] = useState(0);
+  const [isCancelled, setIsCancelled] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
   
 
   
@@ -209,12 +216,17 @@ export default function UploadScreen() {
     }
 
     try {
-
+      // Reset cancellation state
+      setIsCancelled(false);
+      
+      // Create new AbortController for this upload session
+      abortControllerRef.current = new AbortController();
+      
       setIsProcessing(true);
       setShowProgressModal(true);
       
       // Add safety timeout to prevent indefinite freezing
-      const safetyTimeout = setTimeout(() => {
+      safetyTimeoutRef.current = setTimeout(() => {
         console.log('⚠️ Safety timeout triggered - upload taking longer than expected');
         
         // Stop the entire process
@@ -254,8 +266,32 @@ export default function UploadScreen() {
         console.log('📄 User cancelled PDF selection');
         console.log('🔍 Starting cancellation cleanup...');
         
-        clearTimeout(safetyTimeout); // Clear the safety timeout
-        console.log('🔍 Cleared safety timeout');
+        // Set cancellation flag to stop all background processes
+        setIsCancelled(true);
+        console.log('🔍 Set cancellation flag to true');
+        
+        // Abort any ongoing requests
+        if (abortControllerRef.current) {
+          abortControllerRef.current.abort();
+          console.log('🔍 Aborted ongoing requests');
+        }
+        
+        // Clear all timeouts
+        if (safetyTimeoutRef.current) {
+          clearTimeout(safetyTimeoutRef.current);
+          safetyTimeoutRef.current = null;
+          console.log('🔍 Cleared safety timeout');
+        }
+        if (backendTimeoutRef.current) {
+          clearTimeout(backendTimeoutRef.current);
+          backendTimeoutRef.current = null;
+          console.log('🔍 Cleared backend timeout');
+        }
+        if (aiTimeoutRef.current) {
+          clearTimeout(aiTimeoutRef.current);
+          aiTimeoutRef.current = null;
+          console.log('🔍 Cleared AI timeout');
+        }
         
         // Clear any progress interval that might be running
         if (progressIntervalRef.current) {
@@ -377,17 +413,24 @@ export default function UploadScreen() {
         console.log('🔍 Testing backend connectivity...');
         const healthController = new AbortController();
         const healthTimeout = setTimeout(() => healthController.abort(), 10000);
+        backendTimeoutRef.current = healthTimeout;
         
         const healthResponse = await fetch(getBackendUrl(BACKEND_CONFIG.ENDPOINTS.HEALTH), {
           method: 'GET',
           signal: healthController.signal,
         });
         
-        clearTimeout(healthTimeout);
+        if (backendTimeoutRef.current) {
+          clearTimeout(backendTimeoutRef.current);
+          backendTimeoutRef.current = null;
+        }
         console.log('✅ Backend health check passed:', healthResponse.status);
       } catch (healthError) {
         console.error('❌ Backend health check failed:', healthError);
-        clearTimeout(safetyTimeout);
+        if (safetyTimeoutRef.current) {
+          clearTimeout(safetyTimeoutRef.current);
+          safetyTimeoutRef.current = null;
+        }
         
         // Clear any progress interval that might be running
         if (progressIntervalRef.current) {
@@ -407,10 +450,11 @@ export default function UploadScreen() {
       }
       
       // Add timeout to prevent hanging on backend request
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => {
+      backendTimeoutRef.current = setTimeout(() => {
         console.log('⏰ Backend request timeout triggered');
-        controller.abort();
+        if (abortControllerRef.current) {
+          abortControllerRef.current.abort();
+        }
       }, 60000); // 60 second timeout for backend
       
       let extractedText = '';
@@ -420,10 +464,13 @@ export default function UploadScreen() {
         const webhookResponse = await fetch(getPdfProcessingUrl(), {
           method: 'POST',
           body: formData,
-          signal: controller.signal,
+          signal: abortControllerRef.current?.signal,
         });
         
-        clearTimeout(timeoutId); // Clear timeout if request completes
+        if (backendTimeoutRef.current) {
+          clearTimeout(backendTimeoutRef.current);
+          backendTimeoutRef.current = null;
+        }
         console.log('✅ Backend response received:', {
           status: webhookResponse.status,
           statusText: webhookResponse.statusText,
@@ -447,8 +494,14 @@ export default function UploadScreen() {
         console.log(`📄 Extracted ${extractedText.length} characters from ${webhookResult.result?.pageCount || 'unknown'} pages`);
         
       } catch (fetchError) {
-        clearTimeout(timeoutId);
-        clearTimeout(safetyTimeout);
+        if (backendTimeoutRef.current) {
+          clearTimeout(backendTimeoutRef.current);
+          backendTimeoutRef.current = null;
+        }
+        if (safetyTimeoutRef.current) {
+          clearTimeout(safetyTimeoutRef.current);
+          safetyTimeoutRef.current = null;
+        }
         
         // Clear any progress interval that might be running
         if (progressIntervalRef.current) {
@@ -487,6 +540,12 @@ export default function UploadScreen() {
           message: 'PDF uploaded successfully, preparing for AI analysis...',
         });
 
+      // Check if cancelled before starting AI processing
+      if (isCancelled) {
+        console.log('🚫 Upload cancelled, stopping AI processing');
+        return;
+      }
+      
       // Generate flashcards with AI - SECTION 1: handleFilePick
       const topic = selectedTopic;
       
@@ -516,6 +575,16 @@ export default function UploadScreen() {
       // Add progress updates during AI processing
       const startTime = Date.now();
       progressIntervalRef.current = setInterval(() => {
+        // Check if cancelled before updating progress
+        if (isCancelled) {
+          console.log('🚫 Upload cancelled, stopping progress updates');
+          if (progressIntervalRef.current) {
+            clearInterval(progressIntervalRef.current);
+            progressIntervalRef.current = null;
+          }
+          return;
+        }
+        
         const elapsed = Math.floor((Date.now() - startTime) / 1000);
         setProgress(prev => ({
           ...prev,
@@ -530,14 +599,28 @@ export default function UploadScreen() {
         userNativeLanguage,
         false,
         (progressUpdate) => {
+          // Check if cancelled before updating progress
+          if (isCancelled) {
+            console.log('🚫 Upload cancelled during AI processing');
+            return;
+          }
           console.log('🔍 Progress update from AI:', progressUpdate);
           console.log('🔍 Progress cardsGenerated:', progressUpdate.cardsGenerated);
           setProgress(progressUpdate);
-        }
+        },
+        abortControllerRef.current?.signal, // Pass abort signal to AI service
+        () => isCancelled // Pass cancellation check function
       );
       
       clearInterval(progressIntervalRef.current); // Clear progress updates when done
       progressIntervalRef.current = null;
+      
+      // Check if cancelled after AI processing
+      if (isCancelled) {
+        console.log('🚫 Upload cancelled after AI processing, not saving flashcards');
+        return;
+      }
+      
       console.log('🔍 AI flashcard generation completed, count:', flashcards.length);
       console.log('🔍 Generated flashcards:', flashcards.slice(0, 3)); // Log first 3 cards
       
@@ -558,13 +641,27 @@ export default function UploadScreen() {
       });
       
       if (user) {
+        // Final check before saving to database
+        if (isCancelled) {
+          console.log('🚫 Upload was cancelled - not saving flashcards to database');
+          return;
+        }
+        
         await UploadService.saveFlashcardsToDatabase(
           flashcards,
           user.id,
           userSubject,
           userNativeLanguage,
           false,
-          (progressUpdate) => setProgress(progressUpdate)
+          (progressUpdate) => {
+            // Check cancellation during save progress updates
+            if (isCancelled) {
+              console.log('🚫 Upload cancelled during save - stopping save process');
+              return;
+            }
+            setProgress(progressUpdate);
+          },
+          () => isCancelled // Pass cancellation check function
         );
       }
 
@@ -574,6 +671,9 @@ export default function UploadScreen() {
         message: `Successfully created ${flashcards.length} terminology flashcards!`,
         cardsGenerated: flashcards.length,
       });
+      
+      // Trigger global refresh to update card counts everywhere
+      triggerRefresh();
       
       console.log('🔍 Progress set to complete, waiting for user to click Continue...');
       
@@ -597,7 +697,10 @@ export default function UploadScreen() {
       });
       
       // Clear safety timeout on success
-      clearTimeout(safetyTimeout);
+      if (safetyTimeoutRef.current) {
+        clearTimeout(safetyTimeoutRef.current);
+        safetyTimeoutRef.current = null;
+      }
       
       // Keep progress modal open so user can click Continue
       // The handleContinue function will close it and show the review modal
@@ -605,10 +708,30 @@ export default function UploadScreen() {
     } catch (error) {
       console.error('Error processing PDF:', error);
       
+      // Clear all timeouts
+      if (safetyTimeoutRef.current) {
+        clearTimeout(safetyTimeoutRef.current);
+        safetyTimeoutRef.current = null;
+      }
+      if (backendTimeoutRef.current) {
+        clearTimeout(backendTimeoutRef.current);
+        backendTimeoutRef.current = null;
+      }
+      if (aiTimeoutRef.current) {
+        clearTimeout(aiTimeoutRef.current);
+        aiTimeoutRef.current = null;
+      }
+      
       // Clear any progress interval that might be running
       if (progressIntervalRef.current) {
         clearInterval(progressIntervalRef.current);
         progressIntervalRef.current = null;
+      }
+      
+      // Check if this was a cancellation error
+      if (error instanceof Error && (error.message.includes('cancelled') || error.message.includes('Request cancelled'))) {
+        console.log('🚫 Upload was cancelled - no error alert needed');
+        return;
       }
       
       // Show user-friendly error message
@@ -657,13 +780,27 @@ export default function UploadScreen() {
   const handleSaveFlashcards = async (flashcards: GeneratedFlashcard[]) => {
     try {
       if (user) {
+        // Check if upload was cancelled before saving
+        if (isCancelled) {
+          console.log('🚫 Upload was cancelled - not saving flashcards to database');
+          return;
+        }
+        
         await UploadService.saveFlashcardsToDatabase(
           flashcards,
           user.id,
           userSubject,
           userNativeLanguage,
           false,
-          (progressUpdate) => setProgress(progressUpdate)
+          (progressUpdate) => {
+            // Check cancellation during save progress updates
+            if (isCancelled) {
+              console.log('🚫 Upload cancelled during save - stopping save process');
+              return;
+            }
+            setProgress(progressUpdate);
+          },
+          () => isCancelled // Pass cancellation check function
         );
         
         const message = `${flashcards.length} flashcards have been saved to your collection.`;
@@ -742,6 +879,53 @@ export default function UploadScreen() {
         message: 'Ready to upload',
       });
     }
+  };
+
+  const handleCancelUpload = () => {
+    console.log('🚫 User cancelled upload - stopping all processes');
+    
+    // Set cancellation flag to stop all background processes
+    setIsCancelled(true);
+    
+    // Abort any ongoing requests
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    
+    // Clear all timeouts
+    if (safetyTimeoutRef.current) {
+      clearTimeout(safetyTimeoutRef.current);
+      safetyTimeoutRef.current = null;
+    }
+    if (backendTimeoutRef.current) {
+      clearTimeout(backendTimeoutRef.current);
+      backendTimeoutRef.current = null;
+    }
+    if (aiTimeoutRef.current) {
+      clearTimeout(aiTimeoutRef.current);
+      aiTimeoutRef.current = null;
+    }
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+      progressIntervalRef.current = null;
+    }
+    
+    // Reset all state
+    setIsProcessing(false);
+    setShowProgressModal(false);
+    setShowReviewModal(false);
+    setShowTopicEditModal(false);
+    setGeneratedFlashcards([]);
+    generatedFlashcardsRef.current = [];
+    
+    // Reset progress
+    setProgress({
+      stage: 'uploading',
+      progress: 0,
+      message: 'Ready to upload',
+    });
+    
+    console.log('✅ Upload cancellation complete - no flashcards will be saved');
   };
 
   const handleContinue = () => {
@@ -994,6 +1178,7 @@ export default function UploadScreen() {
         visible={showProgressModal}
         progress={progress}
         onClose={handleCloseProgress}
+        onCancel={handleCancelUpload}
         onRetry={progress.stage === 'error' ? handleRetryUpload : undefined}
         onUseAlternative={progress.stage === 'error' ? handleUseAlternative : undefined}
         onContinue={handleContinue}

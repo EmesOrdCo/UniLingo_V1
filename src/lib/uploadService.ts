@@ -186,8 +186,12 @@ export class UploadService {
     topic: string,
     nativeLanguage: string,
     showNativeLanguage: boolean = false,
-    onProgress?: (progress: UploadProgress) => void
+    onProgress?: (progress: UploadProgress) => void,
+    abortSignal?: AbortSignal,
+    isCancelled?: () => boolean
   ): Promise<GeneratedFlashcard[]> {
+    let aiTimeoutId: NodeJS.Timeout | null = null;
+    
     try {
 
       
@@ -340,7 +344,13 @@ export class UploadService {
 
       console.log('Cost estimation:', CostEstimator.getCostInfo(costEstimate));
       
+      // Check if cancelled before starting AI request
+      if (abortSignal?.aborted || isCancelled?.()) {
+        throw new Error('Request cancelled');
+      }
+      
       // Add timeout to prevent hanging on AI request
+      let aiTimeoutId: NodeJS.Timeout | null = null;
       const completion = await Promise.race([
         client.createChatCompletion({
           model: 'gpt-4o-mini',
@@ -348,14 +358,30 @@ export class UploadService {
           temperature: 0.7,
           max_tokens: 2000,
         }),
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('AI request timed out after 60 seconds')), 60000)
-        )
+        new Promise((_, reject) => {
+          aiTimeoutId = setTimeout(() => reject(new Error('AI request timed out after 60 seconds')), 60000);
+        })
       ]);
+      
+      // Clear the timeout if the request completes successfully
+      if (aiTimeoutId) {
+        clearTimeout(aiTimeoutId);
+      }
+      
+      // Check if cancelled after AI request
+      if (abortSignal?.aborted || isCancelled?.()) {
+        throw new Error('Request cancelled');
+      }
+      
       console.log('OpenAI response received');
       
 
 
+      // Check if cancelled before processing AI response
+      if (abortSignal?.aborted || isCancelled?.()) {
+        throw new Error('Request cancelled');
+      }
+      
       onProgress?.({
         stage: 'generating',
         progress: 50,
@@ -366,10 +392,20 @@ export class UploadService {
       if (!responseText) {
         throw new Error('No response from AI');
       }
+      
+      // Check if cancelled before parsing AI response
+      if (abortSignal?.aborted || isCancelled?.()) {
+        throw new Error('Request cancelled');
+      }
 
       // Parse the JSON response
       let flashcards: GeneratedFlashcard[];
       try {
+        // Check if cancelled before parsing
+        if (abortSignal?.aborted || isCancelled?.()) {
+          throw new Error('Request cancelled');
+        }
+        
         // Extract JSON from the response (AI might wrap it in markdown)
         const jsonMatch = responseText.match(/\[[\s\S]*\]/);
         if (jsonMatch) {
@@ -390,6 +426,11 @@ export class UploadService {
         throw new Error('Failed to parse AI-generated flashcards');
       }
 
+      // Check if cancelled before final progress update
+      if (abortSignal?.aborted || isCancelled?.()) {
+        throw new Error('Request cancelled');
+      }
+      
       onProgress?.({
         stage: 'generating',
         progress: 100,
@@ -402,6 +443,11 @@ export class UploadService {
       return flashcards;
     } catch (error) {
       console.error('Error generating flashcards:', error);
+      
+      // Clear any AI timeout that might be running
+      if (aiTimeoutId) {
+        clearTimeout(aiTimeoutId);
+      }
       
       // Provide more specific error messages
       if (error instanceof Error) {
@@ -426,7 +472,8 @@ export class UploadService {
     subject: string,
     nativeLanguage: string,
     showNativeLanguage: boolean = false,
-    onProgress?: (progress: UploadProgress) => void
+    onProgress?: (progress: UploadProgress) => void,
+    isCancelled?: () => boolean
   ): Promise<void> {
     try {
       onProgress?.({
@@ -438,6 +485,12 @@ export class UploadService {
       const totalCards = flashcards.length;
       
       for (let i = 0; i < totalCards; i++) {
+        // Check if cancelled before processing each card
+        if (isCancelled?.()) {
+          console.log('🚫 Upload cancelled during database save - stopping save process');
+          throw new Error('Request cancelled');
+        }
+        
         const card = flashcards[i];
         
         // Ensure example is not empty - if AI didn't provide one, create a simple one
@@ -471,6 +524,13 @@ export class UploadService {
         });
 
         const progress = Math.round(((i + 1) / totalCards) * 100);
+        
+        // Check if cancelled before updating progress
+        if (isCancelled?.()) {
+          console.log('🚫 Upload cancelled during progress update - stopping save process');
+          throw new Error('Request cancelled');
+        }
+        
         onProgress?.({
           stage: 'processing',
           progress,

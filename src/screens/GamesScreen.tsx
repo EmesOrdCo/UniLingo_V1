@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { logger } from '../lib/logger';
 import GameCompletionTracker from '../lib/gameCompletionTracker';
 import GlobalCompletionLock from '../lib/globalCompletionLock';
@@ -13,6 +13,7 @@ import {
   Modal,
   TextInput,
   Animated,
+  RefreshControl,
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -21,6 +22,7 @@ import * as Speech from 'expo-speech';
 import { Audio } from 'expo-av';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
+import { useRefresh } from '../contexts/RefreshContext';
 import FlashcardQuizSetup from '../components/FlashcardQuizSetup';
 import MemoryMatchSetup from '../components/MemoryMatchSetup';
 import { FlashcardQuizSetupOptions } from '../components/FlashcardQuizSetup';
@@ -68,6 +70,8 @@ export default function GamesScreen({ route }: { route?: any }) {
   
   const navigation = useNavigation();
   const { user, profile } = useAuth();
+  const { refreshTrigger } = useRefresh();
+  const [refreshing, setRefreshing] = useState(false);
   
   // Check if we need to launch a specific game from navigation params
   const launchGame = route?.params?.launchGame;
@@ -247,6 +251,27 @@ export default function GamesScreen({ route }: { route?: any }) {
     if (user && profile) {
       loadTopics();
       fetchRealFlashcardStats();
+    }
+  }, [user, profile]);
+
+  // Refresh data when refreshTrigger changes (from global refresh context)
+  useEffect(() => {
+    if (refreshTrigger > 0 && user && profile) {
+      loadTopics();
+      fetchRealFlashcardStats();
+    }
+  }, [refreshTrigger]);
+
+  // Pull-to-refresh callback
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      if (user && profile) {
+        await loadTopics();
+        await fetchRealFlashcardStats();
+      }
+    } finally {
+      setRefreshing(false);
     }
   }, [user, profile]);
 
@@ -1498,7 +1523,13 @@ export default function GamesScreen({ route }: { route?: any }) {
         pageName="Games"
       />
       
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.content} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
         {/* Your Game Stats */}
         <GameStatsSection 
           stats={{

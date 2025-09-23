@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,8 @@ import {
   Dimensions,
   TouchableOpacity,
   ScrollView,
+  Animated,
+  Easing,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { UploadProgress } from '../lib/uploadService';
@@ -15,6 +17,7 @@ interface UploadProgressModalProps {
   visible: boolean;
   progress: UploadProgress;
   onClose?: () => void;
+  onCancel?: () => void;
   onRetry?: () => void;
   onUseAlternative?: () => void;
   onContinue?: () => void;
@@ -26,10 +29,94 @@ export default function UploadProgressModal({
   visible,
   progress,
   onClose,
+  onCancel,
   onRetry,
   onUseAlternative,
   onContinue,
 }: UploadProgressModalProps) {
+  // Animation values
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const rotateAnim = useRef(new Animated.Value(0)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(0.8)).current;
+
+  // Pulse animation for generating stage
+  useEffect(() => {
+    if (progress.stage === 'generating') {
+      const pulseAnimation = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 1.1,
+            duration: 1000,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 1000,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+        ])
+      );
+      pulseAnimation.start();
+      return () => pulseAnimation.stop();
+    }
+  }, [progress.stage, pulseAnim]);
+
+  // Rotation animation for processing stages
+  useEffect(() => {
+    if (['uploading', 'processing', 'generating'].includes(progress.stage)) {
+      const rotateAnimation = Animated.loop(
+        Animated.timing(rotateAnim, {
+          toValue: 1,
+          duration: 2000,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        })
+      );
+      rotateAnimation.start();
+      return () => rotateAnimation.stop();
+    }
+  }, [progress.stage, rotateAnim]);
+
+  // Modal entrance animation
+  useEffect(() => {
+    if (visible) {
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 300,
+          easing: Easing.out(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.spring(scaleAnim, {
+          toValue: 1,
+          tension: 100,
+          friction: 8,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(scaleAnim, {
+          toValue: 0.8,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [visible, fadeAnim, scaleAnim]);
+
+  const rotateInterpolate = rotateAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
   const getStageIcon = (stage: string) => {
     switch (stage) {
       case 'uploading':
@@ -50,11 +137,11 @@ export default function UploadProgressModal({
   const getStageColor = (stage: string) => {
     switch (stage) {
       case 'uploading':
-        return '#3b82f6';
+        return '#6366f1';
       case 'processing':
         return '#8b5cf6';
       case 'generating':
-        return '#f59e0b';
+        return '#a855f7';
       case 'complete':
         return '#10b981';
       case 'error':
@@ -169,25 +256,45 @@ export default function UploadProgressModal({
   return (
     <Modal
       visible={visible}
-      animationType="fade"
+      animationType="none"
       transparent={true}
     >
-      <View style={styles.overlay}>
-        <View style={styles.modal}>
+      <Animated.View style={[styles.overlay, { opacity: fadeAnim }]}>
+        <Animated.View style={[styles.modal, { transform: [{ scale: scaleAnim }] }]}>
           {/* Header */}
           <View style={styles.header}>
-            <View style={[
+            <Animated.View style={[
               styles.iconContainer,
-              { backgroundColor: getStageColor(progress.stage) + '20' }
+              { 
+                backgroundColor: getStageColor(progress.stage) + '15',
+                transform: [
+                  { scale: progress.stage === 'generating' ? pulseAnim : 1 },
+                  { rotate: ['uploading', 'processing', 'generating'].includes(progress.stage) ? rotateInterpolate : '0deg' }
+                ]
+              }
             ]}>
               <Ionicons 
                 name={getStageIcon(progress.stage) as any} 
-                size={32} 
+                size={36} 
                 color={getStageColor(progress.stage)} 
               />
+            </Animated.View>
+            
+            <View style={styles.titleContainer}>
+              <Text style={styles.title}>{getStageTitle(progress.stage)}</Text>
+              <View style={styles.titleUnderline} />
             </View>
-            <Text style={styles.title}>{getStageTitle(progress.stage)}</Text>
+            
             <Text style={styles.message}>{progress.message}</Text>
+            
+            {/* Animated dots for generating stage */}
+            {progress.stage === 'generating' && (
+              <View style={styles.dotsContainer}>
+                <Animated.View style={[styles.dot, { opacity: pulseAnim }]} />
+                <Animated.View style={[styles.dot, { opacity: pulseAnim }]} />
+                <Animated.View style={[styles.dot, { opacity: pulseAnim }]} />
+              </View>
+            )}
           </View>
 
           {/* Error Details */}
@@ -211,7 +318,7 @@ export default function UploadProgressModal({
           {!isComplete && !isError && (
             <View style={styles.progressContainer}>
               <View style={styles.progressBar}>
-                <View 
+                <Animated.View 
                   style={[
                     styles.progressFill,
                     { 
@@ -220,8 +327,12 @@ export default function UploadProgressModal({
                     }
                   ]} 
                 />
+                <View style={styles.progressGlow} />
               </View>
-              <Text style={styles.progressText}>{progress.progress}%</Text>
+              <View style={styles.progressInfo}>
+                <Text style={styles.progressText}>{progress.progress}%</Text>
+                <Text style={styles.progressLabel}>Complete</Text>
+              </View>
             </View>
           )}
 
@@ -230,7 +341,7 @@ export default function UploadProgressModal({
             <View style={styles.footer}>
               <TouchableOpacity 
                 style={[styles.actionButton, styles.cancelProcessingButton]}
-                onPress={onClose}
+                onPress={onCancel || onClose}
               >
                 <Ionicons name="close" size={20} color="#ef4444" />
                 <Text style={styles.cancelProcessingButtonText}>Cancel Upload</Text>
@@ -254,45 +365,72 @@ export default function UploadProgressModal({
 
           {/* Cards Generated Count */}
           {progress.cardsGenerated !== undefined && !isError && (
-            <View style={styles.cardsInfo}>
-              <Ionicons name="document-text" size={20} color="#6366f1" />
-              <Text style={styles.cardsText}>
-                {progress.cardsGenerated} flashcards generated
-              </Text>
-            </View>
+            <Animated.View style={[styles.cardsInfo, { opacity: fadeAnim }]}>
+              <View style={styles.cardsIconContainer}>
+                <Ionicons name="document-text" size={24} color="#6366f1" />
+              </View>
+              <View style={styles.cardsTextContainer}>
+                <Text style={styles.cardsNumber}>{progress.cardsGenerated}</Text>
+                <Text style={styles.cardsLabel}>flashcards generated</Text>
+              </View>
+              <View style={styles.cardsBadge}>
+                <Ionicons name="checkmark-circle" size={16} color="#10b981" />
+              </View>
+            </Animated.View>
           )}
 
           {/* Stage Indicators */}
           {!isError && (
             <View style={styles.stagesContainer}>
-              {['uploading', 'processing', 'generating'].map((stage, index) => (
-                <View key={stage} style={styles.stageItem}>
-                  <View style={[
-                    styles.stageDot,
-                    {
-                      backgroundColor: progress.stage === stage 
-                        ? getStageColor(stage)
-                        : progress.stage === 'complete' || 
-                          ['processing', 'generating'].includes(progress.stage) && ['uploading', 'processing'].includes(stage)
-                          ? '#10b981'
-                          : '#e2e8f0'
-                    }
-                  ]} />
-                  <Text style={[
-                    styles.stageText,
-                    {
-                      color: progress.stage === stage 
-                        ? getStageColor(stage)
-                        : progress.stage === 'complete' || 
-                          ['processing', 'generating'].includes(progress.stage) && ['uploading', 'processing'].includes(stage)
-                          ? '#10b981'
-                          : '#94a3b8'
-                    }
-                  ]}>
-                    {stage.charAt(0).toUpperCase() + stage.slice(1)}
-                  </Text>
-                </View>
-              ))}
+              {['uploading', 'processing', 'generating'].map((stage, index) => {
+                const isActive = progress.stage === stage;
+                const isCompleted = progress.stage === 'complete' || 
+                  (progress.stage === 'generating' && ['uploading', 'processing'].includes(stage)) ||
+                  (progress.stage === 'processing' && stage === 'uploading');
+                
+                return (
+                  <View key={stage} style={styles.stageItem}>
+                    <Animated.View style={[
+                      styles.stageDot,
+                      {
+                        backgroundColor: isActive 
+                          ? getStageColor(stage)
+                          : isCompleted
+                            ? '#10b981'
+                            : '#e2e8f0',
+                        transform: [{ scale: isActive ? pulseAnim : 1 }]
+                      }
+                    ]}>
+                      {isCompleted && (
+                        <Ionicons name="checkmark" size={14} color="#ffffff" />
+                      )}
+                    </Animated.View>
+                    <Text style={[
+                      styles.stageText,
+                      {
+                        color: isActive 
+                          ? getStageColor(stage)
+                          : isCompleted
+                            ? '#10b981'
+                            : '#94a3b8',
+                        fontWeight: isActive ? '700' : '500'
+                      }
+                    ]}>
+                      {stage.charAt(0).toUpperCase() + stage.slice(1)}
+                    </Text>
+                    
+                    {/* Connecting line - only show between stages */}
+                    {index < 2 && (
+                      <View style={[
+                        styles.stageLine,
+                        { 
+                          backgroundColor: isCompleted ? '#10b981' : '#e2e8f0',
+                        }
+                      ]} />
+                    )}
+                  </View>
+                );
+              })}
             </View>
           )}
 
@@ -344,8 +482,8 @@ export default function UploadProgressModal({
               )}
             </View>
           )}
-        </View>
-      </View>
+        </Animated.View>
+      </Animated.View>
     </Modal>
   );
 }
@@ -353,48 +491,78 @@ export default function UploadProgressModal({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
   },
   modal: {
     backgroundColor: '#ffffff',
-    borderRadius: 20,
-    padding: 32,
+    borderRadius: 24,
+    padding: 40,
     width: '100%',
-    maxWidth: 400,
+    maxWidth: 420,
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.25,
-    shadowRadius: 20,
-    elevation: 10,
+    shadowOffset: { width: 0, height: 20 },
+    shadowOpacity: 0.3,
+    shadowRadius: 30,
+    elevation: 15,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
   },
   header: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 40,
   },
   iconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  titleContainer: {
     alignItems: 'center',
     marginBottom: 16,
   },
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
+    fontSize: 28,
+    fontWeight: '800',
     color: '#1e293b',
-    marginBottom: 8,
     textAlign: 'center',
+    letterSpacing: -0.5,
+  },
+  titleUnderline: {
+    width: 60,
+    height: 4,
+    backgroundColor: '#8b5cf6',
+    borderRadius: 2,
+    marginTop: 8,
   },
   message: {
     fontSize: 16,
     color: '#64748b',
     textAlign: 'center',
     lineHeight: 24,
+    marginBottom: 16,
+  },
+  dotsContainer: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 8,
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#8b5cf6',
   },
   errorDetails: {
     width: '100%',
@@ -439,61 +607,141 @@ const styles = StyleSheet.create({
   },
   progressContainer: {
     width: '100%',
-    marginBottom: 24,
+    marginBottom: 32,
   },
   progressBar: {
     width: '100%',
-    height: 8,
-    backgroundColor: '#e2e8f0',
-    borderRadius: 4,
+    height: 12,
+    backgroundColor: '#f1f5f9',
+    borderRadius: 6,
     overflow: 'hidden',
-    marginBottom: 8,
+    marginBottom: 12,
+    position: 'relative',
   },
   progressFill: {
     height: '100%',
-    borderRadius: 4,
+    borderRadius: 6,
+    shadowColor: '#6366f1',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  progressGlow: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+    borderRadius: 6,
+  },
+  progressInfo: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   progressText: {
+    fontSize: 18,
+    color: '#1e293b',
+    fontWeight: '700',
+  },
+  progressLabel: {
     fontSize: 14,
     color: '#64748b',
-    textAlign: 'center',
-    fontWeight: '600',
+    fontWeight: '500',
   },
   cardsInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
     marginBottom: 32,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingHorizontal: 24,
+    paddingVertical: 16,
     backgroundColor: '#f8fafc',
-    borderRadius: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  cardsText: {
-    fontSize: 16,
+  cardsIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#8b5cf6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  cardsTextContainer: {
+    flex: 1,
+  },
+  cardsNumber: {
+    fontSize: 24,
     color: '#1e293b',
+    fontWeight: '800',
+    lineHeight: 28,
+  },
+  cardsLabel: {
+    fontSize: 14,
+    color: '#64748b',
     fontWeight: '500',
+  },
+  cardsBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#10b981',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   stagesContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
     width: '100%',
     marginBottom: 32,
+    paddingHorizontal: 20,
+    position: 'relative',
   },
   stageItem: {
     alignItems: 'center',
     flex: 1,
+    position: 'relative',
+    zIndex: 2,
+  },
+  stageLine: {
+    position: 'absolute',
+    top: 15,
+    left: 50,
+    right: -50,
+    height: 2,
+    zIndex: 1,
   },
   stageDot: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     marginBottom: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#ffffff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
+    zIndex: 2,
   },
   stageText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '600',
     textAlign: 'center',
+    lineHeight: 16,
   },
   footer: {
     width: '100%',
@@ -508,10 +756,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    minWidth: 120,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 16,
+    minWidth: 140,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
   retryButton: {
     backgroundColor: '#ef4444',
@@ -521,7 +774,7 @@ const styles = StyleSheet.create({
   retryButtonText: {
     color: '#ffffff',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
     marginLeft: 8,
   },
   alternativeButton: {
@@ -532,7 +785,7 @@ const styles = StyleSheet.create({
   alternativeButtonText: {
     color: '#ffffff',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
     marginLeft: 8,
   },
   closeButton: {
@@ -543,7 +796,7 @@ const styles = StyleSheet.create({
   closeButtonText: {
     color: '#ffffff',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
     marginLeft: 8,
   },
   continueButton: {
@@ -552,7 +805,7 @@ const styles = StyleSheet.create({
   continueButtonText: {
     color: '#ffffff',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
     marginLeft: 8,
   },
   cancelProcessingButton: {
@@ -563,7 +816,7 @@ const styles = StyleSheet.create({
   cancelProcessingButtonText: {
     color: '#ef4444',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
     marginLeft: 8,
   },
   forceCloseContainer: {

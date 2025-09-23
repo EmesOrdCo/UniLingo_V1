@@ -51,8 +51,8 @@ const parseSubscriptionDetails = (paymentTier: string, nextBillingDate?: string)
     cost: 9.99,
     planType: 'monthly',
     features: [
-      'Unlimited flashcards',
-      'Unlimited lessons',
+      'AI flashcards',
+      'AI lessons',
       'Advanced progress analytics',
       'AI-powered study recommendations',
       'Priority support',
@@ -65,7 +65,7 @@ const parseSubscriptionDetails = (paymentTier: string, nextBillingDate?: string)
   // Parse payment tier to determine plan details (only monthly and yearly)
   if (paymentTier.includes('yearly') || paymentTier.includes('annual')) {
     planDetails.planType = 'yearly';
-    planDetails.cost = 99.99; // Yearly price
+    planDetails.cost = 89.99; // Yearly price
     planDetails.name = 'Premium Yearly';
   } else {
     // Default to monthly for any other payment tier
@@ -192,7 +192,7 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
       // Define plan features based on planId
       const planFeatures = {
         pro: [
-          'Unlimited flashcards',
+          'AI flashcards',
           'Unlimited study sessions',
           'Advanced progress analytics',
           'AI-powered study recommendations',

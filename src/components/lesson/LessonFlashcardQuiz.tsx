@@ -264,7 +264,7 @@ export default function LessonFlashcardQuiz({ vocabulary, onComplete, onClose, o
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-          <Ionicons name="close" size={24} color="#6366f1" />
+          <Ionicons name="close" size={24} color="#64748b" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Flashcard Quiz</Text>
         <View style={styles.placeholder} />
@@ -353,7 +353,7 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     padding: 12,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#f1f5f9',
     borderRadius: 8,
   },
   headerTitle: {
