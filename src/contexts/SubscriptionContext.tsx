@@ -122,14 +122,14 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
 
       if (error) {
         console.error('Error loading subscription data:', error);
-        // Fallback to free plan on error
-        setCurrentPlan(getFreePlan());
+        // Don't set any plan on error - let the UI handle the loading state
+        setCurrentPlan(null);
         return;
       }
 
       if (!userData) {
-        console.log('No user data found, defaulting to free plan');
-        setCurrentPlan(getFreePlan());
+        console.log('No user data found');
+        setCurrentPlan(null);
         return;
       }
 
@@ -140,15 +140,17 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
 
       let subscriptionPlan: SubscriptionPlan;
 
-      if (!hasActiveSubscription || !paymentTier || paymentTier === 'free') {
-        subscriptionPlan = getFreePlan();
+      if (!paymentTier) {
+        // Don't create fake data - just return null to indicate no subscription data
+        setCurrentPlan(null);
+        return;
       } else {
         // Parse subscription details
         const planDetails = parseSubscriptionDetails(paymentTier, nextBillingDate);
         subscriptionPlan = {
           id: paymentTier,
           name: planDetails.name,
-          status: 'active',
+          status: hasActiveSubscription ? 'active' : 'inactive',
           expiresAt: nextBillingDate ? new Date(nextBillingDate) : undefined,
           renewalDate: nextBillingDate ? new Date(nextBillingDate) : undefined,
           cost: planDetails.cost,
@@ -162,8 +164,8 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
       
     } catch (error) {
       console.error('Error loading subscription data:', error);
-      // Default to free plan on error
-      setCurrentPlan(getFreePlan());
+      // Don't set any plan on error - let the UI handle the loading state
+      setCurrentPlan(null);
     } finally {
       setIsLoading(false);
     }

@@ -18,13 +18,15 @@ export default function SubscriptionStatus({ onUpgrade }: SubscriptionStatusProp
     );
   }
 
-  const isPremium = currentPlan?.id !== 'free';
+  const isPremium = currentPlan && currentPlan.id !== 'free';
   const isTrial = currentPlan?.status === 'trial';
   const isCancelled = currentPlan?.status === 'cancelled';
+  const isInactive = currentPlan?.status === 'inactive';
 
   const getStatusColor = () => {
     if (isCancelled) return '#ef4444';
     if (isTrial) return '#f59e0b';
+    if (isInactive) return '#f59e0b';
     if (isPremium) return '#10b981';
     return '#6b7280';
   };
@@ -32,15 +34,17 @@ export default function SubscriptionStatus({ onUpgrade }: SubscriptionStatusProp
   const getStatusText = () => {
     if (isCancelled) return 'Cancelled';
     if (isTrial) return 'Trial';
+    if (isInactive) return 'Inactive';
     if (isPremium) return 'Active';
-    return 'Free';
+    return 'Data Unavailable';
   };
 
   const getStatusIcon = () => {
     if (isCancelled) return 'close-circle';
     if (isTrial) return 'time';
+    if (isInactive) return 'pause-circle';
     if (isPremium) return 'checkmark-circle';
-    return 'person';
+    return 'help-circle';
   };
 
   const handleUpgrade = () => {
@@ -64,7 +68,7 @@ export default function SubscriptionStatus({ onUpgrade }: SubscriptionStatusProp
 
       <View style={styles.planContainer}>
         <View style={styles.planInfo}>
-          <Text style={styles.planName}>{currentPlan?.name || 'Free'} Plan</Text>
+          <Text style={styles.planName}>{currentPlan?.name || 'Subscription Data Unavailable'}</Text>
           <View style={styles.statusContainer}>
             <Ionicons
               name={getStatusIcon() as any}

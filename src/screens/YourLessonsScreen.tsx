@@ -14,6 +14,7 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { useRefresh } from '../contexts/RefreshContext';
 import { LessonService, Lesson, LessonProgress } from '../lib/lessonService';
+import { supabase } from '../lib/supabase';
 
 export default function YourLessonsScreen() {
   const [lessons, setLessons] = useState<(Lesson & { vocab_count: number; progress?: LessonProgress })[]>([]);
@@ -70,6 +71,70 @@ export default function YourLessonsScreen() {
     
     // Navigate to CreateLesson screen
     navigation.navigate('CreateLesson' as never);
+  };
+
+  const deleteLesson = async (lessonId: string, lessonTitle: string) => {
+    if (!user) return;
+    
+    Alert.alert(
+      'Delete Lesson',
+      `Are you sure you want to delete "${lessonTitle}"? This will permanently remove the lesson and all associated data. This action cannot be undone.`,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              // Delete lesson progress first
+              const { error: lessonProgressError } = await supabase
+                .from('lesson_progress')
+                .delete()
+                .eq('lesson_id', lessonId);
+
+              if (lessonProgressError) {
+                console.error('Error deleting lesson progress:', lessonProgressError);
+                throw lessonProgressError;
+              }
+
+              // Delete lesson vocabulary
+              const { error: lessonVocabError } = await supabase
+                .from('lesson_vocabulary')
+                .delete()
+                .eq('lesson_id', lessonId);
+
+              if (lessonVocabError) {
+                console.error('Error deleting lesson vocabulary:', lessonVocabError);
+                throw lessonVocabError;
+              }
+
+              // Delete the lesson itself
+              const { error: lessonError } = await supabase
+                .from('esp_lessons')
+                .delete()
+                .eq('id', lessonId)
+                .eq('user_id', user.id); // Ensure user can only delete their own lessons
+
+              if (lessonError) {
+                console.error('Error deleting lesson:', lessonError);
+                throw lessonError;
+              }
+
+              // Remove from local state
+              setLessons(prev => prev.filter(lesson => lesson.id !== lessonId));
+              
+              Alert.alert('Success', 'Lesson deleted successfully');
+            } catch (error) {
+              console.error('Error deleting lesson:', error);
+              Alert.alert('Error', 'Failed to delete lesson. Please try again.');
+            }
+          },
+        },
+      ]
+    );
   };
 
   const formatDate = (dateString: string) => {
@@ -185,8 +250,16 @@ export default function YourLessonsScreen() {
                     </Text>
                     <Text style={styles.lessonSubject}>{lesson.subject}</Text>
                   </View>
-                  <View style={styles.lessonIcon}>
-                    <Ionicons name="book" size={20} color="#6366f1" />
+                  <View style={styles.lessonActions}>
+                    <TouchableOpacity 
+                      style={styles.deleteButton}
+                      onPress={() => deleteLesson(lesson.id, lesson.title)}
+                    >
+                      <Ionicons name="trash-outline" size={18} color="#ef4444" />
+                    </TouchableOpacity>
+                    <View style={styles.lessonIcon}>
+                      <Ionicons name="book" size={20} color="#6366f1" />
+                    </View>
                   </View>
                 </View>
 
@@ -426,6 +499,18 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6b7280',
     fontWeight: '500',
+  },
+  lessonActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  deleteButton: {
+    padding: 8,
+    backgroundColor: '#fef2f2',
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#fecaca',
   },
   lessonIcon: {
     width: 40,
