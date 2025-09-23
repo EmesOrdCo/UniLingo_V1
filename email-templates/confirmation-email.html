@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confirm Your UniLingo Account</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: #f8fafc;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            padding: 40px 30px;
+            text-align: center;
+        }
+        .logo {
+            color: #ffffff;
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .tagline {
+            color: #e0e7ff;
+            font-size: 16px;
+            margin: 0;
+        }
+        .content {
+            padding: 40px 30px;
+        }
+        .title {
+            color: #1e293b;
+            font-size: 28px;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 16px;
+        }
+        .subtitle {
+            color: #64748b;
+            font-size: 18px;
+            text-align: center;
+            margin-bottom: 32px;
+        }
+        .message {
+            color: #475569;
+            font-size: 16px;
+            margin-bottom: 32px;
+            text-align: center;
+        }
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            color: #ffffff;
+            text-decoration: none;
+            padding: 16px 32px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 16px;
+            text-align: center;
+            margin: 0 auto;
+            display: block;
+            width: fit-content;
+            box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.3);
+            transition: transform 0.2s ease;
+        }
+        .cta-button:hover {
+            transform: translateY(-2px);
+        }
+        .features {
+            margin: 40px 0;
+            padding: 30px;
+            background-color: #f1f5f9;
+            border-radius: 12px;
+        }
+        .features-title {
+            color: #1e293b;
+            font-size: 20px;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        .feature-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .feature-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 16px;
+            color: #475569;
+            font-size: 16px;
+        }
+        .feature-icon {
+            color: #6366f1;
+            margin-right: 12px;
+            font-size: 20px;
+        }
+        .footer {
+            background-color: #f8fafc;
+            padding: 30px;
+            text-align: center;
+            border-top: 1px solid #e2e8f0;
+        }
+        .footer-text {
+            color: #64748b;
+            font-size: 14px;
+            margin-bottom: 16px;
+        }
+        .social-links {
+            margin-top: 20px;
+        }
+        .social-link {
+            color: #6366f1;
+            text-decoration: none;
+            margin: 0 8px;
+            font-size: 14px;
+        }
+        .security-note {
+            background-color: #fef3c7;
+            border: 1px solid #f59e0b;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 24px 0;
+            text-align: center;
+        }
+        .security-note-text {
+            color: #92400e;
+            font-size: 14px;
+            margin: 0;
+        }
+        @media (max-width: 600px) {
+            .container {
+                margin: 0;
+                border-radius: 0;
+            }
+            .header, .content, .footer {
+                padding: 30px 20px;
+            }
+            .title {
+                font-size: 24px;
+            }
+            .subtitle {
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">🎓 UniLingo</div>
+            <p class="tagline">Master languages with AI-powered learning</p>
+        </div>
+
+        <!-- Main Content -->
+        <div class="content">
+            <h1 class="title">Welcome to UniLingo!</h1>
+            <p class="subtitle">You're just one click away from starting your language learning journey</p>
+            
+            <p class="message">
+                Thank you for signing up! To complete your account setup and start learning, please confirm your email address by clicking the button below.
+            </p>
+
+            <!-- Call to Action Button -->
+            <a href="{{ .ConfirmationURL }}" class="cta-button">
+                Confirm My Email Address
+            </a>
+
+            <!-- Security Note -->
+            <div class="security-note">
+                <p class="security-note-text">
+                    🔒 This link will expire in 24 hours for security reasons. If you didn't create an account, you can safely ignore this email.
+                </p>
+            </div>
+
+            <!-- Features Preview -->
+            <div class="features">
+                <h2 class="features-title">What you'll get with UniLingo:</h2>
+                <ul class="feature-list">
+                    <li class="feature-item">
+                        <span class="feature-icon">🤖</span>
+                        AI-powered personalized lessons
+                    </li>
+                    <li class="feature-item">
+                        <span class="feature-icon">🎮</span>
+                        Interactive games and challenges
+                    </li>
+                    <li class="feature-item">
+                        <span class="feature-icon">📊</span>
+                        Progress tracking and analytics
+                    </li>
+                    <li class="feature-item">
+                        <span class="feature-icon">🌍</span>
+                        Multiple languages supported
+                    </li>
+                    <li class="feature-item">
+                        <span class="feature-icon">📱</span>
+                        Mobile-first learning experience
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p class="footer-text">
+                If the button doesn't work, copy and paste this link into your browser:<br>
+                <a href="{{ .ConfirmationURL }}" style="color: #6366f1; word-break: break-all;">{{ .ConfirmationURL }}</a>
+            </p>
+            
+            <div class="social-links">
+                <a href="https://unilingo.co.uk" class="social-link">Website</a>
+                <a href="mailto:support@unilingo.co.uk" class="social-link">Support</a>
+            </div>
+            
+            <p class="footer-text" style="margin-top: 20px; font-size: 12px;">
+                © 2024 UniLingo. All rights reserved.<br>
+                This email was sent to {{ .Email }} because you signed up for UniLingo.
+            </p>
+        </div>
+    </div>
+</body>
+</html>

@@ -4,7 +4,10 @@ export async function signUp(email: string, password: string, name?: string) {
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: { data: { name } }, // also stores in auth.user.user_metadata
+    options: { 
+      data: { name },
+      emailRedirectTo: 'unilingo://auth/confirm' // Deep link for email confirmation
+    },
   });
   if (error) throw error;
   return data.user;

@@ -46,16 +46,8 @@ export default function RegisterScreen() {
       if (error) {
         Alert.alert('Registration Error', error.message);
       } else {
-        Alert.alert(
-          'Success!',
-          'Account created successfully. You can now sign in with your email and password.',
-          [
-            {
-              text: 'OK',
-              onPress: () => navigation.navigate('Login' as never),
-            },
-          ]
-        );
+        // Redirect to email confirmation screen instead of showing success alert
+        navigation.navigate('EmailConfirmation' as never, { email } as never);
       }
     } catch (error) {
       console.error('Registration error:', error);

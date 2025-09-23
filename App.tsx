@@ -23,6 +23,7 @@ import HomeScreen from './src/screens/HomeScreen';
 import DashboardScreen from './src/screens/DashboardScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
+import EmailConfirmationScreen from './src/screens/EmailConfirmationScreen';
 import ProfileSetupScreen from './src/screens/ProfileSetupScreen';
 import CreateFlashcardScreen from './src/screens/CreateFlashcardScreen';
 import StudyScreen from './src/screens/StudyScreen';
@@ -133,6 +134,7 @@ function AuthStack() {
       <Stack.Screen name="Home" component={HomeScreen} />
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Register" component={RegisterScreen} />
+      <Stack.Screen name="EmailConfirmation" component={EmailConfirmationScreen} />
       <Stack.Screen name="OnboardingFlow" component={OnboardingFlowScreen} />
     </Stack.Navigator>
   );
@@ -170,7 +172,14 @@ export default function App() {
       const initialUrl = await Linking.getInitialURL();
       if (initialUrl && __DEV__) {
         console.log('🔗 Initial URL:', initialUrl);
-        // Handle other deep links if needed in the future
+      }
+      
+      // Handle email confirmation deep link on app start
+      if (initialUrl && initialUrl.includes('unilingo://auth/confirm')) {
+        if (__DEV__) {
+          console.log('📧 Email confirmation deep link received on app start');
+        }
+        // The Supabase auth state change will handle the confirmation
       }
     };
 
@@ -178,7 +187,15 @@ export default function App() {
     const handleUrl = (event: { url: string }) => {
       if (__DEV__) {
         console.log('🔗 URL received:', event.url);
-        // Handle other deep links if needed in the future
+      }
+      
+      // Handle email confirmation deep link
+      if (event.url.includes('unilingo://auth/confirm')) {
+        if (__DEV__) {
+          console.log('📧 Email confirmation deep link received');
+        }
+        // The Supabase auth state change will handle the confirmation
+        // User will be automatically redirected to onboarding or main app
       }
     };
 

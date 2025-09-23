@@ -54,6 +54,20 @@ export default function LoginScreen() {
           setErrorMessage('Invalid email or password. Please check your credentials and try again.');
         } else if (error.message?.includes('Email not confirmed')) {
           setErrorMessage('Please check your email and click the confirmation link before signing in.');
+          // Offer to redirect to email confirmation screen
+          setTimeout(() => {
+            Alert.alert(
+              'Email Confirmation Required',
+              'Your email address needs to be confirmed before you can sign in. Would you like to go to the confirmation screen?',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                { 
+                  text: 'Go to Confirmation', 
+                  onPress: () => navigation.navigate('EmailConfirmation' as never, { email } as never)
+                },
+              ]
+            );
+          }, 1000);
         } else if (error.message?.includes('Too many requests')) {
           setErrorMessage('Too many login attempts. Please wait a moment before trying again.');
         } else if (error.message?.includes('User not found')) {

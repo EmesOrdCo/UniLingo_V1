@@ -174,6 +174,27 @@ export default function OnboardingFlowScreen() {
 
   const totalSteps = 7; // Reduced from 9 to 7 (removed plan selection and trial confirmation)
 
+  // Check if user's email is confirmed
+  useEffect(() => {
+    const checkEmailConfirmation = async () => {
+      if (user && !user.email_confirmed_at) {
+        // User is not confirmed, redirect to email confirmation
+        Alert.alert(
+          'Email Confirmation Required',
+          'Please confirm your email address before continuing with onboarding.',
+          [
+            {
+              text: 'OK',
+              onPress: () => navigation.navigate('EmailConfirmation' as never, { email: user.email } as never),
+            },
+          ]
+        );
+      }
+    };
+
+    checkEmailConfirmation();
+  }, [user, navigation]);
+
   const nextStep = () => {
     console.log('🔄 nextStep called - currentStep:', currentStep, 'totalSteps:', totalSteps);
     console.log('📊 canProceed():', canProceed());

@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confirm Your New Email Address</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: #f8fafc;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            padding: 40px 30px;
+            text-align: center;
+        }
+        .logo {
+            color: #ffffff;
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .tagline {
+            color: #ddd6fe;
+            font-size: 16px;
+            margin: 0;
+        }
+        .content {
+            padding: 40px 30px;
+        }
+        .title {
+            color: #1e293b;
+            font-size: 28px;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 16px;
+        }
+        .subtitle {
+            color: #64748b;
+            font-size: 18px;
+            text-align: center;
+            margin-bottom: 32px;
+        }
+        .message {
+            color: #475569;
+            font-size: 16px;
+            margin-bottom: 32px;
+            text-align: center;
+        }
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            color: #ffffff;
+            text-decoration: none;
+            padding: 16px 32px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 16px;
+            text-align: center;
+            margin: 0 auto;
+            display: block;
+            width: fit-content;
+            box-shadow: 0 4px 6px -1px rgba(139, 92, 246, 0.3);
+            transition: transform 0.2s ease;
+        }
+        .cta-button:hover {
+            transform: translateY(-2px);
+        }
+        .security-note {
+            background-color: #faf5ff;
+            border: 1px solid #c4b5fd;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 24px 0;
+            text-align: center;
+        }
+        .security-note-text {
+            color: #6b21a8;
+            font-size: 14px;
+            margin: 0;
+        }
+        .footer {
+            background-color: #f8fafc;
+            padding: 30px;
+            text-align: center;
+            border-top: 1px solid #e2e8f0;
+        }
+        .footer-text {
+            color: #64748b;
+            font-size: 14px;
+            margin-bottom: 16px;
+        }
+        .social-links {
+            margin-top: 20px;
+        }
+        .social-link {
+            color: #8b5cf6;
+            text-decoration: none;
+            margin: 0 8px;
+            font-size: 14px;
+        }
+        @media (max-width: 600px) {
+            .container {
+                margin: 0;
+                border-radius: 0;
+            }
+            .header, .content, .footer {
+                padding: 30px 20px;
+            }
+            .title {
+                font-size: 24px;
+            }
+            .subtitle {
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">📧 UniLingo</div>
+            <p class="tagline">Confirm your new email address</p>
+        </div>
+
+        <!-- Main Content -->
+        <div class="content">
+            <h1 class="title">Confirm Your New Email</h1>
+            <p class="subtitle">We need to verify your new email address</p>
+            
+            <p class="message">
+                You've requested to change your email address. Click the button below to confirm your new email address and complete the change.
+            </p>
+
+            <!-- Call to Action Button -->
+            <a href="{{ .ConfirmationURL }}" class="cta-button">
+                Confirm New Email Address
+            </a>
+
+            <!-- Security Note -->
+            <div class="security-note">
+                <p class="security-note-text">
+                    🔒 This link will expire in 24 hours for security reasons. If you didn't request this change, please contact our support team immediately.
+                </p>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <p class="footer-text">
+                If the button doesn't work, copy and paste this link into your browser:<br>
+                <a href="{{ .ConfirmationURL }}" style="color: #8b5cf6; word-break: break-all;">{{ .ConfirmationURL }}</a>
+            </p>
+            
+            <div class="social-links">
+                <a href="https://unilingo.co.uk" class="social-link">Website</a>
+                <a href="mailto:support@unilingo.co.uk" class="social-link">Support</a>
+            </div>
+            
+            <p class="footer-text" style="margin-top: 20px; font-size: 12px;">
+                © 2024 UniLingo. All rights reserved.<br>
+                This email was sent to {{ .Email }} because an email change was requested.
+            </p>
+        </div>
+    </div>
+</body>
+</html>
