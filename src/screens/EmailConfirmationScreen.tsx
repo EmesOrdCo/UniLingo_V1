@@ -104,6 +104,15 @@ export default function EmailConfirmationScreen() {
     navigation.navigate('Login' as never);
   };
 
+  const handleContinueToOnboarding = () => {
+    // After email confirmation, continue to onboarding
+    // Pass a flag to indicate we're continuing from email confirmation
+    navigation.navigate('OnboardingFlow' as never, { 
+      fromEmailConfirmation: true,
+      prefillEmail: email 
+    } as never);
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.content}>
@@ -169,6 +178,14 @@ export default function EmailConfirmationScreen() {
               ]}>
                 {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend Email'}
               </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.continueButton}
+              onPress={handleContinueToOnboarding}
+            >
+              <Ionicons name="arrow-forward" size={20} color="#ffffff" />
+              <Text style={styles.continueButtonText}>Continue to Setup</Text>
             </TouchableOpacity>
           </View>
 
@@ -293,6 +310,26 @@ const styles = StyleSheet.create({
   },
   resendButtonTextDisabled: {
     color: '#94a3b8',
+  },
+  continueButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    backgroundColor: '#10b981',
+    borderRadius: 12,
+    shadowColor: '#10b981',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  continueButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#ffffff',
   },
   helpContainer: {
     marginTop: 32,

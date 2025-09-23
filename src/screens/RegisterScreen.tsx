@@ -18,9 +18,7 @@ export default function RegisterScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const navigation = useNavigation();
-  const { signUp } = useAuth();
 
   const handleRegister = async () => {
     if (!email || !password || !confirmPassword) {
@@ -38,23 +36,12 @@ export default function RegisterScreen() {
       return;
     }
 
-    setIsLoading(true);
-
-    try {
-      const { error } = await signUp(email, password);
-
-      if (error) {
-        Alert.alert('Registration Error', error.message);
-      } else {
-        // Redirect to email confirmation screen instead of showing success alert
-        navigation.navigate('EmailConfirmation' as never, { email } as never);
-      }
-    } catch (error) {
-      console.error('Registration error:', error);
-      Alert.alert('Error', 'An unexpected error occurred during registration');
-    } finally {
-      setIsLoading(false);
-    }
+    // Redirect to onboarding flow with pre-filled email and password
+    // This ensures consistent flow with "Start Learning Today"
+    navigation.navigate('OnboardingFlow' as never, { 
+      prefillEmail: email, 
+      prefillPassword: password 
+    } as never);
   };
 
   return (

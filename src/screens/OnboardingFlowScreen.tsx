@@ -147,7 +147,7 @@ const DISCOVERY_SOURCES = [
   'Other'
 ];
 
-export default function OnboardingFlowScreen() {
+export default function OnboardingFlowScreen({ route }: { route?: any }) {
   const navigation = useNavigation();
   const { user, clearNewUserFlag, refreshProfile, signUp } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
@@ -165,12 +165,21 @@ export default function OnboardingFlowScreen() {
     wantsNotifications: true,
     discoverySource: '',
     firstName: '',
-    email: '',
-    password: '',
+    email: route?.params?.prefillEmail || '',
+    password: route?.params?.prefillPassword || '',
     selectedPlan: '',
     discountCode: '',
     discountApplied: false,
   });
+
+  // Check if we're returning from email confirmation
+  useEffect(() => {
+    if (route?.params?.fromEmailConfirmation) {
+      // User has confirmed their email, now complete the onboarding
+      console.log('📧 Returning from email confirmation, completing onboarding...');
+      completeOnboardingAfterEmailConfirmation();
+    }
+  }, [route?.params?.fromEmailConfirmation]);
 
   const totalSteps = 7; // Reduced from 9 to 7 (removed plan selection and trial confirmation)
 
@@ -217,21 +226,9 @@ export default function OnboardingFlowScreen() {
     }
   };
 
-  const handleComplete = async () => {
+  const completeOnboardingAfterEmailConfirmation = async () => {
     try {
-      console.log('🚀 Starting onboarding completion...');
-      
-      // Step 1: Create user account with email and password
-      console.log('📝 Creating user account for:', formData.email);
-      const { error: signUpError } = await signUp(formData.email, formData.password);
-      
-      if (signUpError) {
-        console.error('❌ Sign up failed:', signUpError);
-        Alert.alert('Error', signUpError.message || 'Failed to create account. Please try again.');
-        return;
-      }
-
-      console.log('✅ User account created successfully!');
+      console.log('🚀 Completing onboarding after email confirmation...');
       
       // Step 2: Complete onboarding with profile data
       const onboardingData = {
@@ -259,6 +256,35 @@ export default function OnboardingFlowScreen() {
       // Step 3: Clear new user flag and refresh profile
       clearNewUserFlag();
       await refreshProfile();
+      
+    } catch (error) {
+      if (__DEV__) {
+        console.error('❌ Error completing onboarding:', error);
+      }
+      Alert.alert('Error', 'An unexpected error occurred. Please try again.');
+    }
+  };
+
+  const handleComplete = async () => {
+    try {
+      console.log('🚀 Starting onboarding completion...');
+      
+      // Step 1: Create user account with email and password
+      console.log('📝 Creating user account for:', formData.email);
+      const { error: signUpError } = await signUp(formData.email, formData.password);
+      
+      if (signUpError) {
+        console.error('❌ Sign up failed:', signUpError);
+        Alert.alert('Error', signUpError.message || 'Failed to create account. Please try again.');
+        return;
+      }
+
+      console.log('✅ User account created successfully!');
+      
+      // Step 1.5: Redirect to email confirmation
+      console.log('📧 Redirecting to email confirmation...');
+      navigation.navigate('EmailConfirmation' as never, { email: formData.email } as never);
+      return; // Exit here, don't continue with onboarding until email is confirmed
       
     } catch (error) {
       if (__DEV__) {
