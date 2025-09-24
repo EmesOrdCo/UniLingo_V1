@@ -1063,7 +1063,7 @@ export default function GamesScreen({ route }: { route?: any }) {
       else if (options.difficulty === 'expert') gameDifficulty = 'hard';
       else gameDifficulty = undefined;
       
-      const gameData = GameDataService.generateHangmanQuestions(filteredFlashcards, options.wordCount, gameDifficulty, options.maxGuesses);
+      const gameData = GameDataService.generateHangmanQuestions(filteredFlashcards, options.wordCount, gameDifficulty);
       setGameData(gameData);
       setShowGameModal(true);
     } catch (error) {
@@ -1756,25 +1756,37 @@ export default function GamesScreen({ route }: { route?: any }) {
               <View style={styles.inputContainer}>
                 <Text style={styles.inputLabel}>Difficulty Level *</Text>
                 <View style={styles.difficultyContainer}>
-                  {['beginner', 'intermediate', 'expert'].map((level) => (
-                    <TouchableOpacity
-                      key={level}
-                      style={[
-                        styles.difficultyButton,
-                        newFlashcard.difficulty === level && styles.selectedDifficulty,
-                        { borderColor: level === 'beginner' ? '#059669' : level === 'intermediate' ? '#f59e0b' : '#ef4444' }
-                      ]}
-                      onPress={() => setNewFlashcard(prev => ({ ...prev, difficulty: level as 'beginner' | 'intermediate' | 'expert' }))}
-                    >
-                      <Text style={[
-                        styles.difficultyText,
-                        newFlashcard.difficulty === level && styles.selectedDifficultyText,
-                        { color: newFlashcard.difficulty === level ? '#ffffff' : level === 'beginner' ? '#059669' : level === 'intermediate' ? '#f59e0b' : '#ef4444' }
-                      ]}>
-                        {level.charAt(0).toUpperCase() + level.slice(1)}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+                  {['beginner', 'intermediate', 'expert'].map((level) => {
+                    const levelConfig = {
+                      beginner: { color: '#059669', bgColor: '#f0fdf4', icon: 'leaf-outline' },
+                      intermediate: { color: '#f59e0b', bgColor: '#fffbeb', icon: 'flame-outline' },
+                      expert: { color: '#ef4444', bgColor: '#fef2f2', icon: 'flash-outline' }
+                    };
+                    const config = levelConfig[level as keyof typeof levelConfig];
+                    
+                    return (
+                      <TouchableOpacity
+                        key={level}
+                        style={[
+                          styles.difficultyButton,
+                          newFlashcard.difficulty === level && styles.selectedDifficulty,
+                          { 
+                            backgroundColor: level === 'beginner' ? config.bgColor : (newFlashcard.difficulty === level ? config.color : config.bgColor),
+                            borderColor: config.color,
+                            shadowColor: config.color,
+                          }
+                        ]}
+                        onPress={() => setNewFlashcard(prev => ({ ...prev, difficulty: level as 'beginner' | 'intermediate' | 'expert' }))}
+                      >
+                        <Text style={[
+                          styles.difficultyText,
+                          { color: level === 'beginner' ? config.color : (newFlashcard.difficulty === level ? '#ffffff' : config.color) }
+                        ]}>
+                          {level.charAt(0).toUpperCase() + level.slice(1)}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
                 </View>
               </View>
 
@@ -1796,9 +1808,11 @@ export default function GamesScreen({ route }: { route?: any }) {
                   setNewTopicInput('');
                   setShowTopicPicker(false);
                 }}>
+                  <Ionicons name="close-circle-outline" size={20} color="#6b7280" style={styles.buttonIcon} />
                   <Text style={styles.cancelFormButtonText}>Cancel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.saveButton} onPress={createFlashcard}>
+                  <Ionicons name="checkmark-circle" size={20} color="#ffffff" style={styles.buttonIcon} />
                   <Text style={styles.saveButtonText}>Create Flashcard</Text>
                 </TouchableOpacity>
               </View>
@@ -1878,7 +1892,12 @@ export default function GamesScreen({ route }: { route?: any }) {
             <TouchableOpacity onPress={closeGameModal} style={styles.closeButton}>
               <Ionicons name="close" size={24} color="#64748b" />
             </TouchableOpacity>
-            <Text style={styles.gameModalTitle}>{currentGame}</Text>
+            <View style={styles.gameTitleContainer}>
+              <View style={styles.gameIconWrapper}>
+                <Ionicons name={getGameIcon(currentGame || '')} size={28} color="#6366f1" />
+              </View>
+              <Text style={styles.gameModalTitle}>{currentGame}</Text>
+            </View>
             <View style={styles.placeholder} />
           </View>
           
@@ -1915,9 +1934,17 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   closeButton: {
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: '#f1f5f9',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(100, 116, 139, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#64748b',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   modalTitle: {
     fontSize: 18,
@@ -2036,20 +2063,75 @@ const styles = StyleSheet.create({
   },
   gameModalContainer: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#ffffff',
   },
   gameModalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingTop: 40,
+    paddingTop: 50,
     paddingBottom: 16,
+    backgroundColor: 'rgba(99, 102, 241, 0.05)',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(99, 102, 241, 0.1)',
+    shadowColor: '#6366f1',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  gameTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+    justifyContent: 'center',
+  },
+  gameIconWrapper: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#6366f1',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
   gameModalTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 20,
+    fontWeight: '800',
     color: '#1e293b',
+    letterSpacing: -0.3,
+    textShadowColor: 'rgba(30, 41, 59, 0.1)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  gameStatsBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.2)',
+    shadowColor: '#f59e0b',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  gameStatsText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#f59e0b',
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
   },
   gameModalContent: {
     flex: 1,
@@ -2274,56 +2356,85 @@ const styles = StyleSheet.create({
   difficultyContainer: {
     flexDirection: 'row',
     gap: 12,
+    marginTop: 8,
   },
   difficultyButton: {
     flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    borderWidth: 2,
     alignItems: 'center',
-    backgroundColor: '#ffffff',
-  },
-  selectedDifficulty: {
-    backgroundColor: '#6366f1',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 8,
+    borderRadius: 16,
+    borderWidth: 2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
+    minHeight: 52,
   },
   difficultyText: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: -0.1,
+    textAlign: 'center',
+    flexShrink: 1,
   },
-  selectedDifficultyText: {
-    color: '#ffffff',
+  selectedDifficulty: {
+    transform: [{ scale: 1.02 }],
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 6,
   },
   formActions: {
     flexDirection: 'row',
-    gap: 12,
-    marginTop: 8,
+    gap: 16,
+    marginTop: 20,
   },
   cancelFormButton: {
     flex: 1,
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    backgroundColor: '#f3f4f6',
-    borderRadius: 12,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 18,
+    paddingHorizontal: 24,
+    backgroundColor: '#f8fafc',
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: '#e2e8f0',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
   cancelFormButtonText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#6b7280',
+    letterSpacing: -0.2,
   },
   saveButton: {
     flex: 1,
-    paddingVertical: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 18,
     paddingHorizontal: 24,
     backgroundColor: '#6366f1',
-    borderRadius: 12,
-    alignItems: 'center',
+    borderRadius: 16,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 6,
+    shadowColor: '#6366f1',
   },
   saveButtonText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#ffffff',
+    letterSpacing: -0.2,
+  },
+  buttonIcon: {
+    marginRight: 8,
   },
   statsSection: {
     backgroundColor: '#ffffff',

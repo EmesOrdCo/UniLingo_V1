@@ -16,9 +16,30 @@ import { useAuth } from '../contexts/AuthContext';
 import { FlashcardService, CreateFlashcardData } from '../lib/flashcardService';
 
 const DIFFICULTY_LEVELS = [
-  { value: 'beginner', label: 'Beginner', color: '#10b981' },
-  { value: 'intermediate', label: 'Intermediate', color: '#f59e0b' },
-  { value: 'expert', label: 'Expert', color: '#ef4444' },
+  { 
+    value: 'beginner', 
+    label: 'Beginner', 
+    color: '#10b981',
+    bgColor: '#ecfdf5',
+    selectedBgColor: '#10b981',
+    icon: 'leaf-outline'
+  },
+  { 
+    value: 'intermediate', 
+    label: 'Intermediate', 
+    color: '#f59e0b',
+    bgColor: '#fffbeb',
+    selectedBgColor: '#f59e0b',
+    icon: 'flame-outline'
+  },
+  { 
+    value: 'expert', 
+    label: 'Expert', 
+    color: '#ef4444',
+    bgColor: '#fef2f2',
+    selectedBgColor: '#ef4444',
+    icon: 'flash-outline'
+  },
 ];
 
 export default function CreateFlashcardScreen() {
@@ -142,13 +163,22 @@ export default function CreateFlashcardScreen() {
                   style={[
                     styles.difficultyButton,
                     difficulty === level.value && styles.selectedDifficulty,
-                    { borderColor: level.color }
+                    { 
+                      backgroundColor: difficulty === level.value ? level.selectedBgColor : level.bgColor,
+                      borderColor: level.color,
+                      shadowColor: level.color,
+                    }
                   ]}
                   onPress={() => setDifficulty(level.value as 'beginner' | 'intermediate' | 'expert')}
                 >
+                  <Ionicons 
+                    name={level.icon as any} 
+                    size={20} 
+                    color={difficulty === level.value ? '#ffffff' : level.color}
+                    style={styles.difficultyIcon}
+                  />
                   <Text style={[
                     styles.difficultyText,
-                    difficulty === level.value && styles.selectedDifficultyText,
                     { color: difficulty === level.value ? '#ffffff' : level.color }
                   ]}>
                     {level.label}
@@ -337,35 +367,40 @@ const styles = StyleSheet.create({
   },
   difficultyContainer: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-around',
-    marginTop: 10,
+    justifyContent: 'space-between',
+    marginTop: 12,
+    gap: 12,
   },
   difficultyButton: {
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 28,
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 18,
+    paddingHorizontal: 16,
+    borderRadius: 20,
     borderWidth: 2,
-    borderColor: '#e2e8f0',
-    marginHorizontal: 8,
-    marginVertical: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 4,
+    marginVertical: 4,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 6,
+    minHeight: 60,
+  },
+  difficultyIcon: {
+    marginRight: 8,
   },
   difficultyText: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '700',
-    letterSpacing: -0.3,
+    letterSpacing: -0.2,
+    textAlign: 'center',
   },
   selectedDifficulty: {
-    backgroundColor: '#6366f1',
-    borderColor: '#6366f1',
-  },
-  selectedDifficultyText: {
-    color: '#ffffff',
+    transform: [{ scale: 1.02 }],
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
   },
   disabledButton: {
     opacity: 0.7,

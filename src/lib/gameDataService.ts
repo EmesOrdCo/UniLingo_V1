@@ -135,7 +135,7 @@ export class GameDataService {
   /**
    * Generate hangman questions for HangmanGame
    */
-  static generateHangmanQuestions(flashcards: UserFlashcard[], count: number, difficulty: 'easy' | 'medium' | 'hard' = 'medium', maxGuesses: number = 6): GameData {
+  static generateHangmanQuestions(flashcards: UserFlashcard[], count: number, difficulty: 'easy' | 'medium' | 'hard' = 'medium'): GameData {
     const questions: GameQuestion[] = [];
     const shuffledCards = this.shuffleArray(flashcards).slice(0, count);
     

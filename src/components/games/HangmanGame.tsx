@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import Svg, { Path, Circle, Line } from 'react-native-svg';
 
 interface HangmanGameProps {
   gameData: any;
@@ -41,9 +42,12 @@ const HangmanGame: React.FC<HangmanGameProps> = ({ gameData, onClose, onGameComp
   const initializeNewWord = () => {
     const currentQuestion = gameData.questions[currentQuestionIndex];
     if (currentQuestion && currentQuestion.correctAnswer) {
-      setCurrentWord(currentQuestion.correctAnswer.toLowerCase());
-      setGuessedLetters([]);
-      setWrongGuesses(0);
+      // Use a small delay to prevent abrupt layout changes
+      setTimeout(() => {
+        setCurrentWord(currentQuestion.correctAnswer.toLowerCase());
+        setGuessedLetters([]);
+        setWrongGuesses(0);
+      }, 100); // Small delay to allow current state to settle
     }
   };
 
@@ -181,44 +185,173 @@ const HangmanGame: React.FC<HangmanGameProps> = ({ gameData, onClose, onGameComp
 
       {/* Hangman Drawing */}
       <View style={styles.hangmanContainer}>
-        <View style={styles.hangman}>
-          {/* Base */}
-          <View style={styles.hangmanBase} />
-          
-          {/* Vertical pole */}
-          <View style={styles.hangmanPole} />
-          
-          {/* Top bar */}
-          <View style={styles.hangmanTop} />
-          
-          {/* Rope */}
-          <View style={styles.hangmanRope} />
-          
-          {/* Head */}
-          {getHangmanStage().includes('head') && (
-            <View style={styles.hangmanHead} />
-          )}
-          
-          {/* Body */}
-          {getHangmanStage().includes('body') && (
-            <View style={styles.hangmanBody} />
-          )}
-          
-          {/* Arms */}
-          {getHangmanStage().includes('leftArm') && (
-            <View style={styles.hangmanLeftArm} />
-          )}
-          {getHangmanStage().includes('rightArm') && (
-            <View style={styles.hangmanRightArm} />
-          )}
-          
-          {/* Legs */}
-          {getHangmanStage().includes('leftLeg') && (
-            <View style={styles.hangmanLeftLeg} />
-          )}
-          {getHangmanStage().includes('rightLeg') && (
-            <View style={styles.hangmanRightLeg} />
-          )}
+        <View style={styles.chalkboardFrame}>
+          <View style={styles.chalkboard}>
+            {/* Chalk dust particles */}
+            <View style={styles.chalkDust1} />
+            <View style={styles.chalkDust2} />
+            <View style={styles.chalkDust3} />
+            <View style={styles.chalkDust4} />
+            <View style={styles.chalkDust5} />
+            <View style={styles.chalkDust6} />
+            <View style={styles.chalkDust7} />
+            <View style={styles.chalkDust8} />
+            
+            {/* Chalk smudges */}
+            <View style={styles.chalkSmudge1} />
+            <View style={styles.chalkSmudge2} />
+            <View style={styles.chalkSmudge3} />
+            
+            {/* Decorative background elements */}
+            <View style={styles.decorativeCircle1} />
+            <View style={styles.decorativeCircle2} />
+            <View style={styles.decorativeCircle3} />
+            
+            {/* SVG Hangman Drawing */}
+            <Svg height="240" width="320" style={styles.hangmanSvg}>
+              {/* Base - hand-drawn chalk line with texture */}
+              <Path
+                d="M 50 200 Q 60 195 70 200 T 90 200 Q 100 195 110 200 T 130 200 Q 140 195 150 200 T 170 200 Q 180 195 190 200 T 210 200 Q 220 195 230 200 T 250 200"
+                stroke="#ffffff"
+                strokeWidth="6"
+                fill="none"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                opacity="0.9"
+                strokeDasharray="8 2 3 1 2 1 4 2"
+                strokeDashoffset="0"
+              />
+              
+              {/* Pole - slightly wobbly vertical line with chalk texture */}
+              <Path
+                d="M 150 200 Q 152 180 150 160 Q 148 140 150 120 Q 152 100 150 80 Q 148 60 150 40 Q 152 20 150 0"
+                stroke="#ffffff"
+                strokeWidth="6"
+                fill="none"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                opacity="0.9"
+                strokeDasharray="12 3 2 1 3 2 1 2"
+                strokeDashoffset="5"
+              />
+              
+              {/* Top beam - slightly curved horizontal line with texture */}
+              <Path
+                d="M 150 0 Q 170 -2 190 0 Q 210 2 230 0 Q 250 -2 270 0"
+                stroke="#ffffff"
+                strokeWidth="6"
+                fill="none"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                opacity="0.9"
+                strokeDasharray="10 2 1 1 2 1 3 2"
+                strokeDashoffset="3"
+              />
+              
+              {/* Rope - shorter vertical line with chalk texture */}
+              <Path
+                d="M 270 0 Q 272 15 270 30"
+                stroke="#ffffff"
+                strokeWidth="4"
+                fill="none"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                opacity="0.9"
+                strokeDasharray="6 1 2 1 1 1 3 1"
+                strokeDashoffset="2"
+              />
+              
+              {/* Head - hand-drawn circle with chalk texture */}
+              {getHangmanStage().includes('head') && (
+                <Path
+                  d="M 270 50 Q 290 50 290 70 Q 290 90 270 90 Q 250 90 250 70 Q 250 50 270 50"
+                  stroke="#ffffff"
+                  strokeWidth="5"
+                  fill="none"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  opacity="0.9"
+                  strokeDasharray="15 3 2 1 2 1 1 2"
+                  strokeDashoffset="7"
+                />
+              )}
+              
+              {/* Body - slightly wobbly vertical line with chalk texture */}
+              {getHangmanStage().includes('body') && (
+                <Path
+                  d="M 270 90 Q 272 110 270 130 Q 268 150 270 170"
+                  stroke="#ffffff"
+                  strokeWidth="5"
+                  fill="none"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  opacity="0.9"
+                  strokeDasharray="8 2 1 1 2 1 3 2"
+                  strokeDashoffset="4"
+                />
+              )}
+              
+              {/* Left Arm with chalk texture */}
+              {getHangmanStage().includes('leftArm') && (
+                <Path
+                  d="M 270 110 Q 250 120 230 130"
+                  stroke="#ffffff"
+                  strokeWidth="4"
+                  fill="none"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  opacity="0.9"
+                  strokeDasharray="7 2 1 1 1 1 2 1"
+                  strokeDashoffset="3"
+                />
+              )}
+              
+              {/* Right Arm with chalk texture */}
+              {getHangmanStage().includes('rightArm') && (
+                <Path
+                  d="M 270 110 Q 290 120 310 130"
+                  stroke="#ffffff"
+                  strokeWidth="4"
+                  fill="none"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  opacity="0.9"
+                  strokeDasharray="6 1 2 1 1 1 3 1"
+                  strokeDashoffset="2"
+                />
+              )}
+              
+              {/* Left Leg with chalk texture */}
+              {getHangmanStage().includes('leftLeg') && (
+                <Path
+                  d="M 270 170 Q 250 180 230 185"
+                  stroke="#ffffff"
+                  strokeWidth="4"
+                  fill="none"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  opacity="0.9"
+                  strokeDasharray="8 2 1 1 2 1 2 1"
+                  strokeDashoffset="4"
+                />
+              )}
+              
+              {/* Right Leg with chalk texture */}
+              {getHangmanStage().includes('rightLeg') && (
+                <Path
+                  d="M 270 170 Q 290 180 310 185"
+                  stroke="#ffffff"
+                  strokeWidth="4"
+                  fill="none"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  opacity="0.9"
+                  strokeDasharray="7 1 2 1 1 1 3 1"
+                  strokeDashoffset="3"
+                />
+              )}
+            </Svg>
+          </View>
         </View>
       </View>
 
@@ -228,12 +361,6 @@ const HangmanGame: React.FC<HangmanGameProps> = ({ gameData, onClose, onGameComp
         <Text style={styles.wordDisplay}>{getDisplayWord()}</Text>
       </View>
 
-      {/* Question */}
-      <View style={styles.questionContainer}>
-        <Text style={styles.questionText}>
-          {currentQuestion.question || 'Guess the word:'}
-        </Text>
-      </View>
 
       {/* Game Status */}
       <View style={styles.statusContainer}>
@@ -295,6 +422,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     borderBottomWidth: 1,
     borderBottomColor: '#e2e8f0',
+    minHeight: 80, // Fixed height to prevent layout shifts
   },
   progressBar: {
     height: 6,
@@ -315,105 +443,180 @@ const styles = StyleSheet.create({
   },
   hangmanContainer: {
     alignItems: 'center',
-    marginTop: 20,
-    marginBottom: 30,
+    marginTop: 30,
+    marginBottom: 40,
+    paddingHorizontal: 20,
   },
-  hangman: {
-    width: 200,
-    height: 200,
-    position: 'relative',
-  },
-  hangmanBase: {
-    position: 'absolute',
-    bottom: 0,
-    left: 50,
-    right: 50,
-    height: 10,
-    backgroundColor: '#8b5cf6',
-    borderRadius: 5,
-  },
-  hangmanPole: {
-    position: 'absolute',
-    bottom: 10,
-    left: 95,
-    width: 10,
-    height: 150,
-    backgroundColor: '#8b5cf6',
-  },
-  hangmanTop: {
-    position: 'absolute',
-    top: 0,
-    left: 95,
-    width: 100,
-    height: 10,
-    backgroundColor: '#8b5cf6',
-  },
-  hangmanRope: {
-    position: 'absolute',
-    top: 10,
-    left: 145,
-    width: 2,
-    height: 30,
-    backgroundColor: '#8b5cf6',
-  },
-  hangmanHead: {
-    position: 'absolute',
-    top: 40,
-    left: 135,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: '#fbbf24',
+  chalkboardFrame: {
+    backgroundColor: '#8b4513',
+    borderRadius: 20,
+    padding: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.4,
+    shadowRadius: 20,
+    elevation: 12,
     borderWidth: 2,
-    borderColor: '#8b5cf6',
+    borderColor: '#654321',
   },
-  hangmanBody: {
+  chalkboard: {
+    width: 320,
+    height: 240,
+    position: 'relative',
+    backgroundColor: '#1a1a1a',
+    borderRadius: 16,
+    padding: 24,
+    borderWidth: 3,
+    borderColor: '#2d2d2d',
+    // Chalkboard texture effect
+    borderStyle: 'solid',
+  },
+  chalkDust1: {
+    position: 'absolute',
+    top: 30,
+    left: 20,
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+  },
+  chalkDust2: {
     position: 'absolute',
     top: 60,
-    left: 140,
-    width: 10,
-    height: 40,
-    backgroundColor: '#8b5cf6',
+    right: 30,
+    width: 2,
+    height: 2,
+    borderRadius: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
   },
-  hangmanLeftArm: {
+  chalkDust3: {
     position: 'absolute',
-    top: 70,
-    left: 130,
-    width: 20,
+    bottom: 40,
+    left: 30,
+    width: 4,
     height: 4,
-    backgroundColor: '#8b5cf6',
-    transform: [{ rotate: '45deg' }],
+    borderRadius: 2,
+    backgroundColor: 'rgba(255, 255, 255, 0.35)',
   },
-  hangmanRightArm: {
-    position: 'absolute',
-    top: 70,
-    left: 150,
-    width: 20,
-    height: 4,
-    backgroundColor: '#8b5cf6',
-    transform: [{ rotate: '-45deg' }],
-  },
-  hangmanLeftLeg: {
+  chalkDust4: {
     position: 'absolute',
     top: 100,
-    left: 135,
+    left: 50,
+    width: 2,
+    height: 2,
+    borderRadius: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+  },
+  chalkDust5: {
+    position: 'absolute',
+    bottom: 80,
+    right: 40,
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  chalkDust6: {
+    position: 'absolute',
+    top: 120,
+    left: 80,
+    width: 2,
+    height: 2,
+    borderRadius: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+  },
+  chalkDust7: {
+    position: 'absolute',
+    bottom: 120,
+    right: 80,
     width: 4,
-    height: 20,
-    backgroundColor: '#8b5cf6',
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255, 255, 255, 0.35)',
+  },
+  chalkDust8: {
+    position: 'absolute',
+    top: 150,
+    left: 120,
+    width: 2,
+    height: 2,
+    borderRadius: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  chalkSmudge1: {
+    position: 'absolute',
+    top: 50,
+    left: 60,
+    width: 20,
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    transform: [{ rotate: '15deg' }],
+  },
+  chalkSmudge2: {
+    position: 'absolute',
+    bottom: 100,
+    right: 60,
+    width: 15,
+    height: 2,
+    borderRadius: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    transform: [{ rotate: '-20deg' }],
+  },
+  chalkSmudge3: {
+    position: 'absolute',
+    top: 180,
+    left: 80,
+    width: 12,
+    height: 2,
+    borderRadius: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.18)',
     transform: [{ rotate: '45deg' }],
   },
-  hangmanRightLeg: {
+  hangmanSvg: {
     position: 'absolute',
-    top: 100,
-    left: 151,
+    top: 0,
+    left: 0,
+    zIndex: 10,
+  },
+  decorativeCircle1: {
+    position: 'absolute',
+    top: 50,
+    left: 50,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.5)',
+  },
+  decorativeCircle2: {
+    position: 'absolute',
+    top: 80,
+    right: 50,
     width: 4,
-    height: 20,
-    backgroundColor: '#8b5cf6',
-    transform: [{ rotate: '-45deg' }],
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.4)',
+  },
+  decorativeCircle3: {
+    position: 'absolute',
+    bottom: 60,
+    left: 60,
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.45)',
   },
   wordContainer: {
     alignItems: 'center',
     marginBottom: 20,
+    marginHorizontal: 20,
+    paddingHorizontal: 16,
   },
   wordLabel: {
     fontSize: 16,
@@ -426,6 +629,11 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#1e293b',
     letterSpacing: 4,
+    textAlign: 'center',
+    minWidth: '100%',
+    paddingHorizontal: 8,
+    minHeight: 50, // Fixed height to prevent layout shifts
+    lineHeight: 50, // Consistent line height
   },
   questionContainer: {
     marginHorizontal: 20,
@@ -504,7 +712,10 @@ const styles = StyleSheet.create({
     color: '#94a3b8',
   },
   resultContainer: {
-    marginHorizontal: 20,
+    position: 'absolute',
+    bottom: 20,
+    left: 20,
+    right: 20,
     padding: 20,
     backgroundColor: '#ffffff',
     borderRadius: 16,
@@ -514,6 +725,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 2,
+    minHeight: 100, // Fixed height to prevent layout shifts
+    justifyContent: 'center', // Center content vertically
   },
   resultText: {
     fontSize: 24,

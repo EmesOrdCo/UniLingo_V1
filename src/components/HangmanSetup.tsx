@@ -15,7 +15,6 @@ import { useAuth } from '../contexts/AuthContext';
 export interface HangmanSetupOptions {
   wordCount: number;
   difficulty: 'beginner' | 'intermediate' | 'expert' | 'all';
-  maxGuesses: number;
   selectedTopic: string;
 }
 
@@ -36,7 +35,6 @@ const HangmanSetup: React.FC<HangmanSetupProps> = ({
   const [wordCount, setWordCount] = useState<number>(10);
   const [selectedTopic, setSelectedTopic] = useState<string>('');
   const [selectedDifficulty, setSelectedDifficulty] = useState<'beginner' | 'intermediate' | 'expert' | 'all'>('all');
-  const [maxGuesses, setMaxGuesses] = useState<number>(6);
   const [topics, setTopics] = useState<string[]>([]);
   const [topicCardCounts, setTopicCardCounts] = useState<{ [topic: string]: number }>({});
   const [loadingTopics, setLoadingTopics] = useState(false);
@@ -132,13 +130,6 @@ const HangmanSetup: React.FC<HangmanSetupProps> = ({
     { value: 20, label: '20 Words' },
   ].filter(option => option.value <= getAvailableCardsCount());
 
-  const maxGuessesOptions = [
-    { value: 4, label: '4 Guesses' },
-    { value: 6, label: '6 Guesses' },
-    { value: 8, label: '8 Guesses' },
-    { value: 10, label: '10 Guesses' },
-  ];
-
   const handleStartGame = () => {
     const currentAvailableCards = getAvailableCardsCount();
     
@@ -150,7 +141,6 @@ const HangmanSetup: React.FC<HangmanSetupProps> = ({
     const options: HangmanSetupOptions = {
       wordCount,
       difficulty: selectedDifficulty,
-      maxGuesses,
       selectedTopic: selectedTopic || 'All Topics',
     };
 
@@ -392,31 +382,6 @@ const HangmanSetup: React.FC<HangmanSetupProps> = ({
                   </TouchableOpacity>
                 );
               })}
-            </View>
-          </View>
-
-          {/* Max Guesses Selection */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Maximum Guesses</Text>
-            
-            <View style={styles.optionsGrid}>
-              {maxGuessesOptions.map((option) => (
-                <TouchableOpacity
-                  key={option.value}
-                  style={[
-                    styles.optionCard,
-                    maxGuesses === option.value && styles.optionCardSelected,
-                  ]}
-                  onPress={() => setMaxGuesses(option.value)}
-                >
-                  <Text style={[
-                    styles.optionLabel,
-                    maxGuesses === option.value && styles.optionLabelSelected,
-                  ]}>
-                    {option.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
             </View>
           </View>
 

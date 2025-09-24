@@ -234,7 +234,6 @@ export default function DailyChallengeBox({ refreshTrigger }: DailyChallengeBoxP
         return {
           wordCount: 10,
           difficulty: 'all',
-          maxGuesses: 6,
           selectedTopic: 'All Topics'
         };
       case 'Memory Match':

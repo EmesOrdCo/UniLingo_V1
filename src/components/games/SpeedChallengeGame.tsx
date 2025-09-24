@@ -258,11 +258,6 @@ const SpeedChallengeGame: React.FC<SpeedChallengeGameProps> = ({ gameData, onClo
         </View>
       )}
 
-      {/* Speed Indicator */}
-      <View style={styles.speedIndicator}>
-        <Ionicons name="flash" size={20} color="#6466E9" />
-        <Text style={styles.speedText}>Speed Challenge</Text>
-      </View>
     </View>
   );
 };
@@ -422,25 +417,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#64748b',
     textAlign: 'center',
-  },
-  speedIndicator: {
-    position: 'absolute',
-    top: 20,
-    right: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: '#f0f4ff',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#6466E9',
-  },
-  speedText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#6466E9',
   },
   completionContainer: {
     flex: 1,

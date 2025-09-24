@@ -25,7 +25,6 @@ interface HangmanReviewProps {
       userAnswer: string;
       isCorrect: boolean;
       guessesUsed: number;
-      maxGuesses: number;
     }>;
   };
 }
@@ -58,7 +57,8 @@ const HangmanReview: React.FC<HangmanReviewProps> = ({
     return 'Keep practicing! 📚';
   };
 
-  const getGuessesEfficiency = (guessesUsed: number, maxGuesses: number) => {
+  const getGuessesEfficiency = (guessesUsed: number) => {
+    const maxGuesses = 6; // Hard-coded maximum guesses
     const efficiency = Math.round(((maxGuesses - guessesUsed) / maxGuesses) * 100);
     if (efficiency >= 70) return { color: '#10b981', text: 'Excellent' };
     if (efficiency >= 50) return { color: '#f59e0b', text: 'Good' };
@@ -123,7 +123,7 @@ const HangmanReview: React.FC<HangmanReviewProps> = ({
             <Text style={styles.sectionTitle}>Word Review</Text>
             
             {words.map((word, index) => {
-              const efficiency = getGuessesEfficiency(word.guessesUsed, word.maxGuesses);
+              const efficiency = getGuessesEfficiency(word.guessesUsed);
               return (
                 <View key={index} style={styles.wordCard}>
                   <View style={styles.wordHeader}>
@@ -169,7 +169,7 @@ const HangmanReview: React.FC<HangmanReviewProps> = ({
                       <Text style={styles.guessesLabel}>Guesses Used:</Text>
                       <View style={styles.guessesInfo}>
                         <Text style={styles.guessesText}>
-                          {word.guessesUsed}/{word.maxGuesses}
+                          {word.guessesUsed}/6
                         </Text>
                         <View style={[
                           styles.efficiencyBadge,
