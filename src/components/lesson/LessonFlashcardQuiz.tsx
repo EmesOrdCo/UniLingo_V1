@@ -15,7 +15,7 @@ interface QuizQuestion {
   question: string;
   correctAnswer: string;
   options: string[];
-  type: 'definition' | 'translation';
+  type: 'translation';
 }
 
 export default function LessonFlashcardQuiz({ vocabulary, onComplete, onClose, onProgressUpdate, initialQuestionIndex = 0 }: LessonFlashcardQuizProps) {
@@ -44,30 +44,12 @@ export default function LessonFlashcardQuiz({ vocabulary, onComplete, onClose, o
     
     vocabulary.forEach((vocab) => {
       // Safety check to ensure vocab exists and has required properties
-      if (!vocab || !vocab.keywords || !vocab.definition || !vocab.native_translation) {
+      if (!vocab || !vocab.keywords || !vocab.native_translation) {
         console.warn('Skipping invalid vocabulary item:', vocab);
         return;
       }
       
-      // Create definition question
-      const definitionOptions = [vocab.definition];
-      const otherDefinitions = vocabulary
-        .filter(v => v.id !== vocab.id && v.definition)
-        .map(v => v.definition)
-        .sort(() => Math.random() - 0.5)
-        .slice(0, 3);
-      
-      definitionOptions.push(...otherDefinitions);
-      const shuffledDefinitionOptions = definitionOptions.sort(() => Math.random() - 0.5);
-      
-      quizQuestions.push({
-        question: `What is the definition of "${vocab.keywords}"?`,
-        correctAnswer: vocab.definition,
-        options: shuffledDefinitionOptions,
-        type: 'definition'
-      });
-
-      // Create translation question
+      // Create translation question only
       const translationOptions = [vocab.native_translation];
       const otherTranslations = vocabulary
         .filter(v => v.id !== vocab.id && v.native_translation)

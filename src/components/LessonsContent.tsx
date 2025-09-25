@@ -50,7 +50,10 @@ export default function LessonsContent() {
 
   const handleLessonPress = (lesson: Lesson) => {
     // Navigate to lesson walkthrough
-    navigation.navigate('LessonWalkthrough' as never, { lessonId: lesson.id } as never);
+    navigation.navigate('LessonWalkthrough' as never, { 
+      lessonId: lesson.id, 
+      lessonTitle: lesson.title 
+    } as never);
   };
 
   const handleYourLessonsPress = () => {

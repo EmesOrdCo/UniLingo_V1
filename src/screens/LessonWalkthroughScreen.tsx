@@ -566,7 +566,7 @@ export default function LessonWalkthroughScreen() {
     
     Alert.alert(
       '🎉 Lesson Complete!',
-      `Congratulations! You've completed "${lessonTitle}" with a score of ${totalScore}/${maxPossibleScore}`,
+      `Congratulations! You've completed "${lessonTitle || lesson?.title || 'this lesson'}" with a score of ${totalScore}/${maxPossibleScore}`,
       [
         {
           text: 'Back to Lessons',
@@ -962,7 +962,7 @@ export default function LessonWalkthroughScreen() {
           <View style={styles.completionContent}>
             <Ionicons name="trophy" size={80} color="#fbbf24" />
             <Text style={styles.completionTitle}>🎉 Lesson Complete!</Text>
-            <Text style={styles.completionSubtitle}>{lessonTitle}</Text>
+            <Text style={styles.completionSubtitle}>{lessonTitle || lesson?.title || 'Lesson Complete'}</Text>
             
             <View style={styles.scoreSummary}>
               <Text style={styles.scoreText}>

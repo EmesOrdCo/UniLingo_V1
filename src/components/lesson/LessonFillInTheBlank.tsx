@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, TextInput, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, TextInput, Dimensions, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -26,6 +26,7 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
   const [showResult, setShowResult] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
   const [gameComplete, setGameComplete] = useState(false);
+  const [showHint, setShowHint] = useState(false);
 
   // Generate questions from vocabulary
   React.useEffect(() => {
@@ -75,6 +76,7 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
       setCurrentQuestionIndex(currentQuestionIndex + 1);
       setUserAnswer('');
       setShowResult(false);
+      setShowHint(false); // Reset hint visibility for next question
     } else {
       setGameComplete(true);
       onComplete(score);
@@ -86,6 +88,7 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
       setCurrentQuestionIndex(currentQuestionIndex + 1);
       setUserAnswer('');
       setShowResult(false);
+      setShowHint(false); // Reset hint visibility for next question
     } else {
       setGameComplete(true);
       onComplete(score);
@@ -254,10 +257,24 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
           </Text>
         </View>
 
-        <View style={styles.hintContainer}>
-          <Ionicons name="bulb" size={20} color="#f59e0b" />
-          <Text style={styles.hintText}>Hint: {currentQuestion?.hint || 'No hint available'}</Text>
+        <View style={styles.hintToggleContainer}>
+          <TouchableOpacity 
+            style={styles.hintToggleButton} 
+            onPress={() => setShowHint(!showHint)}
+          >
+            <Ionicons name="bulb" size={20} color="#f59e0b" />
+            <Text style={styles.hintToggleText}>
+              {showHint ? 'Hide Hint' : 'Show Hint'}
+            </Text>
+          </TouchableOpacity>
         </View>
+
+        {showHint && (
+          <View style={styles.hintContainer}>
+            <Ionicons name="bulb" size={20} color="#f59e0b" />
+            <Text style={styles.hintText}>Hint: {currentQuestion?.hint || 'No hint available'}</Text>
+          </View>
+        )}
 
         <View style={styles.inputContainer}>
           <TextInput
@@ -403,6 +420,26 @@ const styles = StyleSheet.create({
     lineHeight: 28,
     color: '#1e293b',
     textAlign: 'center',
+  },
+  hintToggleContainer: {
+    marginBottom: 16,
+    alignItems: 'center',
+  },
+  hintToggleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f8fafc',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  hintToggleText: {
+    fontSize: 16,
+    color: '#f59e0b',
+    marginLeft: 8,
+    fontWeight: '600',
   },
   hintContainer: {
     flexDirection: 'row',

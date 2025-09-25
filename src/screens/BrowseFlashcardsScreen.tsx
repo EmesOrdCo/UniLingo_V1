@@ -493,13 +493,15 @@ export default function BrowseFlashcardsScreen() {
                   {card.pronunciation && (
                     <View style={styles.pronunciationContainer}>
                       <Text style={styles.flashcardLabel}>Pronunciation:</Text>
-                      <Text style={styles.flashcardText}>{card.pronunciation}</Text>
-                      <TouchableOpacity 
-                        style={styles.audioButton} 
-                        onPress={() => playPronunciation(card.front)}
-                      >
-                        <Ionicons name="volume-high" size={16} color="#6366f1" />
-                      </TouchableOpacity>
+                      <View style={styles.pronunciationContent}>
+                        <Text style={[styles.flashcardText, { flex: 1 }]}>{card.pronunciation}</Text>
+                        <TouchableOpacity 
+                          style={styles.audioButton} 
+                          onPress={() => playPronunciation(card.front)}
+                        >
+                          <Ionicons name="volume-high" size={16} color="#6366f1" />
+                        </TouchableOpacity>
+                      </View>
                     </View>
                   )}
                   
@@ -776,13 +778,17 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   pronunciationContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
     marginTop: 8,
     paddingTop: 8,
     borderTopWidth: 1,
     borderTopColor: '#e5e7eb',
+    gap: 8,
+  },
+  pronunciationContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
   },
   audioButton: {
     padding: 4,

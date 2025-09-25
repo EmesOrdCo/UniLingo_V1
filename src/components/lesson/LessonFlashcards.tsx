@@ -140,9 +140,9 @@ export default function LessonFlashcards({ vocabulary, onComplete, onClose, onPr
 
           <Animated.View style={[styles.cardFace, styles.cardBack, backAnimatedStyle]}>
             <View style={styles.cardContent}>
-              <Text style={styles.cardTitle}>Definition</Text>
-              <Text style={styles.cardText}>{currentCard?.definition || 'No definition available'}</Text>
-              <Text style={styles.translationText}>Translation: {currentCard?.native_translation || 'No translation available'}</Text>
+              <Text style={styles.cardTitle}>Translation</Text>
+              <Text style={styles.cardText}>{currentCard?.native_translation || 'No translation available'}</Text>
+              <Text style={styles.definitionText}>Definition: {currentCard?.definition || 'No definition available'}</Text>
               {currentCard?.example_sentence_en && (
                 <Text style={styles.exampleText}>Example: {currentCard.example_sentence_en}</Text>
               )}
@@ -309,7 +309,7 @@ const styles = StyleSheet.create({
     lineHeight: 32,
     marginBottom: 24,
   },
-  translationText: {
+  definitionText: {
     fontSize: 16,
     color: '#ffffff',
     textAlign: 'center',
