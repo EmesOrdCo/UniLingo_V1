@@ -14,7 +14,6 @@ interface ChatCompletionRequest {
   model: string;
   messages: any[];
   temperature?: number;
-  max_tokens?: number;
   stream?: boolean;
   priority?: number;
 }
@@ -106,7 +105,6 @@ class OpenAIWithRateLimit {
             model: request.model,
             messages: request.messages,
             temperature: request.temperature || 0.7,
-            max_tokens: request.max_tokens || 1000,
             stream: request.stream || false,
           });
 
@@ -146,7 +144,9 @@ class OpenAIWithRateLimit {
       console.log('✅ OpenAI API request successful', {
         contentLength: content.length,
         tokensUsed: usage.total_tokens,
-        userId
+        userId,
+        contentPreview: content.substring(0, 200),
+        contentEnding: content.substring(Math.max(0, content.length - 200))
       });
 
       return {
@@ -200,7 +200,6 @@ class OpenAIWithRateLimit {
       model,
       messages,
       temperature: 0.7,
-      max_tokens: 2000,
       priority: 1 // Higher priority for lesson generation
     });
 
@@ -223,7 +222,6 @@ class OpenAIWithRateLimit {
       model,
       messages,
       temperature: 0.5,
-      max_tokens: 1500,
       priority: 2 // Medium priority for PDF analysis
     });
 
@@ -254,7 +252,6 @@ class OpenAIWithRateLimit {
       const response = await this.createChatCompletion({
         model: 'gpt-3.5-turbo',
         messages: [{ role: 'user', content: 'Hello' }],
-        max_tokens: 10,
         priority: 0 // Low priority for status check
       });
       

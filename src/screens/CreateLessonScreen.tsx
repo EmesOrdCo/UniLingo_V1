@@ -14,7 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { useRefresh } from '../contexts/RefreshContext';
-import { getPdfProcessingUrl } from '../config/backendConfig';
+import { getBackendUrl } from '../config/backendConfig';
 import { LessonService } from '../lib/lessonService';
 
 import * as DocumentPicker from 'expo-document-picker';
@@ -132,7 +132,7 @@ export default function CreateLessonScreen() {
         name: file.name,
       } as any);
 
-      const webhookResponse = await fetch(getPdfProcessingUrl(), {
+      const webhookResponse = await fetch(getBackendUrl('/api/process-pdf'), {
         method: 'POST',
         body: formData,
         signal: abortControllerRef.current?.signal,

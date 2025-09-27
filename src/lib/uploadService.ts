@@ -193,8 +193,11 @@ export class UploadService {
     let aiTimeoutId: NodeJS.Timeout | null = null;
     
     try {
+      // Validate subject
+      if (!subject || subject === 'General') {
+        throw new Error('Subject not configured. Please contact customer support to set up your learning subject.');
+      }
 
-      
       onProgress?.({
         stage: 'generating',
         progress: 0,
@@ -210,7 +213,7 @@ export class UploadService {
       if (topic === 'AI Selection') {
         // AI Selection mode - analyze content and detect topics
         prompt = `
-          Analyze the following academic text and automatically detect natural topic divisions based on headers, sections, and content themes.
+          Analyze the following ${subject} text and automatically detect natural topic divisions based on headers, sections, and content themes.
           
           Subject: ${subject}
           User's Native Language: ${nativeLanguage}
@@ -219,6 +222,8 @@ export class UploadService {
           ${text}
           
           First, analyze the content structure and identify 3-8 main topics. Then generate flashcards organized by these topics.
+          
+          Focus on extracting ALL important ${subject} terminology, concepts, and vocabulary from this content.
           
           CRITICAL INSTRUCTION: You MUST create terminology flashcards with English terms on the front and ${nativeLanguage} translations on the back. DO NOT put English definitions on the back.
           
@@ -262,7 +267,7 @@ export class UploadService {
       } else {
         // Standard topic mode
         prompt = `
-          Analyze the following academic text and generate flashcards for key terminology and concepts.
+          Analyze the following ${subject} text and generate flashcards for key terminology and concepts.
           
           Subject: ${subject}
           Topic: ${topic}
@@ -270,6 +275,8 @@ export class UploadService {
           
           Text content:
           ${text}
+          
+          Focus on extracting ALL important ${subject} terminology, concepts, and vocabulary from this content.
           
           CRITICAL INSTRUCTION: You MUST create terminology flashcards with English terms on the front and ${nativeLanguage} translations on the back. DO NOT put English definitions on the back.
           
@@ -355,11 +362,11 @@ export class UploadService {
         client.createChatCompletion({
           model: 'gpt-4o-mini',
           messages: messages,
-          temperature: 0.7,
-          max_tokens: 2000,
+          temperature: 0.1,
+          // Remove max_tokens to allow full responses
         }),
         new Promise((_, reject) => {
-          aiTimeoutId = setTimeout(() => reject(new Error('AI request timed out after 60 seconds')), 60000);
+          aiTimeoutId = setTimeout(() => reject(new Error('AI request timed out after 1 hour')), 3600000);
         })
       ]);
       
@@ -406,23 +413,230 @@ export class UploadService {
           throw new Error('Request cancelled');
         }
         
-        // Extract JSON from the response (AI might wrap it in markdown)
-        const jsonMatch = responseText.match(/\[[\s\S]*\]/);
+        console.log('🔍 Raw AI response length:', responseText.length);
+        console.log('🔍 Raw AI response preview:', responseText.substring(0, 500));
+        console.log('🔍 Raw AI response ending:', responseText.substring(Math.max(0, responseText.length - 500)));
+        
+        // Clean the response text
+        let cleanedResponse = responseText.trim();
+        
+        // Remove markdown code blocks if present
+        if (cleanedResponse.startsWith('```json')) {
+          cleanedResponse = cleanedResponse.replace(/```json\s*/, '').replace(/\s*```/, '');
+        } else if (cleanedResponse.startsWith('```')) {
+          cleanedResponse = cleanedResponse.replace(/```\s*/, '').replace(/\s*```/, '');
+        }
+        
+        // Check if response is truncated (common issue with large responses)
+        if (!cleanedResponse.endsWith(']') && !cleanedResponse.endsWith('}')) {
+          console.warn('⚠️ Response appears to be truncated - missing closing bracket');
+          console.warn('⚠️ Last 100 characters:', cleanedResponse.substring(Math.max(0, cleanedResponse.length - 100)));
+        }
+        
+        // Extract JSON array from the response
+        const jsonMatch = cleanedResponse.match(/\[[\s\S]*\]/);
         if (jsonMatch) {
-          flashcards = JSON.parse(jsonMatch[0]);
+          const jsonString = jsonMatch[0];
+          console.log('🔍 Extracted JSON length:', jsonString.length);
+          console.log('🔍 Extracted JSON preview:', jsonString.substring(0, 200));
+          console.log('🔍 Extracted JSON ending:', jsonString.substring(Math.max(0, jsonString.length - 200)));
           
-          // Debug: Log examples to see what AI is generating
-          console.log('🔍 AI Generated Examples Debug:');
-          flashcards.forEach((card, index) => {
-            console.log(`Card ${index + 1}: "${card.front}"`);
-            console.log(`  Example: "${card.example || 'NO EXAMPLE PROVIDED'}"`);
-          });
+          try {
+            flashcards = JSON.parse(jsonString);
+            
+            // Validate flashcards structure
+            if (!Array.isArray(flashcards)) {
+              throw new Error('AI response is not an array');
+            }
+            
+            console.log('✅ Successfully parsed', flashcards.length, 'flashcards');
+            
+            // Debug: Log examples to see what AI is generating
+            console.log('🔍 AI Generated Examples Debug:');
+            flashcards.forEach((card, index) => {
+              console.log(`Card ${index + 1}: "${card.front}"`);
+              console.log(`  Example: "${card.example || 'NO EXAMPLE PROVIDED'}"`);
+            });
+          } catch (jsonParseError) {
+            console.error('❌ JSON parsing failed:', jsonParseError);
+            console.error('❌ JSON string length:', jsonString.length);
+            console.error('❌ JSON string preview:', jsonString.substring(0, 1000));
+            console.log('🔄 Attempting to parse truncated response...');
+            console.log('🔍 JSON string to parse:', jsonString.substring(0, 500));
+            console.log('🔍 JSON string ending:', jsonString.substring(Math.max(0, jsonString.length - 500)));
+            
+            // Fall back to truncated response parsing
+            const flashcards: any[] = [];
+            let braceCount = 0;
+            let currentObject = '';
+            let inString = false;
+            let escapeNext = false;
+            
+            for (let i = 0; i < jsonString.length; i++) {
+              const char = jsonString[i];
+              
+              if (escapeNext) {
+                currentObject += char;
+                escapeNext = false;
+                continue;
+              }
+              
+              if (char === '\\') {
+                currentObject += char;
+                escapeNext = true;
+                continue;
+              }
+              
+              if (char === '"' && !escapeNext) {
+                inString = !inString;
+                currentObject += char;
+                continue;
+              }
+              
+              if (!inString) {
+                if (char === '{') {
+                  if (braceCount === 0) {
+                    currentObject = '';
+                  }
+                  braceCount++;
+                  currentObject += char;
+                } else if (char === '}') {
+                  braceCount--;
+                  currentObject += char;
+                  
+                  if (braceCount === 0) {
+                    // Complete object found
+                    try {
+                      const parsed = JSON.parse(currentObject);
+                      if (parsed && typeof parsed === 'object' && parsed.front && parsed.back) {
+                        flashcards.push(parsed);
+                        console.log('✅ Parsed complete object:', parsed.front);
+                      }
+                    } catch (e) {
+                      console.warn('⚠️ Failed to parse object:', currentObject.substring(0, 100));
+                    }
+                    currentObject = '';
+                  }
+                } else if (braceCount > 0) {
+                  currentObject += char;
+                }
+              } else {
+                currentObject += char;
+              }
+            }
+            
+            if (flashcards.length > 0) {
+              console.log('✅ Successfully parsed', flashcards.length, 'flashcards from truncated response');
+              
+              // Debug: Log examples
+              console.log('🔍 AI Generated Examples Debug (from truncated response):');
+              flashcards.forEach((card, index) => {
+                console.log(`Card ${index + 1}: "${card.front}"`);
+                console.log(`  Example: "${card.example || 'NO EXAMPLE PROVIDED'}"`);
+              });
+            } else {
+              console.error('❌ No complete flashcards found in truncated response');
+              throw new Error('No complete flashcards found in truncated response');
+            }
+          }
         } else {
-          throw new Error('Invalid JSON format in AI response');
+          // Try to handle truncated responses by finding incomplete JSON
+          console.warn('⚠️ No complete JSON array found, attempting to parse truncated response...');
+          
+          // Look for the start of a JSON array
+          const arrayStart = cleanedResponse.indexOf('[');
+          if (arrayStart !== -1) {
+            // Extract everything from the array start
+            const partialJson = cleanedResponse.substring(arrayStart);
+            console.log('🔍 Found partial JSON starting at position:', arrayStart);
+            console.log('🔍 Partial JSON length:', partialJson.length);
+            console.log('🔍 Partial JSON ending:', partialJson.substring(Math.max(0, partialJson.length - 200)));
+            
+            // Try to find complete objects within the partial JSON using a more robust approach
+            const flashcards: any[] = [];
+            let braceCount = 0;
+            let currentObject = '';
+            let inString = false;
+            let escapeNext = false;
+            
+            for (let i = 0; i < partialJson.length; i++) {
+              const char = partialJson[i];
+              
+              if (escapeNext) {
+                currentObject += char;
+                escapeNext = false;
+                continue;
+              }
+              
+              if (char === '\\') {
+                currentObject += char;
+                escapeNext = true;
+                continue;
+              }
+              
+              if (char === '"' && !escapeNext) {
+                inString = !inString;
+                currentObject += char;
+                continue;
+              }
+              
+              if (!inString) {
+                if (char === '{') {
+                  if (braceCount === 0) {
+                    currentObject = '';
+                  }
+                  braceCount++;
+                  currentObject += char;
+                } else if (char === '}') {
+                  braceCount--;
+                  currentObject += char;
+                  
+                  if (braceCount === 0) {
+                    // Complete object found
+                    try {
+                      const parsed = JSON.parse(currentObject);
+                      if (parsed && typeof parsed === 'object' && parsed.front && parsed.back) {
+                        flashcards.push(parsed);
+                        console.log('✅ Parsed complete object:', parsed.front);
+                      }
+                    } catch (e) {
+                      console.warn('⚠️ Failed to parse object:', currentObject.substring(0, 100));
+                    }
+                    currentObject = '';
+                  }
+                } else if (braceCount > 0) {
+                  currentObject += char;
+                }
+              } else {
+                currentObject += char;
+              }
+            }
+            
+            if (flashcards.length > 0) {
+              console.log('✅ Successfully parsed', flashcards.length, 'flashcards from truncated response');
+              
+              // Debug: Log examples
+              console.log('🔍 AI Generated Examples Debug (from truncated response):');
+              flashcards.forEach((card, index) => {
+                console.log(`Card ${index + 1}: "${card.front}"`);
+                console.log(`  Example: "${card.example || 'NO EXAMPLE PROVIDED'}"`);
+              });
+            } else {
+              console.error('❌ No complete objects found in truncated response');
+              throw new Error('No complete flashcards found in truncated response');
+            }
+          } else {
+            console.error('❌ No JSON array found in response');
+            console.error('❌ Response length:', cleanedResponse.length);
+            console.error('❌ Response preview:', cleanedResponse.substring(0, 500));
+            console.error('❌ Response ending:', cleanedResponse.substring(Math.max(0, cleanedResponse.length - 500)));
+            throw new Error('Invalid JSON format in AI response');
+          }
         }
       } catch (parseError) {
-        console.error('Error parsing AI response:', parseError);
-        console.error('Raw AI response:', responseText);
+        console.error('❌ Error parsing AI response:', parseError);
+        console.error('❌ Raw AI response length:', responseText.length);
+        console.error('❌ Raw AI response preview:', responseText.substring(0, 1000));
         throw new Error('Failed to parse AI-generated flashcards');
       }
 

@@ -418,7 +418,7 @@ export default function UploadScreen() {
       } as any);
 
       console.log('📤 Sending request to backend...');
-      console.log('🌐 Backend URL:', getPdfProcessingUrl());
+      console.log('🌐 Backend URL:', getBackendUrl('/api/process-pdf'));
       
       // Test backend connectivity first
       try {
@@ -580,7 +580,7 @@ export default function UploadScreen() {
       setProgress({
         stage: 'generating',
         progress: 70,
-        message: 'AI is analyzing your content... This may take 30-60 seconds.',
+        message: 'AI is analyzing your content... AI is analyzing your content.',
         cardsGenerated: 0,
       });
       
@@ -600,7 +600,7 @@ export default function UploadScreen() {
         const elapsed = Math.floor((Date.now() - startTime) / 1000);
         setProgress(prev => ({
           ...prev,
-          message: `AI is analyzing your content... This may take 30-60 seconds. (${elapsed}s elapsed)`
+          message: `AI is analyzing your content... AI is analyzing your content. (${elapsed}s elapsed)`
         }));
       }, 5000); // Update every 5 seconds
       
@@ -851,11 +851,18 @@ export default function UploadScreen() {
   };
 
   const handleEditTopics = () => {
+    console.log('🔍 Edit Topics button clicked');
+    console.log('🔍 Generated flashcards count:', generatedFlashcards.length);
+    
     // Extract unique topics from generated flashcards
     const topics = [...new Set(generatedFlashcards.map(card => card.topic))];
+    console.log('🔍 Extracted topics:', topics);
+    
     setUniqueTopics(topics);
     setEditableFlashcards([...generatedFlashcards]);
     setShowTopicEditModal(true);
+    
+    console.log('🔍 Topic edit modal should now be visible');
   };
 
   const handleTopicNameChange = (oldTopicName: string, newTopicName: string) => {
@@ -1133,7 +1140,7 @@ export default function UploadScreen() {
       setProgress({
         stage: 'generating',
         progress: 85,
-        message: 'AI is analyzing your content... This may take 30-60 seconds.',
+        message: 'AI is analyzing your content... AI is analyzing your content.',
         cardsGenerated: 0,
       });
       
@@ -1153,7 +1160,7 @@ export default function UploadScreen() {
         const elapsed = Math.floor((Date.now() - startTime) / 1000);
         setProgress(prev => ({
           ...prev,
-          message: `AI is analyzing your content... This may take 30-60 seconds. (${elapsed}s elapsed)`
+          message: `AI is analyzing your content... AI is analyzing your content. (${elapsed}s elapsed)`
         }));
       }, 5000); // Update every 5 seconds
       

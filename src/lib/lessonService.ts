@@ -128,12 +128,23 @@ export class LessonService {
     try {
       console.log('🔍 Extracting keywords from PDF...');
       
-      // Truncate text to fit within OpenAI's token limit
-      const truncatedText = this.truncateTextForOpenAI(pdfText);
-      console.log(`📏 Original text length: ${pdfText.length} chars`);
-      console.log(`📏 Truncated text length: ${truncatedText.length} chars`);
+      // Validate subject
+      if (!subject || subject === 'General') {
+        throw new Error('Subject not configured. Please contact customer support to set up your learning subject.');
+      }
       
-      const prompt = `Extract terms: ${truncatedText}`;
+      console.log(`📏 Processing full text: ${pdfText.length} chars`);
+      
+      const prompt = `Extract ALL important ${subject} terminology, concepts, and vocabulary from this content. 
+      
+Include:
+- Technical terms and definitions
+- Key concepts and principles
+- Important phrases and compound terms
+- Medical/scientific terminology (if applicable)
+- Return at least 50-100 terms if possible
+
+Content: ${pdfText}`;
 
       // Prepare messages for cost estimation
       const messages = [
@@ -165,7 +176,6 @@ export class LessonService {
       const response = await openai.createChatCompletion({
           model: 'gpt-4o-mini',
           messages: messages,
-          max_tokens: 4000,
           temperature: 0.1,
       });
 
@@ -209,6 +219,11 @@ export class LessonService {
     try {
       console.log(`🔍 Extracting keywords from ${pages.length} pages...`);
       
+      // Validate subject
+      if (!subject || subject === 'General') {
+        throw new Error('Subject not configured. Please contact customer support to set up your learning subject.');
+      }
+      
       const allKeywords: string[] = [];
       
       for (let i = 0; i < pages.length; i++) {
@@ -223,29 +238,20 @@ export class LessonService {
           continue;
         }
         
-        // Truncate page if too long (but be more generous per page)
-        const maxPageTokens = 15000; // 15k tokens per page = 60k chars
-        const maxPageChars = maxPageTokens * 4;
+        console.log(`📏 Processing full page ${pageNumber}: ${page.length} chars`);
         
-        let pageText = page;
-        if (page.length > maxPageChars) {
-          pageText = page.substring(0, maxPageChars);
-          const lastSpaceIndex = pageText.lastIndexOf(' ');
-          if (lastSpaceIndex > 0) {
-            pageText = pageText.substring(0, lastSpaceIndex) + '...';
-          }
-          console.log(`✂️ Truncated page ${pageNumber}: ${page.length} → ${pageText.length} chars`);
-        }
-        
-        const prompt = `Extract key terms from this page of ${subject} content. Return ONLY a JSON array of strings:
+        const prompt = `Extract ALL important ${subject} terminology, concepts, and vocabulary from this page. 
 
-Page ${pageNumber} content: ${pageText}
+Page ${pageNumber} content: ${page}
 
-Requirements:
-- Extract only important technical terms, concepts, and vocabulary
-- Return terms as they appear in the text
-- Return ONLY a JSON array of strings with no explanations
-- Do NOT use backticks, code blocks, or markdown formatting`;
+Include:
+- Technical terms and definitions
+- Key concepts and principles  
+- Important phrases and compound terms
+- Medical/scientific terminology (if applicable)
+- Return at least 20-50 terms per page if possible
+
+Return ONLY a JSON array of strings with no explanations, markdown, or formatting.`;
 
         // Prepare messages for cost estimation
         const messages = [
@@ -277,7 +283,6 @@ Requirements:
         const response = await openai.createChatCompletion({
             model: 'gpt-4o-mini',
             messages: messages,
-            max_tokens: 3000, // Smaller per page
             temperature: 0.1,
         });
 
@@ -394,7 +399,12 @@ Requirements:
     try {
       console.log('🔍 Grouping keywords into topics...');
       
-      const prompt = `Group these keywords into logical topics for ${subject} lessons. Each topic should have 15-20 keywords (maximum 20). Return ONLY a JSON array:
+      // Validate subject
+      if (!subject || subject === 'General') {
+        throw new Error('Subject not configured. Please contact customer support to set up your learning subject.');
+      }
+      
+      const prompt = `Group these ${subject} keywords into logical topics. Each topic should have 3-30 keywords. Return ONLY a JSON array:
 
 Keywords: ${keywords.join(', ')}
 
@@ -402,10 +412,11 @@ Format:
 [{"topicName": "Topic Name", "keywords": ["keyword1", "keyword2", ...]}]
 
 Requirements:
-- Each topic should have 15-20 keywords (max 20)
+- Each topic should have 3-30 keywords
 - Group related keywords together
 - Create meaningful topic names based on the keywords
 - Ensure all keywords are included in exactly one topic
+- Let the content determine the number of topics (no fixed count)
 - Return ONLY the JSON array:`;
 
       // Prepare messages for cost estimation
@@ -438,8 +449,7 @@ Requirements:
       const response = await openai.createChatCompletion({
           model: 'gpt-4o-mini',
           messages: messages,
-          max_tokens: 8000,
-          temperature: 0.2,
+          temperature: 0.1,
       });
 
       const content = response.content;
@@ -463,11 +473,119 @@ Requirements:
       }
 
       console.log(`✅ Grouped keywords into ${topics.length} topics`);
-      return topics;
+      
+      // Validate and fix small topics
+      const validatedTopics = this.validateAndFixTopics(topics);
+      console.log(`✅ After validation: ${validatedTopics.length} topics`);
+      
+      return validatedTopics;
 
     } catch (error) {
       console.error('❌ Error grouping keywords:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Validate and fix topics with minimum keyword requirements
+   */
+  static validateAndFixTopics(topics: Array<{ topicName: string; keywords: string[] }>): Array<{ topicName: string; keywords: string[] }> {
+    try {
+      console.log('🔍 Validating topics for minimum keyword requirements...');
+      
+      const MIN_KEYWORDS = 3;
+      const validatedTopics: Array<{ topicName: string; keywords: string[] }> = [];
+      const smallTopics: Array<{ topicName: string; keywords: string[] }> = [];
+      
+      // Separate valid and small topics
+      for (const topic of topics) {
+        if (topic.keywords && topic.keywords.length >= MIN_KEYWORDS) {
+          validatedTopics.push(topic);
+        } else {
+          smallTopics.push(topic);
+        }
+      }
+      
+      console.log(`📊 Valid topics: ${validatedTopics.length}, Small topics: ${smallTopics.length}`);
+      
+      if (smallTopics.length === 0) {
+        return validatedTopics;
+      }
+      
+      // Try to redistribute keywords from small topics
+      let redistributionAttempts = 0;
+      const maxAttempts = 3;
+      
+      while (smallTopics.length > 0 && redistributionAttempts < maxAttempts) {
+        redistributionAttempts++;
+        console.log(`🔄 Redistribution attempt ${redistributionAttempts}/${maxAttempts}`);
+        
+        const smallTopic = smallTopics.shift()!;
+        const keywordsToRedistribute = smallTopic.keywords || [];
+        
+        if (keywordsToRedistribute.length === 0) {
+          continue;
+        }
+        
+        // Try to find the best topic to merge with
+        let bestMergeIndex = -1;
+        let bestScore = -1;
+        
+        for (let i = 0; i < validatedTopics.length; i++) {
+          const topic = validatedTopics[i];
+          const currentSize = topic.keywords.length;
+          const newSize = currentSize + keywordsToRedistribute.length;
+          
+          // Prefer topics that won't exceed 30 keywords
+          if (newSize <= 30) {
+            const score = 30 - newSize; // Higher score for topics closer to 30
+            if (score > bestScore) {
+              bestScore = score;
+              bestMergeIndex = i;
+            }
+          }
+        }
+        
+        if (bestMergeIndex !== -1) {
+          // Merge with existing topic
+          validatedTopics[bestMergeIndex].keywords.push(...keywordsToRedistribute);
+          console.log(`🔗 Merged "${smallTopic.topicName}" (${keywordsToRedistribute.length} keywords) into "${validatedTopics[bestMergeIndex].topicName}"`);
+        } else {
+          // Create new topic if no suitable merge found
+          if (keywordsToRedistribute.length >= MIN_KEYWORDS) {
+            validatedTopics.push({
+              topicName: smallTopic.topicName,
+              keywords: keywordsToRedistribute
+            });
+            console.log(`➕ Created new topic "${smallTopic.topicName}" with ${keywordsToRedistribute.length} keywords`);
+          } else {
+            // Force merge with smallest topic
+            const smallestTopicIndex = validatedTopics.reduce((minIndex, topic, index) => 
+              topic.keywords.length < validatedTopics[minIndex].keywords.length ? index : minIndex, 0
+            );
+            validatedTopics[smallestTopicIndex].keywords.push(...keywordsToRedistribute);
+            console.log(`🔗 Force merged "${smallTopic.topicName}" into "${validatedTopics[smallestTopicIndex].topicName}"`);
+          }
+        }
+      }
+      
+      // Handle any remaining small topics by force merging
+      for (const smallTopic of smallTopics) {
+        if (smallTopic.keywords && smallTopic.keywords.length > 0) {
+          const smallestTopicIndex = validatedTopics.reduce((minIndex, topic, index) => 
+            topic.keywords.length < validatedTopics[minIndex].keywords.length ? index : minIndex, 0
+          );
+          validatedTopics[smallestTopicIndex].keywords.push(...smallTopic.keywords);
+          console.log(`🔗 Final merge: "${smallTopic.topicName}" into "${validatedTopics[smallestTopicIndex].topicName}"`);
+        }
+      }
+      
+      console.log(`✅ Topic validation complete: ${validatedTopics.length} topics`);
+      return validatedTopics;
+      
+    } catch (error) {
+      console.error('❌ Error validating topics:', error);
+      return topics; // Return original topics if validation fails
     }
   }
 
@@ -523,8 +641,7 @@ Return ONLY the JSON array:`;
       const response = await openai.createChatCompletion({
           model: 'gpt-4o-mini',
           messages: messages,
-          max_tokens: 12000, // Increased for multiple topics
-          temperature: 0.2,
+          temperature: 0.1,
       });
 
       const content = response.content;
@@ -608,8 +725,7 @@ Return ONLY the JSON array:`;
       const response = await openai.createChatCompletion({
           model: 'gpt-4o-mini',
           messages: messages,
-          max_tokens: 8000,
-        temperature: 0.2,
+          temperature: 0.1,
       });
 
       const content = response.content;
