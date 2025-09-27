@@ -16,13 +16,16 @@ import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { useRefresh } from '../contexts/RefreshContext';
 import { UploadService, UploadProgress, GeneratedFlashcard } from '../lib/uploadService';
+import { ImageUploadService, ImageUploadProgress, ImageProcessingResult } from '../lib/imageUploadService';
 import { UserFlashcardService } from '../lib/userFlashcardService';
 import { FlashcardService } from '../lib/flashcardService';
 import FlashcardReviewModal from '../components/FlashcardReviewModal';
 import UploadProgressModal from '../components/UploadProgressModal';
+import ImagePreviewModal from '../components/ImagePreviewModal';
 import { TopicEditModal } from '../components/TopicEditModal';
 import * as DocumentPicker from 'expo-document-picker';
-import { getPdfProcessingUrl, getBackendUrl, BACKEND_CONFIG } from '../config/backendConfig';
+import * as ImagePicker from 'expo-image-picker';
+import { getBackendUrl, BACKEND_CONFIG } from '../config/backendConfig';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -52,6 +55,15 @@ export default function UploadScreen() {
   const [forceRefresh, setForceRefresh] = useState(0);
   const [isCancelled, setIsCancelled] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
+  
+  // Image-related state
+  const [selectedImages, setSelectedImages] = useState<ImagePicker.ImagePickerAsset[]>([]);
+  const [showImagePreview, setShowImagePreview] = useState(false);
+  const [imageProgress, setImageProgress] = useState<ImageUploadProgress>({
+    stage: 'selecting',
+    progress: 0,
+    message: 'Ready to select images',
+  });
   
 
   
@@ -461,7 +473,7 @@ export default function UploadScreen() {
       
       try {
         console.log('🔄 Fetch request starting...');
-        const webhookResponse = await fetch(getPdfProcessingUrl(), {
+        const webhookResponse = await fetch(getBackendUrl('/api/process-pdf'), {
           method: 'POST',
           body: formData,
           signal: abortControllerRef.current?.signal,
@@ -962,6 +974,335 @@ export default function UploadScreen() {
     // The fallback buttons (Test with Sample Content, Enter Text Manually) are already visible
   };
 
+  // Image handling functions
+  const handleImagePick = async () => {
+    if (!selectedTopic) {
+      Alert.alert('Select Topic', 'Please select a topic before uploading images.');
+      return;
+    }
+
+    try {
+      const images = await ImageUploadService.pickImages();
+      setSelectedImages(images);
+      setShowImagePreview(true);
+    } catch (error) {
+      if (error instanceof Error && !error.message.includes('cancelled')) {
+        // Don't log cancellation errors - they're normal user actions
+        Alert.alert('Error', error.message);
+      }
+      // Don't log cancellation errors - they're normal user actions
+    }
+  };
+
+  const handleTakePhoto = async () => {
+    if (!selectedTopic) {
+      Alert.alert('Select Topic', 'Please select a topic before taking photos.');
+      return;
+    }
+
+    try {
+      const images = await ImageUploadService.takePhoto();
+      setSelectedImages(images);
+      setShowImagePreview(true);
+    } catch (error) {
+      if (error instanceof Error && !error.message.includes('cancelled')) {
+        // Don't log cancellation errors - they're normal user actions
+        Alert.alert('Error', error.message);
+      }
+      // Don't log cancellation errors - they're normal user actions
+    }
+  };
+
+  const handleImageRetake = () => {
+    setShowImagePreview(false);
+    setSelectedImages([]);
+  };
+
+  const handleAddMoreImages = async () => {
+    try {
+      const newImages = await ImageUploadService.pickImages();
+      const combinedImages = [...selectedImages, ...newImages];
+      
+      if (combinedImages.length > 5) {
+        Alert.alert('Too Many Images', 'Maximum 5 images allowed. Please select fewer images.');
+        return;
+      }
+      
+      setSelectedImages(combinedImages);
+    } catch (error) {
+      if (error instanceof Error && !error.message.includes('cancelled')) {
+        // Don't log cancellation errors - they're normal user actions
+        Alert.alert('Error', error.message);
+      }
+      // Don't log cancellation errors - they're normal user actions
+    }
+  };
+
+  const handleProcessImages = async () => {
+    if (selectedImages.length === 0) {
+      Alert.alert('No Images', 'Please select images to process.');
+      return;
+    }
+
+    try {
+      // Reset cancellation state
+      setIsCancelled(false);
+      
+      // Create new AbortController for this upload session
+      abortControllerRef.current = new AbortController();
+      
+      setIsProcessing(true);
+      setShowProgressModal(true);
+      setShowImagePreview(false);
+      
+      // Add safety timeout
+      safetyTimeoutRef.current = setTimeout(() => {
+        console.log('⚠️ Safety timeout triggered - image processing taking longer than expected');
+        
+        setIsProcessing(false);
+        setShowProgressModal(false);
+        setProgress({
+          stage: 'error',
+          progress: 0,
+          message: 'Image processing timed out. The process has been stopped.',
+        });
+        
+        Alert.alert(
+          'Processing Timeout',
+          'The image processing has been stopped due to timeout. Please try with fewer or smaller images.',
+          [{ text: 'OK', style: 'default' }]
+        );
+      }, 300000); // 5 minute timeout for image processing
+      
+      // Update progress for image processing
+      setProgress({
+        stage: 'uploading',
+        progress: 10,
+        message: `Processing ${selectedImages.length} image${selectedImages.length > 1 ? 's' : ''}...`,
+      });
+
+      // Process images with OCR
+      const imageResult = await ImageUploadService.processImages(
+        selectedImages,
+        (progressUpdate) => {
+          // Check if cancelled before updating progress
+          if (isCancelled) {
+            console.log('🚫 Image processing cancelled');
+            return;
+          }
+          
+          setProgress({
+            stage: 'processing',
+            progress: 30 + (progressUpdate.progress * 0.4), // Map to 30-70% range
+            message: progressUpdate.message,
+          });
+        }
+      );
+
+      // Check if cancelled after image processing
+      if (isCancelled) {
+        console.log('🚫 Image processing cancelled, stopping AI processing');
+        return;
+      }
+
+      setProgress({
+        stage: 'processing',
+        progress: 70,
+        message: 'Images processed successfully, preparing for AI analysis...',
+      });
+
+      // Generate flashcards with AI using extracted text
+      const topic = selectedTopic;
+      
+      console.log('Starting AI flashcard generation from images...');
+      setProgress({
+        stage: 'generating',
+        progress: 75,
+        message: 'Connecting to AI service...',
+      });
+      
+      setProgress({
+        stage: 'generating',
+        progress: 80,
+        message: 'Analyzing extracted text and creating terminology flashcards...',
+      });
+      
+      // Ensure progress modal stays visible during AI generation
+      setShowProgressModal(true);
+      
+      setProgress({
+        stage: 'generating',
+        progress: 85,
+        message: 'AI is analyzing your content... This may take 30-60 seconds.',
+        cardsGenerated: 0,
+      });
+      
+      // Add progress updates during AI processing
+      const startTime = Date.now();
+      progressIntervalRef.current = setInterval(() => {
+        // Check if cancelled before updating progress
+        if (isCancelled) {
+          console.log('🚫 Image processing cancelled, stopping progress updates');
+          if (progressIntervalRef.current) {
+            clearInterval(progressIntervalRef.current);
+            progressIntervalRef.current = null;
+          }
+          return;
+        }
+        
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        setProgress(prev => ({
+          ...prev,
+          message: `AI is analyzing your content... This may take 30-60 seconds. (${elapsed}s elapsed)`
+        }));
+      }, 5000); // Update every 5 seconds
+      
+      const flashcards = await UploadService.generateFlashcards(
+        imageResult.text,
+        userSubject,
+        topic,
+        userNativeLanguage,
+        false,
+        (progressUpdate) => {
+          // Check if cancelled before updating progress
+          if (isCancelled) {
+            console.log('🚫 Image processing cancelled during AI processing');
+            return;
+          }
+          console.log('🔍 Progress update from AI:', progressUpdate);
+          setProgress(progressUpdate);
+        },
+        abortControllerRef.current?.signal, // Pass abort signal to AI service
+        () => isCancelled // Pass cancellation check function
+      );
+      
+      clearInterval(progressIntervalRef.current); // Clear progress updates when done
+      progressIntervalRef.current = null;
+      
+      // Check if cancelled after AI processing
+      if (isCancelled) {
+        console.log('🚫 Image processing cancelled after AI processing, not saving flashcards');
+        return;
+      }
+      
+      console.log('🔍 AI flashcard generation completed, count:', flashcards.length);
+      
+      setProgress({
+        stage: 'generating',
+        progress: 90,
+        message: `Generated ${flashcards.length} terminology flashcards!`,
+        cardsGenerated: flashcards.length,
+      });
+
+      // Save to database
+      setProgress({
+        stage: 'processing',
+        progress: 95,
+        message: 'Saving flashcards to database...',
+      });
+      
+      if (user) {
+        // Final check before saving to database
+        if (isCancelled) {
+          console.log('🚫 Image processing was cancelled - not saving flashcards to database');
+          return;
+        }
+        
+        await UploadService.saveFlashcardsToDatabase(
+          flashcards,
+          user.id,
+          userSubject,
+          userNativeLanguage,
+          false,
+          (progressUpdate) => {
+            // Check cancellation during save progress updates
+            if (isCancelled) {
+              console.log('🚫 Image processing cancelled during save - stopping save process');
+              return;
+            }
+            setProgress(progressUpdate);
+          },
+          () => isCancelled // Pass cancellation check function
+        );
+      }
+
+      setProgress({
+        stage: 'complete',
+        progress: 100,
+        message: `Successfully created ${flashcards.length} terminology flashcards from images!`,
+        cardsGenerated: flashcards.length,
+      });
+      
+      // Trigger global refresh to update card counts everywhere
+      triggerRefresh();
+      
+      console.log('🔍 Progress set to complete, waiting for user to click Continue...');
+      
+      setGeneratedFlashcards(flashcards);
+      generatedFlashcardsRef.current = flashcards; // Update ref immediately
+      
+      // For AI Selection mode, also set the unique topics
+      if (selectedTopic === 'AI Selection') {
+        const topics = [...new Set(flashcards.map(card => card.topic))];
+        setUniqueTopics(topics);
+        setEditableFlashcards([...flashcards]);
+      }
+
+      // Clear safety timeout on success
+      if (safetyTimeoutRef.current) {
+        clearTimeout(safetyTimeoutRef.current);
+        safetyTimeoutRef.current = null;
+      }
+      
+      // Clear selected images
+      setSelectedImages([]);
+
+    } catch (error) {
+      console.error('Error processing images:', error);
+      
+      // Clear all timeouts
+      if (safetyTimeoutRef.current) {
+        clearTimeout(safetyTimeoutRef.current);
+        safetyTimeoutRef.current = null;
+      }
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+      
+      // Check if this was a cancellation error
+      if (error instanceof Error && (error.message.includes('cancelled') || error.message.includes('Request cancelled'))) {
+        console.log('🚫 Image processing was cancelled - no error alert needed');
+        return;
+      }
+      
+      // Show user-friendly error message
+      let errorMessage = 'An unexpected error occurred while processing images';
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          errorMessage = 'Image processing timed out. Please try again with smaller images.';
+        } else if (error.message.includes('timed out')) {
+          errorMessage = 'AI processing timed out. Please try again with smaller images.';
+        } else if (error.message.includes('No text could be extracted')) {
+          errorMessage = 'No text could be extracted from the images. Please ensure the images contain clear, readable text.';
+        } else {
+          errorMessage = error.message;
+        }
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      }
+      
+      setProgress({
+        stage: 'error',
+        progress: 0,
+        message: errorMessage,
+      });
+      
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   // Emergency reset function - always available
   const emergencyReset = () => {
     
@@ -983,6 +1324,8 @@ export default function UploadScreen() {
       navigation.navigate('Dashboard' as never);
     }
   };
+
+
 
   // For React Native, we'll use a simpler approach
   // The error boundary in App.tsx should catch most errors
@@ -1122,22 +1465,60 @@ export default function UploadScreen() {
           </View>
           <Text style={styles.uploadTitle}>Upload Your Course Notes</Text>
           <Text style={styles.uploadSubtitle}>
-            Upload PDFs to automatically generate flashcards using AI
+            Upload PDFs or take photos to automatically generate flashcards using AI
           </Text>
           
-          <TouchableOpacity
-            style={[
-              styles.uploadButton,
-              (!selectedTopic || isProcessing) && styles.disabledButton
-            ]}
-            onPress={handleFilePick}
-            disabled={!selectedTopic || isProcessing}
-          >
-            <Ionicons name="document" size={22} color="#ffffff" />
-            <Text style={styles.uploadButtonText}>
-              {isProcessing ? 'Processing...' : selectedTopic === 'AI Selection' ? 'Choose PDF for AI Topic Detection' : 'Choose PDF File'}
+          {/* Upload Options */}
+          <View style={styles.uploadOptions}>
+            {/* PDF Upload */}
+            <TouchableOpacity
+              style={[
+                styles.uploadButton,
+                styles.pdfButton,
+                (!selectedTopic || isProcessing) && styles.disabledButton
+              ]}
+              onPress={handleFilePick}
+              disabled={!selectedTopic || isProcessing}
+            >
+              <Ionicons name="document" size={20} color="#ffffff" />
+              <Text style={styles.uploadButtonText}>
+                {isProcessing ? 'Processing...' : selectedTopic === 'AI Selection' ? 'Choose PDF' : 'Upload PDF'}
+              </Text>
+            </TouchableOpacity>
+
+            {/* Camera Options */}
+            <View style={styles.cameraOptions}>
+              <TouchableOpacity
+                style={[
+                  styles.uploadButton,
+                  styles.cameraButton,
+                  (!selectedTopic || isProcessing) && styles.disabledButton
+                ]}
+                onPress={handleTakePhoto}
+                disabled={!selectedTopic || isProcessing}
+              >
+                <Ionicons name="camera" size={20} color="#ffffff" />
+                <Text style={styles.uploadButtonText}>
+                  {isProcessing ? 'Processing...' : 'Take Photo'}
                 </Text>
               </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.uploadButton,
+                  styles.galleryButton,
+                  (!selectedTopic || isProcessing) && styles.disabledButton
+                ]}
+                onPress={handleImagePick}
+                disabled={!selectedTopic || isProcessing}
+              >
+                <Ionicons name="images" size={20} color="#ffffff" />
+                <Text style={styles.uploadButtonText}>
+                  {isProcessing ? 'Processing...' : 'Choose Photos'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
 
         </View>
 
@@ -1149,13 +1530,13 @@ export default function UploadScreen() {
               <View style={styles.stepNumber}>
                 <Text style={styles.stepNumberText}>1</Text>
               </View>
-              <Text style={styles.stepText}>Upload your PDF course notes</Text>
+              <Text style={styles.stepText}>Upload PDFs or take photos of your course notes</Text>
             </View>
             <View style={styles.infoStep}>
               <View style={styles.stepNumber}>
                 <Text style={styles.stepNumberText}>2</Text>
               </View>
-              <Text style={styles.stepText}>AI analyzes content and extracts key concepts</Text>
+              <Text style={styles.stepText}>AI extracts text and analyzes content for key concepts</Text>
             </View>
             <View style={styles.infoStep}>
               <View style={styles.stepNumber}>
@@ -1171,6 +1552,7 @@ export default function UploadScreen() {
             </View>
           </View>
         </View>
+
       </ScrollView>
 
       {/* Progress Modal */}
@@ -1191,6 +1573,17 @@ export default function UploadScreen() {
         onTopicChange={handleTopicNameChange}
         onSave={handleSaveEditedTopics}
         onClose={() => setShowTopicEditModal(false)}
+      />
+
+      {/* Image Preview Modal */}
+      <ImagePreviewModal
+        visible={showImagePreview}
+        images={selectedImages}
+        onClose={() => setShowImagePreview(false)}
+        onConfirm={handleProcessImages}
+        onRetake={handleImageRetake}
+        onAddMore={handleAddMoreImages}
+        isProcessing={isProcessing}
       />
 
       {/* Review Modal */}
@@ -1428,10 +1821,15 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     paddingHorizontal: 10,
   },
-  uploadButton: {
+  uploadOptions: {
+    gap: 16,
+    width: '100%',
+  },
+  pdfButton: {
     backgroundColor: '#6366f1',
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     paddingHorizontal: 24,
     paddingVertical: 14,
     borderRadius: 8,
@@ -1441,6 +1839,45 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
+  cameraOptions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  cameraButton: {
+    backgroundColor: '#10b981',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderRadius: 8,
+    flex: 1,
+    shadowColor: '#10b981',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  galleryButton: {
+    backgroundColor: '#8b5cf6',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderRadius: 8,
+    flex: 1,
+    shadowColor: '#8b5cf6',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  uploadButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   disabledButton: {
     backgroundColor: '#cbd5e1',
     shadowOpacity: 0,
@@ -1448,7 +1885,7 @@ const styles = StyleSheet.create({
   },
   uploadButtonText: {
     color: '#ffffff',
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600',
     marginLeft: 8,
   },

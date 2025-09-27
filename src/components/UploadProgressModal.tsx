@@ -336,45 +336,18 @@ export default function UploadProgressModal({
             </View>
           )}
 
-          {/* Cancel Button for Processing */}
-          {!isComplete && !isError && onClose && (
-            <View style={styles.footer}>
-              <TouchableOpacity 
-                style={[styles.actionButton, styles.cancelProcessingButton]}
-                onPress={onCancel || onClose}
-              >
-                <Ionicons name="close" size={20} color="#ef4444" />
-                <Text style={styles.cancelProcessingButtonText}>Cancel Upload</Text>
-              </TouchableOpacity>
-            </View>
-          )}
 
-          {/* Force Close Button - Always Available */}
-          <View style={styles.forceCloseContainer}>
-            <TouchableOpacity 
-              style={styles.forceCloseButton}
-              onPress={onClose}
-            >
-              <Ionicons name="close-circle" size={16} color="#94a3b8" />
-              <Text style={styles.forceCloseText}>Force Close</Text>
-            </TouchableOpacity>
-            <Text style={styles.forceCloseHint}>
-              Tap to force close if stuck
-            </Text>
-          </View>
 
           {/* Cards Generated Count */}
           {progress.cardsGenerated !== undefined && !isError && (
             <Animated.View style={[styles.cardsInfo, { opacity: fadeAnim }]}>
               <View style={styles.cardsIconContainer}>
-                <Ionicons name="document-text" size={24} color="#6366f1" />
+                <Ionicons name="document-text" size={24} color="#ffffff" />
               </View>
               <View style={styles.cardsTextContainer}>
-                <Text style={styles.cardsNumber}>{progress.cardsGenerated}</Text>
-                <Text style={styles.cardsLabel}>flashcards generated</Text>
-              </View>
-              <View style={styles.cardsBadge}>
-                <Ionicons name="checkmark-circle" size={16} color="#10b981" />
+                <Text style={styles.cardsText} numberOfLines={1}>
+                  {progress.cardsGenerated} flashcards
+                </Text>
               </View>
             </Animated.View>
           )}
@@ -401,8 +374,28 @@ export default function UploadProgressModal({
                         transform: [{ scale: isActive ? pulseAnim : 1 }]
                       }
                     ]}>
-                      {isCompleted && (
+                      {isCompleted ? (
                         <Ionicons name="checkmark" size={14} color="#ffffff" />
+                      ) : isActive ? (
+                        <Ionicons 
+                          name={
+                            stage === 'uploading' ? 'cloud-upload' :
+                            stage === 'processing' ? 'document-text' :
+                            stage === 'generating' ? 'sparkles' : 'information-circle'
+                          } 
+                          size={12} 
+                          color="#ffffff" 
+                        />
+                      ) : (
+                        <Ionicons 
+                          name={
+                            stage === 'uploading' ? 'cloud-upload-outline' :
+                            stage === 'processing' ? 'document-text-outline' :
+                            stage === 'generating' ? 'sparkles-outline' : 'information-circle-outline'
+                          } 
+                          size={12} 
+                          color="#94a3b8" 
+                        />
                       )}
                     </Animated.View>
                     <Text style={[
@@ -679,24 +672,11 @@ const styles = StyleSheet.create({
   cardsTextContainer: {
     flex: 1,
   },
-  cardsNumber: {
-    fontSize: 24,
+  cardsText: {
+    fontSize: 16,
     color: '#1e293b',
-    fontWeight: '800',
-    lineHeight: 28,
-  },
-  cardsLabel: {
-    fontSize: 14,
-    color: '#64748b',
-    fontWeight: '500',
-  },
-  cardsBadge: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#10b981',
-    justifyContent: 'center',
-    alignItems: 'center',
+    fontWeight: '600',
+    lineHeight: 20,
   },
   stagesContainer: {
     flexDirection: 'row',
@@ -807,38 +787,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     marginLeft: 8,
-  },
-  cancelProcessingButton: {
-    backgroundColor: '#fef3f2',
-    borderWidth: 1,
-    borderColor: '#ef4444',
-  },
-  cancelProcessingButtonText: {
-    color: '#ef4444',
-    fontSize: 16,
-    fontWeight: '700',
-    marginLeft: 8,
-  },
-  forceCloseContainer: {
-    alignItems: 'center',
-    marginTop: 16,
-  },
-  forceCloseButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: '#f8fafc',
-  },
-  forceCloseText: {
-    color: '#94a3b8',
-    fontSize: 12,
-    marginLeft: 4,
-  },
-  forceCloseHint: {
-    color: '#94a3b8',
-    fontSize: 10,
-    marginTop: 4,
-    textAlign: 'center',
   },
 });

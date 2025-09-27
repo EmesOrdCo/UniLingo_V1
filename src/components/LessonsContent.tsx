@@ -50,10 +50,10 @@ export default function LessonsContent() {
 
   const handleLessonPress = (lesson: Lesson) => {
     // Navigate to lesson walkthrough
-    navigation.navigate('LessonWalkthrough' as never, { 
+    (navigation as any).navigate('LessonWalkthrough', { 
       lessonId: lesson.id, 
       lessonTitle: lesson.title 
-    } as never);
+    });
   };
 
   const handleYourLessonsPress = () => {
@@ -84,7 +84,7 @@ export default function LessonsContent() {
         </Text>
         <TouchableOpacity style={styles.uploadButton} onPress={handleCreateLesson}>
           <Ionicons name="cloud-upload-outline" size={24} color="#ffffff" />
-          <Text style={styles.uploadButtonText}>Choose PDF File</Text>
+          <Text style={styles.uploadButtonText}>Create Lesson</Text>
         </TouchableOpacity>
       </View>
 

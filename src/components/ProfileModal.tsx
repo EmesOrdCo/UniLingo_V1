@@ -64,7 +64,7 @@ export default function ProfileModal({ visible, onClose }: ProfileModalProps) {
 
       // Launch image picker
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: 'Images',
         allowsEditing: true,
         aspect: [1, 1], // Square aspect ratio for profile picture
         quality: 0.8,
@@ -89,7 +89,7 @@ export default function ProfileModal({ visible, onClose }: ProfileModalProps) {
         }
       }
     } catch (error) {
-      console.error('Error picking image:', error);
+      // Don't log cancellation errors - they're normal user actions
       Alert.alert('Error', 'Failed to pick image. Please try again.');
     }
   };

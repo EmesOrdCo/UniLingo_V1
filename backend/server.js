@@ -36,7 +36,8 @@ const storage = multer.diskStorage({
   }
 });
 
-const upload = multer({ 
+// PDF upload configuration
+const pdfUpload = multer({ 
   storage: storage,
   fileFilter: (req, file, cb) => {
     if (file.mimetype === 'application/pdf') {
@@ -47,6 +48,22 @@ const upload = multer({
   },
   limits: {
     fileSize: 10 * 1024 * 1024 // 10MB limit
+  }
+});
+
+// Image upload configuration
+const imageUpload = multer({ 
+  storage: storage,
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed'), false);
+    }
+  },
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit per image
+    files: 5 // Maximum 5 images
   }
 });
 
@@ -103,12 +120,143 @@ function splitTextIntoPages(text, pageCount) {
   return pages;
 }
 
+// Image processing endpoint with OCR
+app.post('/api/process-image', imageUpload.array('images', 5), async (req, res) => {
+  try {
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ error: 'No image files uploaded' });
+    }
+
+    console.log('\n' + '📸'.repeat(20));
+    console.log('📸 INCOMING IMAGE UPLOAD REQUEST');
+    console.log('📸'.repeat(20));
+    console.log(`📁 Files: ${req.files.length} images`);
+    req.files.forEach((file, index) => {
+      console.log(`  ${index + 1}. ${file.originalname} (${(file.size / 1024 / 1024).toFixed(2)} MB)`);
+    });
+    console.log('📸'.repeat(20) + '\n');
+
+    // Import required modules
+    const Tesseract = require('tesseract.js');
+    const sharp = require('sharp');
+    
+    let allExtractedText = '';
+    let processedImages = 0;
+    const totalImages = req.files.length;
+
+    // Process each image
+    for (let i = 0; i < req.files.length; i++) {
+      const file = req.files[i];
+      console.log(`🔍 Processing image ${i + 1}/${totalImages}: ${file.originalname}`);
+      
+      try {
+        // Preprocess image with Sharp for better OCR
+        const processedImageBuffer = await sharp(file.path)
+          .resize(2000, 2000, { 
+            fit: 'inside',
+            withoutEnlargement: true 
+          })
+          .sharpen()
+          .normalize()
+          .grayscale()
+          .png()
+          .toBuffer();
+
+        // Perform OCR on the processed image
+        const { data: { text } } = await Tesseract.recognize(
+          processedImageBuffer,
+          'eng', // English language
+          {
+            logger: m => {
+              if (m.status === 'recognizing text') {
+                console.log(`  OCR Progress: ${Math.round(m.progress * 100)}%`);
+              }
+            }
+          }
+        );
+
+        if (text && text.trim()) {
+          allExtractedText += `\n\n--- Image ${i + 1}: ${file.originalname} ---\n${text.trim()}`;
+          console.log(`✅ Extracted ${text.length} characters from ${file.originalname}`);
+        } else {
+          console.log(`⚠️ No text extracted from ${file.originalname}`);
+        }
+
+        processedImages++;
+      } catch (imageError) {
+        console.error(`❌ Error processing image ${file.originalname}:`, imageError);
+        // Continue with other images even if one fails
+      }
+    }
+
+    if (!allExtractedText.trim()) {
+      throw new Error('No text could be extracted from any of the uploaded images');
+    }
+
+    // Split text into pages (similar to PDF processing)
+    const pages = splitTextIntoPages(allExtractedText, Math.max(1, Math.ceil(processedImages / 2)));
+
+    console.log('\n' + '🎯'.repeat(20));
+    console.log('🎯 SENDING RESPONSE TO FRONTEND');
+    console.log('🎯'.repeat(20));
+    console.log(`✅ Success: true`);
+    console.log(`📸 Images processed: ${processedImages}/${totalImages}`);
+    console.log(`🔢 Total characters: ${allExtractedText.length.toLocaleString()}`);
+    console.log(`📑 Split into ${pages.length} page texts`);
+    console.log('🎯'.repeat(20) + '\n');
+
+    // Clean up uploaded files
+    req.files.forEach(file => {
+      if (fs.existsSync(file.path)) {
+        fs.unlinkSync(file.path);
+      }
+    });
+    console.log('🧹 Uploaded files cleaned up');
+
+    res.json({
+      success: true,
+      message: 'Images processed successfully via OCR',
+      result: {
+        text: allExtractedText, // Full extracted text
+        pages: pages, // Page-by-page text
+        pageCount: pages.length,
+        imagesProcessed: processedImages,
+        totalImages: totalImages
+      },
+      filenames: req.files.map(f => f.originalname)
+    });
+
+  } catch (error) {
+    console.error('\n' + '💥'.repeat(20));
+    console.error('💥 IMAGE PROCESSING ERROR');
+    console.error('💥'.repeat(20));
+    console.error(`❌ Error: ${error.message}`);
+    console.error(`📁 Files: ${req.files?.length || 0} images`);
+    console.error('💥'.repeat(20) + '\n');
+    
+    // Clean up files on error
+    if (req.files) {
+      req.files.forEach(file => {
+        if (fs.existsSync(file.path)) {
+          fs.unlinkSync(file.path);
+        }
+      });
+      console.log('🧹 Error files cleaned up');
+    }
+
+    res.status(500).json({
+      error: 'Failed to process images',
+      details: error.message
+    });
+  }
+});
+
 // PDF text extraction removed - now handled by Zapier webhook
 
 // PDF text extraction endpoint removed - now handled by Zapier webhook
 
 // PDF processing endpoint using PDF.co API
-app.post('/api/process-pdf', upload.single('pdf'), async (req, res) => {
+app.post('/api/process-pdf', pdfUpload.single('pdf'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: 'No PDF file uploaded' });

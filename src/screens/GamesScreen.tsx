@@ -1517,6 +1517,26 @@ export default function GamesScreen({ route }: { route?: any }) {
     }
   };
 
+  // Show loading screen while data is being fetched
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <ConsistentHeader 
+          pageName="Games"
+        />
+        <View style={styles.loadingContainer}>
+          <View style={styles.loadingContent}>
+            <View style={styles.loadingSpinner}>
+              <Ionicons name="game-controller" size={48} color="#6366f1" />
+            </View>
+            <Text style={styles.loadingTitle}>Loading Games</Text>
+            <Text style={styles.loadingSubtitle}>Preparing your gaming experience...</Text>
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ConsistentHeader 
@@ -1884,10 +1904,10 @@ export default function GamesScreen({ route }: { route?: any }) {
       <Modal
         visible={showGameModal}
         animationType="slide"
-        presentationStyle="fullScreen"
+        presentationStyle="pageSheet"
         onRequestClose={closeGameModal}
       >
-        <SafeAreaView style={styles.gameModalContainer}>
+        <SafeAreaView style={styles.gameModalContainer} edges={['top']}>
           <View style={styles.gameModalHeader}>
             <TouchableOpacity onPress={closeGameModal} style={styles.closeButton}>
               <Ionicons name="close" size={24} color="#64748b" />
@@ -2070,7 +2090,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingTop: 50,
+    paddingTop: 20,
     paddingBottom: 16,
     backgroundColor: 'rgba(99, 102, 241, 0.05)',
     borderBottomWidth: 1,
@@ -2723,8 +2743,41 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   loadingContainer: {
-    padding: 40,
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#ffffff',
+  },
+  loadingContent: {
+    alignItems: 'center',
+    paddingHorizontal: 40,
+  },
+  loadingSpinner: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#f0f4ff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+    shadowColor: '#6366f1',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  loadingTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#1e293b',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  loadingSubtitle: {
+    fontSize: 16,
+    color: '#64748b',
+    textAlign: 'center',
+    lineHeight: 24,
   },
   emptyContainer: {
     padding: 40,

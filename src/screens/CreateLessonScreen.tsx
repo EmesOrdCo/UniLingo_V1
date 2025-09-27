@@ -18,6 +18,9 @@ import { getPdfProcessingUrl } from '../config/backendConfig';
 import { LessonService } from '../lib/lessonService';
 
 import * as DocumentPicker from 'expo-document-picker';
+import * as ImagePicker from 'expo-image-picker';
+import { ImageUploadService, ImageUploadProgress, ImageProcessingResult } from '../lib/imageUploadService';
+import ImagePreviewModal from '../components/ImagePreviewModal';
 
 import { supabase } from '../lib/supabase';
 
@@ -37,6 +40,15 @@ export default function CreateLessonScreen() {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isCancelled, setIsCancelled] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
+  
+  // Image-related state
+  const [selectedImages, setSelectedImages] = useState<ImagePicker.ImagePickerAsset[]>([]);
+  const [showImagePreview, setShowImagePreview] = useState(false);
+  const [imageProgress, setImageProgress] = useState<ImageUploadProgress>({
+    stage: 'selecting',
+    progress: 0,
+    message: 'Ready to select images',
+  });
 
   // Get user's subject and native language from profile
   const userSubject = profile?.subjects?.[0] || 'General';
@@ -357,6 +369,384 @@ export default function CreateLessonScreen() {
     }
   };
 
+  // Image handling functions
+  const handleImagePick = async () => {
+    if (!user) {
+      Alert.alert('Error', 'Please log in to create lessons');
+      return;
+    }
+
+    try {
+      const images = await ImageUploadService.pickImages();
+      setSelectedImages(images);
+      setShowImagePreview(true);
+    } catch (error) {
+      if (error instanceof Error && !error.message.includes('cancelled')) {
+        // Don't log cancellation errors - they're normal user actions
+        Alert.alert('Error', error.message);
+      }
+      // Don't log cancellation errors - they're normal user actions
+    }
+  };
+
+  const handleTakePhoto = async () => {
+    if (!user) {
+      Alert.alert('Error', 'Please log in to create lessons');
+      return;
+    }
+
+    try {
+      const images = await ImageUploadService.takePhoto();
+      setSelectedImages(images);
+      setShowImagePreview(true);
+    } catch (error) {
+      if (error instanceof Error && !error.message.includes('cancelled')) {
+        // Don't log cancellation errors - they're normal user actions
+        Alert.alert('Error', error.message);
+      }
+      // Don't log cancellation errors - they're normal user actions
+    }
+  };
+
+  const handleImageRetake = () => {
+    setShowImagePreview(false);
+    setSelectedImages([]);
+  };
+
+  const handleAddMoreImages = async () => {
+    try {
+      const newImages = await ImageUploadService.pickImages();
+      const combinedImages = [...selectedImages, ...newImages];
+      
+      if (combinedImages.length > 5) {
+        Alert.alert('Too Many Images', 'Maximum 5 images allowed. Please select fewer images.');
+        return;
+      }
+      
+      setSelectedImages(combinedImages);
+    } catch (error) {
+      if (error instanceof Error && !error.message.includes('cancelled')) {
+        // Don't log cancellation errors - they're normal user actions
+        Alert.alert('Error', error.message);
+      }
+      // Don't log cancellation errors - they're normal user actions
+    }
+  };
+
+  const handleProcessImages = async () => {
+    if (selectedImages.length === 0) {
+      Alert.alert('No Images', 'Please select images to process.');
+      return;
+    }
+
+    try {
+      // Reset cancellation state
+      setIsCancelled(false);
+      
+      // Create new AbortController for this upload session
+      abortControllerRef.current = new AbortController();
+      
+      setIsProcessing(true);
+      setShowImagePreview(false);
+      
+      // Add safety timeout
+      timeoutRef.current = setTimeout(() => {
+        console.log('⚠️ Safety timeout triggered - image processing taking longer than expected');
+        
+        setIsProcessing(false);
+        setProgress({
+          stage: 'error',
+          progress: 0,
+          message: 'Image processing timed out. The process has been stopped.',
+        });
+        
+        Alert.alert(
+          'Processing Timeout',
+          'The image processing has been stopped due to timeout. Please try with fewer or smaller images.',
+          [{ text: 'OK', style: 'default' }]
+        );
+      }, 300000); // 5 minute timeout for image processing
+      
+      // Update progress for image processing
+      setProgress({
+        stage: 'uploading',
+        progress: 10,
+        message: `Processing ${selectedImages.length} image${selectedImages.length > 1 ? 's' : ''}...`,
+      });
+
+      // Process images with OCR
+      const imageResult = await ImageUploadService.processImages(
+        selectedImages,
+        (progressUpdate) => {
+          // Check if cancelled before updating progress
+          if (isCancelled) {
+            console.log('🚫 Image processing cancelled');
+            return;
+          }
+          
+          setProgress({
+            stage: 'processing',
+            progress: 30 + (progressUpdate.progress * 0.4), // Map to 30-70% range
+            message: progressUpdate.message,
+          });
+        }
+      );
+
+      // Check if cancelled after image processing
+      if (isCancelled) {
+        console.log('🚫 Image processing cancelled, stopping lesson creation');
+        return;
+      }
+
+      setProgress({
+        stage: 'processing',
+        progress: 70,
+        message: 'Images processed successfully, analyzing content...',
+      });
+
+      // Extract text from images for lesson creation
+      const extractedText = imageResult.text;
+      const pages = imageResult.pages;
+
+      // Check if cancelled before starting AI processing
+      if (isCancelled) {
+        console.log('🚫 Upload cancelled, stopping AI processing');
+        return;
+      }
+      
+      // Generate vocabulary for the lesson using the same logic as PDF processing
+      setProgress({
+        stage: 'processing',
+        progress: 85,
+        message: 'Processing extracted text...',
+      });
+
+      let createdLessons: any[] = [];
+
+      try {
+        let keywords: string[] = [];
+        
+        // Use page-by-page processing for multiple images, fallback to single extraction for single image
+        if (pages.length > 1) {
+          console.log(`📄 Multiple images detected: ${pages.length} pages, using page-by-page processing`);
+          setProgress({
+            stage: 'processing',
+            progress: 85,
+            message: `Processing ${pages.length} pages...`,
+          });
+          
+          keywords = await LessonService.extractKeywordsFromPages(
+            pages,
+            selectedSubject,
+            userNativeLanguage,
+            abortControllerRef.current?.signal
+          );
+        } else {
+          console.log('📄 Single image detected, using single extraction');
+          setProgress({
+            stage: 'processing',
+            progress: 85,
+            message: 'Extracting keywords...',
+          });
+          
+          keywords = await LessonService.extractKeywordsFromPDF(
+            extractedText,
+            selectedSubject,
+            userNativeLanguage,
+            abortControllerRef.current?.signal
+          );
+        }
+        
+        console.log('📚 Grouping keywords into topics...');
+        setProgress({
+          stage: 'processing',
+          progress: 90,
+          message: 'Grouping keywords into topics...',
+        });
+        
+        const topics = await LessonService.groupKeywordsIntoTopic(
+          keywords,
+          selectedSubject,
+          abortControllerRef.current?.signal
+        );
+        
+        console.log('📚 Generating vocabulary from topics...');
+        setProgress({
+          stage: 'processing',
+          progress: 92,
+          message: 'Generating vocabulary...',
+        });
+        
+        const topicVocabulary = await LessonService.generateVocabularyFromTopics(
+          topics,
+          selectedSubject,
+          userNativeLanguage,
+          abortControllerRef.current?.signal
+        );
+
+        // Create multiple lessons (one per topic)
+        console.log('💾 Creating lessons and storing vocabulary...');
+        setProgress({
+          stage: 'processing',
+          progress: 95,
+          message: 'Creating lessons...',
+        });
+        
+        for (let i = 0; i < topics.length; i++) {
+          const topic = topics[i];
+          const topicVocab = topicVocabulary.find(tv => tv.topicName === topic.topicName);
+          
+          if (!topicVocab) {
+            console.warn(`⚠️ No vocabulary found for topic: ${topic.topicName}`);
+            continue;
+          }
+
+          setProgress({
+            stage: 'processing',
+            progress: 95 + (i * 4 / topics.length),
+            message: `Creating lesson ${i + 1} of ${topics.length}: ${topic.topicName}...`,
+          });
+
+          // Create lesson for this topic
+          const lessonTitle = `${selectedSubject} - ${topic.topicName}`;
+          
+          // Calculate difficulty based on vocabulary count
+          const vocabCount = topicVocab.vocabulary.length;
+          const difficultyLevel = LessonService.determineDifficultyByVocabCount(vocabCount);
+          
+          const { data: lesson, error: lessonError } = await supabase
+            .from('esp_lessons')
+            .insert([{
+              user_id: user.id,
+              title: lessonTitle,
+              subject: selectedSubject,
+              source_pdf_name: `Images (${selectedImages.length} files)`,
+              native_language: userNativeLanguage,
+              estimated_duration: 45,
+              difficulty_level: difficultyLevel,
+              status: 'ready'
+            }])
+            .select()
+            .single();
+
+          if (lessonError) {
+            console.error(`❌ Error creating lesson for topic ${topic.topicName}:`, lessonError);
+            continue;
+          }
+
+          // Store vocabulary for this lesson
+          const vocabularyWithLessonId = topicVocab.vocabulary.map(vocab => ({
+            lesson_id: lesson.id,
+            keywords: vocab.english_term,
+            definition: vocab.definition,
+            native_translation: vocab.native_translation,
+            example_sentence_en: vocab.example_sentence_en,
+            example_sentence_native: vocab.example_sentence_native,
+            difficulty_rank: vocab.difficulty_rank
+          }));
+
+          const { error: vocabError } = await supabase
+            .from('lesson_vocabulary')
+            .insert(vocabularyWithLessonId);
+
+          if (vocabError) {
+            console.error(`❌ Error storing vocabulary for lesson ${lessonTitle}:`, vocabError);
+            continue;
+          }
+
+          createdLessons.push(lesson);
+          console.log(`✅ Created lesson: ${lessonTitle} with ${vocabularyWithLessonId.length} vocabulary items (${difficultyLevel} difficulty)`);
+        }
+
+        if (createdLessons.length === 0) {
+          throw new Error('Failed to create any lessons');
+        }
+
+        console.log(`✅ Successfully created ${createdLessons.length} lessons from images`);
+      } catch (vocabError) {
+        console.error('❌ Error generating vocabulary:', vocabError);
+        // Don't fail the entire lesson creation if vocabulary generation fails
+        console.log('⚠️ Continuing without vocabulary - lesson created but no exercises available');
+      }
+
+      setProgress({
+        stage: 'complete',
+        progress: 100,
+        message: 'Lesson created successfully!',
+      });
+
+      // Trigger global refresh to update lesson counts everywhere
+      triggerRefresh();
+
+      // Clear selected images
+      setSelectedImages([]);
+
+      // Show success message
+      Alert.alert(
+        'Success! 🎓',
+        `Created ${createdLessons?.length || 1} lesson${createdLessons?.length > 1 ? 's' : ''} from your images!`,
+        [
+          {
+            text: 'View Lessons',
+            onPress: () => {
+              navigation.navigate('Dashboard' as never);
+            }
+          },
+          {
+            text: 'Create Another',
+            onPress: () => {
+              setProgress({
+                stage: 'ready',
+                progress: 0,
+                message: 'Ready to create lesson',
+              });
+            }
+          }
+        ]
+      );
+
+    } catch (error) {
+      console.error('Error processing images:', error);
+      
+      // Clear all timeouts
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+      
+      // Check if this was a cancellation error
+      if (error instanceof Error && (error.message.includes('cancelled') || error.message.includes('Request cancelled'))) {
+        console.log('🚫 Image processing was cancelled - no error alert needed');
+        return;
+      }
+      
+      // Show user-friendly error message
+      let errorMessage = 'An unexpected error occurred while processing images';
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          errorMessage = 'Image processing timed out. Please try again with smaller images.';
+        } else if (error.message.includes('timed out')) {
+          errorMessage = 'AI processing timed out. Please try again with smaller images.';
+        } else if (error.message.includes('No text could be extracted')) {
+          errorMessage = 'No text could be extracted from the images. Please ensure the images contain clear, readable text.';
+        } else {
+          errorMessage = error.message;
+        }
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      }
+      
+      setProgress({
+        stage: 'error',
+        progress: 0,
+        message: errorMessage,
+      });
+      
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -393,22 +783,60 @@ export default function CreateLessonScreen() {
           </View>
           <Text style={styles.uploadTitle}>Upload Course Notes</Text>
           <Text style={styles.uploadSubtitle}>
-            Select a PDF file to create your lesson
+            Select a PDF file or take photos to create your lesson
           </Text>
           
-          <TouchableOpacity
-            style={[
-              styles.uploadButton,
-              (!selectedSubject || isProcessing) && styles.disabledButton
-            ]}
-            onPress={handleFilePick}
-            disabled={!selectedSubject || isProcessing}
-          >
-            <Ionicons name="cloud-upload" size={20} color="#ffffff" />
-            <Text style={styles.uploadButtonText}>
-              {isProcessing ? 'Creating Lesson...' : 'Choose PDF File'}
-            </Text>
-          </TouchableOpacity>
+          {/* Upload Options */}
+          <View style={styles.uploadOptions}>
+            {/* PDF Upload */}
+            <TouchableOpacity
+              style={[
+                styles.uploadButton,
+                styles.pdfButton,
+                (!selectedSubject || isProcessing) && styles.disabledButton
+              ]}
+              onPress={handleFilePick}
+              disabled={!selectedSubject || isProcessing}
+            >
+              <Ionicons name="cloud-upload" size={20} color="#ffffff" />
+              <Text style={styles.uploadButtonText}>
+                {isProcessing ? 'Creating Lesson...' : 'Choose PDF File'}
+              </Text>
+            </TouchableOpacity>
+
+            {/* Camera Options */}
+            <View style={styles.cameraOptions}>
+              <TouchableOpacity
+                style={[
+                  styles.uploadButton,
+                  styles.cameraButton,
+                  (!selectedSubject || isProcessing) && styles.disabledButton
+                ]}
+                onPress={handleTakePhoto}
+                disabled={!selectedSubject || isProcessing}
+              >
+                <Ionicons name="camera" size={20} color="#ffffff" />
+                <Text style={styles.uploadButtonText}>
+                  {isProcessing ? 'Processing...' : 'Take Photo'}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.uploadButton,
+                  styles.galleryButton,
+                  (!selectedSubject || isProcessing) && styles.disabledButton
+                ]}
+                onPress={handleImagePick}
+                disabled={!selectedSubject || isProcessing}
+              >
+                <Ionicons name="images" size={20} color="#ffffff" />
+                <Text style={styles.uploadButtonText}>
+                  {isProcessing ? 'Processing...' : 'Choose Photos'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
 
         {/* Progress Indicator */}
@@ -444,6 +872,17 @@ export default function CreateLessonScreen() {
           </View>
         </View>
       </ScrollView>
+
+      {/* Image Preview Modal */}
+      <ImagePreviewModal
+        visible={showImagePreview}
+        images={selectedImages}
+        onClose={() => setShowImagePreview(false)}
+        onConfirm={handleProcessImages}
+        onRetake={handleImageRetake}
+        onAddMore={handleAddMoreImages}
+        isProcessing={isProcessing}
+      />
     </SafeAreaView>
   );
 }
@@ -563,10 +1002,15 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     lineHeight: 20,
   },
-  uploadButton: {
+  uploadOptions: {
+    gap: 16,
+    width: '100%',
+  },
+  pdfButton: {
     backgroundColor: '#6366f1',
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 10,
@@ -575,6 +1019,45 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 4,
+  },
+  cameraOptions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  cameraButton: {
+    backgroundColor: '#10b981',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 10,
+    flex: 1,
+    shadowColor: '#10b981',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  galleryButton: {
+    backgroundColor: '#8b5cf6',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 10,
+    flex: 1,
+    shadowColor: '#8b5cf6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  uploadButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   uploadButtonText: {
     color: '#ffffff',
