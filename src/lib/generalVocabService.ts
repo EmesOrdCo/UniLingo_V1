@@ -28,7 +28,6 @@ export interface ProcessedVocabItem {
   sfi_rank: number;
   cefr_level: string;
   topic_group: string;
-  difficulty_rank: number;
 }
 
 export class GeneralVocabService {
@@ -70,7 +69,6 @@ export class GeneralVocabService {
           sfi_rank: item.sfi_rank,
           cefr_level: item.cefr_level,
           topic_group: item.topic_group,
-          difficulty_rank: this.mapSfiRankToDifficulty(item.sfi_rank)
         };
         
         return processedItem;
@@ -111,16 +109,6 @@ export class GeneralVocabService {
     return exampleSentence || item.example_sentence; // Fallback to English example
   }
 
-  /**
-   * Map SFI rank to difficulty rank (1-5 scale)
-   */
-  private static mapSfiRankToDifficulty(sfiRank: number): number {
-    if (sfiRank <= 100) return 1; // Beginner
-    if (sfiRank <= 200) return 2; // Easy
-    if (sfiRank <= 300) return 3; // Medium
-    if (sfiRank <= 400) return 4; // Hard
-    return 5; // Expert
-  }
 
   /**
    * Get all available topic groups

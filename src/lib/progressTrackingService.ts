@@ -154,10 +154,8 @@ export class ProgressTrackingService {
 
       console.log(`✅ [${recordId}] Database insert successful for user_activities`);
 
-      // Update user_learning_stats
+      // Update user_learning_stats (excluding totalGamesPlayed - now calculated from user_activities)
       await this.updateLearningStats(user.id, {
-        totalGamesPlayed: 1,
-        totalScoreEarned: data.score,
         totalStudyTimeHours: data.durationSeconds / 3600,
       });
 
@@ -221,7 +219,6 @@ export class ProgressTrackingService {
       // Update user_learning_stats
       await this.updateLearningStats(user.id, {
         totalFlashcardsReviewed: data.flashcardsReviewed,
-        totalScoreEarned: data.score,
         totalStudyTimeHours: data.durationSeconds / 3600,
       });
 
@@ -280,7 +277,6 @@ export class ProgressTrackingService {
       // Update user_learning_stats
       await this.updateLearningStats(user.id, {
         totalLessonsCompleted: 1,
-        totalScoreEarned: data.score,
         totalStudyTimeHours: data.durationSeconds / 3600,
       });
 
@@ -479,10 +475,8 @@ export class ProgressTrackingService {
    * Update user learning stats
    */
   private static async updateLearningStats(userId: string, updates: {
-    totalGamesPlayed?: number;
     totalLessonsCompleted?: number;
     totalFlashcardsReviewed?: number;
-    totalScoreEarned?: number;
     totalStudyTimeHours?: number;
   }): Promise<void> {
     try {
@@ -501,18 +495,14 @@ export class ProgressTrackingService {
           updated_at: now,
         };
 
-        if (updates.totalGamesPlayed) {
-          newStats.total_games_played = (existingStats.total_games_played || 0) + updates.totalGamesPlayed;
-        }
+        // total_games_played is now calculated from user_activities, not manually tracked
         if (updates.totalLessonsCompleted) {
           newStats.total_lessons_completed = (existingStats.total_lessons_completed || 0) + updates.totalLessonsCompleted;
         }
         if (updates.totalFlashcardsReviewed) {
           newStats.total_flashcards_reviewed = (existingStats.total_flashcards_reviewed || 0) + updates.totalFlashcardsReviewed;
         }
-        if (updates.totalScoreEarned) {
-          newStats.total_score_earned = (existingStats.total_score_earned || 0) + updates.totalScoreEarned;
-        }
+        // total_score_earned removed - using XP system instead
         if (updates.totalStudyTimeHours) {
           newStats.total_study_time_hours = (existingStats.total_study_time_hours || 0) + updates.totalStudyTimeHours;
         }
@@ -530,13 +520,12 @@ export class ProgressTrackingService {
           total_study_time_hours: updates.totalStudyTimeHours || 0,
           total_lessons_completed: updates.totalLessonsCompleted || 0,
           total_flashcards_reviewed: updates.totalFlashcardsReviewed || 0,
-          total_games_played: updates.totalGamesPlayed || 0,
-          total_score_earned: updates.totalScoreEarned || 0,
+          total_games_played: 0, // Will be calculated from user_activities
           average_lesson_accuracy: 0,
           favorite_subject: null,
           best_performance_date: null,
           current_level: 'Beginner',
-          experience_points: updates.totalScoreEarned || 0,
+          experience_points: 0,
           created_at: now,
           updated_at: now,
         };

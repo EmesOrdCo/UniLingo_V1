@@ -143,12 +143,10 @@ export class XPService {
 
       // Calculate new stats
       const newExperiencePoints = (currentStats?.experience_points || 0) + xpCalculation.totalXP;
-      const newTotalScore = (currentStats?.total_score_earned || 0) + score;
 
       // Update activity-specific counters
       const updateData: any = {
         experience_points: newExperiencePoints,
-        total_score_earned: newTotalScore,
         updated_at: new Date().toISOString(),
       };
 
@@ -161,7 +159,7 @@ export class XPService {
           updateData.total_flashcards_reviewed = (currentStats?.total_flashcards_reviewed || 0) + 1;
           break;
         case 'game':
-          updateData.total_games_played = (currentStats?.total_games_played || 0) + 1;
+          // total_games_played is now calculated from user_activities, not manually tracked
           break;
       }
 
@@ -225,7 +223,7 @@ export class XPService {
     try {
       const { data: stats, error } = await supabase
         .from('user_learning_stats')
-        .select('experience_points, current_level')
+        .select('experience_points')
         .eq('user_id', userId)
         .maybeSingle();
 
@@ -358,8 +356,7 @@ export class XPService {
             total_study_time_hours: 0,
             total_lessons_completed: 0,
             total_flashcards_reviewed: 0,
-            total_games_played: 0,
-            total_score_earned: 0,
+            total_games_played: 0, // Will be calculated from user_activities
             average_lesson_accuracy: 0,
             current_level: 'Beginner',
             experience_points: 0,

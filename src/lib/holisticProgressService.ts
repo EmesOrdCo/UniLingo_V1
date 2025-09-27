@@ -23,8 +23,6 @@ export interface StudySession {
   activities_completed: number;
   total_score: number;
   average_accuracy: number;
-  study_environment?: string;
-  energy_level?: number;
   focus_level?: number;
 }
 
@@ -69,7 +67,6 @@ export interface LearningStats {
   total_lessons_completed: number;
   total_flashcards_reviewed: number;
   total_games_played: number;
-  total_score_earned: number;
   average_lesson_accuracy: number;
   favorite_subject?: string;
   best_performance_date?: Date;
@@ -384,10 +381,36 @@ export class HolisticProgressService {
   // PROGRESS ANALYTICS
   // =====================================================
 
+  /**
+   * Get total games played from user_activities table
+   */
+  private static async getTotalGamesPlayed(userId: string): Promise<number> {
+    try {
+      const { data: gameActivities, error } = await supabase
+        .from('user_activities')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('activity_type', 'game');
+      
+      if (error) {
+        console.error('❌ Error fetching total games played:', error);
+        return 0;
+      }
+      
+      return gameActivities?.length || 0;
+    } catch (error) {
+      console.error('❌ Error calculating total games played:', error);
+      return 0;
+    }
+  }
+
   static async getProgressInsights(userId: string): Promise<ProgressInsights | null> {
     try {
       // Get current streak
       const dailyStreak = await this.getCurrentStreak(userId, 'daily_study');
+      
+      // Get total games played from user_activities
+      const totalGamesPlayed = await this.getTotalGamesPlayed(userId);
       
       // Get today's progress using the smart query function
       const today = new Date().toISOString().split('T')[0];
@@ -642,8 +665,7 @@ export class HolisticProgressService {
           total_study_time_hours: 0,
           total_lessons_completed: 0,
           total_flashcards_reviewed: 0,
-          total_games_played: 0,
-          total_score_earned: 0,
+          total_games_played: 0, // Will be calculated from user_activities
           average_lesson_accuracy: 0,
           current_level: 'Beginner',
           experience_points: 0,

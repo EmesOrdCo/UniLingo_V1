@@ -257,10 +257,6 @@ export default function CreateLessonScreen() {
           // Create lesson for this topic
           const lessonTitle = `${selectedSubject} - ${topic.topicName}`;
           
-          // Calculate difficulty based on vocabulary count
-          const vocabCount = topicVocab.vocabulary.length;
-          const difficultyLevel = LessonService.determineDifficultyByVocabCount(vocabCount);
-          
           const { data: lesson, error: lessonError } = await supabase
             .from('esp_lessons')
             .insert([{
@@ -268,10 +264,7 @@ export default function CreateLessonScreen() {
               title: lessonTitle,
               subject: selectedSubject,
               source_pdf_name: file.name,
-              native_language: userNativeLanguage,
-              estimated_duration: 45,
-              difficulty_level: difficultyLevel,
-              status: 'ready'
+              native_language: userNativeLanguage
             }])
             .select()
             .single();
@@ -289,7 +282,6 @@ export default function CreateLessonScreen() {
             native_translation: vocab.native_translation,
             example_sentence_en: vocab.example_sentence_en,
             example_sentence_native: vocab.example_sentence_native,
-            difficulty_rank: vocab.difficulty_rank
           }));
 
           const { error: vocabError } = await supabase
@@ -302,7 +294,7 @@ export default function CreateLessonScreen() {
           }
 
           createdLessons.push(lesson);
-          console.log(`✅ Created lesson: ${lessonTitle} with ${vocabularyWithLessonId.length} vocabulary items (${difficultyLevel} difficulty)`);
+          console.log(`✅ Created lesson: ${lessonTitle} with ${vocabularyWithLessonId.length} vocabulary items`);
         }
 
         if (createdLessons.length === 0) {
@@ -610,10 +602,6 @@ export default function CreateLessonScreen() {
           // Create lesson for this topic
           const lessonTitle = `${selectedSubject} - ${topic.topicName}`;
           
-          // Calculate difficulty based on vocabulary count
-          const vocabCount = topicVocab.vocabulary.length;
-          const difficultyLevel = LessonService.determineDifficultyByVocabCount(vocabCount);
-          
           const { data: lesson, error: lessonError } = await supabase
             .from('esp_lessons')
             .insert([{
@@ -621,10 +609,7 @@ export default function CreateLessonScreen() {
               title: lessonTitle,
               subject: selectedSubject,
               source_pdf_name: `Images (${selectedImages.length} files)`,
-              native_language: userNativeLanguage,
-              estimated_duration: 45,
-              difficulty_level: difficultyLevel,
-              status: 'ready'
+              native_language: userNativeLanguage
             }])
             .select()
             .single();
@@ -642,7 +627,6 @@ export default function CreateLessonScreen() {
             native_translation: vocab.native_translation,
             example_sentence_en: vocab.example_sentence_en,
             example_sentence_native: vocab.example_sentence_native,
-            difficulty_rank: vocab.difficulty_rank
           }));
 
           const { error: vocabError } = await supabase
@@ -655,7 +639,7 @@ export default function CreateLessonScreen() {
           }
 
           createdLessons.push(lesson);
-          console.log(`✅ Created lesson: ${lessonTitle} with ${vocabularyWithLessonId.length} vocabulary items (${difficultyLevel} difficulty)`);
+          console.log(`✅ Created lesson: ${lessonTitle} with ${vocabularyWithLessonId.length} vocabulary items`);
         }
 
         if (createdLessons.length === 0) {

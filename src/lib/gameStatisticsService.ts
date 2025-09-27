@@ -194,20 +194,8 @@ export class GameStatisticsService {
         throw activityError;
       }
       
-      // Update user_learning_stats (if the RPC function exists)
-      // Note: This RPC function may need to be created in Supabase
-      const { error: statsError } = await supabase.rpc('increment_game_stats', {
-        user_id: userId,
-        games_played: 1,
-        score_earned: score,
-        gaming_time_seconds: durationSeconds,
-        accuracy: accuracyPercentage
-      });
-      
-      if (statsError) {
-        console.error('❌ Error updating game stats:', statsError);
-        // Don't throw here as the activity was already tracked
-      }
+      // total_games_played is now calculated from user_activities table
+      // No need to manually update counters
       
       console.log('✅ Game activity tracked successfully');
       return true;

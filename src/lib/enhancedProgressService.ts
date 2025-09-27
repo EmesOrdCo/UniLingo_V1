@@ -16,7 +16,6 @@ export interface ExercisePerformance {
   attempts: number;
   first_attempt_correct: boolean;
   hints_used: number;
-  difficulty_rating: number;
   user_feedback?: string;
   created_at: string;
 }
@@ -29,9 +28,7 @@ export interface VocabularyProgress {
   incorrect_attempts: number;
   first_seen_at: string;
   last_practiced_at: string;
-  difficulty_rating: number;
   retention_score: number;
-  notes?: string;
   created_at: string;
   updated_at: string;
 }
@@ -419,7 +416,6 @@ export class EnhancedProgressService {
             definition: vocab.definition,
             native_translation: vocab.native_translation,
             example_sentence_en: vocab.example_sentence_en,
-            difficulty_rating: vocab.difficulty_rank || 1,
             retention_score: 0,
             correct_attempts: 0,
             incorrect_attempts: 0

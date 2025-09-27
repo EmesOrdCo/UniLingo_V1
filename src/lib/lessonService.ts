@@ -18,9 +18,6 @@ export interface Lesson {
   subject: string;
   source_pdf_name: string;
   native_language: string;
-  estimated_duration: number;
-  difficulty_level: 'beginner' | 'intermediate' | 'advanced';
-  status: 'draft' | 'ready';
   created_at: string;
   updated_at: string;
 }
@@ -33,7 +30,6 @@ export interface LessonVocabulary {
   native_translation: string;
   example_sentence_en: string;
   example_sentence_native: string;
-  difficulty_rank: number;
   created_at: string;
 }
 
@@ -53,18 +49,6 @@ export interface LessonProgress {
 }
 
 export class LessonService {
-  /**
-   * Determine lesson difficulty based on vocabulary count
-   */
-  static determineDifficultyByVocabCount(vocabCount: number): 'beginner' | 'intermediate' | 'advanced' {
-    if (vocabCount <= 10) {
-      return 'beginner';
-    } else if (vocabCount <= 25) {
-      return 'intermediate';
-    } else {
-      return 'advanced';
-    }
-  }
 
   /**
    * Convert PDF to text using backend server
@@ -607,7 +591,7 @@ Subject: ${subject}
 Language: ${nativeLanguage}
 
 Format:
-[{"topicName": "Topic Name", "vocabulary": [{"english_term": "word", "definition": "meaning", "native_translation": "translation", "example_sentence_en": "example", "example_sentence_native": "translated example", "difficulty_rank": 2}]}]
+[{"topicName": "Topic Name", "vocabulary": [{"english_term": "word", "definition": "meaning", "native_translation": "translation", "example_sentence_en": "example", "example_sentence_native": "translated example"}]}]
 
 Return ONLY the JSON array:`;
 
@@ -691,7 +675,7 @@ Subject: ${subject}
 Language: ${nativeLanguage}
 
 Format:
-[{"english_term": "word", "definition": "meaning", "native_translation": "translation", "example_sentence_en": "example", "example_sentence_native": "translated example", "difficulty_rank": 2}]
+[{"english_term": "word", "definition": "meaning", "native_translation": "translation", "example_sentence_en": "example", "example_sentence_native": "translated example"}]
 
 Return ONLY the JSON array:`;
         
@@ -827,16 +811,13 @@ Return ONLY the JSON array:`;
   }
 
   /**
-   * Fix all existing lessons for a user (difficulty and progress)
+   * Fix all existing lessons for a user (progress)
    */
   static async fixExistingLessons(userId: string): Promise<void> {
     try {
       console.log('🔧 Fixing existing lessons for user...');
       
-      // 1. Update difficulty levels based on vocabulary count
-      await this.updateLessonsDifficulty(userId);
-      
-      // 2. Ensure all lessons have progress records
+      // Ensure all lessons have progress records
       await this.ensureProgressRecords(userId);
       
       console.log('✅ Finished fixing existing lessons');
@@ -898,50 +879,6 @@ Return ONLY the JSON array:`;
     }
   }
 
-  /**
-   * Update existing lessons with correct difficulty based on vocabulary count
-   */
-  static async updateLessonsDifficulty(userId: string): Promise<void> {
-    try {
-      console.log('🔄 Updating lesson difficulties based on vocabulary count...');
-      
-      // Get all lessons with vocabulary counts
-      const { data: lessons, error: lessonsError } = await supabase
-        .from('esp_lessons')
-        .select(`
-          id,
-          difficulty_level,
-          lesson_vocabulary(count)
-        `)
-        .eq('user_id', userId);
-
-      if (lessonsError) throw lessonsError;
-
-      for (const lesson of lessons || []) {
-        const vocabCount = lesson.lesson_vocabulary?.[0]?.count || 0;
-        const correctDifficulty = this.determineDifficultyByVocabCount(vocabCount);
-        
-        // Only update if difficulty is different
-        if (lesson.difficulty_level !== correctDifficulty) {
-          const { error: updateError } = await supabase
-            .from('esp_lessons')
-            .update({ difficulty_level: correctDifficulty })
-            .eq('id', lesson.id);
-
-          if (updateError) {
-            console.error(`❌ Error updating lesson ${lesson.id}:`, updateError);
-          } else {
-            console.log(`✅ Updated lesson ${lesson.id}: ${lesson.difficulty_level} → ${correctDifficulty} (${vocabCount} terms)`);
-          }
-        }
-      }
-      
-      console.log('✅ Finished updating lesson difficulties');
-    } catch (error) {
-      console.error('❌ Error updating lesson difficulties:', error);
-      throw error;
-    }
-  }
 
   /**
    * Get user's lessons with vocabulary counts and progress data
