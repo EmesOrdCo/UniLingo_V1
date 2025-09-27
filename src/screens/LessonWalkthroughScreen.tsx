@@ -662,29 +662,33 @@ export default function LessonWalkthroughScreen() {
               
               {/* Progress indicator for in-progress lessons */}
               {lessonProgress && !lessonProgress.completed_at && (
-                <View style={styles.progressIndicator}>
-                  <Text style={styles.progressText}>
-                    {lessonProgress.total_score > 0 ? 
-                      `Progress: ${lessonProgress.total_score}/${lessonVocabulary.length * 5} points` :
-                      'Lesson started - Ready to continue'
-                    }
-                  </Text>
-                  {lessonProgress.total_score > 0 && (
+                <View style={styles.progressBox}>
+                  <View style={styles.progressBoxIcon}>
+                    <Ionicons name="analytics" size={32} color="#6366f1" />
+                  </View>
+                  <View style={styles.progressBoxInfo}>
+                    <Text style={styles.progressBoxTitle}>Progress</Text>
+                    <Text style={styles.progressBoxDescription}>
+                      {lessonProgress.total_score > 0 ? 
+                        `${lessonProgress.total_score}/${lessonVocabulary.length * 5} points earned` :
+                        'Lesson started - Ready to continue'
+                      }
+                    </Text>
                     <View style={styles.progressBarContainer}>
                       <View 
                         style={[
                           styles.progressBarFill, 
-                          { width: `${(lessonProgress.total_score / (lessonVocabulary.length * 5)) * 100}%` }
+                          { width: `${lessonProgress.total_score > 0 ? (lessonProgress.total_score / (lessonVocabulary.length * 5)) * 100 : 0}%` }
                         ]} 
                       />
                     </View>
-                  )}
-                  <Text style={styles.progressSubtext}>
-                    {lessonProgress.total_score > 0 ? 
-                      `${Math.floor(lessonProgress.total_score / lessonVocabulary.length)} of 5 exercises completed` :
-                      'Click "Resume Lesson" to continue where you left off'
-                    }
-                  </Text>
+                    <Text style={styles.progressBoxDuration}>
+                      {lessonProgress.total_score > 0 ? 
+                        `${Math.floor(lessonProgress.total_score / lessonVocabulary.length)} of 5 exercises completed` :
+                        'Click "Resume Lesson" to continue where you left off'
+                      }
+                    </Text>
+                  </View>
                 </View>
               )}
             </View>
@@ -1297,48 +1301,69 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginLeft: 8,
   },
-  // Progress indicator styles
-  progressIndicator: {
-    backgroundColor: '#f0f9ff',
-    borderRadius: 12,
-    padding: 16,
+  // Progress box styles - clean and purposeful
+  progressBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#f8fafc',
+    borderRadius: 16,
+    padding: 20,
     marginTop: 16,
-    borderWidth: 1,
-    borderColor: '#e0f2fe',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  progressText: {
-    fontSize: 14,
-    color: '#0369a1',
+  progressBoxIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#f1f5f9',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  progressBoxInfo: {
+    flex: 1,
+  },
+  progressBoxTitle: {
+    fontSize: 20,
     fontWeight: '600',
+    color: '#1e293b',
     marginBottom: 8,
-    textAlign: 'center',
   },
-  progressSubtext: {
+  progressBoxDescription: {
+    fontSize: 14,
+    color: '#64748b',
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  progressBoxDuration: {
     fontSize: 12,
-    color: '#0369a1',
-    textAlign: 'center',
-    marginTop: 4,
+    color: '#6366f1',
+    fontWeight: '500',
+    marginTop: 8,
   },
   progressBarContainer: {
-    height: 6,
-    backgroundColor: '#e0f2fe',
-    borderRadius: 3,
+    height: 8,
+    backgroundColor: '#e2e8f0',
+    borderRadius: 4,
     overflow: 'hidden',
+    marginBottom: 8,
   },
   progressBarFill: {
     height: '100%',
-    backgroundColor: '#0ea5e9',
-    borderRadius: 3,
+    backgroundColor: '#6366f1',
+    borderRadius: 4,
   },
   // In-progress actions styles
   inProgressActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: 'column',
+    gap: 16,
     width: '100%',
   },
   restartButton: {
-    flex: 1,
     backgroundColor: '#f8fafc',
     borderRadius: 12,
     paddingVertical: 16,
@@ -1348,7 +1373,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
