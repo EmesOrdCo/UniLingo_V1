@@ -172,16 +172,22 @@ export default function CreateLessonScreen() {
       let createdLessons: any[] = [];
 
       try {
-        console.log('📚 Generating lesson using original 3-step process...');
+        console.log('📚 Generating lesson using backend AI service...');
         
-        // Use original LessonService 3-step process
-        const lessons = await LessonService.createLessonFromPDF(
+        // Use backend AI service for rate limiting
+        const backendResult = await BackendAIService.generateLesson(
           extractedText,
-          file.name,
-          user?.id || '',
           selectedSubject,
+          'AI Selection', // Use AI Selection mode for automatic topic detection
+          user?.id || '',
           userNativeLanguage || 'English'
         );
+        
+        if (!backendResult.success || !backendResult.lessons) {
+          throw new Error(backendResult.error || 'Failed to generate lesson');
+        }
+        
+        const lessons = backendResult.lessons;
         
         // Handle both single lesson (legacy) and multiple lessons (new)
         if (Array.isArray(lessons)) {
@@ -430,16 +436,22 @@ export default function CreateLessonScreen() {
       let createdLessons: any[] = [];
 
       try {
-        console.log('📚 Generating lesson using original 3-step process...');
+        console.log('📚 Generating lesson using backend AI service...');
         
-        // Use original LessonService 3-step process
-        const lessons = await LessonService.createLessonFromPDF(
+        // Use backend AI service for rate limiting
+        const backendResult = await BackendAIService.generateLesson(
           extractedText,
-          `Images (${selectedImages.length} files)`,
-          user?.id || '',
           selectedSubject,
+          'AI Selection', // Use AI Selection mode for automatic topic detection
+          user?.id || '',
           userNativeLanguage || 'English'
         );
+        
+        if (!backendResult.success || !backendResult.lessons) {
+          throw new Error(backendResult.error || 'Failed to generate lesson');
+        }
+        
+        const lessons = backendResult.lessons;
         
         // Handle both single lesson (legacy) and multiple lessons (new)
         if (Array.isArray(lessons)) {
