@@ -9,7 +9,6 @@ export interface ExtractedTerm {
   topic: string
   example?: string
   pronunciation?: string
-  tags: string[]
 }
 
 export interface AIProcessingResult {
@@ -85,7 +84,6 @@ export class AIService {
           topic: 'Cardiovascular System',
           example: 'The patient presented with chest pain and was diagnosed with myocardial infarction.',
           pronunciation: '/maɪəˈkɑːrdiəl ɪnˈfɑːrkʃən/',
-          tags: ['heart attack', 'emergency', 'cardiology']
         },
         {
           term: 'Atherosclerosis',
@@ -96,7 +94,6 @@ export class AIService {
           topic: 'Cardiovascular System',
           example: 'Atherosclerosis is a major risk factor for coronary artery disease.',
           pronunciation: '/ˌæθəroʊskləˈroʊsɪs/',
-          tags: ['artery disease', 'plaque', 'risk factor']
         }
       )
     } else if (subject === 'engineering' && topic === 'Thermodynamics') {
@@ -110,7 +107,6 @@ export class AIService {
           topic: 'Thermodynamics',
           example: 'The entropy of an isolated system always increases over time.',
           pronunciation: '/ˈɛntrəpi/',
-          tags: ['thermodynamics', 'disorder', 'system state']
         },
         {
           term: 'Enthalpy',
@@ -121,7 +117,6 @@ export class AIService {
           topic: 'Thermodynamics',
           example: 'The enthalpy change during a chemical reaction indicates heat transfer.',
           pronunciation: '/ˈɛnθəlpi/',
-          tags: ['heat content', 'energy', 'pressure']
         }
       )
     } else {
@@ -135,7 +130,6 @@ export class AIService {
           subject: subject,
           topic: topic,
           example: 'This concept is essential for understanding advanced topics.',
-          tags: ['fundamental', 'principle', 'basic']
         }
       )
     }
@@ -156,7 +150,6 @@ export class AIService {
         difficulty: term.difficulty,
         example: term.example,
         pronunciation: term.pronunciation,
-        tags: term.tags,
         review_count: 0,
         mastery: 0,
         next_review: new Date().toISOString(),

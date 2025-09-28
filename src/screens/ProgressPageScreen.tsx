@@ -210,27 +210,11 @@ export default function ProgressPageScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <ConsistentHeader pageName="Progress" />
-        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-          <View style={styles.skeletonContainer}>
-            {/* Streak cards skeleton */}
-            <View style={styles.streakRow}>
-              <SkeletonCard width={48} height={100} />
-              <SkeletonCard width={48} height={100} />
-            </View>
-            
-            {/* Today's progress skeleton */}
-            <SkeletonCard height={120} />
-            
-            {/* Level progress skeleton */}
-            <SkeletonCard height={100} />
-            
-            {/* Flashcard stats skeleton */}
-            <SkeletonCard height={140} />
-            
-            {/* Calendar skeleton */}
-            <SkeletonCard height={200} />
-          </View>
-        </ScrollView>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#6366f1" />
+          <Text style={styles.loadingText}>Loading your progress...</Text>
+          <Text style={styles.loadingSubtext}>Analyzing your learning journey</Text>
+        </View>
       </SafeAreaView>
     );
   }
@@ -883,6 +867,27 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  
+  // Loading screen styles
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+  },
+  loadingText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1e293b',
+    marginTop: 16,
+    textAlign: 'center',
+  },
+  loadingSubtext: {
+    fontSize: 14,
+    color: '#64748b',
+    marginTop: 8,
+    textAlign: 'center',
   },
 });
 

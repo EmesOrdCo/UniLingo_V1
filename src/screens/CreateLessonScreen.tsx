@@ -218,7 +218,7 @@ export default function CreateLessonScreen() {
         setProgress({
           stage: 'processing',
           progress: 92,
-          message: 'Generating vocabulary...',
+          message: 'Generating vocabulary... (this may take quite some time)',
         });
         
         const topicVocabulary = await LessonService.generateVocabularyFromTopics(
@@ -559,7 +559,7 @@ export default function CreateLessonScreen() {
         setProgress({
           stage: 'processing',
           progress: 92,
-          message: 'Generating vocabulary...',
+          message: 'Generating vocabulary... (this may take quite some time)',
         });
         
         const topicVocabulary = await LessonService.generateVocabularyFromTopics(

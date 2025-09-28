@@ -50,7 +50,6 @@ export default function CreateFlashcardScreen() {
   const [difficulty, setDifficulty] = useState<'beginner' | 'intermediate' | 'expert'>('beginner');
   const [example, setExample] = useState('');
   const [pronunciation, setPronunciation] = useState('');
-  const [tags, setTags] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
   const navigation = useNavigation();
@@ -79,7 +78,6 @@ export default function CreateFlashcardScreen() {
         userId: user.id,
         example: example.trim() || undefined,
         pronunciation: pronunciation.trim() || undefined,
-        tags: tags.trim() ? tags.split(',').map(tag => tag.trim()) : undefined,
         native_language: profile?.native_language || 'English',
       };
 
@@ -239,15 +237,6 @@ export default function CreateFlashcardScreen() {
           </View>
 
           {/* Tags Input */}
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Tags (Optional)</Text>
-            <TextInput
-              style={styles.input}
-              value={tags}
-              onChangeText={setTags}
-              placeholder="e.g., anatomy, heart, medical (comma separated)"
-            />
-          </View>
 
           {/* Save Button */}
           <TouchableOpacity 

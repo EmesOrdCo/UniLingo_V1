@@ -62,7 +62,9 @@ export default function FlashcardReviewModal({
     : flashcards.filter(card => card.topic === selectedTopic);
 
   const handleEdit = (index: number) => {
-    setEditingIndex(index);
+    // Find the original index in the full flashcards array
+    const originalIndex = flashcards.findIndex(card => card === filteredFlashcards[index]);
+    setEditingIndex(originalIndex);
     setEditedFlashcard({ ...filteredFlashcards[index] });
   };
 
@@ -149,24 +151,13 @@ export default function FlashcardReviewModal({
           <View style={styles.topicFilterSection}>
             <View style={styles.topicFilterHeader}>
               <Text style={styles.topicFilterTitle}>Filter by Topic</Text>
-              <TouchableOpacity 
-                style={styles.topicFilterToggle}
-                onPress={() => setShowTopicFilter(!showTopicFilter)}
-              >
-                <Ionicons 
-                  name={showTopicFilter ? "chevron-up" : "chevron-down"} 
-                  size={20} 
-                  color="#6366f1" 
-                />
-              </TouchableOpacity>
             </View>
             
-            {showTopicFilter && (
-              <ScrollView 
-                horizontal 
-                showsHorizontalScrollIndicator={false}
-                style={styles.topicFilterOptions}
-              >
+            <ScrollView 
+              horizontal 
+              showsHorizontalScrollIndicator={false}
+              style={styles.topicFilterOptions}
+            >
                 {uniqueTopics.map((topic) => (
                   <TouchableOpacity
                     key={topic}
@@ -185,7 +176,6 @@ export default function FlashcardReviewModal({
                   </TouchableOpacity>
                 ))}
               </ScrollView>
-            )}
           </View>
 
           {/* Flashcards List */}
@@ -215,6 +205,14 @@ export default function FlashcardReviewModal({
                       )}
                       placeholder="Back of card"
                       multiline
+                    />
+                    <TextInput
+                      style={styles.editInput}
+                      value={editedFlashcard?.topic || ''}
+                      onChangeText={(text) => setEditedFlashcard(prev => 
+                        prev ? { ...prev, topic: text } : null
+                      )}
+                      placeholder="Topic"
                     />
                     <View style={styles.editActions}>
                       <TouchableOpacity 
@@ -273,18 +271,6 @@ export default function FlashcardReviewModal({
                         </>
                       )}
                       
-                      {flashcard.tags && flashcard.tags.length > 0 && (
-                        <View style={styles.tagsContainer}>
-                          <Text style={styles.flashcardLabel}>Tags:</Text>
-                          <View style={styles.tagsList}>
-                            {flashcard.tags.map((tag, tagIndex) => (
-                              <View key={tagIndex} style={styles.tag}>
-                                <Text style={styles.tagText}>{tag}</Text>
-                              </View>
-                            ))}
-                          </View>
-                        </View>
-                      )}
                     </View>
                   </View>
                 )}
@@ -309,12 +295,12 @@ export default function FlashcardReviewModal({
             <TouchableOpacity 
               style={[styles.actionButton, styles.saveButton]}
               onPress={() => {
-                onSave(filteredFlashcards);
+                onSave(flashcards); // Save all flashcards, not just filtered ones
                 onClose(); // Close the modal after saving
               }}
             >
               <Ionicons name="save-outline" size={20} color="#ffffff" />
-              <Text style={styles.saveButtonText}>Save All ({filteredFlashcards.length})</Text>
+              <Text style={styles.saveButtonText}>Save All ({flashcards.length})</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -456,26 +442,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#1e293b',
     lineHeight: 24,
-  },
-  tagsContainer: {
-    marginTop: 8,
-  },
-  tagsList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 4,
-  },
-  tag: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    backgroundColor: '#e0e7ff',
-  },
-  tagText: {
-    fontSize: 12,
-    color: '#3730a3',
-    fontWeight: '500',
   },
   editMode: {
     gap: 16,

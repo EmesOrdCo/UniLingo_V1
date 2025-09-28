@@ -36,7 +36,6 @@ export interface VocabularyItem {
   example: string
   subject: string
   difficulty: 'beginner' | 'intermediate' | 'expert'
-  tags: string[]
 }
 
 export interface Exercise {
@@ -57,7 +56,6 @@ export interface LearningMaterial {
   type: 'text' | 'video' | 'audio' | 'interactive'
   subject: string
   difficulty: 'beginner' | 'intermediate' | 'expert'
-  tags: string[]
 }
 
 export interface Flashcard {
@@ -70,7 +68,6 @@ export interface Flashcard {
   lastReviewed?: Date
   example?: string
   pronunciation?: string
-  tags?: string[]
   source?: 'manual' | 'ai_extraction' | 'ai_generated'
 }
 

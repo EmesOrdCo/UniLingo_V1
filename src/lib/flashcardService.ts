@@ -10,7 +10,6 @@ export interface CreateFlashcardData {
   userId: string
   example?: string
   pronunciation?: string
-  tags?: string[]
   native_language: string
 }
 
@@ -31,7 +30,6 @@ export interface FlashcardWithProgress {
   difficulty: 'beginner' | 'intermediate' | 'expert'
   example?: string
   pronunciation?: string
-  tags?: string[]
   native_language: string
   created_at: string
   updated_at: string
@@ -59,7 +57,6 @@ export class FlashcardService {
           difficulty: data.difficulty,
           example: data.example || '',
           pronunciation: data.pronunciation || '',
-          tags: data.tags || [],
           native_language: data.native_language,
         }])
         .select()

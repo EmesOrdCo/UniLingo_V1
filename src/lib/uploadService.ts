@@ -31,13 +31,13 @@ export interface UploadProgress {
 }
 
 export interface GeneratedFlashcard {
+  id?: string; // Optional ID for existing flashcards
   front: string;
   back: string;
   topic: string;
   difficulty: 'beginner' | 'intermediate' | 'expert';
   example?: string;
   pronunciation?: string;
-  tags?: string[];
 }
 
 export class UploadService {
@@ -246,7 +246,6 @@ export class UploadService {
               "difficulty": "beginner|intermediate|expert",
               "example": "MANDATORY: Example sentence in English that MUST contain the front term",
               "pronunciation": "Optional pronunciation guide for English term",
-              "tags": ["tag1", "tag2"]
             }
           ]
           
@@ -254,7 +253,8 @@ export class UploadService {
           - Analyze headers, section titles, and content structure
           - Identify natural topic divisions (e.g., "Introduction", "Key Concepts", "Common Prefixes", "Common Suffixes")
           - Create MINIMUM 10 and MAXIMUM 40 flashcards total, distributed across detected topics
-          - Each topic should have at least 3-5 flashcards, with larger topics having more
+          - CRITICAL: Each topic MUST have at least 5 flashcards - NO EXCEPTIONS
+          - If you cannot create 5+ flashcards for a topic, merge it with another topic
           - Focus on KEY TERMINOLOGY and IMPORTANT CONCEPTS from the text
           - Front: English term/concept (e.g., "Cardiology", "Inflammation", "Surgical removal")
           - Back: ${nativeLanguage} translation of the English term
@@ -299,7 +299,6 @@ export class UploadService {
               "difficulty": "beginner|intermediate|expert",
               "example": "MANDATORY: Example sentence in English that MUST contain the front term",
               "pronunciation": "Optional pronunciation guide for English term",
-              "tags": ["tag2"]
             }
           ]
           
@@ -645,6 +644,11 @@ export class UploadService {
         throw new Error('Request cancelled');
       }
       
+      // Apply topic validation for AI Selection mode to enforce minimum keywords per topic
+      if (topic === 'AI Selection') {
+        flashcards = this.validateAndFixFlashcardTopics(flashcards);
+      }
+
       onProgress?.({
         stage: 'generating',
         progress: 100,
@@ -696,7 +700,11 @@ export class UploadService {
         message: 'Saving flashcards to database...',
       });
 
-      const totalCards = flashcards.length;
+      // Deduplicate flashcards before saving
+      const uniqueFlashcards = this.deduplicateFlashcards(flashcards);
+      console.log(`🧹 Deduplicated flashcards: ${flashcards.length} → ${uniqueFlashcards.length}`);
+      
+      const totalCards = uniqueFlashcards.length;
       
       for (let i = 0; i < totalCards; i++) {
         // Check if cancelled before processing each card
@@ -705,7 +713,7 @@ export class UploadService {
           throw new Error('Request cancelled');
         }
         
-        const card = flashcards[i];
+        const card = uniqueFlashcards[i];
         
         // Ensure example is not empty - if AI didn't provide one, create a simple one
         let example = card.example || '';
@@ -723,19 +731,34 @@ export class UploadService {
           example = `The ${term} is important in this field.`;
         }
         
-        await UserFlashcardService.createUserFlashcard({
-          user_id: userId,
-          subject: subject,
-          topic: card.topic,
-          front: card.front,
-          back: card.back,
-          difficulty: card.difficulty,
-          example: example,
-          pronunciation: card.pronunciation || '',
-          tags: card.tags || [],
-          native_language: nativeLanguage,
-          show_native_language: showNativeLanguage
-        });
+        if (card.id) {
+          // Update existing flashcard
+          await UserFlashcardService.updateUserFlashcard(card.id, {
+            subject: subject,
+            topic: card.topic,
+            front: card.front,
+            back: card.back,
+            difficulty: card.difficulty,
+            example: example,
+            pronunciation: card.pronunciation || '',
+            native_language: nativeLanguage,
+            show_native_language: showNativeLanguage
+          });
+        } else {
+          // Create new flashcard
+          await UserFlashcardService.createUserFlashcard({
+            user_id: userId,
+            subject: subject,
+            topic: card.topic,
+            front: card.front,
+            back: card.back,
+            difficulty: card.difficulty,
+            example: example,
+            pronunciation: card.pronunciation || '',
+            native_language: nativeLanguage,
+            show_native_language: showNativeLanguage
+          });
+        }
 
         const progress = Math.round(((i + 1) / totalCards) * 100);
         
@@ -767,6 +790,107 @@ export class UploadService {
         message: 'Failed to save flashcards to database',
       });
       throw new Error('Failed to save flashcards to database');
+    }
+  }
+
+  /**
+   * Deduplicate flashcards based on front text and topic
+   */
+  static deduplicateFlashcards(flashcards: GeneratedFlashcard[]): GeneratedFlashcard[] {
+    const seen = new Set<string>();
+    const unique: GeneratedFlashcard[] = [];
+    
+    for (const card of flashcards) {
+      // Create a unique key based on front text and topic
+      const key = `${card.front.toLowerCase().trim()}_${card.topic.toLowerCase().trim()}`;
+      
+      if (!seen.has(key)) {
+        seen.add(key);
+        unique.push(card);
+      } else {
+        console.log(`🔄 Skipping duplicate flashcard: "${card.front}" in topic "${card.topic}"`);
+      }
+    }
+    
+    return unique;
+  }
+
+  /**
+   * Validate and fix flashcard topics to enforce minimum 5 flashcards per topic
+   */
+  static validateAndFixFlashcardTopics(flashcards: GeneratedFlashcard[]): GeneratedFlashcard[] {
+    try {
+      console.log('🔍 Validating flashcard topics for minimum 5 flashcards per topic...');
+      
+      const MIN_FLASHCARDS = 5;
+      
+      // Clean and group flashcards by topic
+      const topicGroups: { [key: string]: GeneratedFlashcard[] } = {};
+      
+      flashcards.forEach(card => {
+        // Ensure topic is a clean string
+        let topic = String(card.topic || 'General').trim();
+        
+        // Fix corrupted topic names that contain [object Object]
+        if (topic.includes('[object Object]')) {
+          topic = 'General';
+        }
+        
+        if (!topicGroups[topic]) {
+          topicGroups[topic] = [];
+        }
+        topicGroups[topic].push({ ...card, topic });
+      });
+      
+      const topicNames = Object.keys(topicGroups);
+      console.log(`📊 Found ${topicNames.length} topics`);
+      topicNames.forEach(topic => {
+        console.log(`  - ${topic}: ${topicGroups[topic].length} flashcards`);
+      });
+      
+      // Check if all topics already have 5+ flashcards
+      const allValid = topicNames.every(topic => topicGroups[topic].length >= MIN_FLASHCARDS);
+      if (allValid) {
+        console.log('✅ All topics already have 5+ flashcards');
+        return flashcards;
+      }
+      
+      // Find the largest topic
+      let largestTopic = topicNames[0] || 'General';
+      let maxSize = topicGroups[largestTopic]?.length || 0;
+      
+      topicNames.forEach(topic => {
+        if (topicGroups[topic].length > maxSize) {
+          maxSize = topicGroups[topic].length;
+          largestTopic = topic;
+        }
+      });
+      
+      console.log(`🔗 Largest topic: "${largestTopic}" with ${maxSize} flashcards`);
+      
+      // Merge small topics into the largest one
+      const result: GeneratedFlashcard[] = [];
+      
+      topicNames.forEach(topic => {
+        const cards = topicGroups[topic];
+        
+        if (cards.length >= MIN_FLASHCARDS) {
+          // Keep valid topics as-is
+          result.push(...cards);
+        } else {
+          // Merge small topics into the largest topic
+          console.log(`  - Merging "${topic}" (${cards.length} cards) into "${largestTopic}"`);
+          const mergedCards = cards.map(card => ({ ...card, topic: largestTopic }));
+          result.push(...mergedCards);
+        }
+      });
+      
+      console.log(`✅ Topic validation complete: ${result.length} flashcards`);
+      return result;
+      
+    } catch (error) {
+      console.error('❌ Error validating flashcard topics:', error);
+      return flashcards; // Return original flashcards if validation fails
     }
   }
 }

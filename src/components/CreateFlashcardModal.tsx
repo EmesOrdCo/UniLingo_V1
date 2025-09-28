@@ -22,7 +22,6 @@ export default function CreateFlashcardModal({
     difficulty: 'beginner' as 'beginner' | 'intermediate' | 'expert',
     example: '',
     pronunciation: '',
-    tags: [] as string[],
     native_language: 'english'
   });
   const [showTopicPicker, setShowTopicPicker] = useState(false);
@@ -41,7 +40,6 @@ export default function CreateFlashcardModal({
         difficulty: 'beginner',
         example: '',
         pronunciation: '',
-        tags: [],
         native_language: 'english'
       });
     }

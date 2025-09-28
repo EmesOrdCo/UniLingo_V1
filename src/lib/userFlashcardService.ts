@@ -18,7 +18,6 @@ export interface CreateUserFlashcardData {
   front: string
   back: string
   difficulty: 'beginner' | 'intermediate' | 'expert'
-  tags: string[]
   pronunciation?: string
   example?: string
   native_language: string
@@ -311,26 +310,6 @@ export class UserFlashcardService {
     }
   }
 
-  // Get predefined tags
-  static getPredefinedTags(): string[] {
-    return [
-      'Medical Term',
-      'Technical',
-      'Academic',
-      'Business',
-      'Scientific',
-      'Common',
-      'Advanced',
-      'Basic',
-      'Professional',
-      'Everyday',
-      'Formal',
-      'Informal',
-      'Slang',
-      'Idiom',
-      'Phrase'
-    ]
-  }
 
   // Get native language options
   static getNativeLanguageOptions(): string[] {

@@ -186,14 +186,10 @@ export default function UploadScreen() {
       const allTopics = userTopics;
       
       if (allTopics.length === 0) {
-        // Fallback to some default topics if none exist
-        setTopics([
-          { id: 'medicine', name: 'Medicine', icon: 'medical-outline', color: '#ef4444', count: 0 },
-          { id: 'engineering', name: 'Engineering', icon: 'construct-outline', color: '#3b82f6', count: 0 },
-          { id: 'physics', name: 'Physics', icon: 'nuclear-outline', color: '#8b5cf6', count: 0 },
-        ]);
-      return;
-    }
+        // No topics available - user needs to create flashcards first
+        setTopics([]);
+        return;
+      }
       
       const topicObjects = allTopics.map((topic: string, index: number) => {
         const colors = ['#ef4444', '#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#06b6d4', '#ec4899', '#84cc16'];
@@ -211,12 +207,8 @@ export default function UploadScreen() {
       setTopics(topicObjects);
     } catch (error) {
       console.error('Error fetching topics:', error);
-      // Fallback to default topics on error
-      setTopics([
-        { id: 'medicine', name: 'Medicine', icon: 'medical-outline', color: '#ef4444', count: 0 },
-        { id: 'engineering', name: 'Engineering', icon: 'construct-outline', color: '#3b82f6', count: 0 },
-        { id: 'physics', name: 'Physics', icon: 'nuclear-outline', color: '#8b5cf6', count: 0 },
-      ]);
+      // No fallback topics - show empty list
+      setTopics([]);
     }
   };
 
@@ -645,37 +637,8 @@ export default function UploadScreen() {
         cardsGenerated: flashcards.length,
       });
 
-      // Save to database
-      setProgress({
-        stage: 'processing',
-        progress: 85,
-        message: 'Saving flashcards to database...',
-      });
-      
-      if (user) {
-        // Final check before saving to database
-        if (isCancelled) {
-          console.log('🚫 Upload was cancelled - not saving flashcards to database');
-          return;
-        }
-        
-        await UploadService.saveFlashcardsToDatabase(
-          flashcards,
-          user.id,
-          userSubject,
-          userNativeLanguage,
-          false,
-          (progressUpdate) => {
-            // Check cancellation during save progress updates
-            if (isCancelled) {
-              console.log('🚫 Upload cancelled during save - stopping save process');
-              return;
-            }
-            setProgress(progressUpdate);
-          },
-          () => isCancelled // Pass cancellation check function
-        );
-      }
+      // Don't save to database automatically - let user review first
+      console.log('🔍 Flashcards generated, waiting for user to review and save manually');
 
       setProgress({
         stage: 'complete',
@@ -1201,37 +1164,8 @@ export default function UploadScreen() {
         cardsGenerated: flashcards.length,
       });
 
-      // Save to database
-      setProgress({
-        stage: 'processing',
-        progress: 95,
-        message: 'Saving flashcards to database...',
-      });
-      
-      if (user) {
-        // Final check before saving to database
-        if (isCancelled) {
-          console.log('🚫 Image processing was cancelled - not saving flashcards to database');
-          return;
-        }
-        
-        await UploadService.saveFlashcardsToDatabase(
-          flashcards,
-          user.id,
-          userSubject,
-          userNativeLanguage,
-          false,
-          (progressUpdate) => {
-            // Check cancellation during save progress updates
-            if (isCancelled) {
-              console.log('🚫 Image processing cancelled during save - stopping save process');
-              return;
-            }
-            setProgress(progressUpdate);
-          },
-          () => isCancelled // Pass cancellation check function
-        );
-      }
+      // Don't save to database automatically - let user review first
+      console.log('🔍 Flashcards generated from images, waiting for user to review and save manually');
 
       setProgress({
         stage: 'complete',

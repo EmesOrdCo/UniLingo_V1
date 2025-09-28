@@ -69,7 +69,6 @@ export default function FlashcardsScreen() {
     difficulty: 'beginner' as 'beginner' | 'intermediate' | 'expert',
     example: '',
     pronunciation: '',
-    tags: [] as string[],
     native_language: 'english'
   });
   const [showTopicInput, setShowTopicInput] = useState(false);
@@ -892,7 +891,6 @@ export default function FlashcardsScreen() {
         user_id: user.id, // Ensure user_id is set
         subject: profile?.subjects?.[0] || '', // Get subject from profile
         topic: finalTopic,
-        tags: newFlashcard.tags
       });
       
       Alert.alert('Success', 'Flashcard created successfully!');
@@ -904,7 +902,6 @@ export default function FlashcardsScreen() {
          difficulty: 'beginner',
          example: '',
          pronunciation: '',
-         tags: [],
          native_language: 'english'
        });
        setShowTopicInput(false);
@@ -1475,7 +1472,6 @@ export default function FlashcardsScreen() {
                     difficulty: 'beginner',
                     example: '',
                     pronunciation: '',
-                    tags: [],
                     native_language: 'english'
                   });
                   setShowTopicInput(false);

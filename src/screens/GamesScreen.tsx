@@ -106,7 +106,6 @@ export default function GamesScreen({ route }: { route?: any }) {
     difficulty: 'beginner' as 'beginner' | 'intermediate' | 'expert',
     example: '',
     pronunciation: '',
-    tags: [] as string[],
     native_language: 'english'
   });
   const [showTopicInput, setShowTopicInput] = useState(false);
@@ -267,7 +266,26 @@ export default function GamesScreen({ route }: { route?: any }) {
     setRefreshing(true);
     try {
       if (user && profile) {
-        await loadTopics();
+        // Refresh all game data including flashcards
+        const userSubject = profile.subjects[0];
+        const userFlashcards = await UserFlashcardService.getUserFlashcards({ subject: userSubject });
+        const userCards = userFlashcards.filter(card => 
+          card.front && card.back && card.topic
+        );
+        setFlashcards(userCards);
+        
+        // Refresh topics
+        const uniqueTopics = Array.from(new Set(userCards.map(card => card.topic)));
+        const topicObjects = uniqueTopics.map(topic => ({
+          id: topic.toLowerCase().replace(/\s+/g, '-'),
+          name: topic,
+          icon: 'book-outline',
+          color: '#ef4444',
+          count: 0
+        }));
+        setTopics(topicObjects);
+        
+        // Refresh stats
         await fetchRealFlashcardStats();
       }
     } finally {
@@ -609,7 +627,6 @@ export default function GamesScreen({ route }: { route?: any }) {
         difficulty: newFlashcard.difficulty,
         topic: newFlashcard.topic.trim(),
         subject: userSubject,
-        tags: newFlashcard.tags,
         native_language: newFlashcard.native_language,
         user_id: user.id
       };
@@ -626,7 +643,6 @@ export default function GamesScreen({ route }: { route?: any }) {
         difficulty: 'beginner',
         example: '',
         pronunciation: '',
-        tags: [],
         native_language: 'english'
       });
       setShowCreateForm(false);
@@ -1821,7 +1837,6 @@ export default function GamesScreen({ route }: { route?: any }) {
                     difficulty: 'beginner',
                     example: '',
                     pronunciation: '',
-                    tags: [],
                     native_language: 'english'
                   });
                   setShowTopicInput(false);
