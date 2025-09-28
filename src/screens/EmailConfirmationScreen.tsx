@@ -149,7 +149,19 @@ export default function EmailConfirmationScreen() {
         const canOpen = await Linking.canOpenURL(subscriptionUrl);
         
         if (canOpen) {
-          await Linking.openURL(subscriptionUrl);
+          // Just show the URL, don't automatically open it
+          Alert.alert(
+            'Complete Registration',
+            `Please visit: ${subscriptionUrl}`,
+            [
+              { 
+                text: 'OK', 
+                onPress: () => {
+                  // User can manually visit the URL
+                }
+              },
+            ]
+          );
         } else {
           Alert.alert('Error', 'Cannot open subscription page. Please try again.');
         }

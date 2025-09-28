@@ -277,8 +277,6 @@ export default function OnboardingFlowScreen({ route }: { route?: any }) {
         const canOpen = await Linking.canOpenURL(subscriptionUrl);
         
         if (canOpen) {
-          await Linking.openURL(subscriptionUrl);
-          
           Alert.alert(
             'Complete Registration',
             'You will be redirected to complete your subscription. Once completed, you can return to the app.',
