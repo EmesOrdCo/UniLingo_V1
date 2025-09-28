@@ -168,6 +168,21 @@ Content: ${pdfText}`;
         throw new Error('No response from OpenAI');
       }
 
+      // Record token usage in monthly tracking
+      if ('usage' in response && response.usage) {
+        try {
+          const { SimpleTokenTracker } = await import('./simpleTokenTracker');
+          await SimpleTokenTracker.recordTokenUsage(
+            user.id, 
+            response.usage.prompt_tokens, 
+            response.usage.completion_tokens
+          );
+          console.log(`📊 Recorded token usage: ${response.usage.prompt_tokens} input, ${response.usage.completion_tokens} output`);
+        } catch (error) {
+          console.error('Error recording token usage:', error);
+        }
+      }
+
       // Clean the response
       let cleanedContent = content.trim();
       if (cleanedContent.startsWith('```json')) {
@@ -274,6 +289,21 @@ Return ONLY a JSON array of strings with no explanations, markdown, or formattin
         if (!content) {
           console.warn(`⚠️ No response for page ${pageNumber}, skipping`);
           continue;
+        }
+
+        // Record token usage in monthly tracking
+        if ('usage' in response && response.usage) {
+          try {
+            const { SimpleTokenTracker } = await import('./simpleTokenTracker');
+            await SimpleTokenTracker.recordTokenUsage(
+              user.id, 
+              response.usage.prompt_tokens, 
+              response.usage.completion_tokens
+            );
+            console.log(`📊 Page ${pageNumber} token usage: ${response.usage.prompt_tokens} input, ${response.usage.completion_tokens} output`);
+          } catch (error) {
+            console.error('Error recording token usage:', error);
+          }
         }
 
         // Clean the response
@@ -439,6 +469,21 @@ Requirements:
       const content = response.content;
       if (!content) {
         throw new Error('No response from OpenAI');
+      }
+
+      // Record token usage in monthly tracking
+      if ('usage' in response && response.usage) {
+        try {
+          const { SimpleTokenTracker } = await import('./simpleTokenTracker');
+          await SimpleTokenTracker.recordTokenUsage(
+            user.id, 
+            response.usage.prompt_tokens, 
+            response.usage.completion_tokens
+          );
+          console.log(`📊 Recorded token usage: ${response.usage.prompt_tokens} input, ${response.usage.completion_tokens} output`);
+        } catch (error) {
+          console.error('Error recording token usage:', error);
+        }
       }
 
       // Clean the response
@@ -633,6 +678,21 @@ Return ONLY the JSON array:`;
         throw new Error('No response from OpenAI');
       }
 
+      // Record token usage in monthly tracking
+      if ('usage' in response && response.usage) {
+        try {
+          const { SimpleTokenTracker } = await import('./simpleTokenTracker');
+          await SimpleTokenTracker.recordTokenUsage(
+            user.id, 
+            response.usage.prompt_tokens, 
+            response.usage.completion_tokens
+          );
+          console.log(`📊 Recorded token usage: ${response.usage.prompt_tokens} input, ${response.usage.completion_tokens} output`);
+        } catch (error) {
+          console.error('Error recording token usage:', error);
+        }
+      }
+
       // Clean the response
       let cleanedContent = content.trim();
       if (cleanedContent.startsWith('```json')) {
@@ -715,6 +775,21 @@ Return ONLY the JSON array:`;
       const content = response.content;
       if (!content) {
         throw new Error('No response from OpenAI');
+      }
+
+      // Record token usage in monthly tracking
+      if ('usage' in response && response.usage) {
+        try {
+          const { SimpleTokenTracker } = await import('./simpleTokenTracker');
+          await SimpleTokenTracker.recordTokenUsage(
+            user.id, 
+            response.usage.prompt_tokens, 
+            response.usage.completion_tokens
+          );
+          console.log(`📊 Recorded token usage: ${response.usage.prompt_tokens} input, ${response.usage.completion_tokens} output`);
+        } catch (error) {
+          console.error('Error recording token usage:', error);
+        }
       }
 
       // Clean the response

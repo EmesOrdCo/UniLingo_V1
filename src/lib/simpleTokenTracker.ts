@@ -140,9 +140,13 @@ export class SimpleTokenTracker {
       const accountDate = new Date(data.account_created_date);
       const today = new Date();
       
-      // Check if it's the same day of the month as account creation
-      if (accountDate.getDate() === today.getDate()) {
-        // Reset if it's been more than 0 days since last reset
+      // Check if it's the same day of the month as account creation AND it's been a full month
+      const daysSinceAccountCreation = Math.floor((today.getTime() - accountDate.getTime()) / (1000 * 60 * 60 * 24));
+      const isSameDayOfMonth = accountDate.getDate() === today.getDate();
+      
+      // Only reset if it's the same day of the month AND it's been at least 30 days since account creation
+      if (isSameDayOfMonth && daysSinceAccountCreation >= 30) {
+        console.log(`🔄 Resetting monthly tokens for user ${userId} - ${daysSinceAccountCreation} days since account creation`);
         await this.resetMonthlyUsage(userId);
       }
     } catch (error) {

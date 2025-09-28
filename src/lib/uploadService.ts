@@ -381,7 +381,20 @@ export class UploadService {
       
       console.log('OpenAI response received');
       
-
+      // Record token usage in monthly tracking
+      if ('usage' in completion && completion.usage && userId) {
+        try {
+          const { SimpleTokenTracker } = await import('./simpleTokenTracker');
+          await SimpleTokenTracker.recordTokenUsage(
+            userId, 
+            completion.usage.prompt_tokens, 
+            completion.usage.completion_tokens
+          );
+          console.log(`📊 Recorded token usage: ${completion.usage.prompt_tokens} input, ${completion.usage.completion_tokens} output`);
+        } catch (error) {
+          console.error('Error recording token usage:', error);
+        }
+      }
 
       // Check if cancelled before processing AI response
       if (abortSignal?.aborted || isCancelled?.()) {
