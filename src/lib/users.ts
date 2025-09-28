@@ -10,7 +10,6 @@ export type UserRow = {
   level: string | null;
   created_at: string | null;
   last_active: string | null;
-  aim: string | null;               // matches your "Aim" column normalized to lower-case
   time_commit: string | null;       // store "5 min/day" OR switch to number if you altered schema
   how_did_you_hear: string | null;
   payment_tier: string | null;      // "free" | "annual" | "lifetime" | etc.
@@ -26,7 +25,6 @@ export type OnboardingData = Partial<
     | "target_language"
     | "subjects"
     | "level"
-    | "aim"
     | "time_commit"
     | "how_did_you_hear"
     | "payment_tier"

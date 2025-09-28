@@ -122,7 +122,7 @@ export const zFinal = z.object({
   email: z.string()
     .email('Valid email address is required')
     .min(1, 'Email address is required'),
-  selectedPlanId: z.enum(['annual', 'lifetime']).optional(),
+  selectedPlanId: z.enum(['monthly', 'annual', 'lifetime']).optional(),
   hasActiveSubscription: z.boolean().optional(),
 });
 
@@ -140,7 +140,7 @@ const screenSchemas = {
     wantsNotifications: z.boolean(),
   }),
   'plans': z.object({
-    selectedPlanId: z.enum(['annual', 'lifetime'], {
+    selectedPlanId: z.enum(['monthly', 'annual', 'lifetime'], {
       required_error: 'Please select a plan',
     }),
   }),
@@ -270,7 +270,7 @@ export function validateField(fieldName: string, value: any): ValidationResult {
         schema = z.boolean();
         break;
       case 'selectedPlanId':
-        schema = z.enum(['annual', 'lifetime'], {
+        schema = z.enum(['monthly', 'annual', 'lifetime'], {
           required_error: 'Please select a plan',
         });
         break;

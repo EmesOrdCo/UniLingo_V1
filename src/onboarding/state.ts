@@ -37,6 +37,7 @@ export type OnboardingData = {
   firstName?: string;
   email?: string;
   hasActiveSubscription?: boolean;
+  selectedPlanId?: 'monthly' | 'annual' | 'lifetime';
 };
 
 // Onboarding state interface

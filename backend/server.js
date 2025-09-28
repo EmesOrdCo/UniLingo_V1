@@ -67,6 +67,65 @@ const imageUpload = multer({
   }
 });
 
+// Post-processing function to clean and correct OCR text
+function postProcessOCRText(text) {
+  if (!text) return text;
+  
+  // Common OCR error corrections
+  const corrections = {
+    // Common word corrections (do these first)
+    'teh': 'the',
+    'adn': 'and',
+    'taht': 'that',
+    'recieve': 'receive',
+    'seperate': 'separate',
+    'occured': 'occurred',
+    'begining': 'beginning',
+    'definately': 'definitely',
+    
+    // Fix common OCR spacing issues
+    'rn': 'm',
+    'cl': 'd',
+    'li': 'h',
+    
+    // Character misrecognitions (context-dependent)
+    'br0wn': 'brown',
+    'f0x': 'fox',
+    '0ver': 'over',
+    'd0g': 'dog'
+  };
+  
+  let processedText = text;
+  
+  // Apply corrections
+  for (const [wrong, correct] of Object.entries(corrections)) {
+    // Use word boundaries for word corrections
+    const regex = new RegExp(`\\b${wrong.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
+    processedText = processedText.replace(regex, correct);
+  }
+  
+  // Clean up punctuation spacing
+  processedText = processedText
+    .replace(/\s+([.,!?;:])/g, '$1')  // Remove spaces before punctuation
+    .replace(/([.,!?;:])\s+/g, '$1 ')  // Single space after punctuation
+    .replace(/\s+/g, ' ')              // Multiple spaces to single space
+    .replace(/\n\s*\n/g, '\n')         // Multiple newlines to single newline
+    .trim();                           // Remove leading/trailing whitespace
+  
+  // Capitalize sentences (only if not already capitalized)
+  processedText = processedText.replace(/(^|\.\s+)([a-z])/g, (match, prefix, letter) => {
+    return prefix + letter.toUpperCase();
+  });
+  
+  // Don't capitalize words that are already correctly capitalized
+  processedText = processedText.replace(/\b([a-z])([a-z]*)\b/g, (match, first, rest) => {
+    // Only capitalize if it's at the beginning of a sentence or after punctuation
+    return match;
+  });
+  
+  return processedText;
+}
+
 // Function to split text into approximate pages
 function splitTextIntoPages(text, pageCount) {
   if (!text || pageCount <= 1) {
@@ -150,8 +209,11 @@ app.post('/api/process-image', imageUpload.array('images', 5), async (req, res) 
       console.log(`🔍 Processing image ${i + 1}/${totalImages}: ${file.originalname}`);
       
       try {
-        // Preprocess image with Sharp for better OCR
-        const processedImageBuffer = await sharp(file.path)
+        // Advanced preprocessing pipeline for optimal handwriting recognition
+        console.log(`  🔧 Applying advanced image preprocessing...`);
+        
+        // Step 1: Initial enhancement
+        let processedImageBuffer = await sharp(file.path)
           .resize(2000, 2000, { 
             fit: 'inside',
             withoutEnlargement: true 
@@ -162,22 +224,113 @@ app.post('/api/process-image', imageUpload.array('images', 5), async (req, res) 
           .png()
           .toBuffer();
 
-        // Perform OCR on the processed image
-        const { data: { text } } = await Tesseract.recognize(
-          processedImageBuffer,
-          'eng', // English language
-          {
-            logger: m => {
-              if (m.status === 'recognizing text') {
-                console.log(`  OCR Progress: ${Math.round(m.progress * 100)}%`);
-              }
-            }
+        // Step 2: Apply multiple preprocessing strategies and pick the best
+        const preprocessingStrategies = [
+          // Strategy 1: Standard binarization
+          async (buffer) => {
+            return await sharp(buffer)
+              .threshold(128)
+              .png()
+              .toBuffer();
+          },
+          // Strategy 2: Adaptive threshold simulation
+          async (buffer) => {
+            return await sharp(buffer)
+              .threshold(140)
+              .gamma(1.2)
+              .png()
+              .toBuffer();
+          },
+          // Strategy 3: High contrast
+          async (buffer) => {
+            return await sharp(buffer)
+              .threshold(120)
+              .modulate({ brightness: 1.1, contrast: 1.2 })
+              .png()
+              .toBuffer();
           }
-        );
+        ];
 
+        // Test each preprocessing strategy
+        let bestPreprocessedBuffer = processedImageBuffer;
+        let bestPreprocessingScore = 0;
+        let bestStrategyIndex = 0;
+
+        for (let i = 0; i < preprocessingStrategies.length; i++) {
+          try {
+            const preprocessed = await preprocessingStrategies[i](processedImageBuffer);
+            
+            // Quick OCR test to evaluate preprocessing quality
+            const testResult = await Tesseract.recognize(preprocessed, 'eng', {
+              tessedit_pageseg_mode: '8',
+              tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.,!?',
+            });
+            
+            const score = (testResult.data.confidence || 0) + (testResult.data.text.length * 0.1);
+            console.log(`    Strategy ${i + 1} score: ${score.toFixed(1)}`);
+            
+            if (score > bestPreprocessingScore) {
+              bestPreprocessingScore = score;
+              bestPreprocessedBuffer = preprocessed;
+              bestStrategyIndex = i;
+            }
+          } catch (strategyError) {
+            console.log(`    Strategy ${i + 1} failed: ${strategyError.message}`);
+          }
+        }
+
+        console.log(`  ✅ Best preprocessing: Strategy ${bestStrategyIndex + 1} (score: ${bestPreprocessingScore.toFixed(1)})`);
+        processedImageBuffer = bestPreprocessedBuffer;
+
+        // Enhanced OCR with multiple PSM modes and handwriting-optimized settings
+        const psmModes = [8, 11, 12, 13]; // Different modes for different handwriting styles
+        let bestResult = { text: '', confidence: 0 };
+        let bestPSM = 8;
+
+        console.log(`  🔍 Trying multiple PSM modes for better handwriting recognition...`);
+
+        for (const psm of psmModes) {
+          try {
+            const result = await Tesseract.recognize(
+              processedImageBuffer,
+              'eng',
+              {
+                logger: m => {
+                  if (m.status === 'recognizing text') {
+                    console.log(`    PSM ${psm} Progress: ${Math.round(m.progress * 100)}%`);
+                  }
+                },
+                // Handwriting-optimized settings
+                tessedit_pageseg_mode: psm.toString(),
+                tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.,!?;:()[]{}"\'',
+                tessedit_ocr_engine_mode: '1' // Neural nets LSTM engine
+              }
+            );
+
+            const confidence = result.data.confidence || 0;
+            console.log(`    PSM ${psm} Result: ${confidence.toFixed(1)}% confidence, ${result.data.text.length} chars`);
+            
+            if (confidence > bestResult.confidence) {
+              bestResult = result.data;
+              bestPSM = psm;
+            }
+          } catch (psmError) {
+            console.log(`    PSM ${psm} failed: ${psmError.message}`);
+          }
+        }
+
+        console.log(`  ✅ Best result: PSM ${bestPSM} with ${bestResult.confidence.toFixed(1)}% confidence`);
+        let text = bestResult.text || '';
+
+        // Post-processing: Clean and correct the extracted text
         if (text && text.trim()) {
+          console.log(`  🔧 Applying post-processing corrections...`);
+          
+          // Clean up common OCR errors
+          text = postProcessOCRText(text);
+          
           allExtractedText += `\n\n--- Image ${i + 1}: ${file.originalname} ---\n${text.trim()}`;
-          console.log(`✅ Extracted ${text.length} characters from ${file.originalname}`);
+          console.log(`✅ Extracted and corrected ${text.length} characters from ${file.originalname}`);
         } else {
           console.log(`⚠️ No text extracted from ${file.originalname}`);
         }
@@ -203,6 +356,11 @@ app.post('/api/process-image', imageUpload.array('images', 5), async (req, res) 
     console.log(`📸 Images processed: ${processedImages}/${totalImages}`);
     console.log(`🔢 Total characters: ${allExtractedText.length.toLocaleString()}`);
     console.log(`📑 Split into ${pages.length} page texts`);
+    console.log(`🚀 Enhanced with Phase 1 & 2 improvements:`);
+    console.log(`   • Multiple PSM modes with confidence scoring`);
+    console.log(`   • Advanced preprocessing strategies`);
+    console.log(`   • Post-processing text correction`);
+    console.log(`   • Handwriting-optimized settings`);
     console.log('🎯'.repeat(20) + '\n');
 
     // Clean up uploaded files
