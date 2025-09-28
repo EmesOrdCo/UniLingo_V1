@@ -254,7 +254,7 @@ export default function OnboardingFlowScreen({ route }: { route?: any }) {
         dailyCommitmentMinutes: parseInt(formData.timeCommitment) as 5 | 15 | 30 | 60 || undefined,
         discoverySource: formData.discoverySource as 'search' | 'radio' | 'tv' | 'other' | 'facebook_instagram' | 'podcast' | 'friends_family' | 'youtube' | 'app_store' | 'website_ad',
         wantsNotifications: formData.wantsNotifications,
-        goals: [], // Not collected in this flow
+        goals: formData.subject ? [formData.subject] : [], // Map subject to goals array
         ageRange: undefined, // Not collected in this flow
       };
 
@@ -354,7 +354,7 @@ export default function OnboardingFlowScreen({ route }: { route?: any }) {
         dailyCommitmentMinutes: parseInt(formData.timeCommitment) as 5 | 15 | 30 | 60 || undefined,
         discoverySource: formData.discoverySource as 'search' | 'radio' | 'tv' | 'other' | 'facebook_instagram' | 'podcast' | 'friends_family' | 'youtube' | 'app_store' | 'website_ad',
         wantsNotifications: formData.wantsNotifications,
-        goals: [], // Not collected in this flow
+        goals: formData.subject ? [formData.subject] : [], // Map subject to goals array
         ageRange: undefined, // Not collected in this flow
       };
       (navigation as any).navigate('EmailConfirmation', { 

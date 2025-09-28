@@ -70,7 +70,8 @@ export async function completeOnboarding({
         native_language: data.nativeLanguage || null,
         target_language: data.targetLanguage || null,
         level: mapProficiencyToLevel(data.proficiency) || null, // Map to valid level values
-        subjects: [], // Initialize empty subjects array
+        subjects: data.goals || [], // Map goals to subjects
+        time_commit: data.dailyCommitmentMinutes ? `${data.dailyCommitmentMinutes} min / day` : null, // Map to time_commit
         how_did_you_hear: data.discoverySource || null, // Use existing 'how_did_you_hear' column
         wants_notifications: data.wantsNotifications || false,
         payment_tier: null, // Let website handle plan selection
@@ -96,42 +97,8 @@ export async function completeOnboarding({
         }
       }
 
-      // Upsert profile goals
-      if (data.goals && data.goals.length > 0) {
-        const goalInserts = data.goals.map(goal => ({
-          user_id: user.id,
-          goal_key: goal,
-          created_at: new Date().toISOString(),
-        }));
-
-        // First, delete existing goals for this user
-        const { error: deleteError } = await supabase
-          .from('profile_goals')
-          .delete()
-          .eq('user_id', user.id);
-
-        if (deleteError) {
-          if (__DEV__) {
-            console.error('❌ Error deleting existing goals:', deleteError);
-          }
-        }
-
-        // Then insert new goals
-        const { error: goalsError } = await supabase
-          .from('profile_goals')
-          .insert(goalInserts);
-
-        if (goalsError) {
-          if (__DEV__) {
-            console.error('❌ Error inserting goals:', goalsError);
-          }
-          // Don't fail onboarding for goals sync errors
-        } else {
-          if (__DEV__) {
-            console.log('✅ Profile goals synced to Supabase');
-          }
-        }
-      }
+      // Goals are already stored in the subjects column of the users table
+      // No separate goals table operations needed
 
     } catch (supabaseError) {
       if (__DEV__) {
