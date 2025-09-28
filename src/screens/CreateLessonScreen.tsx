@@ -137,6 +137,9 @@ export default function CreateLessonScreen() {
         method: 'POST',
         body: formData,
         signal: abortControllerRef.current?.signal,
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
       });
 
       if (!webhookResponse.ok) {
@@ -195,7 +198,7 @@ export default function CreateLessonScreen() {
           console.log(`✅ Created ${lessons.length} lessons`);
         } else {
           createdLessons.push(lessons);
-          console.log(`✅ Created lesson: ${lessons.title}`);
+          console.log(`✅ Created lesson: ${lessons?.title || 'Unknown'}`);
         }
         
         setProgress({
@@ -204,28 +207,8 @@ export default function CreateLessonScreen() {
           message: `Generated ${createdLessons.length} lesson${createdLessons.length > 1 ? 's' : ''}`,
         });
       } catch (lessonError) {
-        console.warn('⚠️ Lesson creation failed, falling back to basic lesson:', lessonError);
-        
-        // Fallback: Create a basic lesson without AI-generated content
-        const { data: fallbackLesson, error: fallbackError } = await supabase
-          .from('esp_lessons')
-          .insert([{
-            user_id: user?.id || '',
-            title: `${selectedSubject} - PDF Content`,
-            subject: selectedSubject,
-            source_pdf_name: file.name,
-            native_language: userNativeLanguage || ''
-          }])
-          .select()
-          .single();
-
-        if (fallbackError) {
-          console.error('❌ Error creating fallback lesson:', fallbackError);
-          throw new Error('Failed to create lesson');
-        }
-
-        createdLessons.push(fallbackLesson);
-        console.log('✅ Created fallback lesson without AI-generated content');
+        console.error('❌ Lesson creation failed:', lessonError);
+        throw new Error('Failed to create lesson with AI content');
       }
 
       setProgress({
@@ -459,7 +442,7 @@ export default function CreateLessonScreen() {
           console.log(`✅ Created ${lessons.length} lessons`);
         } else {
           createdLessons.push(lessons);
-          console.log(`✅ Created lesson: ${lessons.title}`);
+          console.log(`✅ Created lesson: ${lessons?.title || 'Unknown'}`);
         }
         
         setProgress({
@@ -468,28 +451,8 @@ export default function CreateLessonScreen() {
           message: `Generated ${createdLessons.length} lesson${createdLessons.length > 1 ? 's' : ''}`,
         });
       } catch (lessonError) {
-        console.warn('⚠️ Lesson creation failed, falling back to basic lesson:', lessonError);
-        
-        // Fallback: Create a basic lesson without AI-generated content
-        const { data: fallbackLesson, error: fallbackError } = await supabase
-          .from('esp_lessons')
-          .insert([{
-            user_id: user?.id || '',
-            title: `${selectedSubject} - Image Content`,
-            subject: selectedSubject,
-            source_pdf_name: `Images (${selectedImages.length} files)`,
-            native_language: userNativeLanguage || ''
-          }])
-          .select()
-          .single();
-
-        if (fallbackError) {
-          console.error('❌ Error creating fallback lesson:', fallbackError);
-          throw new Error('Failed to create lesson');
-        }
-
-        createdLessons.push(fallbackLesson);
-        console.log('✅ Created fallback lesson without AI-generated content');
+        console.error('❌ Lesson creation failed:', lessonError);
+        throw new Error('Failed to create lesson with AI content');
       }
 
       setProgress({

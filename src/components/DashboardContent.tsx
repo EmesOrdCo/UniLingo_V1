@@ -281,10 +281,10 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
                           ]}
                         >
                           <View style={styles.lessonContent}>
-                            <Text style={styles.lessonTitle}>{lesson.title}</Text>
+                            <Text style={styles.lessonTitle}>{lesson?.title || 'Unknown'}</Text>
                           </View>
                           <View style={styles.lessonActions}>
-                            {getStatusButton(lesson.status, selectedUnit?.unit_code || '', lesson.title, topicGroup)}
+                            {getStatusButton(lesson.status, selectedUnit?.unit_code || '', lesson?.title || 'Unknown', topicGroup)}
                           </View>
                         </View>
                       ))}

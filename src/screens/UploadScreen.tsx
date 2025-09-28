@@ -469,6 +469,9 @@ export default function UploadScreen() {
           method: 'POST',
           body: formData,
           signal: abortControllerRef.current?.signal,
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
         });
         
         if (backendTimeoutRef.current) {

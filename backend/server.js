@@ -584,7 +584,7 @@ app.post('/api/ai/generate-lesson', async (req, res) => {
     console.log('\n' + '✅'.repeat(20));
     console.log('✅ LESSON GENERATION SUCCESS');
     console.log('✅'.repeat(20));
-    console.log(`📊 Lesson: ${result.lesson.title}`);
+    console.log(`📊 Lesson: ${result.lessons?.[0]?.title || 'Unknown'}`);
     console.log(`🔢 Tokens used: ${result.tokenUsage}`);
     console.log('✅'.repeat(20) + '\n');
 

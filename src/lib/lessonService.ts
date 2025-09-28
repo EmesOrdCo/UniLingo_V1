@@ -883,7 +883,7 @@ Return ONLY the JSON array:`;
         }
 
         createdLessons.push(lesson);
-        console.log(`✅ Created lesson: ${lesson.title}`);
+        console.log(`✅ Created lesson: ${lesson?.title || 'Unknown'}`);
       }
 
       console.log(`✅ Created ${createdLessons.length} lessons`);
@@ -994,7 +994,7 @@ Return ONLY the JSON array:`;
           if (insertError) {
             console.error(`❌ Error creating progress record for lesson ${lesson.id}:`, insertError);
           } else {
-            console.log(`✅ Created progress record for lesson: ${lesson.title}`);
+            console.log(`✅ Created progress record for lesson: ${lesson?.title || 'Unknown'}`);
           }
         }
       }
@@ -1218,7 +1218,7 @@ Return ONLY the JSON array:`;
         throw new Error('Lesson not found or does not belong to user');
       }
 
-      console.log(`✅ Verified lesson ownership: "${lesson.title}"`);
+      console.log(`✅ Verified lesson ownership: "${lesson?.title || 'Unknown'}"`);
 
       // Delete in order: dependent tables first, then main table
       
@@ -1259,7 +1259,7 @@ Return ONLY the JSON array:`;
       }
       console.log('✅ Deleted main lesson record');
 
-      console.log(`🎉 Successfully deleted lesson "${lesson.title}" and all related data`);
+      console.log(`🎉 Successfully deleted lesson "${lesson?.title || 'Unknown'}" and all related data`);
       return true;
 
     } catch (error) {

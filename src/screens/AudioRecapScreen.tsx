@@ -155,7 +155,7 @@ export default function AudioRecapScreen() {
                       <Ionicons name="play-circle" size={24} color="#3b82f6" />
                     </View>
                     <View style={styles.lessonInfo}>
-                      <Text style={styles.lessonTitle}>{lesson.title}</Text>
+                      <Text style={styles.lessonTitle}>{lesson?.title || 'Unknown'}</Text>
                       <Text style={styles.lessonSubtitle}>
                         Duration: {lesson.duration} • Created: {lesson.createdAt}
                       </Text>

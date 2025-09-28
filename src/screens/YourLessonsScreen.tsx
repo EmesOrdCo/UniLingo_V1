@@ -62,7 +62,7 @@ export default function YourLessonsScreen() {
     // Navigate to lesson walkthrough
     (navigation as any).navigate('LessonWalkthrough', { 
       lessonId: lesson.id, 
-      lessonTitle: lesson.title 
+      lessonTitle: lesson?.title || 'Unknown' 
     });
   };
 
@@ -249,14 +249,14 @@ export default function YourLessonsScreen() {
                 <View style={styles.lessonHeader}>
                   <View style={styles.lessonTitleContainer}>
                     <Text style={styles.lessonTitle} numberOfLines={2}>
-                      {lesson.title}
+                      {lesson?.title || 'Unknown'}
                     </Text>
                     <Text style={styles.lessonSubject}>{lesson.subject}</Text>
                   </View>
                   <View style={styles.lessonActions}>
                     <TouchableOpacity 
                       style={styles.deleteButton}
-                      onPress={() => deleteLesson(lesson.id, lesson.title)}
+                      onPress={() => deleteLesson(lesson.id, lesson?.title || 'Unknown')}
                     >
                       <Ionicons name="trash-outline" size={18} color="#ef4444" />
                     </TouchableOpacity>

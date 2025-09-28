@@ -52,7 +52,7 @@ export default function LessonsContent() {
     // Navigate to lesson walkthrough
     (navigation as any).navigate('LessonWalkthrough', { 
       lessonId: lesson.id, 
-      lessonTitle: lesson.title 
+      lessonTitle: lesson?.title || 'Unknown' 
     });
   };
 

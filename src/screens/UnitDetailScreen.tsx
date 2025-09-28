@@ -105,7 +105,7 @@ export default function UnitDetailScreen() {
           {lessons.map((lesson) => (
             <View key={lesson.id} style={styles.lessonCard}>
               <View style={styles.lessonContent}>
-                <Text style={styles.lessonTitle}>{lesson.title}</Text>
+                <Text style={styles.lessonTitle}>{lesson?.title || 'Unknown'}</Text>
                 
                 {lesson.status === 'active' && lesson.image && (
                   <View style={styles.lessonImageContainer}>

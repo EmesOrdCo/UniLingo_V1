@@ -279,7 +279,7 @@ export class UnitProgressService {
             user_id: userId,
             unit_id: 1,
             lesson_type: lesson.type,
-            lesson_title: lesson.title,
+            lesson_title: lesson?.title || 'Unknown',
             status: ['words', 'listen', 'write'].includes(lesson.type) ? 'active' : 'locked'
           });
 

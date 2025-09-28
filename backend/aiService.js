@@ -672,7 +672,7 @@ class AIService {
         }
 
         createdLessons.push(lesson);
-        console.log(`✅ Created lesson: ${lesson.title}`);
+        console.log(`✅ Created lesson: ${lesson?.title || 'Unknown'}`);
       }
 
       console.log(`✅ Created ${createdLessons.length} lessons`);
