@@ -2316,10 +2316,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
     backgroundColor: '#ffffff',
+    minHeight: 48,
   },
   topicDropdownText: {
     fontSize: 16,
     color: '#1f2937',
+    flex: 1,
+    flexWrap: 'wrap',
+    marginRight: 8,
   },
   newTopicButton: {
     flexDirection: 'row',
