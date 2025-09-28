@@ -71,7 +71,6 @@ export async function completeOnboarding({
         target_language: data.targetLanguage || null,
         level: mapProficiencyToLevel(data.proficiency) || null, // Map to valid level values
         subject: null, // Add subject field
-        daily_commitment_minutes: data.dailyCommitmentMinutes || null,
         how_did_you_hear: data.discoverySource || null, // Use existing 'how_did_you_hear' column
         wants_notifications: data.wantsNotifications || false,
         payment_tier: null, // Let website handle plan selection

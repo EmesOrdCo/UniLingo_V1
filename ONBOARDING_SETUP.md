@@ -34,7 +34,6 @@ After running the SQL, you can verify the setup by:
    - `native_language`
    - `target_language` 
    - `proficiency_level`
-   - `daily_commitment_minutes`
    - `wants_notifications`
    - `discovery_source`
    - `selected_plan_id`

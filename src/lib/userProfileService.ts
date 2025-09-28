@@ -7,7 +7,6 @@ export interface UserProfile {
   native_language: string;
   target_language: string;
   proficiency_level: 'Beginner' | 'Intermediate' | 'Advanced';
-  daily_commitment_minutes: number | null;
   wants_notifications: boolean;
   discovery_source: string | null;
   selected_plan_id: string | null;
@@ -26,7 +25,6 @@ export interface CreateProfileData {
   native_language: string;
   target_language: string;
   proficiency_level: 'Beginner' | 'Intermediate' | 'Advanced';
-  daily_commitment_minutes?: number | null;
   wants_notifications?: boolean;
   discovery_source?: string | null;
   selected_plan_id?: string | null;
@@ -42,7 +40,6 @@ export interface UpdateProfileData {
   native_language?: string;
   target_language?: string;
   proficiency_level?: 'Beginner' | 'Intermediate' | 'Advanced';
-  daily_commitment_minutes?: number | null;
   wants_notifications?: boolean;
   discovery_source?: string | null;
   selected_plan_id?: string | null;
@@ -184,9 +181,6 @@ export class UserProfileService {
         updateData.level = profileData.proficiency_level.toLowerCase();
       }
       
-      if (profileData.daily_commitment_minutes !== undefined) {
-        updateData.daily_commitment_minutes = profileData.daily_commitment_minutes;
-      }
       
       if (profileData.wants_notifications !== undefined) {
         updateData.wants_notifications = profileData.wants_notifications;
