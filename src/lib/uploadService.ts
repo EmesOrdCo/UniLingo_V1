@@ -6,6 +6,7 @@ import { UserFlashcardService } from './userFlashcardService';
 import { ENV } from './envConfig';
 import { CostEstimator } from './costEstimator';
 import { supabase } from './supabase';
+import BackendAIService from './backendAIService';
 
 // Initialize OpenAI client with rate limiting - will be created when needed
 let openai: OpenAIWithRateLimit | null = null;
@@ -188,7 +189,8 @@ export class UploadService {
     showNativeLanguage: boolean = false,
     onProgress?: (progress: UploadProgress) => void,
     abortSignal?: AbortSignal,
-    isCancelled?: () => boolean
+    isCancelled?: () => boolean,
+    userId?: string
   ): Promise<GeneratedFlashcard[]> {
     let aiTimeoutId: NodeJS.Timeout | null = null;
     
@@ -198,13 +200,55 @@ export class UploadService {
         throw new Error('Subject not configured. Please contact customer support to set up your learning subject.');
       }
 
+      // Validate userId
+      if (!userId) {
+        throw new Error('User ID is required for AI flashcard generation');
+      }
+
       onProgress?.({
         stage: 'generating',
         progress: 0,
         message: topic === 'AI Selection' ? 'Analyzing content structure and detecting topics...' : 'Analyzing content with AI...',
       });
 
-      // Check if API key is available
+      // Try backend AI service first
+      try {
+        console.log('🤖 Attempting to use backend AI service...');
+        const backendResult = await BackendAIService.generateFlashcards(
+          text, 
+          subject, 
+          topic, 
+          userId, 
+          nativeLanguage, 
+          showNativeLanguage
+        );
+        
+        if (backendResult.success && backendResult.flashcards) {
+          console.log('✅ Backend AI service successful');
+          onProgress?.({
+            stage: 'completed',
+            progress: 100,
+            message: `Generated ${backendResult.flashcards.length} flashcards`,
+            cardsGenerated: backendResult.flashcards.length
+          });
+          
+          // Convert backend format to frontend format
+          return backendResult.flashcards.map((card: any) => ({
+            front: card.front || card.term,
+            back: card.back || card.definition,
+            subject: card.subject || subject,
+            topic: card.topic || topic,
+            difficulty: card.difficulty || 'beginner',
+            example: card.example,
+            pronunciation: card.pronunciation
+          }));
+        }
+      } catch (backendError) {
+        console.warn('⚠️ Backend AI service failed, falling back to direct OpenAI:', backendError);
+      }
+
+      // Fallback to direct OpenAI (existing logic)
+      console.log('🔄 Using direct OpenAI as fallback...');
       console.log('Checking OpenAI API key...');
       console.log('Environment variables available:', Object.keys(process.env).filter(key => key.includes('OPENAI')));
 

@@ -820,7 +820,7 @@ Return ONLY the JSON array:`;
    * Create a new lesson from PDF
    */
   static async createLessonFromPDF(
-    pdfUri: string,
+    pdfText: string,
     pdfName: string,
     userId: string,
     subject: string,
@@ -829,13 +829,65 @@ Return ONLY the JSON array:`;
     try {
       console.log('🚀 Creating lesson from PDF...');
 
-      // Step 1: PDF text extraction handled by backend API
-      // This function will be updated to work with the API flow
-      throw new Error('PDF text extraction is handled by backend API. Please use the API-based flow.');
+      // Step 1: Extract keywords from PDF
+      const keywords = await this.extractKeywordsFromPDF(pdfText, subject, nativeLanguage);
       
-      // This function is now deprecated - PDF processing is handled by backend API
-      // and lesson creation is handled directly in the CreateLessonScreen
-      throw new Error('This function is deprecated. Use the backend API flow in CreateLessonScreen.');
+      // Step 2: Group keywords into topics
+      const topics = await this.groupKeywordsIntoTopic(keywords, subject);
+      
+      // Step 3: Generate vocabulary from topics
+      const topicVocabulary = await this.generateVocabularyFromTopics(topics, subject, nativeLanguage);
+
+      // Create separate lesson for each topic
+      const createdLessons = [];
+      
+      for (const topic of topicVocabulary) {
+        // Create lesson record for this topic
+        const { data: lesson, error: lessonError } = await supabase
+          .from('esp_lessons')
+          .insert([{
+            user_id: userId,
+            title: `${subject} - ${topic.topicName}`,
+            subject: subject,
+            source_pdf_name: topic.topicName,
+            native_language: nativeLanguage
+          }])
+          .select()
+          .single();
+
+        if (lessonError) {
+          console.error(`❌ Error creating lesson for topic ${topic.topicName}:`, lessonError);
+          continue;
+        }
+
+        // Store vocabulary for this lesson
+        if (topic.vocabulary && topic.vocabulary.length > 0) {
+          const vocabularyWithLessonId = topic.vocabulary.map(vocab => ({
+            lesson_id: lesson.id,
+            keywords: vocab.english_term,
+            definition: vocab.definition,
+            native_translation: vocab.native_translation,
+            example_sentence_en: vocab.example_sentence_en,
+            example_sentence_native: vocab.example_sentence_native
+          }));
+
+          const { error: vocabError } = await supabase
+            .from('lesson_vocabulary')
+            .insert(vocabularyWithLessonId);
+
+          if (vocabError) {
+            console.error(`❌ Error storing vocabulary for topic ${topic.topicName}:`, vocabError);
+          } else {
+            console.log(`✅ Stored ${vocabularyWithLessonId.length} vocabulary items for lesson: ${topic.topicName}`);
+          }
+        }
+
+        createdLessons.push(lesson);
+        console.log(`✅ Created lesson: ${lesson.title}`);
+      }
+
+      console.log(`✅ Created ${createdLessons.length} lessons`);
+      return createdLessons; // Return all lessons
 
     } catch (error) {
       console.error('❌ Error creating lesson:', error);

@@ -6,6 +6,7 @@ const path = require('path');
 const NetworkLogger = require('./networkLogger');
 const getLocalIP = require('./getLocalIP');
 const updateFrontendConfig = require('./updateFrontendConfig');
+const AIService = require('./aiService');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 console.log('🔍 Debug - Current directory:', __dirname);
@@ -499,6 +500,123 @@ app.post('/api/test-processing', async (req, res) => {
     console.error('❌ Test failed:', error);
     res.status(500).json({
       error: 'Test failed',
+      details: error.message
+    });
+  }
+});
+
+// AI Service endpoints
+app.post('/api/ai/generate-flashcards', async (req, res) => {
+  try {
+    const { content, subject, topic, userId, nativeLanguage, showNativeLanguage } = req.body;
+    
+    if (!content || !subject || !topic || !userId) {
+      return res.status(400).json({ 
+        error: 'Missing required fields: content, subject, topic, userId' 
+      });
+    }
+
+    console.log('\n' + '🤖'.repeat(20));
+    console.log('🤖 AI FLASHCARD GENERATION REQUEST');
+    console.log('🤖'.repeat(20));
+    console.log(`📝 Subject: ${subject}`);
+    console.log(`📚 Topic: ${topic}`);
+    console.log(`👤 User: ${userId}`);
+    console.log(`🌍 Native Language: ${nativeLanguage || 'English'}`);
+    console.log(`🔄 Show Native Language: ${showNativeLanguage || false}`);
+    console.log(`📄 Content length: ${content.length} characters`);
+    console.log('🤖'.repeat(20) + '\n');
+
+    const result = await AIService.generateFlashcards(
+      content, 
+      subject, 
+      topic, 
+      userId, 
+      nativeLanguage || 'English', 
+      showNativeLanguage || false
+    );
+    
+    console.log('\n' + '✅'.repeat(20));
+    console.log('✅ FLASHCARD GENERATION SUCCESS');
+    console.log('✅'.repeat(20));
+    console.log(`📊 Generated: ${result.flashcards.length} flashcards`);
+    console.log(`🔢 Tokens used: ${result.tokenUsage}`);
+    console.log('✅'.repeat(20) + '\n');
+
+    res.json(result);
+
+  } catch (error) {
+    console.error('\n' + '❌'.repeat(20));
+    console.error('❌ FLASHCARD GENERATION ERROR');
+    console.error('❌'.repeat(20));
+    console.error(`Error: ${error.message}`);
+    console.error('❌'.repeat(20) + '\n');
+    
+    res.status(500).json({
+      error: 'Failed to generate flashcards',
+      details: error.message
+    });
+  }
+});
+
+app.post('/api/ai/generate-lesson', async (req, res) => {
+  try {
+    const { content, subject, topic, userId, nativeLanguage } = req.body;
+    
+    if (!content || !subject || !topic || !userId) {
+      return res.status(400).json({ 
+        error: 'Missing required fields: content, subject, topic, userId' 
+      });
+    }
+
+    console.log('\n' + '📚'.repeat(20));
+    console.log('📚 AI LESSON GENERATION REQUEST');
+    console.log('📚'.repeat(20));
+    console.log(`📝 Subject: ${subject}`);
+    console.log(`📚 Topic: ${topic}`);
+    console.log(`👤 User: ${userId}`);
+    console.log(`🌍 Native Language: ${nativeLanguage || 'English'}`);
+    console.log(`📄 Content length: ${content.length} characters`);
+    console.log('📚'.repeat(20) + '\n');
+
+    const result = await AIService.generateLesson(content, subject, topic, userId, nativeLanguage || 'English');
+    
+    console.log('\n' + '✅'.repeat(20));
+    console.log('✅ LESSON GENERATION SUCCESS');
+    console.log('✅'.repeat(20));
+    console.log(`📊 Lesson: ${result.lesson.title}`);
+    console.log(`🔢 Tokens used: ${result.tokenUsage}`);
+    console.log('✅'.repeat(20) + '\n');
+
+    res.json(result);
+
+  } catch (error) {
+    console.error('\n' + '❌'.repeat(20));
+    console.error('❌ LESSON GENERATION ERROR');
+    console.error('❌'.repeat(20));
+    console.error(`Error: ${error.message}`);
+    console.error('❌'.repeat(20) + '\n');
+    
+    res.status(500).json({
+      error: 'Failed to generate lesson',
+      details: error.message
+    });
+  }
+});
+
+// AI Service status endpoint
+app.get('/api/ai/status', (req, res) => {
+  try {
+    const status = AIService.getStatus();
+    res.json({
+      success: true,
+      status: status,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('AI status error:', error);
+    res.status(500).json({
+      error: 'Failed to get AI service status',
       details: error.message
     });
   }

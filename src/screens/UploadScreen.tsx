@@ -613,7 +613,8 @@ export default function UploadScreen() {
           setProgress(progressUpdate);
         },
         abortControllerRef.current?.signal, // Pass abort signal to AI service
-        () => isCancelled // Pass cancellation check function
+        () => isCancelled, // Pass cancellation check function
+        user?.id // Pass user ID for backend AI service
       );
       
       clearInterval(progressIntervalRef.current); // Clear progress updates when done
@@ -1143,7 +1144,8 @@ export default function UploadScreen() {
           setProgress(progressUpdate);
         },
         abortControllerRef.current?.signal, // Pass abort signal to AI service
-        () => isCancelled // Pass cancellation check function
+        () => isCancelled, // Pass cancellation check function
+        user?.id // Pass user ID for backend AI service
       );
       
       clearInterval(progressIntervalRef.current); // Clear progress updates when done

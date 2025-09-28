@@ -16,6 +16,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useRefresh } from '../contexts/RefreshContext';
 import { getBackendUrl } from '../config/backendConfig';
 import { LessonService } from '../lib/lessonService';
+import BackendAIService from '../lib/backendAIService';
 
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
@@ -161,147 +162,64 @@ export default function CreateLessonScreen() {
         return;
       }
       
-      // Generate vocabulary for the lesson
+      // Generate lesson using backend AI service
       setProgress({
         stage: 'processing',
         progress: 85,
-        message: 'Processing PDF pages...',
+        message: 'Generating lesson with AI...',
       });
 
       let createdLessons: any[] = [];
 
       try {
-        let keywords: string[] = [];
+        console.log('📚 Generating lesson using original 3-step process...');
         
-        // Use page-by-page processing for large PDFs, fallback to single extraction for small PDFs
-        if (pages.length > 1) {
-          console.log(`📄 Large PDF detected: ${pages.length} pages, using page-by-page processing`);
-          setProgress({
-            stage: 'processing',
-            progress: 85,
-            message: `Processing ${pages.length} pages...`,
-          });
-          
-          keywords = await LessonService.extractKeywordsFromPages(
-            pages,
-            selectedSubject,
-            userNativeLanguage,
-          );
+        // Use original LessonService 3-step process
+        const lessons = await LessonService.createLessonFromPDF(
+          extractedText,
+          file.name,
+          user?.id || '',
+          selectedSubject,
+          userNativeLanguage || 'English'
+        );
+        
+        // Handle both single lesson (legacy) and multiple lessons (new)
+        if (Array.isArray(lessons)) {
+          createdLessons = lessons;
+          console.log(`✅ Created ${lessons.length} lessons`);
         } else {
-          console.log('📄 Small PDF detected, using single extraction');
-          setProgress({
-            stage: 'processing',
-            progress: 85,
-            message: 'Extracting keywords...',
-          });
-          
-          keywords = await LessonService.extractKeywordsFromPDF(
-            extractedText,
-            selectedSubject,
-            userNativeLanguage,
-          );
+          createdLessons.push(lessons);
+          console.log(`✅ Created lesson: ${lessons.title}`);
         }
         
-        console.log('📚 Grouping keywords into topics...');
         setProgress({
-          stage: 'processing',
-          progress: 90,
-          message: 'Grouping keywords into topics...',
+          stage: 'completed',
+          progress: 100,
+          message: `Generated ${createdLessons.length} lesson${createdLessons.length > 1 ? 's' : ''}`,
         });
+      } catch (lessonError) {
+        console.warn('⚠️ Lesson creation failed, falling back to basic lesson:', lessonError);
         
-        const topics = await LessonService.groupKeywordsIntoTopic(
-          keywords,
-          selectedSubject,
-        );
-        
-        console.log('📚 Generating vocabulary from topics...');
-        setProgress({
-          stage: 'processing',
-          progress: 92,
-          message: 'Generating vocabulary... (this may take quite some time)',
-        });
-        
-        const topicVocabulary = await LessonService.generateVocabularyFromTopics(
-          topics,
-          selectedSubject,
-          userNativeLanguage,
-        );
+        // Fallback: Create a basic lesson without AI-generated content
+        const { data: fallbackLesson, error: fallbackError } = await supabase
+          .from('esp_lessons')
+          .insert([{
+            user_id: user?.id || '',
+            title: `${selectedSubject} - PDF Content`,
+            subject: selectedSubject,
+            source_pdf_name: file.name,
+            native_language: userNativeLanguage || ''
+          }])
+          .select()
+          .single();
 
-        // Create multiple lessons (one per topic)
-        console.log('💾 Creating lessons and storing vocabulary...');
-        setProgress({
-          stage: 'processing',
-          progress: 95,
-          message: 'Creating lessons...',
-        });
-        
-        for (let i = 0; i < topics.length; i++) {
-          const topic = topics[i];
-          const topicVocab = topicVocabulary.find(tv => tv.topicName === topic.topicName);
-          
-          if (!topicVocab) {
-            console.warn(`⚠️ No vocabulary found for topic: ${topic.topicName}`);
-            continue;
-          }
-
-          setProgress({
-            stage: 'processing',
-            progress: 95 + (i * 4 / topics.length),
-            message: `Creating lesson ${i + 1} of ${topics.length}: ${topic.topicName}...`,
-          });
-
-          // Create lesson for this topic
-          const lessonTitle = `${selectedSubject} - ${topic.topicName}`;
-          
-          const { data: lesson, error: lessonError } = await supabase
-            .from('esp_lessons')
-            .insert([{
-              user_id: user?.id || '',
-              title: lessonTitle,
-              subject: selectedSubject,
-              source_pdf_name: file.name,
-              native_language: userNativeLanguage || ''
-            }])
-            .select()
-            .single();
-
-          if (lessonError) {
-            console.error(`❌ Error creating lesson for topic ${topic.topicName}:`, lessonError);
-            continue;
-          }
-
-          // Store vocabulary for this lesson
-          const vocabularyWithLessonId = topicVocab.vocabulary.map(vocab => ({
-            lesson_id: lesson.id,
-            keywords: vocab.english_term,
-            definition: vocab.definition,
-            native_translation: vocab.native_translation,
-            example_sentence_en: vocab.example_sentence_en,
-            example_sentence_native: vocab.example_sentence_native,
-          }));
-
-          const { error: vocabError } = await supabase
-            .from('lesson_vocabulary')
-            .insert(vocabularyWithLessonId);
-
-          if (vocabError) {
-            console.error(`❌ Error storing vocabulary for lesson ${lessonTitle}:`, vocabError);
-            continue;
-          }
-
-          createdLessons.push(lesson);
-          console.log(`✅ Created lesson: ${lessonTitle} with ${vocabularyWithLessonId.length} vocabulary items`);
+        if (fallbackError) {
+          console.error('❌ Error creating fallback lesson:', fallbackError);
+          throw new Error('Failed to create lesson');
         }
 
-        if (createdLessons.length === 0) {
-          throw new Error('Failed to create any lessons');
-        }
-
-        console.log(`✅ Successfully created ${createdLessons.length} lessons`);
-      } catch (vocabError) {
-        console.error('❌ Error generating vocabulary:', vocabError);
-        // Don't fail the entire lesson creation if vocabulary generation fails
-        console.log('⚠️ Continuing without vocabulary - lesson created but no exercises available');
+        createdLessons.push(fallbackLesson);
+        console.log('✅ Created fallback lesson without AI-generated content');
       }
 
       setProgress({
@@ -502,147 +420,64 @@ export default function CreateLessonScreen() {
         return;
       }
       
-      // Generate vocabulary for the lesson using the same logic as PDF processing
+      // Generate lesson using backend AI service
       setProgress({
         stage: 'processing',
         progress: 85,
-        message: 'Processing extracted text...',
+        message: 'Generating lesson with AI...',
       });
 
       let createdLessons: any[] = [];
 
       try {
-        let keywords: string[] = [];
+        console.log('📚 Generating lesson using original 3-step process...');
         
-        // Use page-by-page processing for multiple images, fallback to single extraction for single image
-        if (pages.length > 1) {
-          console.log(`📄 Multiple images detected: ${pages.length} pages, using page-by-page processing`);
-          setProgress({
-            stage: 'processing',
-            progress: 85,
-            message: `Processing ${pages.length} pages...`,
-          });
-          
-          keywords = await LessonService.extractKeywordsFromPages(
-            pages,
-            selectedSubject,
-            userNativeLanguage,
-          );
+        // Use original LessonService 3-step process
+        const lessons = await LessonService.createLessonFromPDF(
+          extractedText,
+          `Images (${selectedImages.length} files)`,
+          user?.id || '',
+          selectedSubject,
+          userNativeLanguage || 'English'
+        );
+        
+        // Handle both single lesson (legacy) and multiple lessons (new)
+        if (Array.isArray(lessons)) {
+          createdLessons = lessons;
+          console.log(`✅ Created ${lessons.length} lessons`);
         } else {
-          console.log('📄 Single image detected, using single extraction');
-          setProgress({
-            stage: 'processing',
-            progress: 85,
-            message: 'Extracting keywords...',
-          });
-          
-          keywords = await LessonService.extractKeywordsFromPDF(
-            extractedText,
-            selectedSubject,
-            userNativeLanguage,
-          );
+          createdLessons.push(lessons);
+          console.log(`✅ Created lesson: ${lessons.title}`);
         }
         
-        console.log('📚 Grouping keywords into topics...');
         setProgress({
-          stage: 'processing',
-          progress: 90,
-          message: 'Grouping keywords into topics...',
+          stage: 'completed',
+          progress: 100,
+          message: `Generated ${createdLessons.length} lesson${createdLessons.length > 1 ? 's' : ''}`,
         });
+      } catch (lessonError) {
+        console.warn('⚠️ Lesson creation failed, falling back to basic lesson:', lessonError);
         
-        const topics = await LessonService.groupKeywordsIntoTopic(
-          keywords,
-          selectedSubject,
-        );
-        
-        console.log('📚 Generating vocabulary from topics...');
-        setProgress({
-          stage: 'processing',
-          progress: 92,
-          message: 'Generating vocabulary... (this may take quite some time)',
-        });
-        
-        const topicVocabulary = await LessonService.generateVocabularyFromTopics(
-          topics,
-          selectedSubject,
-          userNativeLanguage,
-        );
+        // Fallback: Create a basic lesson without AI-generated content
+        const { data: fallbackLesson, error: fallbackError } = await supabase
+          .from('esp_lessons')
+          .insert([{
+            user_id: user?.id || '',
+            title: `${selectedSubject} - Image Content`,
+            subject: selectedSubject,
+            source_pdf_name: `Images (${selectedImages.length} files)`,
+            native_language: userNativeLanguage || ''
+          }])
+          .select()
+          .single();
 
-        // Create multiple lessons (one per topic)
-        console.log('💾 Creating lessons and storing vocabulary...');
-        setProgress({
-          stage: 'processing',
-          progress: 95,
-          message: 'Creating lessons...',
-        });
-        
-        for (let i = 0; i < topics.length; i++) {
-          const topic = topics[i];
-          const topicVocab = topicVocabulary.find(tv => tv.topicName === topic.topicName);
-          
-          if (!topicVocab) {
-            console.warn(`⚠️ No vocabulary found for topic: ${topic.topicName}`);
-            continue;
-          }
-
-          setProgress({
-            stage: 'processing',
-            progress: 95 + (i * 4 / topics.length),
-            message: `Creating lesson ${i + 1} of ${topics.length}: ${topic.topicName}...`,
-          });
-
-          // Create lesson for this topic
-          const lessonTitle = `${selectedSubject} - ${topic.topicName}`;
-          
-          const { data: lesson, error: lessonError } = await supabase
-            .from('esp_lessons')
-            .insert([{
-              user_id: user?.id || '',
-              title: lessonTitle,
-              subject: selectedSubject,
-              source_pdf_name: `Images (${selectedImages.length} files)`,
-              native_language: userNativeLanguage || ''
-            }])
-            .select()
-            .single();
-
-          if (lessonError) {
-            console.error(`❌ Error creating lesson for topic ${topic.topicName}:`, lessonError);
-            continue;
-          }
-
-          // Store vocabulary for this lesson
-          const vocabularyWithLessonId = topicVocab.vocabulary.map(vocab => ({
-            lesson_id: lesson.id,
-            keywords: vocab.english_term,
-            definition: vocab.definition,
-            native_translation: vocab.native_translation,
-            example_sentence_en: vocab.example_sentence_en,
-            example_sentence_native: vocab.example_sentence_native,
-          }));
-
-          const { error: vocabError } = await supabase
-            .from('lesson_vocabulary')
-            .insert(vocabularyWithLessonId);
-
-          if (vocabError) {
-            console.error(`❌ Error storing vocabulary for lesson ${lessonTitle}:`, vocabError);
-            continue;
-          }
-
-          createdLessons.push(lesson);
-          console.log(`✅ Created lesson: ${lessonTitle} with ${vocabularyWithLessonId.length} vocabulary items`);
+        if (fallbackError) {
+          console.error('❌ Error creating fallback lesson:', fallbackError);
+          throw new Error('Failed to create lesson');
         }
 
-        if (createdLessons.length === 0) {
-          throw new Error('Failed to create any lessons');
-        }
-
-        console.log(`✅ Successfully created ${createdLessons.length} lessons from images`);
-      } catch (vocabError) {
-        console.error('❌ Error generating vocabulary:', vocabError);
-        // Don't fail the entire lesson creation if vocabulary generation fails
-        console.log('⚠️ Continuing without vocabulary - lesson created but no exercises available');
+        createdLessons.push(fallbackLesson);
+        console.log('✅ Created fallback lesson without AI-generated content');
       }
 
       setProgress({
