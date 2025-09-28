@@ -1,6 +1,6 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { View, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { useThemeTokens } from '../../theme/useThemeTokens';
 import { ProgressBar } from '../ui';
 import { useOnboardingProgress } from '../state';
@@ -26,7 +26,7 @@ function OnboardingHeader() {
   const progress = currentStep / (totalSteps - 2); // Exclude parent screens from progress
 
   return (
-    <View style={[styles.header, { backgroundColor: theme.colors.background }]}>
+    <View style={[styles.header, { backgroundColor: theme.colors.background.primary }]}>
       <View style={styles.progressContainer}>
         <ProgressBar
           progress={progress}
@@ -36,9 +36,9 @@ function OnboardingHeader() {
         />
       </View>
       <View style={styles.stepIndicator}>
-        <View style={[styles.stepText, { color: theme.colors.textMedium }]}>
+        <Text style={[styles.stepText, { color: theme.colors.text.medium }]}>
           Step {currentStep + 1} of 10
-        </View>
+        </Text>
       </View>
     </View>
   );
@@ -53,7 +53,7 @@ export default function ChildOnboardingStack() {
         header: () => <OnboardingHeader />,
         headerShown: true,
         contentStyle: {
-          backgroundColor: theme.colors.background,
+          backgroundColor: theme.colors.background.primary,
         },
         animation: 'slide_from_right',
         gestureEnabled: false, // Disable swipe back gesture

@@ -207,7 +207,7 @@ export default function OnboardingFlowScreen({ route }: { route?: any }) {
           [
             {
               text: 'OK',
-              onPress: () => navigation.navigate('EmailConfirmation' as never, { email: user.email } as never),
+              onPress: () => (navigation as any).navigate('EmailConfirmation', { email: user.email }),
             },
           ]
         );
@@ -250,12 +250,12 @@ export default function OnboardingFlowScreen({ route }: { route?: any }) {
         email: formData.email,
         nativeLanguage: formData.nativeLanguage,
         targetLanguage: formData.targetLanguage,
-        proficiency: formData.proficiency,
-        dailyCommitmentMinutes: parseInt(formData.timeCommitment) || null,
-        discoverySource: formData.discoverySource,
+        proficiency: formData.proficiency as 'none' | 'basic' | 'advanced',
+        dailyCommitmentMinutes: parseInt(formData.timeCommitment) as 5 | 15 | 30 | 60 || undefined,
+        discoverySource: formData.discoverySource as 'search' | 'radio' | 'tv' | 'other' | 'facebook_instagram' | 'podcast' | 'friends_family' | 'youtube' | 'app_store' | 'website_ad',
         wantsNotifications: formData.wantsNotifications,
         goals: [], // Not collected in this flow
-        ageRange: null, // Not collected in this flow
+        ageRange: undefined, // Not collected in this flow
       };
 
       const result = await completeOnboarding({ data: onboardingData });
@@ -350,17 +350,17 @@ export default function OnboardingFlowScreen({ route }: { route?: any }) {
         email: formData.email,
         nativeLanguage: formData.nativeLanguage,
         targetLanguage: formData.targetLanguage,
-        proficiency: formData.proficiency,
-        dailyCommitmentMinutes: parseInt(formData.timeCommitment) || null,
-        discoverySource: formData.discoverySource,
+        proficiency: formData.proficiency as 'none' | 'basic' | 'advanced',
+        dailyCommitmentMinutes: parseInt(formData.timeCommitment) as 5 | 15 | 30 | 60 || undefined,
+        discoverySource: formData.discoverySource as 'search' | 'radio' | 'tv' | 'other' | 'facebook_instagram' | 'podcast' | 'friends_family' | 'youtube' | 'app_store' | 'website_ad',
         wantsNotifications: formData.wantsNotifications,
         goals: [], // Not collected in this flow
-        ageRange: null, // Not collected in this flow
+        ageRange: undefined, // Not collected in this flow
       };
-      navigation.navigate('EmailConfirmation' as never, { 
+      (navigation as any).navigate('EmailConfirmation', { 
         email: formData.email,
         onboardingData: onboardingData
-      } as never);
+      });
       return; // Exit here, don't continue with onboarding until email is confirmed
       
     } catch (error) {

@@ -9,24 +9,25 @@ import { OnboardingButton } from '../components/OnboardingButton';
 import { OnboardingOption } from '../components/OnboardingOption';
 import { useThemeTokens } from '../../theme/useThemeTokens';
 import { useOnboardingStore } from '../state';
-import { TIME_COMMITMENT_OPTIONS, validateStep } from '../schema';
+import { validateScreen } from '../schema';
 
 export function TimeCommitmentScreen() {
   const theme = useThemeTokens();
-  const { timeCommitment, updateField, nextStep, previousStep, markStepCompleted } = useOnboardingStore();
+  const { data, updateField, nextStep, previousStep, markStepCompleted } = useOnboardingStore();
+  const timeCommitment = data.dailyCommitmentMinutes;
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleTimeCommitmentSelect = (commitment: string) => {
-    updateField('timeCommitment', commitment);
+    updateField('dailyCommitmentMinutes', parseInt(commitment) as 5 | 15 | 30 | 60);
     setErrors({});
   };
 
   const handleContinue = () => {
-    const validation = validateStep(1, {
+    const validation = validateScreen('time-commitment', {
       timeCommitment,
     });
 
-    if (!validation.success) {
+    if (!validation.valid) {
       setErrors(validation.errors || {});
       return;
     }
@@ -57,7 +58,7 @@ export function TimeCommitmentScreen() {
       onBack={previousStep}
     >
       <View style={styles.optionsContainer}>
-        {TIME_COMMITMENT_OPTIONS.map((option) => (
+        {['5 minutes', '15 minutes', '30 minutes', '60 minutes'].map((option: any) => (
           <OnboardingOption
             key={option}
             title={option}

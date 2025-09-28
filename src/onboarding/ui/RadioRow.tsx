@@ -69,7 +69,7 @@ export function RadioRow({
             style={[
               styles.radioOuter,
               {
-                borderColor: selected ? theme.colors.primary : theme.colors.border,
+                borderColor: selected ? theme.colors.primary : theme.colors.border.primary,
               },
             ]}
           >
@@ -90,7 +90,7 @@ export function RadioRow({
             style={[
               styles.title,
               {
-                color: selected ? theme.colors.primary : theme.colors.textDark,
+                color: selected ? theme.colors.primary : theme.colors.text.dark,
                 fontWeight: selected ? '600' : '400',
               },
             ]}
@@ -101,7 +101,7 @@ export function RadioRow({
             <Text
               style={[
                 styles.subtitle,
-                { color: theme.colors.textMedium },
+                { color: theme.colors.text.medium },
               ]}
             >
               {subtitle}

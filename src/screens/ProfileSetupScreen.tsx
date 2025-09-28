@@ -67,13 +67,16 @@ export default function ProfileSetupScreen() {
     try {
       const profileData: CreateProfileData = {
         name: name, // Added name to profile data
+        email: user.email || '',
         native_language: learningLanguage,
+        target_language: learningLanguage, // Using same as native for now
         learning_area: learningArea,
-        level: proficiencyLevel,
+        level: proficiencyLevel.toLowerCase() as 'beginner' | 'intermediate' | 'expert',
+        proficiency_level: proficiencyLevel as 'Beginner' | 'Intermediate' | 'Advanced',
       };
 
       // Save profile using the service
-      await UserProfileService.createUserProfile(user.id, profileData);
+      await UserProfileService.createUserProfile(profileData);
 
       // Clear the new user flag since profile setup is complete
       clearNewUserFlag();

@@ -42,7 +42,7 @@ export default function AssistantConfigScreen() {
 
   const checkAssistantStatus = async (id: string) => {
     try {
-      const success = await AssistantService.initializeAssistant(id);
+      const success = await AssistantService.initializeAssistant();
       if (success) {
         setIsInitialized(true);
         const info = await AssistantService.getAssistantInfo();
@@ -65,7 +65,7 @@ export default function AssistantConfigScreen() {
       await AsyncStorage.setItem(ASSISTANT_ID_KEY, assistantId.trim());
       
       // Initialize the assistant
-      const success = await AssistantService.initializeAssistant(assistantId.trim());
+      const success = await AssistantService.initializeAssistant();
       
       if (success) {
         setIsInitialized(true);

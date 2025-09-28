@@ -19,6 +19,8 @@ interface OnboardingButtonProps {
   style?: ViewStyle;
   textStyle?: TextStyle;
   fullWidth?: boolean;
+  accessibilityLabel?: string;
+  accessibilityHint?: string;
 }
 
 export function OnboardingButton({
@@ -31,6 +33,8 @@ export function OnboardingButton({
   style,
   textStyle,
   fullWidth = true,
+  accessibilityLabel,
+  accessibilityHint,
 }: OnboardingButtonProps) {
   const theme = useThemeTokens();
 
@@ -128,6 +132,8 @@ export function OnboardingButton({
       onPress={onPress}
       disabled={disabled || loading}
       activeOpacity={0.8}
+      accessibilityLabel={accessibilityLabel}
+      accessibilityHint={accessibilityHint}
     >
       {loading && (
         <ActivityIndicator

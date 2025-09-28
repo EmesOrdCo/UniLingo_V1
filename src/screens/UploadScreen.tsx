@@ -528,14 +528,14 @@ export default function UploadScreen() {
         
         let errorMessage = 'An error occurred while processing the PDF.';
         
-        if (fetchError.name === 'AbortError') {
+        if ((fetchError as any).name === 'AbortError') {
           errorMessage = 'Backend request timed out after 60 seconds. Please try again with a smaller file.';
-        } else if (fetchError.message.includes('Network request failed')) {
+        } else if ((fetchError as any).message?.includes('Network request failed')) {
           errorMessage = 'Network error. Please check your internet connection and try again.';
-        } else if (fetchError.message.includes('Cannot connect')) {
+        } else if ((fetchError as any).message?.includes('Cannot connect')) {
           errorMessage = 'Cannot connect to backend server. Please make sure the backend is running.';
         } else {
-          errorMessage = `Backend error: ${fetchError.message}`;
+          errorMessage = `Backend error: ${(fetchError as any).message || 'Unknown error'}`;
         }
         
         Alert.alert(

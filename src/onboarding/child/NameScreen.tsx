@@ -70,8 +70,8 @@ export function NameScreen() {
         {/* Text Input Container */}
         <View style={styles.inputContainer}>
           <View style={[styles.inputWrapper, { 
-            borderColor: validationError ? theme.colors.error : theme.colors.border,
-            backgroundColor: theme.colors.surface,
+            borderColor: validationError ? theme.colors.status.error : theme.colors.border.primary,
+            backgroundColor: theme.colors.background.surface,
           }]}>
             {/* Person Icon */}
             <Text style={styles.personIcon}>👤</Text>
@@ -80,17 +80,17 @@ export function NameScreen() {
             <TextInput
               ref={textInputRef}
               style={[styles.textInput, { 
-                color: theme.colors.textDark,
-                fontFamily: theme.fonts.regular,
+                color: theme.colors.text.dark,
+                fontFamily: theme.fonts.families.system,
               }]}
               value={inputValue}
               onChangeText={handleTextChange}
               onSubmitEditing={handleSubmit}
               placeholder="Enter your first name"
-              placeholderTextColor={theme.colors.textLight}
+              placeholderTextColor={theme.colors.text.light}
               autoCapitalize="words"
               autoCorrect={false}
-              returnKeyType="continue"
+              returnKeyType="done"
               enablesReturnKeyAutomatically={true}
               maxLength={50}
               accessibilityLabel="First name input"
@@ -100,20 +100,20 @@ export function NameScreen() {
 
           {/* Error Message */}
           {validationError && (
-            <Text style={[styles.errorText, { color: theme.colors.error }]}>
+            <Text style={[styles.errorText, { color: theme.colors.status.error }]}>
               {validationError}
             </Text>
           )}
 
           {/* Character Count */}
-          <Text style={[styles.charCount, { color: theme.colors.textLight }]}>
+          <Text style={[styles.charCount, { color: theme.colors.text.light }]}>
             {inputValue.length}/50
           </Text>
         </View>
 
         {/* Helper Text */}
         <View style={styles.helperContainer}>
-          <Text style={[styles.helperText, { color: theme.colors.textMedium }]}>
+          <Text style={[styles.helperText, { color: theme.colors.text.medium }]}>
             Don't worry, you can change this later in your profile settings.
           </Text>
         </View>

@@ -379,12 +379,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#1e293b',
   },
-  actionButtons: {
-    flexDirection: 'row',
-    gap: 16,
-    marginHorizontal: 20,
-    marginBottom: 24,
-  },
   actionButton: {
     flex: 1,
     paddingVertical: 16,

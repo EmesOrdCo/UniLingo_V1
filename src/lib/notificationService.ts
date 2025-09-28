@@ -7,6 +7,8 @@ Notifications.setNotificationHandler({
     shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: false,
+    shouldShowBanner: true,
+    shouldShowList: true,
   }),
 });
 
@@ -81,7 +83,7 @@ export class NotificationService {
           hour,
           minute,
           repeats: true, // Daily
-        },
+        } as any,
       });
 
       console.log(`✅ Daily reminder scheduled for ${hour}:${minute.toString().padStart(2, '0')} (random time between 13:00-15:00)`);
@@ -213,7 +215,7 @@ export class NotificationService {
         status: 'unknown',
         granted: false,
         canAskAgain: false,
-        details: { error: error.message }
+        details: { error: error instanceof Error ? error.message : String(error) }
       };
     }
   }
@@ -261,8 +263,8 @@ export class NotificationService {
 
     // Return cleanup function
     return () => {
-      Notifications.removeNotificationSubscription(notificationListener);
-      Notifications.removeNotificationSubscription(responseListener);
+      (Notifications as any).removeNotificationSubscription(notificationListener);
+      (Notifications as any).removeNotificationSubscription(responseListener);
     };
   }
 }

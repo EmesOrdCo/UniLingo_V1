@@ -1577,6 +1577,29 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#64748b',
   },
+  completionContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  completionTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#ffffff',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  completionSubtitle: {
+    fontSize: 16,
+    color: '#e2e8f0',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    gap: 16,
+  },
 });
 
 export default GravityGame;

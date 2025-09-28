@@ -63,7 +63,7 @@ export default function LoginScreen() {
                 { text: 'Cancel', style: 'cancel' },
                 { 
                   text: 'Go to Confirmation', 
-                  onPress: () => navigation.navigate('EmailConfirmation' as never, { email } as never)
+                  onPress: () => (navigation as any).navigate('EmailConfirmation', { email })
                 },
               ]
             );

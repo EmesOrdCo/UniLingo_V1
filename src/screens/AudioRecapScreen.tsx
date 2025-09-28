@@ -41,7 +41,7 @@ export default function AudioRecapScreen() {
         // TODO: Add AI processing functionality here
         Alert.alert(
           'PDF Selected',
-          `File: ${file.name}\nSize: ${(file.size / 1024 / 1024).toFixed(2)} MB\n\nAI processing functionality will be added next.`,
+          `File: ${file.name}\nSize: ${((file.size || 0) / 1024 / 1024).toFixed(2)} MB\n\nAI processing functionality will be added next.`,
           [{ text: 'OK' }]
         );
       }

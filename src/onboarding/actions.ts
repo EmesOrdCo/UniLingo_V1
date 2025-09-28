@@ -45,8 +45,8 @@ export async function createAccount(name: string, email: string, password: strin
     const result = await signUp(email, password, name);
     
     // Check for duplicate email error from our updated signUp function
-    if (result.error) {
-      throw new Error(result.error.message || 'Failed to create account');
+    if (result && (result as any).error) {
+      throw new Error((result as any).error.message || 'Failed to create account');
     }
     
     // 2) Mirror into public.users (harmless if trigger already added an empty row)

@@ -412,13 +412,6 @@ class OptimizedProgressService {
     };
   }
 
-  /**
-   * Clear cache for a user (useful when data changes)
-   */
-  static async clearUserCache(userId: string): Promise<void> {
-    await ProgressCacheService.clearUserCache(userId);
-    MemoryCache.clearUserCache(userId);
-  }
 
   /**
    * Force refresh progress data

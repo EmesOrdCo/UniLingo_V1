@@ -39,8 +39,8 @@ export default function EmailConfirmationScreen() {
 
   useEffect(() => {
     // Get email and onboarding data from route params
-    const emailParam = route.params?.email;
-    const onboardingParam = route.params?.onboardingData;
+    const emailParam = (route.params as any)?.email;
+    const onboardingParam = (route.params as any)?.onboardingData;
     if (emailParam) {
       setEmail(emailParam);
     }

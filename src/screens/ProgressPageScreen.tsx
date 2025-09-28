@@ -135,6 +135,7 @@ export default function ProgressPageScreen() {
           bestTopic: 'None',
           weakestTopic: 'None',
         },
+        upcomingGoals: [],
       };
       
       console.log('📊 ProgressPage - Final streak data:', { 
@@ -199,7 +200,7 @@ export default function ProgressPageScreen() {
   };
 
   // Skeleton loading component
-  const SkeletonCard = ({ width = '100%', height = 80 }: { width?: string | number, height?: number }) => (
+  const SkeletonCard = ({ width = 100, height = 80 }: { width?: number, height?: number }) => (
     <View style={[styles.skeletonCard, { width, height }]}>
       <View style={styles.skeletonShimmer} />
     </View>
@@ -207,14 +208,14 @@ export default function ProgressPageScreen() {
 
   if (loading && !progressData) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
+      <SafeAreaView style={styles.container}>
         <ConsistentHeader pageName="Progress" />
         <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
           <View style={styles.skeletonContainer}>
             {/* Streak cards skeleton */}
             <View style={styles.streakRow}>
-              <SkeletonCard width="48%" height={100} />
-              <SkeletonCard width="48%" height={100} />
+              <SkeletonCard width={48} height={100} />
+              <SkeletonCard width={48} height={100} />
             </View>
             
             {/* Today's progress skeleton */}
@@ -235,7 +236,7 @@ export default function ProgressPageScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container}>
       {/* Consistent Header with Profile Avatar */}
       <ConsistentHeader 
         pageName="Progress"
@@ -247,7 +248,7 @@ export default function ProgressPageScreen() {
         <View style={styles.errorContainer}>
           <Ionicons name="warning" size={24} color="#ef4444" />
           <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity onPress={loadProgressData} style={styles.retryButton}>
+          <TouchableOpacity onPress={() => loadProgressData()} style={styles.retryButton}>
             <Text style={styles.retryButtonText}>Retry</Text>
           </TouchableOpacity>
         </View>
@@ -382,20 +383,20 @@ export default function ProgressPageScreen() {
 
 
         {/* Achievements */}
-        {progressData?.achievements.length > 0 && (
+        {progressData?.achievements && progressData.achievements.length > 0 && (
           <View style={styles.achievementsSection}>
             <View style={styles.sectionTitleContainer}>
               <Ionicons name="trophy" size={24} color="#f59e0b" />
               <Text style={styles.sectionTitle}>Recent Achievements</Text>
             </View>
             <View style={styles.achievementsList}>
-              {progressData.achievements.slice(0, 3).map((achievement, index) => (
+              {progressData?.achievements?.slice(0, 3).map((achievement, index) => (
                 <View key={index} style={styles.achievementCard}>
                   <View style={styles.achievementIcon}>
                     <Ionicons 
                       name={
                         achievement.achievement_type === 'streak' ? 'flame' :
-                        achievement.achievement_type === 'accuracy' ? 'target' :
+                        achievement.achievement_type === 'accuracy' ? 'star' :
                         achievement.achievement_type === 'time' ? 'time' : 'star'
                       } 
                       size={24} 
@@ -438,7 +439,7 @@ export default function ProgressPageScreen() {
             </View>
             <View style={styles.flashcardStatCard}>
               <View style={[styles.flashcardStatIcon, styles.accuracyIcon]}>
-                <Ionicons name="target" size={28} color="#ffffff" />
+                <Ionicons name="star" size={28} color="#ffffff" />
               </View>
               <Text style={styles.flashcardStatNumber}>{progressData?.flashcardStats?.averageAccuracy || 0}%</Text>
               <Text style={styles.flashcardStatLabel}>Accuracy</Text>
@@ -798,27 +799,21 @@ const styles = StyleSheet.create({
   // Individual icon styles with gradients
   totalCardsIcon: {
     backgroundColor: '#6366f1',
-    backgroundImage: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
   },
   masteredCardsIcon: {
     backgroundColor: '#8b5cf6',
-    backgroundImage: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
   },
   accuracyIcon: {
     backgroundColor: '#6466E9',
-    backgroundImage: 'linear-gradient(135deg, #6466E9 0%, #6366f1 100%)',
   },
   streakIcon: {
     backgroundColor: '#06b6d4',
-    backgroundImage: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)',
   },
   bestTopicIcon: {
     backgroundColor: '#8b5cf6',
-    backgroundImage: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
   },
   needsWorkIcon: {
     backgroundColor: '#6466E9',
-    backgroundImage: 'linear-gradient(135deg, #6466E9 0%, #6366f1 100%)',
   },
   flashcardStatNumber: {
     fontSize: 20,
@@ -885,6 +880,9 @@ const styles = StyleSheet.create({
   streakRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+  },
+  scrollView: {
+    flex: 1,
   },
 });
 

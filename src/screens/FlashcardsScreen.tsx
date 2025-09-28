@@ -616,7 +616,7 @@ export default function FlashcardsScreen() {
       }));
     }
   };
-  const endStudySession = async (answers: Array<'correct' | 'incorrect' | 'easy' | 'hard'>) => {
+  const endStudySession = async (answers: Array<'correct' | 'incorrect'>) => {
     setStudySession(prev => ({
       ...prev,
       isActive: false,
@@ -634,7 +634,7 @@ export default function FlashcardsScreen() {
       
       try {
         // Calculate session statistics
-        const correct = answers.filter(a => a === 'correct' || a === 'easy').length;
+        const correct = answers.filter(a => a === 'correct').length;
         const total = answers.length;
         const accuracyPercentage = Math.round((correct / total) * 100);
         const score = Math.round((correct / total) * 100);
@@ -1040,14 +1040,14 @@ export default function FlashcardsScreen() {
 
        // Show review session if complete
     if (studySession.isComplete) {
-      const correct = studySession.answers.filter(a => a === 'correct' || a === 'easy').length;
+      const correct = studySession.answers.filter(a => a === 'correct').length;
       const total = studySession.answers.length;
       const percentage = Math.round((correct / total) * 100);
       
       // Filter flashcards based on performance
       const filteredFlashcards = studySession.flashcards.filter((card, index) => {
        const answer = studySession.answers[index];
-       const isCorrect = answer === 'correct' || answer === 'easy';
+       const isCorrect = answer === 'correct';
        
        if (filterType === 'all') return true;
        if (filterType === 'correct') return isCorrect;
@@ -1125,7 +1125,7 @@ export default function FlashcardsScreen() {
            {filteredFlashcards.map((card, index) => {
              const originalIndex = studySession.flashcards.indexOf(card);
              const answer = studySession.answers[originalIndex];
-             const isCorrect = answer === 'correct' || answer === 'easy';
+             const isCorrect = answer === 'correct';
              
              return (
                <View key={originalIndex} style={[styles.reviewCard, isCorrect ? styles.correctReviewCard : styles.incorrectReviewCard]}>
@@ -1220,7 +1220,7 @@ export default function FlashcardsScreen() {
                 // Start a new session with only incorrect cards
                 const incorrectCards = studySession.flashcards.filter((card, index) => {
                   const answer = studySession.answers[index];
-                  return answer === 'incorrect' || answer === 'hard';
+                  return answer === 'incorrect';
                 });
                 
                 if (incorrectCards.length === 0) {
@@ -1894,10 +1894,10 @@ export default function FlashcardsScreen() {
                     <View style={styles.topicHeader}>
                       <Ionicons name="bookmark" size={20} color="#6366f1" />
                       <Text style={styles.topicTitle}>{topic}</Text>
-                      <Text style={styles.topicCount}>({cards.length} cards)</Text>
+                      <Text style={styles.topicCount}>({(cards as any[]).length} cards)</Text>
                     </View>
                     
-                    {cards.map((card, index) => (
+                    {(cards as any[]).map((card: any, index: number) => (
                       <View key={card.id || index} style={styles.browseCard}>
                         <View style={styles.browseCardHeader}>
                           <Text style={styles.browseCardDifficulty}>
@@ -3226,17 +3226,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
   },
-  reviewStatNumber: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1f2937',
-    marginTop: 8,
-  },
-  reviewStatLabel: {
-    fontSize: 12,
-    color: '#6b7280',
-    marginTop: 4,
-  },
   reviewButton: {
     backgroundColor: '#10b981',
     borderRadius: 12,
@@ -3311,14 +3300,6 @@ const styles = StyleSheet.create({
   closeButton: {
     padding: 4,
   },
-  loadingContainer: {
-    padding: 40,
-    alignItems: 'center',
-  },
-  loadingText: {
-    fontSize: 16,
-    color: '#6b7280',
-  },
   emptyContainer: {
     padding: 40,
     alignItems: 'center',
@@ -3352,11 +3333,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#1f2937',
-    marginLeft: 8,
-  },
-  topicCount: {
-    fontSize: 14,
-    color: '#6b7280',
     marginLeft: 8,
   },
   browseCard: {
@@ -3510,11 +3486,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  emptyText: {
-    fontSize: 14,
-    color: '#64748b',
-    fontStyle: 'italic',
-  },
   compactIcon: {
     width: 20,
     height: 20,

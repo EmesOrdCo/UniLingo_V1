@@ -37,7 +37,7 @@ export function Screen({
   const theme = useThemeTokens();
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background.primary }]}>
       <KeyboardAvoidingView
         style={styles.keyboardAvoidingView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -50,11 +50,11 @@ export function Screen({
         >
           {/* Header */}
           <View style={styles.header}>
-            <Text style={[styles.title, { color: theme.colors.textDark }]}>
+            <Text style={[styles.title, { color: theme.colors.text.dark }]}>
               {title}
             </Text>
             {subtitle && (
-              <Text style={[styles.subtitle, { color: theme.colors.textMedium }]}>
+              <Text style={[styles.subtitle, { color: theme.colors.text.medium }]}>
                 {subtitle}
               </Text>
             )}
@@ -67,7 +67,7 @@ export function Screen({
         </ScrollView>
 
         {/* Sticky Footer */}
-        <View style={[styles.footer, { backgroundColor: theme.colors.background }]}>
+        <View style={[styles.footer, { backgroundColor: theme.colors.background.primary }]}>
           <View style={styles.buttonContainer}>
             {showBackButton && onBack && (
               <OnboardingButton
@@ -75,7 +75,6 @@ export function Screen({
                 onPress={onBack}
                 variant="secondary"
                 style={styles.backButton}
-                accessibilityRole="button"
                 accessibilityLabel={`Go back to previous step`}
               />
             )}
@@ -84,7 +83,6 @@ export function Screen({
               onPress={onContinue}
               disabled={!canContinue}
               style={styles.continueButton}
-              accessibilityRole="button"
               accessibilityLabel={`Continue to next step`}
               accessibilityHint={canContinue ? 'Tap to continue' : 'Complete current step to continue'}
             />

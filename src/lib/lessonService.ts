@@ -8,7 +8,7 @@ import { HolisticProgressService } from './holisticProgressService';
 
 // Initialize OpenAI client with rate limiting
 const openai = new OpenAIWithRateLimit({
-  apiKey: ENV.OPENAI_API_KEY,
+  apiKey: ENV.OPENAI_API_KEY || '',
 });
 
 export interface Lesson {
@@ -59,7 +59,7 @@ export class LessonService {
       
       // Read the PDF file as base64
       const pdfBase64 = await FileSystem.readAsStringAsync(pdfUri, {
-        encoding: FileSystem.EncodingType.Base64,
+        encoding: 'base64' as any,
       });
 
       // PDF text extraction now handled by Zapier webhook

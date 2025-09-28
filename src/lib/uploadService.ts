@@ -395,7 +395,7 @@ export class UploadService {
         message: topic === 'AI Selection' ? 'Processing AI response and organizing by detected topics...' : 'Processing AI response...',
       });
 
-      const responseText = completion.content;
+      const responseText = (completion as any).content;
       if (!responseText) {
         throw new Error('No response from AI');
       }
@@ -406,7 +406,7 @@ export class UploadService {
       }
 
       // Parse the JSON response
-      let flashcards: GeneratedFlashcard[];
+      let flashcards: GeneratedFlashcard[] = [];
       try {
         // Check if cancelled before parsing
         if (abortSignal?.aborted || isCancelled?.()) {

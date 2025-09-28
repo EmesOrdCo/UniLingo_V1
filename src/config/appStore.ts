@@ -38,7 +38,7 @@ export const getAppName = (): string => {
 };
 
 // Get platform-specific icon name
-export const getPlatformIcon = (): string => {
+export const getPlatformIcon = (): any => {
   return Platform.OS === 'ios' ? 'logo-apple' : 'logo-google';
 };
 

@@ -456,11 +456,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#6466E9',
   },
-  actionButtons: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 24,
-  },
   resetButton: {
     flex: 1,
     backgroundColor: '#6466E9',

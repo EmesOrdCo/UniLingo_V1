@@ -14,7 +14,7 @@ export class SupabaseProfilePictureService {
       
       // Read the file as base64
       const base64 = await FileSystem.readAsStringAsync(uri, {
-        encoding: FileSystem.EncodingType.Base64,
+        encoding: 'base64' as any,
       });
       
       // Convert base64 to blob

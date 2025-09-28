@@ -53,7 +53,7 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
   };
 
   const handleUnitPress = (unitId: string | number) => {
-    setExpandedUnit(expandedUnit === unitId ? null : unitId);
+    setExpandedUnit(expandedUnit === unitId ? null : (typeof unitId === 'string' ? parseInt(unitId) : unitId));
   };
 
   const handleLessonPress = async (unitCode: string, lessonTitle: string, topicGroup?: string) => {
@@ -78,7 +78,7 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
       // The Unit screens will handle their own vocabulary loading with proper error handling
       switch (lessonTitle) {
         case 'Words':
-          navigation.navigate('UnitWords' as never, {
+          (navigation as any).navigate('UnitWords', {
             unitId: parseInt(unitCode.split('.')[1]),
             unitTitle: selectedUnit?.unit_title || unitCode,
             topicGroup: selectedTopicGroup,
@@ -87,7 +87,7 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
           break;
           
         case 'Listen':
-          navigation.navigate('UnitListen' as never, {
+          (navigation as any).navigate('UnitListen', {
             unitId: parseInt(unitCode.split('.')[1]),
             unitTitle: selectedUnit?.unit_title || unitCode,
             topicGroup: selectedTopicGroup,
@@ -96,7 +96,7 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
           break;
           
         case 'Write':
-          navigation.navigate('UnitWrite' as never, {
+          (navigation as any).navigate('UnitWrite', {
             unitId: parseInt(unitCode.split('.')[1]),
             unitTitle: selectedUnit?.unit_title || unitCode,
             topicGroup: selectedTopicGroup,
@@ -114,7 +114,8 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
       }
     } catch (error) {
       console.error('❌ Error handling lesson press:', error);
-      Alert.alert('Error', `Failed to start lesson: ${error.message || 'Unknown error'}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      Alert.alert('Error', `Failed to start lesson: ${errorMessage}`);
     } finally {
       // Reset navigation state after a longer delay to ensure screen has loaded
       setTimeout(() => {
@@ -212,7 +213,7 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
                 style={styles.changeButton}
                 onPress={() => {
                   console.log('🔄 Change button pressed - navigating to Courses');
-                  navigation.navigate('Courses' as never);
+                  (navigation as any).navigate('Courses');
                 }}
               >
                 <Text style={styles.changeButtonText}>Change</Text>
@@ -239,7 +240,7 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
                 <Text style={styles.loadingText}>Loading units...</Text>
               </View>
             ) : selectedUnit ? (
-              selectedUnit.topic_groups.map((topicGroup, index) => (
+              selectedUnit?.topic_groups?.map((topicGroup, index) => (
                 <View key={topicGroup} style={styles.unitContainer}>
                   <TouchableOpacity 
                     style={[
@@ -256,7 +257,7 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
                     </View>
                     
                     <Text style={styles.unitTitle}>{topicGroup}</Text>
-                    <Text style={styles.unitSubtitle}>{selectedUnit.unit_code} • Topic Group</Text>
+                    <Text style={styles.unitSubtitle}>{selectedUnit?.unit_code} • Topic Group</Text>
                     
                     <View style={styles.unitFooter}>
                       <Ionicons name="download-outline" size={20} color="#6b7280" />
@@ -271,7 +272,7 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
                   {/* Expanded Lessons */}
                   {expandedUnit === index && (
                     <View style={styles.lessonsContainer}>
-                      {UnitDataService.getLessonsForUnit(selectedUnit).map((lesson) => (
+                      {selectedUnit && UnitDataService.getLessonsForUnit(selectedUnit).map((lesson) => (
                         <View 
                           key={lesson.id} 
                           style={[
@@ -283,7 +284,7 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
                             <Text style={styles.lessonTitle}>{lesson.title}</Text>
                           </View>
                           <View style={styles.lessonActions}>
-                            {getStatusButton(lesson.status, selectedUnit.unit_code, lesson.title, topicGroup)}
+                            {getStatusButton(lesson.status, selectedUnit?.unit_code || '', lesson.title, topicGroup)}
                           </View>
                         </View>
                       ))}
@@ -473,14 +474,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6b7280',
     marginTop: 4,
-  },
-  loadingContainer: {
-    padding: 20,
-    alignItems: 'center',
-  },
-  loadingText: {
-    fontSize: 16,
-    color: '#6b7280',
   },
   unitFooter: {
     flexDirection: 'row',

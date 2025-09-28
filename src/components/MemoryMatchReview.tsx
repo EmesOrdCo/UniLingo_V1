@@ -355,12 +355,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginLeft: 8,
   },
-  closeButton: {
-    backgroundColor: '#f1f5f9',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-  },
   closeButtonText: {
     color: '#64748b',
     fontSize: 16,

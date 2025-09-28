@@ -70,7 +70,7 @@ export default function ProfilePage() {
 
       // Launch image picker
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: 'Images',
+        mediaTypes: 'images',
         allowsEditing: true,
         aspect: [1, 1], // Square aspect ratio for profile picture
         quality: 0.8,
@@ -111,7 +111,7 @@ export default function ProfilePage() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await ProfilePictureService.removeProfilePicture();
+              await ProfilePictureService.removeProfilePicture(user?.id || '');
               setProfileImage(null);
               triggerRefresh(); // Use global refresh trigger
               Alert.alert('Success', 'Profile picture removed!');

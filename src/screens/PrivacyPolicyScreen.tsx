@@ -46,12 +46,12 @@ export default function PrivacyPolicyScreen() {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Interpretation and Definitions</Text>
-          <Text style={styles.subSectionTitle}>Interpretation</Text>
+          <Text style={styles.sectionTitle}>Interpretation</Text>
           <Text style={styles.paragraph}>
             The words of which the initial letter is capitalized have meanings defined under the following conditions. The following definitions shall have the same meaning regardless of whether they appear in singular or in plural.
           </Text>
           
-          <Text style={styles.subSectionTitle}>Definitions</Text>
+          <Text style={styles.sectionTitle}>Definitions</Text>
           <Text style={styles.paragraph}>
             For the purposes of this Privacy Policy:
           </Text>
@@ -92,9 +92,9 @@ export default function PrivacyPolicyScreen() {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Collecting and Using Your Personal Data</Text>
-          <Text style={styles.subSectionTitle}>Types of Data Collected</Text>
+          <Text style={styles.sectionTitle}>Types of Data Collected</Text>
           
-          <Text style={styles.subSectionTitle}>Personal Data</Text>
+          <Text style={styles.sectionTitle}>Personal Data</Text>
           <Text style={styles.paragraph}>
             While using Our Service, We may ask You to provide Us with certain personally identifiable information that can be used to contact or identify You. Personally identifiable information may include, but is not limited to:
           </Text>
@@ -104,7 +104,7 @@ export default function PrivacyPolicyScreen() {
             • Usage Data
           </Text>
           
-          <Text style={styles.subSectionTitle}>Usage Data</Text>
+          <Text style={styles.sectionTitle}>Usage Data</Text>
           <Text style={styles.paragraph}>
             Usage Data is collected automatically when using the Service.
           </Text>
@@ -188,17 +188,17 @@ export default function PrivacyPolicyScreen() {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Disclosure of Your Personal Data</Text>
-          <Text style={styles.subSectionTitle}>Business Transactions</Text>
+          <Text style={styles.sectionTitle}>Business Transactions</Text>
           <Text style={styles.paragraph}>
             If the Company is involved in a merger, acquisition or asset sale, Your Personal Data may be transferred. We will provide notice before Your Personal Data is transferred and becomes subject to a different Privacy Policy.
           </Text>
           
-          <Text style={styles.subSectionTitle}>Law enforcement</Text>
+          <Text style={styles.sectionTitle}>Law enforcement</Text>
           <Text style={styles.paragraph}>
             Under certain circumstances, the Company may be required to disclose Your Personal Data if required to do so by law or in response to valid requests by public authorities (e.g. a court or a government agency).
           </Text>
           
-          <Text style={styles.subSectionTitle}>Other legal requirements</Text>
+          <Text style={styles.sectionTitle}>Other legal requirements</Text>
           <Text style={styles.paragraph}>
             The Company may disclose Your Personal Data in the good faith belief that such action is necessary to:
           </Text>
@@ -319,25 +319,11 @@ const styles = StyleSheet.create({
     color: '#1f2937',
     marginBottom: 12,
   },
-  subSectionTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 8,
-    marginTop: 8,
-  },
   paragraph: {
     fontSize: 14,
     lineHeight: 20,
     color: '#374151',
     marginBottom: 12,
-  },
-  subSectionTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 8,
-    marginTop: 8,
   },
   bold: {
     fontWeight: '600',

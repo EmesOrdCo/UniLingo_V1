@@ -30,7 +30,7 @@ export default function ProgressAnalyticsDashboard({ userId, onClose }: Progress
   const loadProgressInsights = async () => {
     try {
       setLoading(true);
-      const progressInsights = await EnhancedProgressService.getProgressInsights(userId);
+      const progressInsights = await (EnhancedProgressService as any).getProgressInsights(userId);
       setInsights(progressInsights);
     } catch (error) {
       console.error('Error loading progress insights:', error);

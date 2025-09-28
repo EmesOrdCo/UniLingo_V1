@@ -11,11 +11,12 @@ import { OnboardingLayout } from '../components/OnboardingLayout';
 import { OnboardingButton } from '../components/OnboardingButton';
 import { useThemeTokens } from '../../theme/useThemeTokens';
 import { useOnboardingStore } from '../state';
-import { validateStep } from '../schema';
+import { validateScreen } from '../schema';
 
 export function EmailScreen() {
   const theme = useThemeTokens();
-  const { email, updateField, nextStep, previousStep, markStepCompleted } = useOnboardingStore();
+  const { data, updateField, nextStep, previousStep, markStepCompleted } = useOnboardingStore();
+  const email = data.email;
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleEmailChange = (text: string) => {
@@ -24,11 +25,11 @@ export function EmailScreen() {
   };
 
   const handleContinue = () => {
-    const validation = validateStep(6, {
+    const validation = validateScreen('email', {
       email,
     });
 
-    if (!validation.success) {
+    if (!validation.valid) {
       setErrors(validation.errors || {});
       return;
     }

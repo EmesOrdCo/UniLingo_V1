@@ -67,7 +67,7 @@ export function GoalsScreen() {
       <View style={styles.container}>
         {/* Counter */}
         <View style={styles.counterContainer}>
-          <Text style={[styles.counter, { color: theme.colors.textMedium }]}>
+          <Text style={[styles.counter, { color: theme.colors.text.medium }]}>
             {selectedGoals.length}/3 selected
           </Text>
         </View>
@@ -84,7 +84,7 @@ export function GoalsScreen() {
         {/* Helper Text */}
         {selectedGoals.length === 0 && (
           <View style={styles.helperContainer}>
-            <Text style={[styles.helperText, { color: theme.colors.textLight }]}>
+            <Text style={[styles.helperText, { color: theme.colors.text.light }]}>
               Choose at least one goal to continue
             </Text>
           </View>

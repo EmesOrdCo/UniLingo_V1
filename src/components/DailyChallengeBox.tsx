@@ -164,7 +164,7 @@ export default function DailyChallengeBox({ refreshTrigger }: DailyChallengeBoxP
 
     try {
       // Navigate to Games screen with launchGame parameter to directly start the game
-      const gameMapping = {
+      const gameMapping: { [key: string]: string } = {
         'Flashcard Quiz': 'Flashcard Quiz',
         'Memory Match': 'Memory Match',
         'Word Scramble': 'Word Scramble',
@@ -178,7 +178,7 @@ export default function DailyChallengeBox({ refreshTrigger }: DailyChallengeBoxP
       if (challenge.game_type === 'Daily Vocabulary') {
         // For daily vocab, navigate to vocabulary section
         if (selectedUnit) {
-          navigation.navigate('UnitWords' as never, {
+          (navigation as any).navigate('UnitWords', {
             unitId: parseInt(selectedUnit.unit_code.split('.')[1]),
             unitTitle: selectedUnit.unit_title,
             topicGroup: selectedUnit.topic_groups[0],
@@ -186,7 +186,7 @@ export default function DailyChallengeBox({ refreshTrigger }: DailyChallengeBoxP
             isDailyChallenge: true
           });
         } else {
-          navigation.navigate('Flashcards' as never);
+          (navigation as any).navigate('Flashcards');
         }
       } else {
         // For games, navigate to Games screen with launch parameter
@@ -195,7 +195,7 @@ export default function DailyChallengeBox({ refreshTrigger }: DailyChallengeBoxP
           const gameOptions = getDefaultGameOptions(challenge.game_type);
           console.log('🎯 Daily Challenge - Launching game:', gameName, 'with options:', gameOptions);
           
-          navigation.navigate('Games' as never, {
+          (navigation as any).navigate('Games', {
             launchGame: gameName,
             isDailyChallenge: true,
             challengeId: challenge.challenge_date, // Pass challenge ID for completion tracking

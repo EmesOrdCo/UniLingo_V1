@@ -69,7 +69,7 @@ export function ProficiencyScreen() {
         {/* Helper Text */}
         {!proficiency && (
           <View style={styles.helperContainer}>
-            <Text style={[styles.helperText, { color: theme.colors.textLight }]}>
+            <Text style={[styles.helperText, { color: theme.colors.text.light }]}>
               Select your current level to continue
             </Text>
           </View>

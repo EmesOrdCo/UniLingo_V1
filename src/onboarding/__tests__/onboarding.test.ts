@@ -1,4 +1,4 @@
-import { validateStep, validateCompleteOnboarding } from '../schema';
+import { validateScreen, validateCompleteOnboarding } from '../schema';
 import { useOnboardingStore } from '../state';
 
 // Mock AsyncStorage for testing
@@ -16,8 +16,8 @@ describe('Onboarding System', () => {
         targetLanguages: ['Spanish', 'French'],
       };
       
-      const result = validateStep(0, validData);
-      expect(result.success).toBe(true);
+      const result = validateScreen('language-selection', validData);
+      expect(result.valid).toBe(true);
     });
 
     it('should reject invalid language selection', () => {
@@ -26,8 +26,8 @@ describe('Onboarding System', () => {
         targetLanguages: [],
       };
       
-      const result = validateStep(0, invalidData);
-      expect(result.success).toBe(false);
+      const result = validateScreen('language-selection', invalidData);
+      expect(result.valid).toBe(false);
       expect(result.errors).toBeDefined();
     });
 
@@ -36,8 +36,8 @@ describe('Onboarding System', () => {
         email: 'test@example.com',
       };
       
-      const result = validateStep(6, validData);
-      expect(result.success).toBe(true);
+      const result = validateScreen('email', validData);
+      expect(result.valid).toBe(true);
     });
 
     it('should reject invalid email', () => {
@@ -45,8 +45,8 @@ describe('Onboarding System', () => {
         email: 'invalid-email',
       };
       
-      const result = validateStep(6, invalidData);
-      expect(result.success).toBe(false);
+      const result = validateScreen('email', invalidData);
+      expect(result.valid).toBe(false);
       expect(result.errors?.email).toBeDefined();
     });
 
@@ -66,7 +66,7 @@ describe('Onboarding System', () => {
       };
       
       const result = validateCompleteOnboarding(completeData);
-      expect(result.success).toBe(true);
+      expect(result.valid).toBe(true);
     });
   });
 
@@ -80,18 +80,18 @@ describe('Onboarding System', () => {
       const state = useOnboardingStore.getState();
       expect(state.currentStep).toBe(0);
       expect(state.isCompleted).toBe(false);
-      expect(state.nativeLanguage).toBe('');
+      expect(state.data.nativeLanguage).toBe('');
     });
 
     it('should update fields correctly', () => {
       const { updateField } = useOnboardingStore.getState();
       
-      updateField('name', 'John Doe');
+      updateField('firstName', 'John Doe');
       updateField('email', 'john@example.com');
       
       const state = useOnboardingStore.getState();
-      expect(state.name).toBe('John Doe');
-      expect(state.email).toBe('john@example.com');
+      expect(state.data.firstName).toBe('John Doe');
+      expect(state.data.email).toBe('john@example.com');
     });
 
     it('should navigate steps correctly', () => {

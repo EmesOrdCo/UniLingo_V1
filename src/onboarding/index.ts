@@ -5,21 +5,17 @@ export {
   useOnboardingStore, 
   useOnboardingProgress, 
   useOnboardingData, 
-  useOnboardingActions,
+  useOnboardingNavigation,
+  useOnboardingGoals,
+  useOnboardingField,
   TOTAL_ONBOARDING_STEPS 
 } from './state';
 
 // Validation schemas
 export { 
-  validateStep, 
+  validateScreen, 
   validateCompleteOnboarding,
-  LANGUAGE_OPTIONS,
-  AGE_OPTIONS,
-  TIME_COMMITMENT_OPTIONS,
-  LEVEL_OPTIONS,
-  LEARNING_GOALS_OPTIONS,
-  HEAR_ABOUT_OPTIONS,
-  SUBSCRIPTION_PLANS,
+  validateField,
 } from './schema';
 
 // Billing
@@ -43,17 +39,5 @@ export { OnboardingOption } from './components/OnboardingOption';
 
 // Types
 export type { OnboardingData, OnboardingState } from './state';
-export type { 
-  LanguageSelectionData,
-  TimeCommitmentData,
-  AgeData,
-  CurrentLevelData,
-  LearningGoalsData,
-  EmailData,
-  NameData,
-  NotificationsData,
-  SubscriptionPlanData,
-  TrialOfferData,
-  CompleteOnboardingData,
-} from './schema';
+export type { ValidationResult } from './schema';
 

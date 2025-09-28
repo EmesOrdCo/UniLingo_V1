@@ -7,6 +7,8 @@ export interface MemoryMatchSetupOptions {
   showHints: boolean;
   selectedTopic: string | null;
   filteredFlashcards: any[];
+  gravitySpeed?: number;
+  meteorCount?: number;
 }
 
 export interface GameQuestion {
@@ -19,12 +21,20 @@ export interface GameQuestion {
   back?: string;
   example?: string;
   pronunciation?: string;
+  cardType?: string;
+  originalCardId?: string;
+  gravitySpeed?: number;
+  meteorCount?: number;
+  meteorId?: string;
+  fallSpeed?: number;
+  spawnDelay?: number;
 }
 
 export interface GameData {
   questions: GameQuestion[];
   languageMode?: 'question' | 'answer';
   setupOptions?: MemoryMatchSetupOptions;
+  timeLimit?: number;
 }
 
 export class GameDataService {
@@ -193,7 +203,9 @@ export class GameDataService {
         cardCount: count,
         difficulty: 'medium',
         timeLimit: null,
-        showHints: true
+        showHints: true,
+        selectedTopic: null,
+        filteredFlashcards: [],
       }
     };
   }
@@ -296,7 +308,12 @@ export class GameDataService {
     return { 
       questions: meteors,
       setupOptions: {
+        cardCount: 0,
         difficulty,
+        timeLimit: null,
+        showHints: false,
+        selectedTopic: null,
+        filteredFlashcards: [],
         gravitySpeed,
         meteorCount: meteors.length
       }

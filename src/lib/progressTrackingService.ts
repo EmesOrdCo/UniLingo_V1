@@ -184,8 +184,8 @@ export class ProgressTrackingService {
     } catch (error) {
       console.error(`❌ [${recordId}] Error recording game activity:`, error);
       console.error(`❌ [${recordId}] Error details:`, {
-        message: error.message,
-        stack: error.stack,
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
         data: data
       });
       throw error;

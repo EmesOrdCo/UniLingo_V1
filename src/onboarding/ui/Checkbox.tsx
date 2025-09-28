@@ -70,12 +70,12 @@ export function Checkbox({
               styles.checkbox,
               {
                 backgroundColor: checked ? theme.colors.primary : 'transparent',
-                borderColor: checked ? theme.colors.primary : theme.colors.border,
+                borderColor: checked ? theme.colors.primary : theme.colors.border.primary,
               },
             ]}
           >
             {checked && (
-              <Text style={[styles.checkmark, { color: theme.colors.surface }]}>
+              <Text style={[styles.checkmark, { color: theme.colors.background.surface }]}>
                 ✓
               </Text>
             )}
@@ -88,7 +88,7 @@ export function Checkbox({
             style={[
               styles.title,
               {
-                color: checked ? theme.colors.primary : theme.colors.textDark,
+                color: checked ? theme.colors.primary : theme.colors.text.dark,
                 fontWeight: checked ? '600' : '400',
               },
             ]}
@@ -99,7 +99,7 @@ export function Checkbox({
             <Text
               style={[
                 styles.subtitle,
-                { color: theme.colors.textMedium },
+                { color: theme.colors.text.medium },
               ]}
             >
               {subtitle}

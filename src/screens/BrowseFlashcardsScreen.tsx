@@ -34,7 +34,7 @@ export default function BrowseFlashcardsScreen() {
   const { refreshTrigger } = useRefresh();
   const [refreshing, setRefreshing] = useState(false);
   
-  const { topic, difficulty } = route.params || {};
+  const { topic, difficulty } = (route.params as any) || {};
   
   const [flashcards, setFlashcards] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);

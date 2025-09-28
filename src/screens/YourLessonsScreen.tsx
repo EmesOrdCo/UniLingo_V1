@@ -60,10 +60,10 @@ export default function YourLessonsScreen() {
 
   const handleLessonPress = (lesson: Lesson) => {
     // Navigate to lesson walkthrough
-    navigation.navigate('LessonWalkthrough' as never, { 
+    (navigation as any).navigate('LessonWalkthrough', { 
       lessonId: lesson.id, 
       lessonTitle: lesson.title 
-    } as never);
+    });
   };
 
   const handleCreateLesson = () => {
@@ -151,7 +151,7 @@ export default function YourLessonsScreen() {
 
   const getProgressColor = (progress?: LessonProgress) => {
     if (!progress) return '#e5e7eb';
-    const percentage = (progress.words_learned / progress.total_words) * 100;
+    const percentage = ((progress as any).words_learned / (progress as any).total_words) * 100;
     if (percentage === 0) return '#e5e7eb';
     if (percentage < 50) return '#f59e0b';
     if (percentage < 100) return '#3b82f6';
@@ -178,7 +178,7 @@ export default function YourLessonsScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
+      <SafeAreaView style={styles.container}>
         {/* Header with back button */}
         <View style={styles.header}>
           <TouchableOpacity 
@@ -199,7 +199,7 @@ export default function YourLessonsScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container}>
       {/* Header with back button */}
       <View style={styles.header}>
         <TouchableOpacity 

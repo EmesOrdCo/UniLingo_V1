@@ -299,7 +299,7 @@ export class DailyGoalsService {
               .order('goal_date', { ascending: false });
             
             if (updatedData) {
-              data = updatedData;
+              (data as any) = updatedData;
             }
           }
         }

@@ -94,7 +94,7 @@ const DailyChallengeSection: React.FC<DailyChallengeSectionProps> = ({ onPlay })
               <View style={styles.textContent}>
                 <Text style={styles.subtitle}>+{challenge.xp_reward} XP earned!</Text>
                 <Text style={styles.title}>✅ Daily Challenge Complete</Text>
-                <Text style={styles.gameType}>{challenge.game_type}</Text>
+                <Text style={styles.subtitle}>{challenge.game_type}</Text>
                 <View style={styles.completedBadge}>
                   <Ionicons name="checkmark-circle" size={16} color="#10b981" />
                   <Text style={styles.completedText}>Completed</Text>
@@ -151,12 +151,10 @@ const styles = StyleSheet.create({
   backgroundGradient: {
     flex: 1,
     backgroundColor: '#f3e8ff',
-    backgroundImage: 'radial-gradient(120% 100% at -10% -20%, #faf5ff 0%, #f3e8ff 40%, #e9d5ff 70%)',
   },
   completedBackgroundGradient: {
     flex: 1,
     backgroundColor: '#10b981',
-    backgroundImage: 'radial-gradient(120% 100% at -10% -20%, #34d399 0%, #10b981 40%, #059669 70%)',
   },
   content: {
     flex: 1,

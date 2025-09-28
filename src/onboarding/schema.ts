@@ -23,7 +23,7 @@ export const zProficiency = z.object({
 
 // Time commitment validation
 export const zCommitment = z.object({
-  dailyCommitmentMinutes: z.enum([5, 15, 30, 60], {
+  dailyCommitmentMinutes: z.enum(['5', '15', '30', '60'], {
     required_error: 'Please select your daily commitment',
   }),
 });
@@ -86,7 +86,7 @@ export const zFinal = z.object({
   proficiency: z.enum(['none', 'basic', 'advanced'], {
     required_error: 'Proficiency level is required',
   }),
-  dailyCommitmentMinutes: z.enum([5, 15, 30, 60], {
+  dailyCommitmentMinutes: z.enum(['5', '15', '30', '60'], {
     required_error: 'Daily commitment is required',
   }),
   wantsNotifications: z.boolean().optional(),
@@ -234,7 +234,7 @@ export function validateField(fieldName: string, value: any): ValidationResult {
         });
         break;
       case 'dailyCommitmentMinutes':
-        schema = z.enum([5, 15, 30, 60], {
+        schema = z.enum(['5', '15', '30', '60'], {
           required_error: 'Daily commitment is required',
         });
         break;
@@ -306,14 +306,4 @@ export function validateField(fieldName: string, value: any): ValidationResult {
 }
 
 // Export all schemas for direct use if needed
-export {
-  zNativeTarget,
-  zGoals,
-  zProficiency,
-  zCommitment,
-  zAgeRange,
-  zDiscovery,
-  zName,
-  zEmail,
-  zFinal,
-};
+// Note: These are already exported above, so no need to re-export

@@ -58,6 +58,7 @@ export interface OnboardingState {
   previousStep: () => void;
   goToStep: (step: number) => void;
   setField: <K extends keyof OnboardingData>(field: K, value: OnboardingData[K]) => void;
+  updateField: <K extends keyof OnboardingData>(field: K, value: OnboardingData[K]) => void;
   toggleGoal: (key: string) => void;
   markStepCompleted: (step: number) => void;
   isStepCompleted: (step: number) => boolean;
@@ -65,6 +66,7 @@ export interface OnboardingState {
   getData: () => OnboardingData;
   completeOnboarding: () => void;
   reset: () => void;
+  resetOnboarding: () => void;
   hydrateFromStorage: () => Promise<void>;
   persistToStorage: () => Promise<void>;
   
@@ -145,6 +147,23 @@ export const useOnboardingStore = create<OnboardingState>()(
         });
       },
       
+      updateField: <K extends keyof OnboardingData>(field: K, value: OnboardingData[K]) => {
+        set((state) => {
+          const newData = {
+            ...state.data,
+            [field]: value,
+          };
+          
+          // Get current user ID for user-specific storage
+          const userId = state.userId;
+          
+          // Debounced persist with user ID
+          debouncedPersist(newData, state.isCompleted, userId);
+          
+          return { data: newData };
+        });
+      },
+      
       // Goal management with max 3 constraint
       toggleGoal: (key: string) => {
         set((state) => {
@@ -199,6 +218,20 @@ export const useOnboardingStore = create<OnboardingState>()(
       },
       
       reset: () => {
+        const { userId } = get();
+        set({
+          currentStep: 0,
+          isCompleted: false,
+          data: defaultOnboardingData,
+          completedSteps: new Set(),
+        });
+        // Clear user-specific storage
+        const dataKey = getOnboardingDataKey(userId);
+        const completeKey = getOnboardingCompleteKey(userId);
+        AsyncStorage.multiRemove([dataKey, completeKey]);
+      },
+      
+      resetOnboarding: () => {
         const { userId } = get();
         set({
           currentStep: 0,

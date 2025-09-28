@@ -61,7 +61,7 @@ export class ImageUploadService {
 
         // Show action sheet for image selection
         const result = await ImagePicker.launchImageLibraryAsync({
-          mediaTypes: 'Images',
+          mediaTypes: 'images',
           allowsMultipleSelection: true,
           quality: 0.8, // Good balance between quality and file size
           exif: false, // Don't include EXIF data to reduce file size
@@ -239,7 +239,7 @@ export class ImageUploadService {
 
       // Launch camera
       const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: 'Images',
+        mediaTypes: 'images',
         allowsEditing: false, // Don't force aspect ratio for note photos
         quality: 0.8,
         exif: false,

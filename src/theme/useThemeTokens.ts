@@ -13,6 +13,9 @@ export interface ThemeTokens {
       secondary: string;
       tertiary: string;
       inverse: string;
+      light: string;
+      medium: string;
+      dark: string;
     };
     
     // Background colors
@@ -21,6 +24,7 @@ export interface ThemeTokens {
       secondary: string;
       tertiary: string;
       card: string;
+      surface: string;
     };
     
     // Status colors
@@ -78,6 +82,7 @@ export interface ThemeTokens {
       medium: '500';
       semibold: '600';
       bold: '700';
+      regular: '400';
     };
     families: {
       system: string;
@@ -127,6 +132,9 @@ export function useThemeTokens(): ThemeTokens {
         secondary: '#64748b',  // #64748b - secondary text
         tertiary: '#94a3b8',   // #94a3b8 - tertiary text
         inverse: '#ffffff',    // #ffffff - white text
+        light: '#94a3b8',      // #94a3b8 - light text
+        medium: '#64748b',     // #64748b - medium text
+        dark: '#1e293b',       // #1e293b - dark text
       },
       
       // Background colors - extracted from common backgrounds
@@ -135,6 +143,7 @@ export function useThemeTokens(): ThemeTokens {
         secondary: '#f8fafc',  // #f8fafc - light gray background
         tertiary: '#f1f5f9',   // #f1f5f9 - very light gray
         card: '#ffffff',       // #ffffff - card background
+        surface: '#f8fafc',    // #f8fafc - surface background
       },
       
       // Status colors - extracted from status indicators
@@ -192,6 +201,7 @@ export function useThemeTokens(): ThemeTokens {
         medium: '500',
         semibold: '600',
         bold: '700',
+        regular: '400',
       },
       families: {
         system: 'System',

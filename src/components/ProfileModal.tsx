@@ -64,7 +64,7 @@ export default function ProfileModal({ visible, onClose }: ProfileModalProps) {
 
       // Launch image picker
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: 'Images',
+        mediaTypes: 'images',
         allowsEditing: true,
         aspect: [1, 1], // Square aspect ratio for profile picture
         quality: 0.8,

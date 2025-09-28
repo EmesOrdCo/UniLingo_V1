@@ -53,7 +53,7 @@ export async function completeOnboarding({
       }
 
       // Map proficiency to valid level values
-      const mapProficiencyToLevel = (proficiency: string) => {
+      const mapProficiencyToLevel = (proficiency: string | undefined) => {
         switch (proficiency) {
           case 'Beginner': return 'beginner';
           case 'Intermediate': return 'intermediate';
@@ -65,12 +65,12 @@ export async function completeOnboarding({
       // Upsert profile data
       const profileData = {
         id: user.id,
-        name: data.firstName || null, // Use 'name' column instead of 'first_name'
+        name: data.firstName || '', // Use 'name' column instead of 'first_name'
         email: data.email || null,
         native_language: data.nativeLanguage || null,
         target_language: data.targetLanguage || null,
         level: mapProficiencyToLevel(data.proficiency) || null, // Map to valid level values
-        subject: data.subject || null, // Add subject field
+        subject: null, // Add subject field
         daily_commitment_minutes: data.dailyCommitmentMinutes || null,
         how_did_you_hear: data.discoverySource || null, // Use existing 'how_did_you_hear' column
         wants_notifications: data.wantsNotifications || false,

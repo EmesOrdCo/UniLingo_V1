@@ -185,9 +185,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#e2e8f0',
   },
-  closeButton: {
-    padding: 8,
-  },
   title: {
     fontSize: 18,
     fontWeight: '600',

@@ -119,7 +119,7 @@ const MemoryMatchGame: React.FC<MemoryMatchGameProps> = ({ gameData, onClose, on
 
   const initializeGame = () => {
     const gameCards = gameData.questions || [];
-    const cardsWithIds = gameCards.map((card, index) => ({
+    const cardsWithIds = gameCards.map((card: any, index: number) => ({
       ...card,
       id: index,
       isFlipped: false,
@@ -1350,13 +1350,6 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
   },
-  statLabel: {
-    fontSize: 10,
-    color: '#64748b',
-    fontWeight: '600',
-    letterSpacing: 0.2,
-    textTransform: 'uppercase',
-  },
   gameGrid: {
     flex: 1,
     flexDirection: 'row',
@@ -1555,7 +1548,7 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     shadowOpacity: 0.2,
     elevation: 6,
-    flexBasis: '120px',
+    flexBasis: 120,
     flexGrow: 0,
     flexShrink: 0,
     minWidth: 120,
@@ -1585,7 +1578,7 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     shadowOpacity: 0.18,
     elevation: 5,
-    flexBasis: '90px',
+    flexBasis: 90,
     flexGrow: 0,
     flexShrink: 0,
     minWidth: 90,

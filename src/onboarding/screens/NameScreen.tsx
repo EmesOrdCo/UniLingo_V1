@@ -11,24 +11,25 @@ import { OnboardingLayout } from '../components/OnboardingLayout';
 import { OnboardingButton } from '../components/OnboardingButton';
 import { useThemeTokens } from '../../theme/useThemeTokens';
 import { useOnboardingStore } from '../state';
-import { validateStep } from '../schema';
+import { validateScreen } from '../schema';
 
 export function NameScreen() {
   const theme = useThemeTokens();
-  const { name, updateField, nextStep, previousStep, markStepCompleted } = useOnboardingStore();
+  const { data, updateField, nextStep, previousStep, markStepCompleted } = useOnboardingStore();
+  const name = data.firstName;
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleNameChange = (text: string) => {
-    updateField('name', text);
+    updateField('firstName', text);
     setErrors({});
   };
 
   const handleContinue = () => {
-    const validation = validateStep(7, {
+    const validation = validateScreen('name', {
       name,
     });
 
-    if (!validation.success) {
+    if (!validation.valid) {
       setErrors(validation.errors || {});
       return;
     }

@@ -87,7 +87,7 @@ export function NotificationsScreen() {
 
         {/* Description */}
         <View style={styles.descriptionContainer}>
-          <Text style={[styles.description, { color: theme.colors.textMedium }]}>
+          <Text style={[styles.description, { color: theme.colors.text.medium }]}>
             We'll send you friendly reminders between 1-3 PM to practice, celebrate your progress, and help you build a consistent learning habit.
           </Text>
         </View>
@@ -116,7 +116,7 @@ export function NotificationsScreen() {
 
         {/* Privacy Note */}
         <View style={styles.privacyContainer}>
-          <Text style={[styles.privacyText, { color: theme.colors.textLight }]}>
+          <Text style={[styles.privacyText, { color: theme.colors.text.light }]}>
             You can change this anytime in your device settings
           </Text>
         </View>

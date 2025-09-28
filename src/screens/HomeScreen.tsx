@@ -5,22 +5,24 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  SafeAreaView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import DashboardContent from '../components/DashboardContent';
 import { useAuth } from '../contexts/AuthContext';
-import { useProgressData } from '../lib/holisticProgressService';
+// import { useProgressData } from '../lib/holisticProgressService';
 
 export default function HomeScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const { user } = useAuth();
-  const { progressData, loadingProgress } = useProgressData(user?.id);
+  // const { progressData, loadingProgress } = useProgressData(user?.id);
+  const progressData = null;
+  const loadingProgress = false;
 
   // Get selected unit from route params (passed from CoursesScreen)
-  const selectedUnit = route.params?.selectedUnit;
+  const selectedUnit = (route.params as any)?.selectedUnit;
 
   const handleChangeCourse = () => {
     navigation.navigate('Courses' as never);
@@ -44,7 +46,6 @@ export default function HomeScreen() {
         <DashboardContent 
           progressData={progressData} 
           loadingProgress={loadingProgress}
-          selectedUnit={selectedUnit}
         />
       </ScrollView>
     </SafeAreaView>

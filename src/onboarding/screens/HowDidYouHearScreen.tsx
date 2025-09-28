@@ -10,7 +10,7 @@ import { OnboardingButton } from '../components/OnboardingButton';
 import { OnboardingOption } from '../components/OnboardingOption';
 import { useThemeTokens } from '../../theme/useThemeTokens';
 import { useOnboardingStore } from '../state';
-import { HEAR_ABOUT_OPTIONS } from '../schema';
+// import { HEAR_ABOUT_OPTIONS } from '../schema';
 
 export function HowDidYouHearScreen() {
   const theme = useThemeTokens();
@@ -43,7 +43,7 @@ export function HowDidYouHearScreen() {
     >
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.optionsContainer}>
-          {HEAR_ABOUT_OPTIONS.map((option) => (
+          {['Facebook/Instagram', 'Search', 'Podcast', 'TV', 'Friends/Family', 'YouTube', 'App Store', 'Website Ad', 'Radio', 'Other'].map((option: any) => (
             <OnboardingOption
               key={option}
               title={option}

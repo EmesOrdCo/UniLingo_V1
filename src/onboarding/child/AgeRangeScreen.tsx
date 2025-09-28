@@ -69,7 +69,7 @@ export function AgeRangeScreen() {
         {/* Helper Text */}
         {!ageRange && (
           <View style={styles.helperContainer}>
-            <Text style={[styles.helperText, { color: theme.colors.textLight }]}>
+            <Text style={[styles.helperText, { color: theme.colors.text.light }]}>
               Select your age range to continue
             </Text>
           </View>

@@ -186,7 +186,6 @@ export default function CreateLessonScreen() {
             pages,
             selectedSubject,
             userNativeLanguage,
-            abortControllerRef.current?.signal
           );
         } else {
           console.log('📄 Small PDF detected, using single extraction');
@@ -200,7 +199,6 @@ export default function CreateLessonScreen() {
             extractedText,
             selectedSubject,
             userNativeLanguage,
-            abortControllerRef.current?.signal
           );
         }
         
@@ -214,7 +212,6 @@ export default function CreateLessonScreen() {
         const topics = await LessonService.groupKeywordsIntoTopic(
           keywords,
           selectedSubject,
-          abortControllerRef.current?.signal
         );
         
         console.log('📚 Generating vocabulary from topics...');
@@ -228,7 +225,6 @@ export default function CreateLessonScreen() {
           topics,
           selectedSubject,
           userNativeLanguage,
-          abortControllerRef.current?.signal
         );
 
         // Create multiple lessons (one per topic)
@@ -260,11 +256,11 @@ export default function CreateLessonScreen() {
           const { data: lesson, error: lessonError } = await supabase
             .from('esp_lessons')
             .insert([{
-              user_id: user.id,
+              user_id: user?.id || '',
               title: lessonTitle,
               subject: selectedSubject,
               source_pdf_name: file.name,
-              native_language: userNativeLanguage
+              native_language: userNativeLanguage || ''
             }])
             .select()
             .single();
@@ -531,7 +527,6 @@ export default function CreateLessonScreen() {
             pages,
             selectedSubject,
             userNativeLanguage,
-            abortControllerRef.current?.signal
           );
         } else {
           console.log('📄 Single image detected, using single extraction');
@@ -545,7 +540,6 @@ export default function CreateLessonScreen() {
             extractedText,
             selectedSubject,
             userNativeLanguage,
-            abortControllerRef.current?.signal
           );
         }
         
@@ -559,7 +553,6 @@ export default function CreateLessonScreen() {
         const topics = await LessonService.groupKeywordsIntoTopic(
           keywords,
           selectedSubject,
-          abortControllerRef.current?.signal
         );
         
         console.log('📚 Generating vocabulary from topics...');
@@ -573,7 +566,6 @@ export default function CreateLessonScreen() {
           topics,
           selectedSubject,
           userNativeLanguage,
-          abortControllerRef.current?.signal
         );
 
         // Create multiple lessons (one per topic)
@@ -605,11 +597,11 @@ export default function CreateLessonScreen() {
           const { data: lesson, error: lessonError } = await supabase
             .from('esp_lessons')
             .insert([{
-              user_id: user.id,
+              user_id: user?.id || '',
               title: lessonTitle,
               subject: selectedSubject,
               source_pdf_name: `Images (${selectedImages.length} files)`,
-              native_language: userNativeLanguage
+              native_language: userNativeLanguage || ''
             }])
             .select()
             .single();

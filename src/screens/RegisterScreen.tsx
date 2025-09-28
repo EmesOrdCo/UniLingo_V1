@@ -42,10 +42,10 @@ export default function RegisterScreen() {
     try {
       // Redirect to onboarding flow with pre-filled email and password
       // This ensures consistent flow with "Start Learning Today"
-      navigation.navigate('OnboardingFlow' as never, { 
+      (navigation as any).navigate('OnboardingFlow', { 
         prefillEmail: email, 
         prefillPassword: password 
-      } as never);
+      });
     } finally {
       setIsLoading(false);
     }

@@ -171,7 +171,7 @@ export default function AIChatPage() {
 
         // Use OpenAI with rate limiting
         const openai = new OpenAIWithRateLimit({
-          apiKey: ENV.OPENAI_API_KEY,
+          apiKey: ENV.OPENAI_API_KEY || '',
         });
 
         const response = await openai.createChatCompletion({
@@ -190,7 +190,7 @@ export default function AIChatPage() {
               content: inputText.trim(),
             },
           ],
-          max_tokens: 500,
+          // max_tokens: 500, // Commented out as not supported by this API
           temperature: 0.7,
           priority: 2
         });

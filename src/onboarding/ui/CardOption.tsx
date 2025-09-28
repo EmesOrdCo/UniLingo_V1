@@ -47,12 +47,12 @@ export function CardOption({
             styles.checkbox,
             {
               backgroundColor: selected ? theme.colors.primary : 'transparent',
-              borderColor: selected ? theme.colors.primary : theme.colors.border,
+              borderColor: selected ? theme.colors.primary : theme.colors.border.primary,
             },
           ]}
         >
           {selected && (
-            <Text style={[styles.checkmark, { color: theme.colors.surface }]}>
+            <Text style={[styles.checkmark, { color: theme.colors.background.surface }]}>
               ✓
             </Text>
           )}
@@ -62,7 +62,7 @@ export function CardOption({
 
     // Default chevron
     return (
-      <Text style={[styles.chevron, { color: theme.colors.textLight }]}>
+      <Text style={[styles.chevron, { color: theme.colors.text.light }]}>
         ›
       </Text>
     );
@@ -84,8 +84,8 @@ export function CardOption({
       style={({ pressed }) => [
         styles.container,
         {
-          backgroundColor: selected ? theme.colors.primaryLight + '20' : theme.colors.surface,
-          borderColor: selected ? theme.colors.primary : theme.colors.border,
+          backgroundColor: selected ? theme.colors.primaryLight + '20' : theme.colors.background.surface,
+          borderColor: selected ? theme.colors.primary : theme.colors.border.primary,
           opacity: disabled ? 0.5 : pressed ? 0.8 : 1,
         },
         style,
@@ -120,7 +120,7 @@ export function CardOption({
             style={[
               styles.title,
               {
-                color: selected ? theme.colors.primary : theme.colors.textDark,
+                color: selected ? theme.colors.primary : theme.colors.text.dark,
                 fontWeight: selected ? '600' : '500',
               },
             ]}
@@ -131,7 +131,7 @@ export function CardOption({
             <Text
               style={[
                 styles.subtitle,
-                { color: theme.colors.textMedium },
+                { color: theme.colors.text.medium },
               ]}
             >
               {subtitle}

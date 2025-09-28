@@ -10,24 +10,25 @@ import { OnboardingButton } from '../components/OnboardingButton';
 import { OnboardingOption } from '../components/OnboardingOption';
 import { useThemeTokens } from '../../theme/useThemeTokens';
 import { useOnboardingStore } from '../state';
-import { validateStep } from '../schema';
+import { validateScreen } from '../schema';
 
 export function NotificationsScreen() {
   const theme = useThemeTokens();
-  const { notificationsEnabled, updateField, nextStep, previousStep, markStepCompleted } = useOnboardingStore();
+  const { data, updateField, nextStep, previousStep, markStepCompleted } = useOnboardingStore();
+  const notificationsEnabled = data.wantsNotifications;
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const handleNotificationToggle = (enabled: boolean) => {
-    updateField('notificationsEnabled', enabled);
+    updateField('wantsNotifications', enabled);
     setErrors({});
   };
 
   const handleContinue = () => {
-    const validation = validateStep(8, {
+    const validation = validateScreen('notifications', {
       notificationsEnabled,
     });
 
-    if (!validation.success) {
+    if (!validation.valid) {
       setErrors(validation.errors || {});
       return;
     }

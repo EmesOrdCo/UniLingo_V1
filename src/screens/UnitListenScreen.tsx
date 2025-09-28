@@ -27,7 +27,7 @@ export default function UnitListenScreen() {
   const route = useRoute();
   const { user, profile } = useAuth();
   
-  const { unitId, unitTitle, topicGroup, unitCode } = route.params || { unitId: 1, unitTitle: 'Basic Concepts', topicGroup: 'Basic Concepts', unitCode: 'A1.1' };
+  const { unitId, unitTitle, topicGroup, unitCode } = (route.params as any) || { unitId: 1, unitTitle: 'Basic Concepts', topicGroup: 'Basic Concepts', unitCode: 'A1.1' };
   
   // Extract CEFR level and unit number from unitCode
   const cefrLevel = unitCode ? unitCode.split('.')[0] : 'A1';
@@ -72,7 +72,7 @@ export default function UnitListenScreen() {
       console.error('❌ Error loading vocabulary:', error);
       Alert.alert(
         'Error Loading Vocabulary',
-        `Failed to load vocabulary: ${error.message || 'Unknown error'}`,
+        `Failed to load vocabulary: ${error instanceof Error ? error.message : 'Unknown error'}`,
         [
           { text: 'Go Back', onPress: () => navigation.goBack() },
           { text: 'Retry', onPress: loadVocabulary }
@@ -136,6 +136,7 @@ export default function UnitListenScreen() {
       
       await ProgressTrackingService.recordLessonActivity({
         activityType: 'lesson',
+        lessonId: `unit-${unitCode}-listen`,
         activityName: `${topicGroup} - Listen`,
         durationSeconds: 300, // 5 minutes estimated
         score: score,

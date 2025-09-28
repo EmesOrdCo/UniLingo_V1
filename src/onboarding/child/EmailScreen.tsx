@@ -114,11 +114,11 @@ export function EmailScreen() {
   const getStatusInfo = () => {
     switch (emailStatus) {
       case 'checking':
-        return { text: 'Checking availability...', color: theme.colors.textMedium };
+        return { text: 'Checking availability...', color: theme.colors.text.medium };
       case 'available':
-        return { text: 'Looks good!', color: theme.colors.success };
+        return { text: 'Looks good!', color: theme.colors.status.success };
       case 'taken':
-        return { text: 'Already used', color: theme.colors.warning };
+        return { text: 'Already used', color: theme.colors.status.warning };
       default:
         return null;
     }
@@ -138,8 +138,8 @@ export function EmailScreen() {
         {/* Text Input Container */}
         <View style={styles.inputContainer}>
           <View style={[styles.inputWrapper, { 
-            borderColor: validationError ? theme.colors.error : theme.colors.border,
-            backgroundColor: theme.colors.surface,
+            borderColor: validationError ? theme.colors.status.error : theme.colors.border.primary,
+            backgroundColor: theme.colors.background.surface,
           }]}>
             {/* Email Icon */}
             <Text style={styles.emailIcon}>📧</Text>
@@ -148,18 +148,18 @@ export function EmailScreen() {
             <TextInput
               ref={textInputRef}
               style={[styles.textInput, { 
-                color: theme.colors.textDark,
-                fontFamily: theme.fonts.regular,
+                color: theme.colors.text.dark,
+                fontFamily: theme.fonts.families.system,
               }]}
               value={inputValue}
               onChangeText={handleTextChange}
               onSubmitEditing={handleSubmit}
               placeholder="Enter your email address"
-              placeholderTextColor={theme.colors.textLight}
+              placeholderTextColor={theme.colors.text.light}
               autoCapitalize="none"
               autoCorrect={false}
               keyboardType="email-address"
-              returnKeyType="continue"
+              returnKeyType="done"
               enablesReturnKeyAutomatically={true}
               accessibilityLabel="Email input"
               accessibilityHint="Enter your email address to continue"
@@ -168,7 +168,7 @@ export function EmailScreen() {
 
           {/* Error Message */}
           {validationError && (
-            <Text style={[styles.errorText, { color: theme.colors.error }]}>
+            <Text style={[styles.errorText, { color: theme.colors.status.error }]}>
               {validationError}
             </Text>
           )}
@@ -183,7 +183,7 @@ export function EmailScreen() {
 
         {/* Helper Text */}
         <View style={styles.helperContainer}>
-          <Text style={[styles.helperText, { color: theme.colors.textMedium }]}>
+          <Text style={[styles.helperText, { color: theme.colors.text.medium }]}>
             We'll never spam you. You can unsubscribe anytime.
           </Text>
         </View>

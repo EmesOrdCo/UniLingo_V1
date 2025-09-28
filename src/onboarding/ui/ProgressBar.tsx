@@ -42,7 +42,7 @@ export function ProgressBar({
         styles.container,
         {
           height,
-          backgroundColor: theme.colors.border,
+          backgroundColor: theme.colors.border.primary,
           borderRadius: height / 2,
         },
       ]}

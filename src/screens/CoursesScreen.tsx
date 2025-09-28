@@ -131,7 +131,7 @@ export default function CoursesScreen() {
 
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container}>
       {/* Custom Header with Back Button */}
       <View style={styles.header}>
         <TouchableOpacity 

@@ -190,7 +190,7 @@ export default function LessonWalkthroughScreen() {
       const maxPossibleScore = lessonVocabulary.length * 5; // 5 points per word across all exercises
       await LessonService.updateLessonProgress(lessonId, user.id, {
         started_at: now.toISOString(),
-        completed_at: null,
+        completed_at: undefined,
         total_score: 0,
         max_possible_score: maxPossibleScore,
         time_spent_seconds: 0
@@ -200,7 +200,7 @@ export default function LessonWalkthroughScreen() {
       setLessonProgress(prev => prev ? {
         ...prev,
         started_at: now.toISOString(),
-        completed_at: null,
+        completed_at: undefined,
         total_score: 0,
         max_possible_score: maxPossibleScore,
         time_spent_seconds: 0
@@ -239,14 +239,14 @@ export default function LessonWalkthroughScreen() {
     try {
       await LessonService.updateLessonProgress(lessonId, user.id, {
         started_at: now.toISOString(),
-        completed_at: null // Ensure it's not completed
+        completed_at: undefined // Ensure it's not completed
       });
       
       // Update local progress state
       setLessonProgress(prev => prev ? {
         ...prev,
         started_at: now.toISOString(),
-        completed_at: null
+        completed_at: undefined
       } : null);
     } catch (error) {
       console.error('Error initializing lesson progress:', error);
@@ -317,7 +317,7 @@ export default function LessonWalkthroughScreen() {
       console.log(`Resuming to estimated position: exercise ${completedExerciseCount}`);
     }
     
-    console.log(`Resuming lesson (original start: ${originalStartTime.toISOString()}, progress: ${lessonProgress.total_score}/${lessonVocabulary.length * 5}, completed exercises: ${completedExerciseCount})`);
+    console.log(`Resuming lesson (progress: ${lessonProgress.total_score}/${lessonVocabulary.length * 5}, completed exercises: ${completedExerciseCount})`);
   };
 
   const saveResumePosition = async (exercise: string, questionIndex: number) => {
@@ -392,7 +392,7 @@ export default function LessonWalkthroughScreen() {
       if (user) {
         LessonService.updateLessonProgress(lessonId, user.id, {
           started_at: now.toISOString(),
-          completed_at: null
+          completed_at: undefined
         }).catch(error => {
           console.error('Error initializing lesson progress:', error);
         });
@@ -607,7 +607,7 @@ export default function LessonWalkthroughScreen() {
       const maxPossibleScore = lessonVocabulary.length * 5; // 5 points per word across all exercises
       await LessonService.updateLessonProgress(lessonId, user.id, {
         started_at: now.toISOString(),
-        completed_at: null,
+        completed_at: undefined,
         total_score: 0,
         max_possible_score: maxPossibleScore,
         time_spent_seconds: 0
@@ -617,7 +617,7 @@ export default function LessonWalkthroughScreen() {
       setLessonProgress(prev => prev ? {
         ...prev,
         started_at: now.toISOString(),
-        completed_at: null,
+        completed_at: undefined,
         total_score: 0,
         max_possible_score: maxPossibleScore,
         time_spent_seconds: 0

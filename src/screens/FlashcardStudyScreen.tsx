@@ -35,7 +35,7 @@ export default function FlashcardStudyScreen() {
   const route = useRoute();
   const { user, profile } = useAuth();
   
-  const { flashcards: initialFlashcards, topic, difficulty } = route.params || { flashcards: [] };
+  const { flashcards: initialFlashcards, topic, difficulty } = (route.params as any) || { flashcards: [] };
   
   const [studySession, setStudySession] = useState<{
     isActive: boolean;
@@ -113,7 +113,7 @@ export default function FlashcardStudyScreen() {
       
       try {
         // Calculate session statistics
-        const correct = answers.filter(a => a === 'correct' || a === 'easy').length;
+        const correct = answers.filter(a => a === 'correct').length;
         const total = answers.length;
         const accuracyPercentage = Math.round((correct / total) * 100);
         const score = Math.round((correct / total) * 100);
@@ -342,14 +342,14 @@ export default function FlashcardStudyScreen() {
 
   // Show review session if complete
   if (studySession.isComplete) {
-    const correct = studySession.answers.filter(a => a === 'correct' || a === 'easy').length;
+    const correct = studySession.answers.filter(a => a === 'correct').length;
     const total = studySession.answers.length;
     const percentage = Math.round((correct / total) * 100);
     
     // Filter flashcards based on performance
     const filteredFlashcards = studySession.flashcards.filter((card, index) => {
       const answer = studySession.answers[index];
-      const isCorrect = answer === 'correct' || answer === 'easy';
+      const isCorrect = answer === 'correct';
       
       if (filterType === 'all') return true;
       if (filterType === 'correct') return isCorrect;
@@ -427,7 +427,7 @@ export default function FlashcardStudyScreen() {
           {filteredFlashcards.map((card, index) => {
             const originalIndex = studySession.flashcards.indexOf(card);
             const answer = studySession.answers[originalIndex];
-            const isCorrect = answer === 'correct' || answer === 'easy';
+            const isCorrect = answer === 'correct';
             
             return (
               <View key={originalIndex} style={[styles.reviewCard, isCorrect ? styles.correctReviewCard : styles.incorrectReviewCard]}>
@@ -523,7 +523,7 @@ export default function FlashcardStudyScreen() {
                 // Start a new session with only incorrect cards
                 const incorrectCards = studySession.flashcards.filter((card, index) => {
                   const answer = studySession.answers[index];
-                  return answer === 'incorrect' || answer === 'hard';
+                  return answer === 'incorrect';
                 });
                 
                 if (incorrectCards.length === 0) {

@@ -28,7 +28,7 @@ export function LanguagesScreen() {
   }, [nativeLanguage, setNativeLanguage, targetLanguage, setTargetLanguage]);
 
   // Check if both languages are selected
-  const canContinue = nativeLanguage && targetLanguage;
+  const canContinue = !!(nativeLanguage && targetLanguage);
 
   // Handle native language selection
   const handleNativeLanguageChange = (selectedIds: string[]) => {
@@ -72,8 +72,8 @@ export function LanguagesScreen() {
   }));
 
   // Filter to only show English as the target language (hard coded)
-  const targetLanguageOptions = targetLanguageOptions
-    .filter(lang => lang.code === 'en-GB')
+  const targetLanguageOptions = languageOptions
+    .filter((lang: any) => lang.code === 'en-GB')
     .map((lang: any) => ({
       id: lang.code,
       title: lang.label,
@@ -93,7 +93,7 @@ export function LanguagesScreen() {
       <View style={styles.container}>
         {/* Native Language Section */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.colors.textDark }]}>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text.dark }]}>
             I speak...
           </Text>
           <OptionGrid
@@ -106,7 +106,7 @@ export function LanguagesScreen() {
 
         {/* Target Language Section */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.colors.textDark }]}>
+            <Text style={[styles.sectionTitle, { color: theme.colors.text.dark }]}>
             I want to learn...
           </Text>
           <OptionGrid

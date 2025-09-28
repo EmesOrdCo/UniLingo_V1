@@ -69,7 +69,7 @@ export function DiscoverySourceScreen() {
         {/* Helper Text */}
         {!discoverySource && (
           <View style={styles.helperContainer}>
-            <Text style={[styles.helperText, { color: theme.colors.textLight }]}>
+            <Text style={[styles.helperText, { color: theme.colors.text.light }]}>
               Select how you heard about us to continue
             </Text>
           </View>
