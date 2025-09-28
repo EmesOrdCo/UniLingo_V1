@@ -70,7 +70,7 @@ export async function completeOnboarding({
         native_language: data.nativeLanguage || null,
         target_language: data.targetLanguage || null,
         level: mapProficiencyToLevel(data.proficiency) || null, // Map to valid level values
-        subject: null, // Add subject field
+        subjects: [], // Initialize empty subjects array
         how_did_you_hear: data.discoverySource || null, // Use existing 'how_did_you_hear' column
         wants_notifications: data.wantsNotifications || false,
         payment_tier: null, // Let website handle plan selection
