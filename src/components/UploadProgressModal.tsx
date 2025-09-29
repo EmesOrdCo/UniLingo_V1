@@ -154,9 +154,9 @@ export default function UploadProgressModal({
   const getStageTitle = (stage: string) => {
     switch (stage) {
       case 'uploading':
-        return 'Uploading PDF';
+        return progress.message?.includes('image') ? 'Uploading Images' : 'Uploading PDF';
       case 'processing':
-        return 'Processing Content';
+        return progress.message?.includes('OCR') ? 'Processing Images' : 'Processing Content';
       case 'generating':
         return 'Generating Flashcards';
       case 'complete':
@@ -238,6 +238,27 @@ export default function UploadProgressModal({
         description: 'The AI service took too long to generate flashcards.',
         solution: 'Try uploading a smaller PDF file or try again in a few minutes.',
         icon: 'sparkles-outline'
+      };
+    } else if (message.includes('Backend request failed with status 502')) {
+      return {
+        title: 'Server Processing Error',
+        description: 'The server encountered an error while processing your images.',
+        solution: 'Try uploading smaller images or fewer images at once. The server may be temporarily overloaded.',
+        icon: 'server-outline'
+      };
+    } else if (message.includes('Network request failed')) {
+      return {
+        title: 'Connection Error',
+        description: 'Unable to connect to the image processing server.',
+        solution: 'Check your internet connection and try again. The server may be temporarily unavailable.',
+        icon: 'wifi-outline'
+      };
+    } else if (message.includes('No text could be extracted')) {
+      return {
+        title: 'No Text Found',
+        description: 'Unable to extract text from your images.',
+        solution: 'Ensure your images contain clear, readable text. Try taking photos with better lighting or higher resolution.',
+        icon: 'text-outline'
       };
       } else {
         return {

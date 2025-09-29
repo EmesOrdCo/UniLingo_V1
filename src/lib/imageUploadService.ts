@@ -185,6 +185,16 @@ export class ImageUploadService {
         totalImages: images.length
       });
 
+      // Add a delay to show the processing message before the actual processing
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      onProgress?.({
+        stage: 'processing',
+        progress: 60,
+        message: 'Analyzing images with advanced OCR...',
+        totalImages: images.length
+      });
+
       // Send images to backend for OCR processing
       console.log('🌐 DEBUG: Attempting to connect to:', getBackendUrl('/api/process-image'));
       
@@ -201,6 +211,13 @@ export class ImageUploadService {
 
       console.log('📡 DEBUG: Response received, status:', response.status);
 
+      onProgress?.({
+        stage: 'processing',
+        progress: 80,
+        message: 'OCR processing complete, extracting text...',
+        totalImages: images.length
+      });
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         console.error('❌ DEBUG: Response not OK:', errorData);
@@ -208,6 +225,13 @@ export class ImageUploadService {
       }
 
       const result = await response.json();
+      
+      onProgress?.({
+        stage: 'processing',
+        progress: 90,
+        message: 'Finalizing text extraction...',
+        totalImages: images.length
+      });
       
       if (!result.success) {
         throw new Error(result.error || 'Image processing failed');
