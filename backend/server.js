@@ -288,47 +288,34 @@ app.post('/api/process-image', imageUpload.array('images', 5), async (req, res) 
           throw new Error(`Image processing failed: ${sharpError.message}`);
         }
 
-        // Step 2: Use EasyOCR for handwriting recognition (PHOTO UPLOADS ONLY)
-        console.log(`  🔤 Starting EasyOCR for handwriting recognition...`);
-        let text = '';
-        
-        try {
-          // Initialize EasyOCR reader (English)
-          const ocr = new EasyOCR();
-          await ocr.init(['en']);
-          
-          // Process image with EasyOCR
-          const result = await ocr.readText(file.path);
-          
-          // Extract text from EasyOCR results
-          if (result && result.length > 0) {
-            text = result.map(item => item.text).join(' ');
-            console.log(`  ✅ EasyOCR completed successfully`);
-            console.log(`  📝 Extracted text length: ${text.length} characters`);
-            console.log(`  📖 Text preview: ${text.substring(0, 200)}...`);
-            console.log(`  🎯 Detected ${result.length} text regions`);
-          } else {
-            console.log(`  ⚠️ EasyOCR found no text in image`);
-            text = '';
-          }
-          
-        } catch (easyocrError) {
-          console.error(`  ❌ EasyOCR failed:`, easyocrError.message);
-          
-          // Fallback to Tesseract if EasyOCR fails
-          console.log(`  🔄 Falling back to Tesseract...`);
-          try {
-            const fallbackResult = await Tesseract.recognize(processedImageBuffer, 'eng', {
-              tessedit_pageseg_mode: '6',
-              tessedit_ocr_engine_mode: '1',
-            });
-            text = fallbackResult.data.text || '';
-            console.log(`  ✅ Tesseract fallback completed`);
-          } catch (tesseractError) {
-            console.error(`  ❌ Tesseract fallback also failed:`, tesseractError);
-            text = '';
-          }
-        }
+// Step 2: Use EasyOCR for handwriting recognition (PHOTO UPLOADS ONLY)
+console.log(`  🔤 Starting EasyOCR for handwriting recognition...`);
+let text = '';
+
+try {
+  // Initialize EasyOCR reader (English)
+  const ocr = new EasyOCR();
+  await ocr.init(['en']);
+
+  // Process image with EasyOCR
+  const result = await ocr.readText(file.path);
+
+  // Extract text from EasyOCR results
+  if (result && result.length > 0) {
+    text = result.map(item => item.text).join(' ');
+    console.log(`  ✅ EasyOCR completed successfully`);
+    console.log(`  📝 Extracted text length: ${text.length} characters`);
+    console.log(`  📖 Text preview: ${text.substring(0, 200)}...`);
+    console.log(`  🎯 Detected ${result.length} text regions`);
+  } else {
+    console.log(`  ⚠️ EasyOCR found no text in image`);
+    text = '';
+  }
+
+} catch (easyocrError) {
+  console.error(`  ❌ EasyOCR failed:`, easyocrError.message);
+  text = '';
+}
 
         // Post-processing: Clean and correct the extracted text
         if (text && text.trim()) {

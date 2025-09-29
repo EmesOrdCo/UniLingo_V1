@@ -1,26 +1,18 @@
-# Ultra-minimal multi-stage build for Railway with EasyOCR
-FROM node:18-slim AS builder
+# Ultra-minimal multi-stage build for Railway
+FROM node:18-alpine AS builder
 
-# Install build dependencies for Python, EasyOCR, and Canvas on Debian
-RUN apt-get update && apt-get install -y \
+# Install minimal build dependencies
+RUN apk add --no-cache \
     python3 \
-    python3-pip \
-    python3-dev \
-    python3-venv \
-    build-essential \
-    libgl1-mesa-dri \
-    libglib2.0-0 \
-    libgomp1 \
-    libcairo2-dev \
-    libjpeg-dev \
-    libpango1.0-dev \
-    libgif-dev \
-    libpixman-1-dev \
-    libpangocairo-1.0-0 \
-    libjpeg62-turbo-dev \
-    libfreetype6-dev \
-    && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean
+    py3-pip \
+    build-base \
+    cairo-dev \
+    jpeg-dev \
+    pango-dev \
+    giflib-dev \
+    pixman-dev \
+    freetype-dev \
+    && rm -rf /var/cache/apk/*
 
 # Set working directory
 WORKDIR /app
@@ -31,8 +23,8 @@ COPY package*.json ./
 # Install Node.js dependencies
 RUN npm ci --omit=dev && npm cache clean --force
 
-# Install node-easyocr explicitly if missing
-RUN npm list node-easyocr || npm install node-easyocr@^1.0.9
+# Install node-easyocr explicitly
+RUN npm install node-easyocr@^1.0.9
 
 # Verify node-easyocr installation
 RUN npm list node-easyocr
@@ -41,26 +33,19 @@ RUN npm list node-easyocr
 COPY . .
 
 # Final stage - ultra-minimal runtime image
-FROM node:18-slim AS runtime
+FROM node:18-alpine AS runtime
 
-# Install only essential runtime dependencies
-RUN apt-get update && apt-get install -y \
+# Install minimal runtime dependencies
+RUN apk add --no-cache \
     python3 \
-    python3-pip \
-    python3-venv \
-    libgl1-mesa-dri \
-    libglib2.0-0 \
-    libgomp1 \
-    libcairo2 \
-    libjpeg62 \
-    libpango1.0-0 \
-    libgif7 \
-    libpixman-1-0 \
-    libpangocairo-1.0-0 \
-    libjpeg62-turbo \
-    libfreetype6 \
-    && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean
+    py3-pip \
+    cairo \
+    jpeg \
+    pango \
+    giflib \
+    pixman \
+    freetype \
+    && rm -rf /var/cache/apk/*
 
 # Set working directory
 WORKDIR /app
