@@ -1,18 +1,18 @@
-# Multi-stage build for Railway with EasyOCR - Optimized for size
-FROM node:18-slim AS builder
+# Ultra-minimal multi-stage build for Railway with EasyOCR
+FROM node:18-alpine AS builder
 
-# Install build dependencies for Python and EasyOCR
-RUN apt-get update && apt-get install -y \
+# Install build dependencies for Python and EasyOCR on Alpine
+RUN apk add --no-cache \
     python3 \
-    python3-pip \
-    python3-venv \
+    py3-pip \
     python3-dev \
-    build-essential \
-    libgl1-mesa-glx \
-    libglib2.0-0 \
-    libgomp1 \
-    && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean
+    build-base \
+    libc6-compat \
+    linux-headers \
+    gcc \
+    g++ \
+    make \
+    && rm -rf /var/cache/apk/*
 
 # Set working directory
 WORKDIR /app
@@ -32,20 +32,15 @@ RUN npm list node-easyocr
 # Copy application code
 COPY . .
 
-# Final stage - minimal runtime image
-FROM node:18-slim AS runtime
+# Final stage - ultra-minimal runtime image
+FROM node:18-alpine AS runtime
 
-# Install only runtime Python dependencies (no build tools)
-RUN apt-get update && apt-get install -y \
+# Install only essential runtime dependencies
+RUN apk add --no-cache \
     python3 \
-    python3-pip \
-    python3-venv \
-    libgl1-mesa-glx \
-    libglib2.0-0 \
-    libgomp1 \
-    && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean \
-    && apt-get autoremove -y
+    py3-pip \
+    libc6-compat \
+    && rm -rf /var/cache/apk/*
 
 # Set working directory
 WORKDIR /app
