@@ -122,3 +122,10 @@ __tests__/
 
 # Development files
 .env.example
+
+# Uploads directory (keep structure but exclude files)
+uploads/*
+!uploads/.gitkeep
+
+# Railway specific
+.railway/
