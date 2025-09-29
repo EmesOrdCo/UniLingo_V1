@@ -1,13 +1,13 @@
-# Ultra-minimal build for Railway
-FROM node:18-alpine AS base
+# Multi-stage build for Railway with EasyOCR
+FROM node:18-slim AS base
 
-# Install only essential dependencies for EasyOCR
-RUN apk add --no-cache \
+# Install minimal Python dependencies for EasyOCR
+RUN apt-get update && apt-get install -y \
     python3 \
-    py3-pip \
-    build-base \
-    libc6-compat \
-    && rm -rf /var/cache/apk/*
+    python3-pip \
+    python3-venv \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
 
 # Set working directory
 WORKDIR /app
@@ -22,8 +22,8 @@ RUN npm ci --omit=dev && npm cache clean --force
 COPY . .
 
 # Create non-root user for security
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001 -G nodejs
+RUN groupadd -g 1001 nodejs && \
+    useradd -r -u 1001 -g nodejs nodejs
 
 # Change ownership of the app directory
 RUN chown -R nodejs:nodejs /app
