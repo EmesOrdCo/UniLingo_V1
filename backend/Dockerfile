@@ -40,9 +40,11 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install Python dependencies first
+# Install Python dependencies first using virtual environment
 COPY requirements.txt .
-RUN pip3 install --no-cache-dir -r requirements.txt
+RUN python3 -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Install Node.js dependencies
 RUN npm ci --omit=dev && npm cache clean --force
@@ -100,7 +102,8 @@ WORKDIR /app
 COPY --from=builder /app .
 
 # Set Python environment variables for EasyOCR
-ENV PYTHONPATH=/usr/local/lib/python3.11/site-packages
+ENV PATH="/opt/venv/bin:$PATH"
+ENV PYTHONPATH=/opt/venv/lib/python3.11/site-packages
 ENV LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
 
 # Run as root for faster builds (less secure but functional)
