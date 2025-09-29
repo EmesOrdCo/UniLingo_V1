@@ -123,6 +123,9 @@ RUN apt-get update && apt-get install -y \
 # Set working directory
 WORKDIR /app
 
+# Copy Python virtual environment from builder stage
+COPY --from=builder /opt/venv /opt/venv
+
 # Copy built application from builder stage
 COPY --from=builder /app .
 
