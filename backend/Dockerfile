@@ -40,11 +40,13 @@ COPY . .
 # Final stage - ultra-minimal runtime image
 FROM node:18-slim AS runtime
 
-# Install runtime dependencies
+# Install runtime dependencies for EasyOCR
 RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
     python3-venv \
+    python3-dev \
+    build-essential \
     libgl1-mesa-dri \
     libglib2.0-0 \
     libgomp1 \
@@ -54,6 +56,8 @@ RUN apt-get update && apt-get install -y \
     libgif7 \
     libpixman-1-0 \
     libfreetype6 \
+    libffi-dev \
+    libssl-dev \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
