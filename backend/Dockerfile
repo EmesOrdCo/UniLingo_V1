@@ -47,8 +47,10 @@ ENV VIRTUAL_ENV="/opt/venv"
 # Upgrade pip and install build tools
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel
 
-# Install Python dependencies from requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
+# Install Python dependencies in order for compatibility
+RUN pip install --no-cache-dir numpy==1.24.3
+RUN pip install --no-cache-dir Pillow==9.5.0
+RUN pip install --no-cache-dir opencv-python==4.8.1.78
 
 # Install PyTorch CPU-only version (most compatible)
 RUN pip install --no-cache-dir torch==2.1.0+cpu torchvision==0.16.0+cpu --index-url https://download.pytorch.org/whl/cpu
