@@ -1,7 +1,7 @@
 # Ultra-minimal multi-stage build for Railway with EasyOCR
 FROM node:18-alpine AS builder
 
-# Install build dependencies for Python and EasyOCR on Alpine
+# Install build dependencies for Python, EasyOCR, and Canvas on Alpine
 RUN apk add --no-cache \
     python3 \
     py3-pip \
@@ -12,6 +12,14 @@ RUN apk add --no-cache \
     gcc \
     g++ \
     make \
+    cairo-dev \
+    jpeg-dev \
+    pango-dev \
+    giflib-dev \
+    pixman-dev \
+    pangomm-dev \
+    libjpeg-turbo-dev \
+    freetype-dev \
     && rm -rf /var/cache/apk/*
 
 # Set working directory
@@ -40,6 +48,14 @@ RUN apk add --no-cache \
     python3 \
     py3-pip \
     libc6-compat \
+    cairo \
+    jpeg \
+    pango \
+    giflib \
+    pixman \
+    pangomm \
+    libjpeg-turbo \
+    freetype \
     && rm -rf /var/cache/apk/*
 
 # Set working directory
