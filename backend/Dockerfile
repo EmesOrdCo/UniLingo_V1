@@ -55,6 +55,9 @@ RUN pip install --no-cache-dir opencv-python==4.8.1.78
 # Install PyTorch CPU-only version (most compatible)
 RUN pip install --no-cache-dir torch==2.1.0+cpu torchvision==0.16.0+cpu --index-url https://download.pytorch.org/whl/cpu
 
+# Install EasyOCR dependencies first
+RUN pip install --no-cache-dir scipy ninja opencv-python-headless pyclipper python-bidi PyYAML scikit-image Shapely
+
 # Install EasyOCR with specific version and force NumPy 1.x
 RUN pip install --no-cache-dir --no-deps easyocr==1.7.0
 RUN pip install --no-cache-dir --force-reinstall numpy==1.26.4
