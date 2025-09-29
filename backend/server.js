@@ -249,72 +249,48 @@ app.post('/api/process-image', imageUpload.array('images', 5), async (req, res) 
         console.log(`  📁 File path: ${file.path}`);
         console.log(`  📊 File size: ${file.size} bytes`);
         
-        // Step 1: Enhanced preprocessing for handwritten text
-        console.log(`  🖼️ Starting enhanced Sharp processing for handwriting...`);
+        // Step 1: SIMPLE preprocessing - less is more for handwriting
+        console.log(`  🖼️ Starting SIMPLE Sharp processing for handwriting...`);
         let processedImageBuffer;
         try {
           // Get image metadata first
           const metadata = await sharp(file.path).metadata();
           console.log(`  📊 Original image: ${metadata.width}x${metadata.height}, format: ${metadata.format}`);
           
+          // SIMPLE approach: minimal processing to preserve handwriting details
           processedImageBuffer = await sharp(file.path)
-            .resize(3000, 3000, { 
+            .resize(2000, 2000, { 
               fit: 'inside',
-              withoutEnlargement: false, // Allow enlargement for small images
-              kernel: sharp.kernel.lanczos3 // Better quality resizing
+              withoutEnlargement: false
             })
-            .sharpen({ sigma: 2, m1: 0.5, m2: 3, x1: 2, y2: 10 }) // Enhanced sharpening for handwriting
-            .normalize({ lower: 5, upper: 95 }) // Better contrast for handwritten text
-            .modulate({ brightness: 1.1, saturation: 0 }) // Slight brightness boost
-            .linear(1.2, -(128 * 0.2)) // Enhanced contrast
+            .sharpen() // Simple sharpening
+            .normalize() // Simple normalization
             .grayscale() // Convert to grayscale
-            .png({ quality: 100, compressionLevel: 0 }) // Highest quality PNG
+            .png({ quality: 95 })
             .toBuffer();
-          console.log(`  ✅ Enhanced Sharp processing completed successfully`);
+          console.log(`  ✅ SIMPLE Sharp processing completed successfully`);
         } catch (sharpError) {
           console.error(`  ❌ Sharp processing failed:`, sharpError);
           throw new Error(`Image processing failed: ${sharpError.message}`);
         }
 
-        // Step 2: Handwriting-optimized preprocessing strategies
+        // Step 2: SIMPLE preprocessing strategies - test different thresholds
         const preprocessingStrategies = [
-          // Strategy 1: Handwriting-optimized binarization
+          // Strategy 1: NO preprocessing - use original
+          async (buffer) => {
+            return buffer; // Use the image as-is
+          },
+          // Strategy 2: Simple threshold
           async (buffer) => {
             return await sharp(buffer)
-              .threshold(130) // Slightly higher threshold for handwriting
+              .threshold(128)
               .png()
               .toBuffer();
           },
-          // Strategy 2: Soft binarization for cursive handwriting
+          // Strategy 3: Slightly higher threshold
           async (buffer) => {
             return await sharp(buffer)
               .threshold(140)
-              .gamma(0.8) // Softer gamma for cursive text
-              .png()
-              .toBuffer();
-          },
-          // Strategy 3: High contrast for faded handwriting
-          async (buffer) => {
-            return await sharp(buffer)
-              .threshold(120)
-              .linear(1.5, -50) // Strong contrast enhancement
-              .png()
-              .toBuffer();
-          },
-          // Strategy 4: Morphological processing for connected letters
-          async (buffer) => {
-            return await sharp(buffer)
-              .threshold(135)
-              .modulate({ brightness: 1.05, contrast: 1.1 })
-              .gamma(0.9)
-              .png()
-              .toBuffer();
-          },
-          // Strategy 5: Noise reduction for messy handwriting
-          async (buffer) => {
-            return await sharp(buffer)
-              .threshold(125)
-              .sharpen({ sigma: 1.5, m1: 0.5, m2: 2, x1: 2, y2: 8 })
               .png()
               .toBuffer();
           }
@@ -329,14 +305,10 @@ app.post('/api/process-image', imageUpload.array('images', 5), async (req, res) 
           try {
             const preprocessed = await preprocessingStrategies[i](processedImageBuffer);
             
-            // Quick OCR test to evaluate preprocessing quality for handwriting
+            // SIMPLE OCR test - minimal settings
             const testResult = await Tesseract.recognize(preprocessed, 'eng', {
-              tessedit_pageseg_mode: '6', // Uniform block of text (better for handwriting)
-              tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.,!?:()[]{}\'\"-',
-              tessedit_ocr_engine_mode: '1', // Neural nets LSTM engine (better for handwriting)
-              preserve_interword_spaces: '1', // Preserve spaces between words
-              textord_old_baselines: '1', // Better for handwritten text
-              textord_old_xheight: '1', // Better character height detection
+              tessedit_pageseg_mode: '6', // Simple uniform block
+              tessedit_ocr_engine_mode: '1', // LSTM engine
             });
             
             const score = (testResult.data.confidence || 0) + (testResult.data.text.length * 0.1);
@@ -355,16 +327,16 @@ app.post('/api/process-image', imageUpload.array('images', 5), async (req, res) 
         console.log(`  ✅ Best preprocessing: Strategy ${bestStrategyIndex + 1} (score: ${bestPreprocessingScore.toFixed(1)})`);
         processedImageBuffer = bestPreprocessedBuffer;
 
-        // Enhanced OCR with handwriting-optimized PSM modes
-        const psmModes = [6, 7, 8, 11, 13]; // Optimized for handwriting recognition
+        // SIMPLE OCR - minimal settings to avoid gibberish
+        const psmModes = [6, 8, 13]; // Simple PSM modes
         let bestResult = { text: '', confidence: 0 };
         let bestPSM = 6;
 
-        console.log(`  🔍 Trying handwriting-optimized PSM modes for better recognition...`);
+        console.log(`  🔍 Trying SIMPLE PSM modes to avoid gibberish...`);
 
         for (const psm of psmModes) {
           try {
-            console.log(`  🔤 Starting handwriting-optimized OCR with PSM ${psm}...`);
+            console.log(`  🔤 Starting SIMPLE OCR with PSM ${psm}...`);
             const result = await Tesseract.recognize(
               processedImageBuffer,
               'eng',
@@ -374,20 +346,12 @@ app.post('/api/process-image', imageUpload.array('images', 5), async (req, res) 
                     console.log(`    PSM ${psm} Progress: ${Math.round(m.progress * 100)}%`);
                   }
                 },
-                // Handwriting-optimized settings
+                // MINIMAL settings to avoid gibberish
                 tessedit_pageseg_mode: psm.toString(),
-                tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.,!?:()[]{}\'\"-',
-                tessedit_ocr_engine_mode: '1', // Neural nets LSTM engine (best for handwriting)
-                preserve_interword_spaces: '1', // Preserve spaces between words
-                textord_old_baselines: '1', // Better for handwritten text
-                textord_old_xheight: '1', // Better character height detection
-                textord_min_linesize: '2.0', // Minimum line size for handwriting
-                textord_force_make_prop_words: 'F', // Better for handwriting
-                classify_enable_learning: '1', // Enable learning mode
-                classify_enable_adaptive_matcher: '1', // Adaptive matching for handwriting
+                tessedit_ocr_engine_mode: '1', // LSTM engine
               }
             );
-            console.log(`  ✅ Handwriting OCR with PSM ${psm} completed successfully`);
+            console.log(`  ✅ SIMPLE OCR with PSM ${psm} completed successfully`);
 
             const confidence = result.data.confidence || 0;
             console.log(`    PSM ${psm} Result: ${confidence.toFixed(1)}% confidence, ${result.data.text.length} chars`);
