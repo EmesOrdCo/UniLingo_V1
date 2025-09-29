@@ -5,6 +5,7 @@ This service provides an HTTP API for OCR processing using EasyOCR
 """
 
 import sys
+import os
 import json
 import base64
 import io
@@ -43,74 +44,6 @@ def health_check():
         'service': 'EasyOCR Service',
         'reader_initialized': reader is not None
     })
-
-@app.route('/ocr', methods=['POST'])
-def process_image():
-    """Process image for OCR"""
-    try:
-        if reader is None:
-            return jsonify({
-                'success': False,
-                'error': 'EasyOCR reader not initialized'
-            }), 500
-
-        # Get image data from request
-        if 'image' in request.files:
-            # Handle file upload
-            image_file = request.files['image']
-            image_data = image_file.read()
-        elif 'image_data' in request.json:
-            # Handle base64 encoded image
-            image_data = base64.b64decode(request.json['image_data'])
-        else:
-            return jsonify({
-                'success': False,
-                'error': 'No image data provided'
-            }), 400
-
-        # Convert to PIL Image
-        image = Image.open(io.BytesIO(image_data))
-        
-        # Convert to RGB if necessary
-        if image.mode != 'RGB':
-            image = image.convert('RGB')
-        
-        # Convert to numpy array for EasyOCR
-        img_array = np.array(image)
-        
-        logger.info(f"Processing image: {image.size[0]}x{image.size[1]} pixels")
-        
-        # Perform OCR
-        results = reader.readtext(img_array)
-        
-        # Extract text from results
-        extracted_text = ""
-        confidence_scores = []
-        
-        for (bbox, text, confidence) in results:
-            if confidence > 0.1:  # Filter out very low confidence results
-                extracted_text += text + " "
-                confidence_scores.append(confidence)
-        
-        # Calculate average confidence
-        avg_confidence = sum(confidence_scores) / len(confidence_scores) if confidence_scores else 0
-        
-        logger.info(f"OCR completed: {len(extracted_text)} characters, avg confidence: {avg_confidence:.2f}")
-        
-        return jsonify({
-            'success': True,
-            'text': extracted_text.strip(),
-            'confidence': avg_confidence,
-            'word_count': len(results),
-            'raw_results': results
-        })
-        
-    except Exception as e:
-        logger.error(f"OCR processing error: {e}")
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }), 500
 
 @app.route('/ocr/process-image', methods=['POST'])
 def process_image_compat():
@@ -217,6 +150,7 @@ if __name__ == '__main__':
         sys.exit(1)
     
     # Start Flask server
-    port = int(sys.argv[1]) if len(sys.argv) > 1 else 8081
+    # Use PORT environment variable (Railway) or command line argument or default
+    port = int(os.environ.get('PORT', sys.argv[1] if len(sys.argv) > 1 else 8081))
     logger.info(f"Starting EasyOCR service on port {port}")
     app.run(host='0.0.0.0', port=port, debug=False)

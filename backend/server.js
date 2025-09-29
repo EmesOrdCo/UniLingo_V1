@@ -233,9 +233,6 @@ app.post('/api/process-image', imageUpload.array('images', 5), async (req, res) 
     // Import required modules
     const Tesseract = require('tesseract.js');
     const sharp = require('sharp');
-    const axios = require('axios');
-    const FormData = require('form-data');
-    const fs = require('fs');
     
     let allExtractedText = '';
     let processedImages = 0;
@@ -290,45 +287,57 @@ app.post('/api/process-image', imageUpload.array('images', 5), async (req, res) 
           throw new Error(`Image processing failed: ${sharpError.message}`);
         }
 
-        // Step 2: Use EASYOCR service for better handwriting recognition
-        console.log(`  🔤 Starting EASYOCR service for handwriting recognition...`);
+        // Step 2: Use enhanced Tesseract for handwriting recognition
+        console.log(`  🔤 Starting enhanced Tesseract for handwriting recognition...`);
         let text = '';
         
         try {
-          // Call Python EasyOCR service
-          const formData = new FormData();
-          formData.append('images', fs.createReadStream(file.path));
-          
-          const response = await axios.post('http://localhost:8081/ocr/process-image', formData, {
-            headers: {
-              'Content-Type': 'multipart/form-data',
-            },
-            timeout: 30000, // 30 second timeout
+          // Enhanced Tesseract configuration for handwritten text
+          const result = await Tesseract.recognize(processedImageBuffer, 'eng', {
+            // Page segmentation modes optimized for handwriting
+            tessedit_pageseg_mode: '6', // Uniform block of text
+            tessedit_ocr_engine_mode: '1', // Neural nets LSTM engine only
+            
+            // Handwriting-specific settings
+            preserve_interword_spaces: '1',
+            textord_really_old_xheight: '1',
+            
+            // Character recognition settings
+            classify_bln_numeric_mode: '0',
+            textord_debug_tabfind: '0',
+            
+            // Language model settings
+            load_system_dawg: '1',
+            load_freq_dawg: '1',
+            load_unambig_dawg: '1',
+            load_punc_dawg: '1',
+            load_number_dawg: '1',
+            
+            // Confidence settings
+            classify_enable_learning: '0',
+            classify_enable_adaptive_matcher: '1',
           });
           
-          if (response.data.success) {
-            text = response.data.result.text || '';
-            console.log(`  ✅ EASYOCR completed successfully`);
-            console.log(`  📝 Extracted text length: ${text.length} characters`);
-            console.log(`  📖 Text preview: ${text.substring(0, 200)}...`);
-            console.log(`  🎯 Confidence: ${response.data.result.confidence?.toFixed(2) || 'N/A'}`);
-          } else {
-            throw new Error(response.data.message || 'EasyOCR service failed');
-          }
-        } catch (easyocrError) {
-          console.error(`  ❌ EASYOCR service failed:`, easyocrError.message);
+          text = result.data.text || '';
+          console.log(`  ✅ Enhanced Tesseract completed successfully`);
+          console.log(`  📝 Extracted text length: ${text.length} characters`);
+          console.log(`  📖 Text preview: ${text.substring(0, 200)}...`);
+          console.log(`  🎯 Confidence: ${result.data.confidence?.toFixed(2) || 'N/A'}`);
           
-          // Fallback to Tesseract if EasyOCR service fails
-          console.log(`  🔄 Falling back to Tesseract...`);
+        } catch (tesseractError) {
+          console.error(`  ❌ Enhanced Tesseract failed:`, tesseractError);
+          
+          // Fallback to basic Tesseract
+          console.log(`  🔄 Falling back to basic Tesseract...`);
           try {
             const fallbackResult = await Tesseract.recognize(processedImageBuffer, 'eng', {
               tessedit_pageseg_mode: '6',
               tessedit_ocr_engine_mode: '1',
             });
             text = fallbackResult.data.text || '';
-            console.log(`  ✅ Tesseract fallback completed`);
-          } catch (tesseractError) {
-            console.error(`  ❌ Tesseract fallback also failed:`, tesseractError);
+            console.log(`  ✅ Basic Tesseract fallback completed`);
+          } catch (basicError) {
+            console.error(`  ❌ Basic Tesseract fallback also failed:`, basicError);
             text = '';
           }
         }
