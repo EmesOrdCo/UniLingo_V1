@@ -13,16 +13,23 @@ from pathlib import Path
 def process_image_with_easyocr(image_path, languages=['en']):
     """
     Process image with EasyOCR and return results as JSON.
-    Handles progress output by filtering it out.
+    Handles progress output by suppressing it completely.
     """
+    import sys
+    import os
+    from contextlib import redirect_stderr, redirect_stdout
+    from io import StringIO
+    
     try:
         import easyocr
         
-        # Create EasyOCR reader
-        reader = easyocr.Reader(languages, gpu=False)
-        
-        # Process the image
-        results = reader.readtext(image_path)
+        # Suppress all output to prevent progress messages from interfering
+        with redirect_stdout(StringIO()), redirect_stderr(StringIO()):
+            # Create EasyOCR reader with verbose=False to minimize output
+            reader = easyocr.Reader(languages, gpu=False, verbose=False)
+            
+            # Process the image
+            results = reader.readtext(image_path)
         
         # Format results for JSON output
         formatted_results = []
