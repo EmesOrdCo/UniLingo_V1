@@ -183,8 +183,13 @@ function splitTextIntoPages(text, pageCount) {
 // Image processing endpoint with OCR
 app.post('/api/process-image', imageUpload.array('images', 5), async (req, res) => {
   try {
+    console.log('🔍 DEBUG: Request body keys:', Object.keys(req.body || {}));
+    console.log('🔍 DEBUG: Request files:', req.files ? req.files.length : 'undefined');
+    console.log('🔍 DEBUG: Content-Type:', req.headers['content-type']);
+    
     if (!req.files || req.files.length === 0) {
-      return res.status(400).json({ error: 'No image files uploaded' });
+      console.log('❌ DEBUG: No files received - req.files:', req.files);
+      return res.status(400).json({ error: 'No image files uploaded', debug: { files: req.files, body: req.body } });
     }
 
     console.log('\n' + '📸'.repeat(20));
@@ -217,18 +222,28 @@ app.post('/api/process-image', imageUpload.array('images', 5), async (req, res) 
       try {
         // Advanced preprocessing pipeline for optimal handwriting recognition
         console.log(`  🔧 Applying advanced image preprocessing...`);
+        console.log(`  📁 File path: ${file.path}`);
+        console.log(`  📊 File size: ${file.size} bytes`);
         
         // Step 1: Initial enhancement
-        let processedImageBuffer = await sharp(file.path)
-          .resize(2000, 2000, { 
-            fit: 'inside',
-            withoutEnlargement: true 
-          })
-          .sharpen()
-          .normalize()
-          .grayscale()
-          .png()
-          .toBuffer();
+        console.log(`  🖼️ Starting Sharp image processing...`);
+        let processedImageBuffer;
+        try {
+          processedImageBuffer = await sharp(file.path)
+            .resize(2000, 2000, { 
+              fit: 'inside',
+              withoutEnlargement: true 
+            })
+            .sharpen()
+            .normalize()
+            .grayscale()
+            .png()
+            .toBuffer();
+          console.log(`  ✅ Sharp processing completed successfully`);
+        } catch (sharpError) {
+          console.error(`  ❌ Sharp processing failed:`, sharpError);
+          throw new Error(`Image processing failed: ${sharpError.message}`);
+        }
 
         // Step 2: Apply multiple preprocessing strategies and pick the best
         const preprocessingStrategies = [
@@ -297,6 +312,7 @@ app.post('/api/process-image', imageUpload.array('images', 5), async (req, res) 
 
         for (const psm of psmModes) {
           try {
+            console.log(`  🔤 Starting Tesseract OCR with PSM ${psm}...`);
             const result = await Tesseract.recognize(
               processedImageBuffer,
               'eng',
@@ -312,6 +328,7 @@ app.post('/api/process-image', imageUpload.array('images', 5), async (req, res) 
                 tessedit_ocr_engine_mode: '1' // Neural nets LSTM engine
               }
             );
+            console.log(`  ✅ Tesseract OCR with PSM ${psm} completed successfully`);
 
             const confidence = result.data.confidence || 0;
             console.log(`    PSM ${psm} Result: ${confidence.toFixed(1)}% confidence, ${result.data.text.length} chars`);
@@ -321,7 +338,8 @@ app.post('/api/process-image', imageUpload.array('images', 5), async (req, res) 
               bestPSM = psm;
             }
           } catch (psmError) {
-            console.log(`    PSM ${psm} failed: ${psmError.message}`);
+            console.error(`    ❌ PSM ${psm} failed:`, psmError);
+            console.log(`    PSM ${psm} error details: ${psmError.message}`);
           }
         }
 
@@ -344,6 +362,12 @@ app.post('/api/process-image', imageUpload.array('images', 5), async (req, res) 
         processedImages++;
       } catch (imageError) {
         console.error(`❌ Error processing image ${file.originalname}:`, imageError);
+        console.error(`❌ Image error stack:`, imageError.stack);
+        console.error(`❌ Image error details:`, {
+          name: imageError.name,
+          message: imageError.message,
+          code: imageError.code
+        });
         // Continue with other images even if one fails
       }
     }
