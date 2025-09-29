@@ -1,11 +1,11 @@
 [phases.setup]
 nixPkgs = ["nodejs", "python311", "python311Packages.pip", "python311Packages.virtualenv"]
+aptPkgs = ["libgl1-mesa-glx", "libglib2.0-0", "libsm6", "libxext6", "libxrender-dev", "libgomp1"]
 
 [phases.install]
 cmds = ["npm ci"]
 
-[phases.build]
-cmds = ["npm run build || true"]
+# No build step needed for this Node.js backend
 
 [start]
 cmd = "npm start"
