@@ -231,7 +231,6 @@ app.post('/api/process-image', imageUpload.array('images', 5), async (req, res) 
     console.log('📸'.repeat(20) + '\n');
 
     // Import required modules
-    const Tesseract = require('tesseract.js');
     const sharp = require('sharp');
     const { EasyOCR } = require('node-easyocr');
     
