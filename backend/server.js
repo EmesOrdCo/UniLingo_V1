@@ -233,7 +233,9 @@ app.post('/api/process-image', imageUpload.array('images', 5), async (req, res) 
     // Import required modules
     const Tesseract = require('tesseract.js');
     const sharp = require('sharp');
-    const { recognize } = require('@napi-rs/system-ocr');
+    const axios = require('axios');
+    const FormData = require('form-data');
+    const fs = require('fs');
     
     let allExtractedText = '';
     let processedImages = 0;
@@ -288,21 +290,35 @@ app.post('/api/process-image', imageUpload.array('images', 5), async (req, res) 
           throw new Error(`Image processing failed: ${sharpError.message}`);
         }
 
-        // Step 2: Use SYSTEM OCR instead of Tesseract for better handwriting recognition
-        console.log(`  🔤 Starting SYSTEM OCR for handwriting recognition...`);
+        // Step 2: Use EASYOCR service for better handwriting recognition
+        console.log(`  🔤 Starting EASYOCR service for handwriting recognition...`);
         let text = '';
         
         try {
-          // Use system OCR which should be better for handwritten text
-          const result = await recognize(file.path);
-          text = result.text || '';
-          console.log(`  ✅ SYSTEM OCR completed successfully`);
-          console.log(`  📝 Extracted text length: ${text.length} characters`);
-          console.log(`  📖 Text preview: ${text.substring(0, 200)}...`);
-        } catch (systemOcrError) {
-          console.error(`  ❌ SYSTEM OCR failed:`, systemOcrError);
+          // Call Python EasyOCR service
+          const formData = new FormData();
+          formData.append('images', fs.createReadStream(file.path));
           
-          // Fallback to Tesseract if system OCR fails
+          const response = await axios.post('http://localhost:8081/ocr/process-image', formData, {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+            timeout: 30000, // 30 second timeout
+          });
+          
+          if (response.data.success) {
+            text = response.data.result.text || '';
+            console.log(`  ✅ EASYOCR completed successfully`);
+            console.log(`  📝 Extracted text length: ${text.length} characters`);
+            console.log(`  📖 Text preview: ${text.substring(0, 200)}...`);
+            console.log(`  🎯 Confidence: ${response.data.result.confidence?.toFixed(2) || 'N/A'}`);
+          } else {
+            throw new Error(response.data.message || 'EasyOCR service failed');
+          }
+        } catch (easyocrError) {
+          console.error(`  ❌ EASYOCR service failed:`, easyocrError.message);
+          
+          // Fallback to Tesseract if EasyOCR service fails
           console.log(`  🔄 Falling back to Tesseract...`);
           try {
             const fallbackResult = await Tesseract.recognize(processedImageBuffer, 'eng', {

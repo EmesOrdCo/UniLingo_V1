@@ -4,7 +4,25 @@ const getLocalIP = require('./getLocalIP');
 
 function updateFrontendConfig() {
   const localIP = getLocalIP();
-  const frontendConfigPath = path.join(__dirname, '..', 'src', 'config', 'backendConfig.ts');
+  // Try multiple possible paths for the frontend config file
+  const possiblePaths = [
+    path.join(__dirname, '..', 'src', 'config', 'backendConfig.ts'), // Local development
+    path.join('/app', 'src', 'config', 'backendConfig.ts'), // Docker container
+    path.join(process.cwd(), 'src', 'config', 'backendConfig.ts'), // Current working directory
+  ];
+  
+  let frontendConfigPath = null;
+  for (const configPath of possiblePaths) {
+    if (fs.existsSync(path.dirname(configPath))) {
+      frontendConfigPath = configPath;
+      break;
+    }
+  }
+  
+  if (!frontendConfigPath) {
+    console.log('⚠️ Frontend config directory not found, skipping config update');
+    return localIP;
+  }
   
   const configContent = `// Backend configuration
 // This will be updated dynamically when the backend starts
