@@ -1,33 +1,26 @@
 # Ultra-minimal multi-stage build for Railway with EasyOCR
-FROM node:18-alpine AS builder
+FROM node:18-slim AS builder
 
-# Install glibc for canvas compatibility
-RUN apk add --no-cache \
-    ca-certificates \
-    wget \
-    && wget -q -O /etc/apk/keys/sgerrand.rsa.pub https://alpine-pkgs.sgerrand.com/sgerrand.rsa.pub \
-    && wget https://github.com/sgerrand/alpine-pkg-glibc/releases/download/2.35-r1/glibc-2.35-r1.apk \
-    && apk add glibc-2.35-r1.apk
-
-# Install build dependencies for Python, EasyOCR, and Canvas on Alpine
-RUN apk add --no-cache \
+# Install build dependencies for Python, EasyOCR, and Canvas on Debian
+RUN apt-get update && apt-get install -y \
     python3 \
-    py3-pip \
+    python3-pip \
     python3-dev \
-    build-base \
-    linux-headers \
-    gcc \
-    g++ \
-    make \
-    cairo-dev \
-    jpeg-dev \
-    pango-dev \
-    giflib-dev \
-    pixman-dev \
-    pangomm-dev \
-    libjpeg-turbo-dev \
-    freetype-dev \
-    && rm -rf /var/cache/apk/*
+    python3-venv \
+    build-essential \
+    libgl1-mesa-dri \
+    libglib2.0-0 \
+    libgomp1 \
+    libcairo2-dev \
+    libjpeg-dev \
+    libpango1.0-dev \
+    libgif-dev \
+    libpixman-1-dev \
+    libpangocairo-1.0-0 \
+    libjpeg62-turbo-dev \
+    libfreetype6-dev \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
 
 # Set working directory
 WORKDIR /app
@@ -48,29 +41,26 @@ RUN npm list node-easyocr
 COPY . .
 
 # Final stage - ultra-minimal runtime image
-FROM node:18-alpine AS runtime
-
-# Install glibc for canvas compatibility
-RUN apk add --no-cache \
-    ca-certificates \
-    wget \
-    && wget -q -O /etc/apk/keys/sgerrand.rsa.pub https://alpine-pkgs.sgerrand.com/sgerrand.rsa.pub \
-    && wget https://github.com/sgerrand/alpine-pkg-glibc/releases/download/2.35-r1/glibc-2.35-r1.apk \
-    && apk add glibc-2.35-r1.apk
+FROM node:18-slim AS runtime
 
 # Install only essential runtime dependencies
-RUN apk add --no-cache \
+RUN apt-get update && apt-get install -y \
     python3 \
-    py3-pip \
-    cairo \
-    jpeg \
-    pango \
-    giflib \
-    pixman \
-    pangomm \
-    libjpeg-turbo \
-    freetype \
-    && rm -rf /var/cache/apk/*
+    python3-pip \
+    python3-venv \
+    libgl1-mesa-dri \
+    libglib2.0-0 \
+    libgomp1 \
+    libcairo2 \
+    libjpeg62 \
+    libpango1.0-0 \
+    libgif7 \
+    libpixman-1-0 \
+    libpangocairo-1.0-0 \
+    libjpeg62-turbo \
+    libfreetype6 \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
 
 # Set working directory
 WORKDIR /app
