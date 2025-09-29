@@ -1,16 +1,16 @@
 # Multi-stage build for optimized image size
-FROM node:18-alpine AS base
+FROM node:18-slim AS base
 
 # Install system dependencies for EasyOCR and image processing
-RUN apk add --no-cache \
+RUN apt-get update && apt-get install -y \
     python3 \
-    py3-pip \
-    build-base \
-    python3-dev \
-    libffi-dev \
-    libgomp \
-    mesa-gl \
-    mesa-dri-gallium
+    python3-pip \
+    python3-venv \
+    build-essential \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
 WORKDIR /app
@@ -19,7 +19,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install Node.js dependencies
-RUN npm ci --only=production && npm cache clean --force
+RUN npm ci --omit=dev && npm cache clean --force
 
 # Copy application code
 COPY . .
