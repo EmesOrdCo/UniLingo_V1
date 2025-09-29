@@ -27,13 +27,8 @@ RUN npm list node-easyocr
 # Copy application code
 COPY . .
 
-# Create non-root user for security
-RUN groupadd -g 1001 nodejs && \
-    useradd -r -u 1001 -g nodejs nodejs
-
-# Change ownership of the app directory
-RUN chown -R nodejs:nodejs /app
-USER nodejs
+# Run as root for faster builds (less secure but functional)
+# USER nodejs
 
 # Expose port
 EXPOSE 3000
