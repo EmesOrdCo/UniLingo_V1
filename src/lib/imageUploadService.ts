@@ -138,15 +138,19 @@ export class ImageUploadService {
 
       // Test backend connectivity first
       try {
+        console.log('🔍 DEBUG: Testing backend connectivity at:', getBackendUrl(BACKEND_CONFIG.ENDPOINTS.HEALTH));
         const healthResponse = await fetch(getBackendUrl(BACKEND_CONFIG.ENDPOINTS.HEALTH), {
           method: 'GET',
         });
         
+        console.log('💚 DEBUG: Health check response status:', healthResponse.status);
+        
         if (!healthResponse.ok) {
-          throw new Error('Backend server is not available');
+          throw new Error(`Backend server is not available (status: ${healthResponse.status})`);
         }
       } catch (healthError) {
-        throw new Error('Backend server is not running or not accessible. Please make sure the backend server is started.');
+        console.error('🚨 DEBUG: Health check failed:', healthError);
+        throw new Error(`Backend server is not running or not accessible: ${healthError.message}`);
       }
 
       onProgress?.({
@@ -182,16 +186,24 @@ export class ImageUploadService {
       });
 
       // Send images to backend for OCR processing
+      console.log('🌐 DEBUG: Attempting to connect to:', getBackendUrl('/api/process-image'));
+      
       const response = await fetch(getBackendUrl('/api/process-image'), {
         method: 'POST',
         body: formData,
         headers: {
           'Content-Type': 'multipart/form-data',
         },
+      }).catch((networkError) => {
+        console.error('🚨 NETWORK ERROR DETAILS:', networkError);
+        throw new Error(`Network request failed: ${networkError.message}`);
       });
+
+      console.log('📡 DEBUG: Response received, status:', response.status);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        console.error('❌ DEBUG: Response not OK:', errorData);
         throw new Error(errorData.details || `Backend request failed with status ${response.status}`);
       }
 
