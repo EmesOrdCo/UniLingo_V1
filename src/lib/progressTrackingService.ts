@@ -362,9 +362,7 @@ export class ProgressTrackingService {
           Math.min(30, Math.pow(2, updates.consecutive_correct)) : 
           Math.max(1, Math.floor(updates.consecutive_incorrect / 2));
         
-        const nextReviewDate = new Date();
-        nextReviewDate.setDate(nextReviewDate.getDate() + daysUntilNext);
-        updates.next_review_date = nextReviewDate.toISOString();
+        // next_review_date column removed - no longer needed
 
         // Calculate retention score (simple accuracy percentage)
         updates.retention_score = totalAttempts > 0 ? Math.round(((updates.correct_attempts || existingProgress.correct_attempts || 0) / totalAttempts) * 100) : 0;
@@ -386,7 +384,7 @@ export class ProgressTrackingService {
           consecutive_incorrect: data.isCorrect ? 0 : 1,
           is_mastered: data.isCorrect, // First attempt correct = immediate mastery
           last_reviewed: now,
-          next_review_date: new Date(Date.now() + (data.isCorrect ? 2 : 1) * 24 * 60 * 60 * 1000).toISOString(),
+          // next_review_date column removed - no longer needed
           retention_score: data.isCorrect ? 100 : 0,
           created_at: now,
           updated_at: now,

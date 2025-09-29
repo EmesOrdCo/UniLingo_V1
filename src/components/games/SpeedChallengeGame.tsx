@@ -54,14 +54,7 @@ const SpeedChallengeGame: React.FC<SpeedChallengeGameProps> = ({ gameData, onClo
     return () => clearInterval(timer);
   }, [timeLimit]);
 
-  // Auto-call onGameComplete when game finishes
-  useEffect(() => {
-    if (gameComplete && !completionCalledRef.current) {
-      console.log('🎯 SpeedChallenge calling onGameComplete with score:', finalScoreRef.current, 'time:', finalElapsedTimeRef.current, 'totalAnswered:', finalTotalAnsweredRef.current);
-      completionCalledRef.current = true;
-      onGameComplete(finalScoreRef.current, finalElapsedTimeRef.current, finalTotalAnsweredRef.current);
-    }
-  }, [gameComplete, onGameComplete]);
+  // Removed automatic completion call - now handled by user action buttons
 
   // Handle game completion - removed automatic call, now handled by user action
 
@@ -118,10 +111,22 @@ const SpeedChallengeGame: React.FC<SpeedChallengeGameProps> = ({ gameData, onClo
   };
 
   const handlePlayAgain = () => {
+    // Call onGameComplete before closing to log results
+    if (!completionCalledRef.current) {
+      console.log('🎯 SpeedChallenge calling onGameComplete with score:', finalScoreRef.current, 'time:', finalElapsedTimeRef.current, 'totalAnswered:', finalTotalAnsweredRef.current);
+      completionCalledRef.current = true;
+      onGameComplete(finalScoreRef.current, finalElapsedTimeRef.current, finalTotalAnsweredRef.current);
+    }
     onPlayAgain();
   };
 
   const handleReturnToMenu = () => {
+    // Call onGameComplete before closing to log results
+    if (!completionCalledRef.current) {
+      console.log('🎯 SpeedChallenge calling onGameComplete with score:', finalScoreRef.current, 'time:', finalElapsedTimeRef.current, 'totalAnswered:', finalTotalAnsweredRef.current);
+      completionCalledRef.current = true;
+      onGameComplete(finalScoreRef.current, finalElapsedTimeRef.current, finalTotalAnsweredRef.current);
+    }
     onClose();
   };
 

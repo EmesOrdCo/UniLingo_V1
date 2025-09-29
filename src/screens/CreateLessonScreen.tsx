@@ -248,8 +248,21 @@ export default function CreateLessonScreen() {
       console.error('Error creating lesson:', error);
       
       let errorMessage = 'An unexpected error occurred';
+      let suggestion = '';
+      
       if (error instanceof Error) {
         errorMessage = error.message;
+        
+        // Add specific suggestions based on error type
+        if (error.message.includes('File too large')) {
+          suggestion = 'Please try with a smaller file (under 25MB) or compress your PDF.';
+        } else if (error.message.includes('timeout')) {
+          suggestion = 'Try with a smaller file or split large documents into smaller parts.';
+        } else if (error.message.includes('out of memory')) {
+          suggestion = 'Please try with a smaller file or compress your images.';
+        } else if (error.message.includes('Network request failed')) {
+          suggestion = 'Please check your internet connection and try again.';
+        }
       } else if (typeof error === 'string') {
         errorMessage = error;
       }
@@ -257,7 +270,7 @@ export default function CreateLessonScreen() {
       setProgress({
         stage: 'error',
         progress: 0,
-        message: errorMessage,
+        message: suggestion ? `${errorMessage}\n\n${suggestion}` : errorMessage,
       });
     } finally {
       setIsProcessing(false);

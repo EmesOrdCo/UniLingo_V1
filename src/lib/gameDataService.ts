@@ -32,7 +32,7 @@ export interface GameQuestion {
 
 export interface GameData {
   questions: GameQuestion[];
-  languageMode?: 'question' | 'answer';
+  languageMode?: 'question' | 'answer' | 'mixed';
   setupOptions?: MemoryMatchSetupOptions;
   timeLimit?: number;
 }
@@ -79,6 +79,48 @@ export class GameDataService {
   }
 
   /**
+   * Generate wrong answer options in the same language as the correct answer
+   */
+  private static generateWrongOptionsForLanguage(correctAnswer: string, allFlashcards: UserFlashcard[], languageMode: 'question' | 'answer', count: number = 3): string[] {
+    const wrongAnswers: string[] = [];
+    const usedAnswers = new Set([correctAnswer]);
+    
+    // Get random answers from other flashcards
+    const shuffledCards = [...allFlashcards].sort(() => Math.random() - 0.5);
+    
+    for (const card of shuffledCards) {
+      if (wrongAnswers.length >= count) break;
+      
+      // For question mode (native-to-target), we want target language answers (card.back)
+      // For answer mode (target-to-native), we want native language answers (card.front)
+      // This ensures the options are in the same language as the correct answer
+      const wrongOption = languageMode === 'question' ? card.back : card.front;
+      
+      if (wrongOption && !usedAnswers.has(wrongOption) && wrongOption !== correctAnswer) {
+        wrongAnswers.push(wrongOption);
+        usedAnswers.add(wrongOption);
+      }
+    }
+    
+    // If we don't have enough wrong answers, add generic ones in the appropriate language
+    while (wrongAnswers.length < count) {
+      const genericAnswers = languageMode === 'question' 
+        ? ['Not sure', 'Maybe', 'Possibly', 'Unknown', 'Not applicable']
+        : ['No sé', 'Tal vez', 'Posiblemente', 'Desconocido', 'No aplica'];
+      
+      for (const generic of genericAnswers) {
+        if (!usedAnswers.has(generic) && wrongAnswers.length < count) {
+          wrongAnswers.push(generic);
+          usedAnswers.add(generic);
+          break;
+        }
+      }
+    }
+    
+    return wrongAnswers.slice(0, count);
+  }
+
+  /**
    * Shuffle array in place
    */
   private static shuffleArray<T>(array: T[]): T[] {
@@ -93,17 +135,24 @@ export class GameDataService {
   /**
    * Generate quiz questions for FlashcardQuizGame
    */
-  static generateQuizQuestions(flashcards: UserFlashcard[], count: number, languageMode: 'question' | 'answer' = 'question'): GameData {
+  static generateQuizQuestions(flashcards: UserFlashcard[], count: number, languageMode: 'question' | 'answer' | 'mixed' = 'question'): GameData {
     const questions: GameQuestion[] = [];
     const shuffledCards = this.shuffleArray(flashcards).slice(0, count);
     
     for (const card of shuffledCards) {
-      const question = languageMode === 'question' 
+      // For mixed mode, randomly choose question direction for each card
+      const actualMode = languageMode === 'mixed' 
+        ? (Math.random() < 0.5 ? 'question' : 'answer')
+        : languageMode;
+      
+      const question = actualMode === 'question' 
         ? `What is the translation of "${card.front}"?`
         : `What is the term for "${card.back}"?`;
       
-      const correctAnswer = languageMode === 'question' ? card.back : card.front;
-      const wrongOptions = this.generateWrongOptions(correctAnswer, flashcards, 3);
+      const correctAnswer = actualMode === 'question' ? card.back : card.front;
+      
+      // Generate wrong options in the same language as the correct answer
+      const wrongOptions = this.generateWrongOptionsForLanguage(correctAnswer, flashcards, actualMode, 3);
       
       // Shuffle all options together
       const allOptions = this.shuffleArray([correctAnswer, ...wrongOptions]);

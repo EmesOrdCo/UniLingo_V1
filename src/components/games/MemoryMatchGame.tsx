@@ -106,16 +106,7 @@ const MemoryMatchGame: React.FC<MemoryMatchGameProps> = ({ gameData, onClose, on
     }, 5100);
   };
 
-  // Auto-call onGameComplete when game finishes
-  useEffect(() => {
-    if (isGameComplete && !completionCalledRef.current) {
-      const timeSpent = Math.round((Date.now() - gameStartTime) / 1000);
-      const matchedPairsCount = matchedPairs.length / 2; // Each pair has 2 cards
-      console.log('🎯 MemoryMatch calling onGameComplete with moves:', moves, 'time:', timeSpent);
-      completionCalledRef.current = true;
-      onGameComplete(moves, timeSpent);
-    }
-  }, [isGameComplete, moves, gameStartTime, matchedPairs.length, onGameComplete]);
+  // Removed automatic completion call - now handled by user action buttons
 
   const initializeGame = () => {
     const gameCards = gameData.questions || [];
@@ -177,10 +168,24 @@ const MemoryMatchGame: React.FC<MemoryMatchGameProps> = ({ gameData, onClose, on
   };
 
   const handlePlayAgain = () => {
+    // Call onGameComplete before closing to log results
+    if (!completionCalledRef.current) {
+      const timeSpent = Math.round((Date.now() - gameStartTime) / 1000);
+      console.log('🎯 MemoryMatch calling onGameComplete with moves:', moves, 'time:', timeSpent);
+      completionCalledRef.current = true;
+      onGameComplete(moves, timeSpent);
+    }
     onPlayAgain();
   };
 
   const handleReturnToMenu = () => {
+    // Call onGameComplete before closing to log results
+    if (!completionCalledRef.current) {
+      const timeSpent = Math.round((Date.now() - gameStartTime) / 1000);
+      console.log('🎯 MemoryMatch calling onGameComplete with moves:', moves, 'time:', timeSpent);
+      completionCalledRef.current = true;
+      onGameComplete(moves, timeSpent);
+    }
     onClose();
   };
 

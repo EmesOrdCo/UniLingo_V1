@@ -33,14 +33,7 @@ const FlashcardQuizGame: React.FC<FlashcardQuizGameProps> = ({
   // Get language mode from gameData
   const languageMode = gameData.languageMode || 'question';
   
-  // Auto-call onGameComplete when game finishes
-  useEffect(() => {
-    if (showReview && !completionCalledRef.current) {
-      console.log('🎯 FlashcardQuiz calling onGameComplete with score:', score);
-      completionCalledRef.current = true;
-      onGameComplete(score);
-    }
-  }, [showReview, score, onGameComplete]);
+  // Removed automatic completion call - now handled by user action buttons
   
   const question = gameData.questions[currentQuestion];
   
@@ -75,16 +68,39 @@ const FlashcardQuizGame: React.FC<FlashcardQuizGameProps> = ({
     if (onStartNextGame) {
       onStartNextGame('Sentence Scramble');
     } else {
-      onGameComplete(score);
+      // Call onGameComplete before closing to log results
+      if (!completionCalledRef.current) {
+        console.log('🎯 FlashcardQuiz calling onGameComplete with score:', score);
+        completionCalledRef.current = true;
+        onGameComplete(score);
+      }
     }
   };
 
-  const handlePlayAgain = () => {
+  const handlePlayAgain = async () => {
+    // Call onGameComplete before closing to log results
+    if (!completionCalledRef.current) {
+      console.log('🎯 ===== FLASHCARD QUIZ CALLING onGameComplete =====');
+      console.log('🎯 FlashcardQuiz calling onGameComplete with score:', score);
+      completionCalledRef.current = true;
+      await onGameComplete(score);
+      // Wait a moment for database operations to complete
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
     // Close game and return to setup screen
     onPlayAgain();
   };
 
-  const handleReturnToMenu = () => {
+  const handleReturnToMenu = async () => {
+    // Call onGameComplete before closing to log results
+    if (!completionCalledRef.current) {
+      console.log('🎯 ===== FLASHCARD QUIZ CALLING onGameComplete =====');
+      console.log('🎯 FlashcardQuiz calling onGameComplete with score:', score);
+      completionCalledRef.current = true;
+      await onGameComplete(score);
+      // Wait a moment for database operations to complete
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
     onClose();
   };
   
@@ -139,7 +155,7 @@ const FlashcardQuizGame: React.FC<FlashcardQuizGameProps> = ({
       {/* Question */}
       <View style={styles.questionContainer}>
         <Text style={styles.questionText}>
-          {languageMode === 'question' ? question.question : question.correctAnswer}
+          {question.question}
         </Text>
       </View>
       

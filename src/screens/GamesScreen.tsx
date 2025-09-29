@@ -888,7 +888,7 @@ export default function GamesScreen({ route }: { route?: any }) {
     
     // Map language mode to GameDataService format
     const mappedLanguageMode = options.languageMode === 'native-to-target' ? 'question' : 
-                              options.languageMode === 'target-to-native' ? 'answer' : 'question';
+                              options.languageMode === 'target-to-native' ? 'answer' : 'mixed';
     
     // Filter flashcards by topic and difficulty
     let filteredFlashcards = flashcards;
@@ -1258,11 +1258,11 @@ export default function GamesScreen({ route }: { route?: any }) {
       
       
       
-      // NUCLEAR OPTION: Debounce all completions within 5 seconds
-      if (now - lastCompletionTimeRef.current < 5000) {
-        console.log(`🚫 [${screenId}] [${completionId}] NUCLEAR GUARD: Completion within 5 seconds, REJECTING`);
-        return;
-      }
+      // TEMPORARILY DISABLED: Debounce all completions within 5 seconds
+      // if (now - lastCompletionTimeRef.current < 5000) {
+      //   console.log(`🚫 [${screenId}] [${completionId}] NUCLEAR GUARD: Completion within 5 seconds, REJECTING`);
+      //   return;
+      // }
       
       // Clear any existing debounce timeout
       if (completionDebounceTimeoutRef.current) {
@@ -1287,6 +1287,7 @@ export default function GamesScreen({ route }: { route?: any }) {
   // Separate function to actually process the completion
   const processGameCompletion = async (finalScore: number, completionId: string, timeSpent?: number, totalAnswered?: number) => {
     try {
+      console.log(`🎯 [${screenId}] [${completionId}] ===== PROCESSING GAME COMPLETION STARTED =====`);
       console.log(`🎯 [${screenId}] [${completionId}] Processing game completion`);
       
       // Add a guard to prevent multiple calls - use a more robust check
@@ -1366,6 +1367,8 @@ export default function GamesScreen({ route }: { route?: any }) {
       const calculatedScore = totalQuestions > 0 ? Math.round((finalScore / totalQuestions) * maxScore) : 0;
       console.log('📊 Calculated score:', calculatedScore, 'from', finalScore, '/', totalQuestions, '*', maxScore);
 
+      console.log(`🎯 [${screenId}] [${completionId}] ===== CALLING DATABASE OPERATIONS =====`);
+      
       await ProgressTrackingService.recordGameActivity({
         activityType: 'game',
         activityName: gameName,
@@ -1376,7 +1379,7 @@ export default function GamesScreen({ route }: { route?: any }) {
         gameData,
       });
 
-      console.log('✅ Game progress tracked successfully');
+      console.log(`✅ [${screenId}] [${completionId}] ===== GAME PROGRESS TRACKED SUCCESSFULLY =====`);
 
       // Award XP for completing the game
       if (user?.id) {

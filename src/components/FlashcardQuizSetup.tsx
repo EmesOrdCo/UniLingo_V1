@@ -181,7 +181,7 @@ const FlashcardQuizSetup: React.FC<FlashcardQuizSetupProps> = ({
       <View style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-            <Ionicons name="close" size={24} color="#64748b" />
+            <Ionicons name="close" size={26} color="#64748b" />
           </TouchableOpacity>
           <Text style={styles.title}>Flashcard Quiz Setup</Text>
           <View style={styles.placeholder} />
@@ -199,7 +199,7 @@ const FlashcardQuizSetup: React.FC<FlashcardQuizSetupProps> = ({
           {/* Available Cards Info */}
           <View style={styles.infoCard}>
             <View style={styles.infoRow}>
-              <Ionicons name="information-circle" size={18} color="#6366f1" />
+              <Ionicons name="information-circle" size={20} color="#6366f1" />
               <Text style={styles.infoText}>
                 Available Cards: {currentAvailableCards}
                 {selectedTopic && selectedTopic !== '' ? ` (${selectedTopic} topic)` : ' (All topics)'}
@@ -246,7 +246,7 @@ const FlashcardQuizSetup: React.FC<FlashcardQuizSetupProps> = ({
                 </Text>
                 <Ionicons 
                   name={showTopicDropdown ? "chevron-up" : "chevron-down"} 
-                  size={20} 
+                  size={22} 
                   color="#6b7280" 
                 />
               </TouchableOpacity>
@@ -318,7 +318,7 @@ const FlashcardQuizSetup: React.FC<FlashcardQuizSetupProps> = ({
                 </Text>
                 <Ionicons 
                   name={showDifficultyDropdown ? "chevron-up" : "chevron-down"} 
-                  size={20} 
+                  size={22} 
                   color="#6b7280" 
                 />
               </TouchableOpacity>
@@ -432,7 +432,7 @@ const FlashcardQuizSetup: React.FC<FlashcardQuizSetupProps> = ({
           {/* Start Button */}
           <TouchableOpacity style={styles.startButton} onPress={handleStartGame}>
             <Text style={styles.startButtonText}>Start Quiz</Text>
-            <Ionicons name="play" size={20} color="white" />
+            <Ionicons name="play" size={22} color="white" />
           </TouchableOpacity>
           </TouchableOpacity>
         </View>
@@ -457,10 +457,10 @@ const styles = StyleSheet.create({
     borderBottomColor: '#e2e8f0',
   },
   closeButton: {
-    padding: 6,
+    padding: 8,
   },
   title: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600',
     color: '#1e293b',
   },
@@ -477,7 +477,7 @@ const styles = StyleSheet.create({
   infoCard: {
     backgroundColor: 'white',
     borderRadius: 8,
-    padding: 8,
+    padding: 12,
     marginBottom: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -490,12 +490,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   infoText: {
-    marginLeft: 6,
-    fontSize: 13,
+    marginLeft: 8,
+    fontSize: 14,
     color: '#64748b',
   },
   section: {
-    marginBottom: 12,
+    marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 14,
@@ -509,7 +509,7 @@ const styles = StyleSheet.create({
   dropdown: {
     backgroundColor: 'white',
     borderRadius: 8,
-    padding: 10,
+    padding: 12,
     borderWidth: 1,
     borderColor: '#e2e8f0',
     flexDirection: 'row',
@@ -553,7 +553,7 @@ const styles = StyleSheet.create({
     maxHeight: 160,
   },
   dropdownOption: {
-    padding: 10,
+    padding: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#f1f5f9',
   },
@@ -571,16 +571,17 @@ const styles = StyleSheet.create({
   optionsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 6,
+    gap: 8,
   },
   optionCard: {
-    flex: 1,
-    minWidth: '45%',
+    width: '48%',
     backgroundColor: 'white',
     borderRadius: 8,
-    padding: 10,
+    padding: 12,
     borderWidth: 2,
     borderColor: '#e2e8f0',
+    minHeight: 44,
+    justifyContent: 'center',
   },
   optionCardSelected: {
     borderColor: '#6366f1',
@@ -599,7 +600,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: '#1e293b',
-    marginLeft: 6,
+    textAlign: 'center',
   },
   optionLabelSelected: {
     color: '#6366f1',
@@ -626,11 +627,12 @@ const styles = StyleSheet.create({
   startButton: {
     backgroundColor: '#6366f1',
     borderRadius: 8,
-    padding: 12,
+    padding: 14,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 6,
+    marginTop: 8,
+    minHeight: 48,
   },
   startButtonText: {
     color: 'white',

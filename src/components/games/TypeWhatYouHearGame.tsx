@@ -30,14 +30,7 @@ const TypeWhatYouHearGame: React.FC<TypeWhatYouHearGameProps> = ({ gameData, onC
   const completionCalledRef = useRef<boolean>(false);
   const gameCompleteProcessedRef = useRef<boolean>(false);
 
-  // Auto-call onGameComplete when game finishes
-  useEffect(() => {
-    if (gameComplete && !completionCalledRef.current) {
-      console.log('🎯 TypeWhatYouHear calling onGameComplete with score:', finalScoreRef.current);
-      completionCalledRef.current = true;
-      onGameComplete(finalScoreRef.current);
-    }
-  }, [gameComplete, onGameComplete]);
+  // Removed automatic completion call - now handled by user action buttons
 
   // Removed automatic completion call - now handled by user action
 
@@ -138,10 +131,22 @@ const TypeWhatYouHearGame: React.FC<TypeWhatYouHearGameProps> = ({ gameData, onC
   };
 
   const handlePlayAgain = () => {
+    // Call onGameComplete before closing to log results
+    if (!completionCalledRef.current) {
+      console.log('🎯 TypeWhatYouHear calling onGameComplete with score:', finalScoreRef.current);
+      completionCalledRef.current = true;
+      onGameComplete(finalScoreRef.current);
+    }
     onPlayAgain();
   };
 
   const handleReturnToMenu = () => {
+    // Call onGameComplete before closing to log results
+    if (!completionCalledRef.current) {
+      console.log('🎯 TypeWhatYouHear calling onGameComplete with score:', finalScoreRef.current);
+      completionCalledRef.current = true;
+      onGameComplete(finalScoreRef.current);
+    }
     onClose();
   };
 

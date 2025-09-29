@@ -82,7 +82,7 @@ export class ImageUploadService {
             console.warn('Image asset missing URI');
             return false;
           }
-          if (asset.fileSize && asset.fileSize > 5 * 1024 * 1024) {
+          if (asset.fileSize && asset.fileSize > 10 * 1024 * 1024) {
             console.warn(`Image ${asset.fileName} is too large: ${(asset.fileSize / 1024 / 1024).toFixed(2)}MB`);
             return false;
           }
@@ -90,7 +90,7 @@ export class ImageUploadService {
         });
 
         if (validImages.length === 0) {
-          throw new Error('No valid images selected. Please ensure images are under 5MB each.');
+          throw new Error('No valid images selected. Please ensure images are under 10MB each.');
         }
 
         if (validImages.length > 5) {

@@ -522,20 +522,31 @@ export default function UploadScreen() {
         setShowProgressModal(false);
         
         let errorMessage = 'An error occurred while processing the PDF.';
+        let suggestion = '';
         
         if ((fetchError as any).name === 'AbortError') {
-          errorMessage = 'Backend request timed out after 60 seconds. Please try again with a smaller file.';
+          errorMessage = 'Backend request timed out after 60 seconds.';
+          suggestion = 'Please try again with a smaller file or split large documents into smaller parts.';
         } else if ((fetchError as any).message?.includes('Network request failed')) {
           errorMessage = 'Network error. Please check your internet connection and try again.';
         } else if ((fetchError as any).message?.includes('Cannot connect')) {
           errorMessage = 'Cannot connect to backend server. Please make sure the backend is running.';
+        } else if ((fetchError as any).message?.includes('File too large')) {
+          errorMessage = 'File is too large for processing.';
+          suggestion = 'Please try with a smaller file (under 25MB) or compress your PDF.';
+        } else if ((fetchError as any).message?.includes('timeout')) {
+          errorMessage = 'Processing is taking too long.';
+          suggestion = 'Try with a smaller file or split large documents into smaller parts.';
+        } else if ((fetchError as any).message?.includes('out of memory')) {
+          errorMessage = 'File is too large for processing.';
+          suggestion = 'Please try with a smaller file or compress your images.';
         } else {
           errorMessage = `Backend error: ${(fetchError as any).message || 'Unknown error'}`;
         }
         
         Alert.alert(
           'Upload Failed',
-          errorMessage,
+          suggestion ? `${errorMessage}\n\n${suggestion}` : errorMessage,
           [{ text: 'OK' }]
         );
         return;

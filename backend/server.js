@@ -48,7 +48,7 @@ const pdfUpload = multer({
     }
   },
   limits: {
-    fileSize: 10 * 1024 * 1024 // 10MB limit
+    fileSize: 25 * 1024 * 1024 // 25MB limit
   }
 });
 
@@ -63,7 +63,7 @@ const imageUpload = multer({
     }
   },
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit per image
+    fileSize: 10 * 1024 * 1024, // 10MB limit per image
     files: 5 // Maximum 5 images
   }
 });
@@ -193,6 +193,11 @@ app.post('/api/process-image', imageUpload.array('images', 5), async (req, res) 
     console.log(`📁 Files: ${req.files.length} images`);
     req.files.forEach((file, index) => {
       console.log(`  ${index + 1}. ${file.originalname} (${(file.size / 1024 / 1024).toFixed(2)} MB)`);
+      
+      // Warn about large images
+      if (file.size > 5 * 1024 * 1024) {
+        console.log(`    ⚠️ Large image detected - processing may take longer...`);
+      }
     });
     console.log('📸'.repeat(20) + '\n');
 
@@ -426,6 +431,11 @@ app.post('/api/process-pdf', pdfUpload.single('pdf'), async (req, res) => {
     console.log('🔥'.repeat(20));
     console.log(`📁 File: ${req.file.originalname}`);
     console.log(`📏 Size: ${(req.file.size / 1024 / 1024).toFixed(2)} MB`);
+    
+    // Warn about large files
+    if (req.file.size > 10 * 1024 * 1024) {
+      console.log('⚠️ Large file detected - processing may take longer...');
+    }
     console.log(`📍 Path: ${req.file.path}`);
     console.log('🔥'.repeat(20) + '\n');
 
@@ -653,14 +663,50 @@ app.get('/health', (req, res) => {
 app.use((error, req, res, next) => {
   if (error instanceof multer.MulterError) {
     if (error.code === 'LIMIT_FILE_SIZE') {
-      return res.status(400).json({ error: 'File too large. Maximum size is 10MB.' });
+      return res.status(400).json({ 
+        error: 'File too large. Maximum size is 25MB for PDFs and 10MB for images.',
+        code: 'FILE_TOO_LARGE',
+        maxSize: req.route?.path?.includes('image') ? '10MB' : '25MB'
+      });
     }
+    if (error.code === 'LIMIT_FILE_COUNT') {
+      return res.status(400).json({ 
+        error: 'Too many files. Maximum 5 images per request.',
+        code: 'TOO_MANY_FILES',
+        maxFiles: 5
+      });
+    }
+    if (error.code === 'LIMIT_UNEXPECTED_FILE') {
+      return res.status(400).json({ 
+        error: 'Unexpected file field. Please check your upload form.',
+        code: 'UNEXPECTED_FILE'
+      });
+    }
+  }
+  
+  // Handle timeout errors
+  if (error.code === 'ETIMEDOUT' || error.message.includes('timeout')) {
+    return res.status(408).json({ 
+      error: 'Request timeout. The file may be too large or processing is taking too long.',
+      code: 'TIMEOUT',
+      suggestion: 'Try with a smaller file or split large documents into smaller parts.'
+    });
+  }
+  
+  // Handle memory errors
+  if (error.message.includes('out of memory') || error.code === 'ENOMEM') {
+    return res.status(413).json({ 
+      error: 'File too large for processing. Please try with a smaller file.',
+      code: 'OUT_OF_MEMORY',
+      suggestion: 'Try compressing your images or splitting large PDFs.'
+    });
   }
   
   console.error('Server error:', error);
   res.status(500).json({ 
     error: 'Internal server error',
-    details: error.message 
+    code: 'INTERNAL_ERROR',
+    details: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong. Please try again.'
   });
 });
 

@@ -22,14 +22,7 @@ const SentenceScrambleGame: React.FC<SentenceScrambleGameProps> = ({ gameData, o
   const finalScoreRef = useRef<number>(0);
   const completionCalledRef = useRef<boolean>(false);
 
-  // Auto-call onGameComplete when game finishes
-  useEffect(() => {
-    if (gameComplete && !completionCalledRef.current) {
-      console.log('🎯 SentenceScramble calling onGameComplete with score:', finalScoreRef.current);
-      completionCalledRef.current = true;
-      onGameComplete(finalScoreRef.current);
-    }
-  }, [gameComplete, onGameComplete]);
+  // Removed automatic completion call - now handled by user action buttons
 
   useEffect(() => {
     if (gameData.questions && gameData.questions.length > 0) {
@@ -112,10 +105,22 @@ const SentenceScrambleGame: React.FC<SentenceScrambleGameProps> = ({ gameData, o
   };
 
   const handlePlayAgain = () => {
+    // Call onGameComplete before closing to log results
+    if (!completionCalledRef.current) {
+      console.log('🎯 SentenceScramble calling onGameComplete with score:', finalScoreRef.current);
+      completionCalledRef.current = true;
+      onGameComplete(finalScoreRef.current);
+    }
     onPlayAgain();
   };
 
   const handleReturnToMenu = () => {
+    // Call onGameComplete before closing to log results
+    if (!completionCalledRef.current) {
+      console.log('🎯 SentenceScramble calling onGameComplete with score:', finalScoreRef.current);
+      completionCalledRef.current = true;
+      onGameComplete(finalScoreRef.current);
+    }
     onClose();
   };
 
