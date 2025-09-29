@@ -1142,6 +1142,14 @@ export default function UploadScreen() {
         }));
       }, 5000); // Update every 5 seconds
       
+      // Debug: Check what text we're passing to AI
+      console.log('🔍 DEBUG: imageResult structure:', {
+        hasText: !!imageResult.text,
+        textLength: imageResult.text?.length || 0,
+        textPreview: imageResult.text?.substring(0, 200) + '...',
+        fullResult: imageResult
+      });
+      
       const flashcards = await UploadService.generateFlashcards(
         imageResult.text,
         userSubject,

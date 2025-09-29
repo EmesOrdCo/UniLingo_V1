@@ -401,6 +401,12 @@ app.post('/api/process-image', imageUpload.array('images', 5), async (req, res) 
     });
     console.log('🧹 Uploaded files cleaned up');
 
+    console.log('📄 FINAL EXTRACTED TEXT DEBUG:');
+    console.log(`📊 Total text length: ${allExtractedText.length} characters`);
+    console.log(`📝 Text preview (first 500 chars): ${allExtractedText.substring(0, 500)}`);
+    console.log(`📚 Number of pages: ${pages.length}`);
+    console.log(`🖼️ Images processed: ${processedImages}/${totalImages}`);
+
     res.json({
       success: true,
       message: 'Images processed successfully via OCR',
