@@ -1,11 +1,16 @@
-# Multi-stage build for Railway with EasyOCR
-FROM node:18-slim AS base
+# Multi-stage build for Railway with EasyOCR - Optimized for size
+FROM node:18-slim AS builder
 
-# Install minimal Python dependencies for EasyOCR
+# Install build dependencies for Python and EasyOCR
 RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
     python3-venv \
+    python3-dev \
+    build-essential \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    libgomp1 \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
@@ -26,6 +31,27 @@ RUN npm list node-easyocr
 
 # Copy application code
 COPY . .
+
+# Final stage - minimal runtime image
+FROM node:18-slim AS runtime
+
+# Install only runtime Python dependencies (no build tools)
+RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-pip \
+    python3-venv \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    libgomp1 \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean \
+    && apt-get autoremove -y
+
+# Set working directory
+WORKDIR /app
+
+# Copy built application from builder stage
+COPY --from=builder /app .
 
 # Run as root for faster builds (less secure but functional)
 # USER nodejs
