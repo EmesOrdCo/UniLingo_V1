@@ -55,32 +55,44 @@ def process_image_with_easyocr(image_path, languages=['en']):
         }
 
 def main():
-    parser = argparse.ArgumentParser(description='Process image with EasyOCR')
-    parser.add_argument('image_path', help='Path to the image file')
-    parser.add_argument('--languages', nargs='+', default=['en'], 
-                       help='Languages to use for OCR (default: en)')
-    
-    args = parser.parse_args()
-    
-    # Check if image file exists
-    if not os.path.exists(args.image_path):
+    try:
+        parser = argparse.ArgumentParser(description='Process image with EasyOCR')
+        parser.add_argument('image_path', help='Path to the image file')
+        parser.add_argument('--languages', nargs='+', default=['en'], 
+                           help='Languages to use for OCR (default: en)')
+        
+        args = parser.parse_args()
+        
+        # Check if image file exists
+        if not os.path.exists(args.image_path):
+            result = {
+                'success': False,
+                'error': f'Image file not found: {args.image_path}',
+                'results': [],
+                'count': 0
+            }
+            print(json.dumps(result))
+            sys.exit(1)
+        
+        # Process the image
+        result = process_image_with_easyocr(args.image_path, args.languages)
+        
+        # Output result as JSON
+        print(json.dumps(result))
+        
+        # Exit with appropriate code
+        sys.exit(0 if result['success'] else 1)
+        
+    except Exception as e:
+        # Catch any unexpected errors and return JSON
         result = {
             'success': False,
-            'error': f'Image file not found: {args.image_path}',
+            'error': f'Unexpected error: {str(e)}',
             'results': [],
             'count': 0
         }
         print(json.dumps(result))
         sys.exit(1)
-    
-    # Process the image
-    result = process_image_with_easyocr(args.image_path, args.languages)
-    
-    # Output result as JSON
-    print(json.dumps(result))
-    
-    # Exit with appropriate code
-    sys.exit(0 if result['success'] else 1)
 
 if __name__ == '__main__':
     main()
