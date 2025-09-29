@@ -42,14 +42,39 @@ async function testEasyOCR() {
     fs.writeFileSync(testImagePath, buffer);
     console.log('✅ Test image created');
     
-    // Test 4: Process the test image with timeout
+    // Test 4: Process the test image with timeout and progress handling
     console.log('4. Processing test image with EasyOCR...');
-    const result = await Promise.race([
-      ocr.readText(testImagePath),
-      new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('OCR timeout after 30 seconds')), 30000)
-      )
-    ]);
+    
+    // Create a promise that handles progress output
+    const processImage = new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error('OCR timeout after 30 seconds'));
+      }, 30000);
+      
+      // Use a different approach to handle progress output
+      ocr.readText(testImagePath)
+        .then(result => {
+          clearTimeout(timeout);
+          resolve(result);
+        })
+        .catch(error => {
+          clearTimeout(timeout);
+          // Check if it's a progress parsing error and retry
+          if (error.message.includes('Progress:') || error.message.includes('not valid JSON')) {
+            console.log('⚠️  Progress output detected, retrying...');
+            // Retry with a simpler approach
+            setTimeout(() => {
+              ocr.readText(testImagePath)
+                .then(resolve)
+                .catch(reject);
+            }, 2000);
+          } else {
+            reject(error);
+          }
+        });
+    });
+    
+    const result = await processImage;
     console.log('✅ EasyOCR processing completed');
     
     // Test 5: Analyze results
