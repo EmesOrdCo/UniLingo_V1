@@ -292,27 +292,63 @@ console.log(`  🔤 Starting EasyOCR for handwriting recognition...`);
 let text = '';
 
 try {
-  // Initialize EasyOCR reader (English)
-  const ocr = new EasyOCR();
-  await ocr.init(['en']);
+  console.log(`  🔧 Initializing EasyOCR reader...`);
+  
+  // Create EasyOCR instance with error handling
+  let ocr;
+  try {
+    ocr = new EasyOCR();
+    console.log(`  ✅ EasyOCR object created successfully`);
+  } catch (initError) {
+    console.error(`  ❌ Failed to create EasyOCR object:`, initError.message);
+    throw initError;
+  }
 
-  // Process image with EasyOCR
-  const result = await ocr.readText(file.path);
+  // Initialize with English language
+  console.log(`  🔧 Initializing EasyOCR with English language...`);
+  try {
+    await ocr.init(['en']);
+    console.log(`  ✅ EasyOCR initialized successfully`);
+  } catch (initError) {
+    console.error(`  ❌ Failed to initialize EasyOCR:`, initError.message);
+    throw initError;
+  }
 
-  // Extract text from EasyOCR results
-  if (result && result.length > 0) {
-    text = result.map(item => item.text).join(' ');
-    console.log(`  ✅ EasyOCR completed successfully`);
-    console.log(`  📝 Extracted text length: ${text.length} characters`);
-    console.log(`  📖 Text preview: ${text.substring(0, 200)}...`);
-    console.log(`  🎯 Detected ${result.length} text regions`);
-  } else {
-    console.log(`  ⚠️ EasyOCR found no text in image`);
-    text = '';
+  // Process image with timeout and error handling
+  console.log(`  🔧 Processing image with EasyOCR...`);
+  try {
+    const result = await Promise.race([
+      ocr.readText(file.path),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('EasyOCR timeout after 30 seconds')), 30000)
+      )
+    ]);
+    
+    console.log(`  🔧 EasyOCR processing completed, analyzing results...`);
+
+    // Extract text from EasyOCR results
+    if (result && result.length > 0) {
+      text = result.map(item => item.text).join(' ');
+      console.log(`  ✅ EasyOCR completed successfully`);
+      console.log(`  📝 Extracted text length: ${text.length} characters`);
+      console.log(`  📖 Text preview: ${text.substring(0, 200)}...`);
+      console.log(`  🎯 Detected ${result.length} text regions`);
+    } else {
+      console.log(`  ⚠️ EasyOCR found no text in image`);
+      text = '';
+    }
+
+  } catch (processError) {
+    console.error(`  ❌ Failed to process image with EasyOCR:`, processError.message);
+    throw processError;
   }
 
 } catch (easyocrError) {
-  console.error(`  ❌ EasyOCR failed:`, easyocrError.message);
+  console.error(`  ❌ EasyOCR failed with detailed error:`);
+  console.error(`  Error message: ${easyocrError.message}`);
+  console.error(`  Error stack: ${easyocrError.stack}`);
+  console.error(`  Error name: ${easyocrError.name}`);
+  console.error(`  Error code: ${easyocrError.code}`);
   text = '';
 }
 
