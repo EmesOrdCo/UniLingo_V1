@@ -1,18 +1,13 @@
-# Multi-stage build for optimized image size
-FROM node:18-slim AS base
+# Ultra-minimal build for Railway
+FROM node:18-alpine AS base
 
-# Install system dependencies for EasyOCR and image processing
-RUN apt-get update && apt-get install -y \
+# Install only essential dependencies for EasyOCR
+RUN apk add --no-cache \
     python3 \
-    python3-pip \
-    python3-venv \
-    build-essential \
-    libgl1-mesa-glx \
-    libglib2.0-0 \
-    libgomp1 \
-    && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean \
-    && apt-get autoremove -y
+    py3-pip \
+    build-base \
+    libc6-compat \
+    && rm -rf /var/cache/apk/*
 
 # Set working directory
 WORKDIR /app
@@ -21,18 +16,17 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install Node.js dependencies
-RUN npm ci --omit=dev && npm cache clean --force && rm -rf /tmp/*
+RUN npm ci --omit=dev && npm cache clean --force
 
 # Copy application code
 COPY . .
 
 # Create non-root user for security
-RUN groupadd -g 1001 nodejs && \
-    useradd -r -u 1001 -g nodejs nodejs
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001 -G nodejs
 
 # Change ownership of the app directory
-RUN chown -R nodejs:nodejs /app && \
-    rm -rf /var/cache/apt/* /var/lib/apt/lists/* /tmp/* /var/tmp/*
+RUN chown -R nodejs:nodejs /app
 USER nodejs
 
 # Expose port
