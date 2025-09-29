@@ -1,6 +1,6 @@
 [phases.setup]
 nixPkgs = ["nodejs", "python311", "python311Packages.pip", "python311Packages.virtualenv"]
-aptPkgs = ["libgl1-mesa-glx", "libglib2.0-0", "libsm6", "libxext6", "libxrender-dev", "libgomp1"]
+aptPkgs = ["libgl1-mesa-dri", "libglib2.0-0", "libsm6", "libxext6", "libxrender-dev", "libgomp1", "libglib2.0-dev", "libgtk-3-0", "libgdk-pixbuf2.0-0"]
 
 [phases.install]
 cmds = ["npm ci"]
