@@ -1,5 +1,5 @@
 # Ultra-minimal multi-stage build for Railway
-FROM node:18-slim AS builder
+FROM node:20-slim AS builder
 
 # Install build dependencies for EasyOCR and Canvas
 RUN apt-get update && apt-get install -y \
@@ -38,7 +38,7 @@ RUN npm list node-easyocr
 COPY . .
 
 # Final stage - ultra-minimal runtime image
-FROM node:18-slim AS runtime
+FROM node:20-slim AS runtime
 
 # Install runtime dependencies for EasyOCR
 RUN apt-get update && apt-get install -y \
