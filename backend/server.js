@@ -233,6 +233,7 @@ app.post('/api/process-image', imageUpload.array('images', 5), async (req, res) 
     // Import required modules
     const Tesseract = require('tesseract.js');
     const sharp = require('sharp');
+    const { recognize } = require('@napi-rs/system-ocr');
     
     let allExtractedText = '';
     let processedImages = 0;
@@ -249,125 +250,72 @@ app.post('/api/process-image', imageUpload.array('images', 5), async (req, res) 
         console.log(`  📁 File path: ${file.path}`);
         console.log(`  📊 File size: ${file.size} bytes`);
         
-        // Step 1: SIMPLE preprocessing - less is more for handwriting
-        console.log(`  🖼️ Starting SIMPLE Sharp processing for handwriting...`);
+        // Step 1: HANDWRITING-SPECIFIC preprocessing pipeline
+        console.log(`  🖼️ Starting HANDWRITING-OPTIMIZED Sharp processing...`);
         let processedImageBuffer;
         try {
           // Get image metadata first
           const metadata = await sharp(file.path).metadata();
           console.log(`  📊 Original image: ${metadata.width}x${metadata.height}, format: ${metadata.format}`);
           
-          // SIMPLE approach: minimal processing to preserve handwriting details
+          // HANDWRITING-OPTIMIZED approach: enhance contrast and clarity for handwritten text
           processedImageBuffer = await sharp(file.path)
-            .resize(2000, 2000, { 
+            .resize(2500, 2500, { 
               fit: 'inside',
-              withoutEnlargement: false
+              withoutEnlargement: false,
+              kernel: sharp.kernel.lanczos3 // High-quality resizing
             })
-            .sharpen() // Simple sharpening
-            .normalize() // Simple normalization
+            .linear(1.3, -30) // Enhance contrast for better text separation
+            .modulate({ 
+              brightness: 1.05, 
+              saturation: 0, // Remove color
+              hue: 0 
+            })
+            .sharpen({ 
+              sigma: 1.5, 
+              m1: 0.5, 
+              m2: 2, 
+              x1: 2, 
+              y2: 8 
+            }) // Enhanced sharpening for handwriting
+            .normalize({ lower: 10, upper: 90 }) // Better contrast range
             .grayscale() // Convert to grayscale
-            .png({ quality: 95 })
+            .png({ quality: 100, compressionLevel: 0 }) // Highest quality
             .toBuffer();
-          console.log(`  ✅ SIMPLE Sharp processing completed successfully`);
+          console.log(`  ✅ HANDWRITING-OPTIMIZED Sharp processing completed successfully`);
         } catch (sharpError) {
           console.error(`  ❌ Sharp processing failed:`, sharpError);
           throw new Error(`Image processing failed: ${sharpError.message}`);
         }
 
-        // Step 2: SIMPLE preprocessing strategies - test different thresholds
-        const preprocessingStrategies = [
-          // Strategy 1: NO preprocessing - use original
-          async (buffer) => {
-            return buffer; // Use the image as-is
-          },
-          // Strategy 2: Simple threshold
-          async (buffer) => {
-            return await sharp(buffer)
-              .threshold(128)
-              .png()
-              .toBuffer();
-          },
-          // Strategy 3: Slightly higher threshold
-          async (buffer) => {
-            return await sharp(buffer)
-              .threshold(140)
-              .png()
-              .toBuffer();
-          }
-        ];
-
-        // Test each preprocessing strategy
-        let bestPreprocessedBuffer = processedImageBuffer;
-        let bestPreprocessingScore = 0;
-        let bestStrategyIndex = 0;
-
-        for (let i = 0; i < preprocessingStrategies.length; i++) {
+        // Step 2: Use SYSTEM OCR instead of Tesseract for better handwriting recognition
+        console.log(`  🔤 Starting SYSTEM OCR for handwriting recognition...`);
+        let text = '';
+        
+        try {
+          // Use system OCR which should be better for handwritten text
+          const result = await recognize(file.path);
+          text = result.text || '';
+          console.log(`  ✅ SYSTEM OCR completed successfully`);
+          console.log(`  📝 Extracted text length: ${text.length} characters`);
+          console.log(`  📖 Text preview: ${text.substring(0, 200)}...`);
+        } catch (systemOcrError) {
+          console.error(`  ❌ SYSTEM OCR failed:`, systemOcrError);
+          
+          // Fallback to Tesseract if system OCR fails
+          console.log(`  🔄 Falling back to Tesseract...`);
           try {
-            const preprocessed = await preprocessingStrategies[i](processedImageBuffer);
-            
-            // SIMPLE OCR test - minimal settings
-            const testResult = await Tesseract.recognize(preprocessed, 'eng', {
-              tessedit_pageseg_mode: '6', // Simple uniform block
-              tessedit_ocr_engine_mode: '1', // LSTM engine
+            const fallbackResult = await Tesseract.recognize(processedImageBuffer, 'eng', {
+              tessedit_pageseg_mode: '6',
+              tessedit_ocr_engine_mode: '1',
             });
-            
-            const score = (testResult.data.confidence || 0) + (testResult.data.text.length * 0.1);
-            console.log(`    Strategy ${i + 1} score: ${score.toFixed(1)}`);
-            
-            if (score > bestPreprocessingScore) {
-              bestPreprocessingScore = score;
-              bestPreprocessedBuffer = preprocessed;
-              bestStrategyIndex = i;
-            }
-          } catch (strategyError) {
-            console.log(`    Strategy ${i + 1} failed: ${strategyError.message}`);
+            text = fallbackResult.data.text || '';
+            console.log(`  ✅ Tesseract fallback completed`);
+          } catch (tesseractError) {
+            console.error(`  ❌ Tesseract fallback also failed:`, tesseractError);
+            text = '';
           }
         }
-
-        console.log(`  ✅ Best preprocessing: Strategy ${bestStrategyIndex + 1} (score: ${bestPreprocessingScore.toFixed(1)})`);
-        processedImageBuffer = bestPreprocessedBuffer;
-
-        // SIMPLE OCR - minimal settings to avoid gibberish
-        const psmModes = [6, 8, 13]; // Simple PSM modes
-        let bestResult = { text: '', confidence: 0 };
-        let bestPSM = 6;
-
-        console.log(`  🔍 Trying SIMPLE PSM modes to avoid gibberish...`);
-
-        for (const psm of psmModes) {
-          try {
-            console.log(`  🔤 Starting SIMPLE OCR with PSM ${psm}...`);
-            const result = await Tesseract.recognize(
-              processedImageBuffer,
-              'eng',
-              {
-                logger: m => {
-                  if (m.status === 'recognizing text') {
-                    console.log(`    PSM ${psm} Progress: ${Math.round(m.progress * 100)}%`);
-                  }
-                },
-                // MINIMAL settings to avoid gibberish
-                tessedit_pageseg_mode: psm.toString(),
-                tessedit_ocr_engine_mode: '1', // LSTM engine
-              }
-            );
-            console.log(`  ✅ SIMPLE OCR with PSM ${psm} completed successfully`);
-
-            const confidence = result.data.confidence || 0;
-            console.log(`    PSM ${psm} Result: ${confidence.toFixed(1)}% confidence, ${result.data.text.length} chars`);
-            
-            if (confidence > bestResult.confidence) {
-              bestResult = result.data;
-              bestPSM = psm;
-            }
-          } catch (psmError) {
-            console.error(`    ❌ PSM ${psm} failed:`, psmError);
-            console.log(`    PSM ${psm} error details: ${psmError.message}`);
-          }
-        }
-
-        console.log(`  ✅ Best result: PSM ${bestPSM} with ${bestResult.confidence.toFixed(1)}% confidence`);
-        let text = bestResult.text || '';
 
         // Post-processing: Clean and correct the extracted text
         if (text && text.trim()) {
