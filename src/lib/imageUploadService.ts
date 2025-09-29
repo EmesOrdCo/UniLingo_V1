@@ -164,12 +164,15 @@ export class ImageUploadService {
         const fileExtension = filename.split('.').pop()?.toLowerCase() || 'jpg';
         const mimeType = `image/${fileExtension === 'jpg' ? 'jpeg' : fileExtension}`;
         
+        // React Native FormData format for file uploads
         formData.append('images', {
           uri: image.uri,
           type: mimeType,
           name: filename,
         } as any);
       });
+      
+      console.log('📤 DEBUG: Sending FormData with', images.length, 'images to backend');
 
       onProgress?.({
         stage: 'processing',
