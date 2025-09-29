@@ -47,15 +47,15 @@ ENV VIRTUAL_ENV="/opt/venv"
 # Upgrade pip and install build tools
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel
 
-# Install Python dependencies in order for compatibility
-RUN pip install --no-cache-dir "numpy<2.0.0"
+# Install Python dependencies in exact order for compatibility
+RUN pip install --no-cache-dir numpy==1.26.4
 RUN pip install --no-cache-dir Pillow==9.5.0
 RUN pip install --no-cache-dir opencv-python==4.8.1.78
 
 # Install PyTorch CPU-only version (most compatible)
 RUN pip install --no-cache-dir torch==2.1.0+cpu torchvision==0.16.0+cpu --index-url https://download.pytorch.org/whl/cpu
 
-# Install EasyOCR with specific version
+# Install EasyOCR with specific version (will use existing NumPy 1.26.4)
 RUN pip install --no-cache-dir easyocr==1.7.0
 
 # Verify all imports work
