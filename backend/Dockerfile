@@ -48,7 +48,7 @@ ENV VIRTUAL_ENV="/opt/venv"
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel
 
 # Install Python dependencies in order for compatibility
-RUN pip install --no-cache-dir numpy==1.24.3
+RUN pip install --no-cache-dir "numpy<2.0.0"
 RUN pip install --no-cache-dir Pillow==9.5.0
 RUN pip install --no-cache-dir opencv-python==4.8.1.78
 
