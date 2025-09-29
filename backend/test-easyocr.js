@@ -119,18 +119,37 @@ function runOCRProcessor(imagePath) {
     });
     
     python.on('close', (code) => {
+      // Clean stdout by removing any non-JSON content
+      const cleanStdout = stdout.trim();
+      
       try {
-        const result = JSON.parse(stdout);
+        if (!cleanStdout) {
+          throw new Error('No output received from OCR processor');
+        }
+        
+        const result = JSON.parse(cleanStdout);
         resolve(result);
       } catch (error) {
         resolve({
           success: false,
           error: `Failed to parse OCR result: ${error.message}`,
-          stdout: stdout,
-          stderr: stderr
+          stdout: cleanStdout,
+          stderr: stderr,
+          exitCode: code
         });
       }
     });
+    
+    // Add timeout to prevent hanging
+    setTimeout(() => {
+      python.kill();
+      resolve({
+        success: false,
+        error: 'OCR processor timed out after 30 seconds',
+        stdout: stdout,
+        stderr: stderr
+      });
+    }, 30000);
   });
 }
 

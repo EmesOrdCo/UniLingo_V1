@@ -34,10 +34,15 @@ def process_image_with_easyocr(image_path, languages=['en']):
         # Format results for JSON output
         formatted_results = []
         for (bbox, text, confidence) in results:
+            # Convert numpy types to native Python types for JSON serialization
+            formatted_bbox = []
+            for point in bbox:
+                formatted_bbox.append([int(point[0]), int(point[1])])
+            
             formatted_results.append({
                 'text': text,
                 'confidence': float(confidence),
-                'bbox': bbox
+                'bbox': formatted_bbox
             })
         
         return {
