@@ -55,8 +55,9 @@ RUN pip install --no-cache-dir opencv-python==4.8.1.78
 # Install PyTorch CPU-only version (most compatible)
 RUN pip install --no-cache-dir torch==2.1.0+cpu torchvision==0.16.0+cpu --index-url https://download.pytorch.org/whl/cpu
 
-# Install EasyOCR with specific version (will use existing NumPy 1.26.4)
-RUN pip install --no-cache-dir easyocr==1.7.0
+# Install EasyOCR with specific version and force NumPy 1.x
+RUN pip install --no-cache-dir --no-deps easyocr==1.7.0
+RUN pip install --no-cache-dir --force-reinstall numpy==1.26.4
 
 # Verify all imports work
 RUN python3 -c "import torch; print('PyTorch:', torch.__version__)"

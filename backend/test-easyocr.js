@@ -42,9 +42,14 @@ async function testEasyOCR() {
     fs.writeFileSync(testImagePath, buffer);
     console.log('✅ Test image created');
     
-    // Test 4: Process the test image
+    // Test 4: Process the test image with timeout
     console.log('4. Processing test image with EasyOCR...');
-    const result = await ocr.readText(testImagePath);
+    const result = await Promise.race([
+      ocr.readText(testImagePath),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('OCR timeout after 30 seconds')), 30000)
+      )
+    ]);
     console.log('✅ EasyOCR processing completed');
     
     // Test 5: Analyze results
