@@ -1,26 +1,25 @@
 #!/usr/bin/env node
 
 // Test script to verify EasyOCR installation and functionality
-const { EasyOCR } = require('node-easyocr');
 const fs = require('fs');
 const path = require('path');
+const { spawn } = require('child_process');
 
 async function testEasyOCR() {
   console.log('🧪 Testing EasyOCR installation...');
   
   try {
-    // Test 1: Create EasyOCR instance
-    console.log('1. Creating EasyOCR instance...');
-    const ocr = new EasyOCR();
-    console.log('✅ EasyOCR instance created');
+    // Test 1: Check Python and EasyOCR availability
+    console.log('1. Checking Python and EasyOCR availability...');
+    const pythonCheck = await runPythonCommand('import easyocr; print("EasyOCR available")');
+    if (pythonCheck.success) {
+      console.log('✅ Python and EasyOCR are available');
+    } else {
+      throw new Error('Python or EasyOCR not available');
+    }
     
-    // Test 2: Initialize with English
-    console.log('2. Initializing EasyOCR with English...');
-    await ocr.init(['en']);
-    console.log('✅ EasyOCR initialized successfully');
-    
-    // Test 3: Create a simple test image (white background with black text)
-    console.log('3. Creating test image...');
+    // Test 2: Create a simple test image (white background with black text)
+    console.log('2. Creating test image...');
     const testImagePath = '/tmp/test-easyocr.png';
     
     // Create a simple test image using Node.js
@@ -42,46 +41,21 @@ async function testEasyOCR() {
     fs.writeFileSync(testImagePath, buffer);
     console.log('✅ Test image created');
     
-    // Test 4: Process the test image with timeout and progress handling
-    console.log('4. Processing test image with EasyOCR...');
+    // Test 3: Process the test image with direct Python subprocess
+    console.log('3. Processing test image with EasyOCR...');
     
-    // Create a promise that handles progress output
-    const processImage = new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        reject(new Error('OCR timeout after 30 seconds'));
-      }, 30000);
-      
-      // Use a different approach to handle progress output
-      ocr.readText(testImagePath)
-        .then(result => {
-          clearTimeout(timeout);
-          resolve(result);
-        })
-        .catch(error => {
-          clearTimeout(timeout);
-          // Check if it's a progress parsing error and retry
-          if (error.message.includes('Progress:') || error.message.includes('not valid JSON')) {
-            console.log('⚠️  Progress output detected, retrying...');
-            // Retry with a simpler approach
-            setTimeout(() => {
-              ocr.readText(testImagePath)
-                .then(resolve)
-                .catch(reject);
-            }, 2000);
-          } else {
-            reject(error);
-          }
-        });
-    });
+    const ocrResult = await runOCRProcessor(testImagePath);
+    if (ocrResult.success) {
+      console.log('✅ EasyOCR processing completed');
+    } else {
+      throw new Error(`OCR processing failed: ${ocrResult.error}`);
+    }
     
-    const result = await processImage;
-    console.log('✅ EasyOCR processing completed');
-    
-    // Test 5: Analyze results
-    if (result && result.length > 0) {
-      const text = result.map(item => item.text).join(' ');
+    // Test 4: Analyze results
+    if (ocrResult.results && ocrResult.results.length > 0) {
+      const text = ocrResult.results.map(item => item.text).join(' ');
       console.log(`✅ Text extracted: "${text}"`);
-      console.log(`✅ Detected ${result.length} text regions`);
+      console.log(`✅ Detected ${ocrResult.results.length} text regions`);
     } else {
       console.log('⚠️ No text detected in test image');
     }
@@ -100,6 +74,64 @@ async function testEasyOCR() {
     console.error('Error stack:', error.stack);
     process.exit(1);
   }
+}
+
+// Helper function to run Python commands
+function runPythonCommand(command) {
+  return new Promise((resolve) => {
+    const python = spawn('python3', ['-c', command]);
+    let stdout = '';
+    let stderr = '';
+    
+    python.stdout.on('data', (data) => {
+      stdout += data.toString();
+    });
+    
+    python.stderr.on('data', (data) => {
+      stderr += data.toString();
+    });
+    
+    python.on('close', (code) => {
+      resolve({
+        success: code === 0,
+        stdout: stdout.trim(),
+        stderr: stderr.trim(),
+        code: code
+      });
+    });
+  });
+}
+
+// Helper function to run OCR processor
+function runOCRProcessor(imagePath) {
+  return new Promise((resolve) => {
+    const ocrScript = path.join(__dirname, 'ocr_processor.py');
+    const python = spawn('python3', [ocrScript, imagePath]);
+    let stdout = '';
+    let stderr = '';
+    
+    python.stdout.on('data', (data) => {
+      stdout += data.toString();
+    });
+    
+    python.stderr.on('data', (data) => {
+      stderr += data.toString();
+    });
+    
+    python.on('close', (code) => {
+      try {
+        const result = JSON.parse(stdout);
+        resolve(result);
+      } catch (error) {
+        resolve({
+          success: false,
+          error: `Failed to parse OCR result: ${error.message}`,
+          stdout: stdout,
+          stderr: stderr
+        });
+      }
+    });
+  });
 }
 
 testEasyOCR();
