@@ -18,8 +18,11 @@ COPY package*.json ./
 # Install Node.js dependencies
 RUN npm ci --omit=dev && npm cache clean --force
 
+# Install node-easyocr explicitly if missing
+RUN npm list node-easyocr || npm install node-easyocr@^1.0.9
+
 # Verify node-easyocr installation
-RUN npm list node-easyocr || echo "node-easyocr not found"
+RUN npm list node-easyocr
 
 # Copy application code
 COPY . .
