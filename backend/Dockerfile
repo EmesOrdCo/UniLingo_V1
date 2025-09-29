@@ -1,14 +1,17 @@
-# Ultra-minimal multi-stage build for Railway
+# Comprehensive multi-stage build for Railway with full EasyOCR support
 FROM node:20-slim AS builder
 
-# Install build dependencies for EasyOCR and Canvas
+# Install ALL dependencies for EasyOCR, Canvas, and Python
 RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
     python3-venv \
+    python3-dev \
     build-essential \
+    libgl1-mesa-glx \
     libgl1-mesa-dri \
     libglib2.0-0 \
+    libglib2.0-dev \
     libgomp1 \
     libcairo2-dev \
     libjpeg-dev \
@@ -16,6 +19,18 @@ RUN apt-get update && apt-get install -y \
     libgif-dev \
     libpixman-1-dev \
     libfreetype6-dev \
+    libffi-dev \
+    libssl-dev \
+    libgcc-s1 \
+    libstdc++6 \
+    libgfortran5 \
+    libopenblas-dev \
+    liblapack-dev \
+    libatlas-base-dev \
+    gfortran \
+    pkg-config \
+    wget \
+    curl \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
@@ -25,14 +40,19 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
+# Install Python dependencies first
+COPY requirements.txt .
+RUN pip3 install --no-cache-dir -r requirements.txt
+
 # Install Node.js dependencies
 RUN npm ci --omit=dev && npm cache clean --force
 
 # Install node-easyocr explicitly
 RUN npm install node-easyocr@^1.0.9
 
-# Verify node-easyocr installation
+# Verify installations
 RUN npm list node-easyocr
+RUN python3 -c "import easyocr; print('EasyOCR Python module imported successfully')"
 
 # Copy application code
 COPY . .
@@ -40,15 +60,17 @@ COPY . .
 # Final stage - ultra-minimal runtime image
 FROM node:20-slim AS runtime
 
-# Install runtime dependencies for EasyOCR
+# Install ALL runtime dependencies for EasyOCR
 RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
     python3-venv \
     python3-dev \
     build-essential \
+    libgl1-mesa-glx \
     libgl1-mesa-dri \
     libglib2.0-0 \
+    libglib2.0-dev \
     libgomp1 \
     libcairo2 \
     libjpeg62 \
@@ -58,6 +80,16 @@ RUN apt-get update && apt-get install -y \
     libfreetype6 \
     libffi-dev \
     libssl-dev \
+    libgcc-s1 \
+    libstdc++6 \
+    libgfortran5 \
+    libopenblas0 \
+    liblapack3 \
+    libatlas3-base \
+    gfortran \
+    pkg-config \
+    wget \
+    curl \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
@@ -66,6 +98,10 @@ WORKDIR /app
 
 # Copy built application from builder stage
 COPY --from=builder /app .
+
+# Set Python environment variables for EasyOCR
+ENV PYTHONPATH=/usr/local/lib/python3.11/site-packages
+ENV LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
 
 # Run as root for faster builds (less secure but functional)
 # USER nodejs
