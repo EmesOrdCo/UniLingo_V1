@@ -83,8 +83,12 @@ RUN python3 -c "import cv2; print('OpenCV version:', cv2.__version__)"
 RUN python3 -c "import numpy; print('NumPy version:', numpy.__version__)"
 RUN python3 -c "from PIL import Image; print('Pillow imported successfully')"
 
+# Install canvas for test image generation
+RUN npm install canvas
+
 # Test EasyOCR functionality
 COPY test-easyocr.js .
+COPY ocr_processor.py .
 RUN node test-easyocr.js
 
 # Copy application code
