@@ -15,7 +15,6 @@ RUN apk add --no-cache \
     py3-pip \
     python3-dev \
     build-base \
-    libc6-compat \
     linux-headers \
     gcc \
     g++ \
@@ -63,7 +62,6 @@ RUN apk add --no-cache \
 RUN apk add --no-cache \
     python3 \
     py3-pip \
-    libc6-compat \
     cairo \
     jpeg \
     pango \
