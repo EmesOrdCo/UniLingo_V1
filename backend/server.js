@@ -3,6 +3,7 @@ const cors = require('cors');
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
+const rateLimit = require('express-rate-limit');
 const NetworkLogger = require('./networkLogger');
 const getLocalIP = require('./getLocalIP');
 const updateFrontendConfig = require('./updateFrontendConfig');
@@ -25,11 +26,115 @@ const performanceMonitor = new PerformanceMonitor();
 const resilientPronunciationService = new ResilientPronunciationService();
 const fileCleanupManager = new FileCleanupManager();
 
+// Rate limiting configuration
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  message: {
+    error: 'Too many requests from this IP, please try again later.',
+    code: 'RATE_LIMIT_EXCEEDED'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const pronunciationLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 10, // Limit each IP to 10 pronunciation assessments per minute
+  message: {
+    error: 'Too many pronunciation assessments. Please wait a moment before trying again.',
+    code: 'PRONUNCIATION_RATE_LIMIT_EXCEEDED'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const aiLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 20, // Limit each IP to 20 AI requests per minute
+  message: {
+    error: 'Too many AI requests. Please wait a moment before trying again.',
+    code: 'AI_RATE_LIMIT_EXCEEDED'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Per-user rate limiting (in-memory store)
+const userRateLimits = new Map();
+const USER_LIMITS = {
+  pronunciation: {
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 100, // 100 assessments per hour per user
+  },
+  ai: {
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 200, // 200 AI requests per hour per user
+  }
+};
+
+// Clean up old rate limit entries every hour
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, data] of userRateLimits.entries()) {
+    if (now - data.lastReset > 60 * 60 * 1000) {
+      userRateLimits.delete(key);
+    }
+  }
+}, 60 * 60 * 1000);
+
+// Per-user rate limiting middleware
+const userRateLimit = (type) => {
+  return (req, res, next) => {
+    const userId = req.headers['user-id'] || req.body.userId || 'anonymous';
+    const limit = USER_LIMITS[type];
+    const key = `${userId}:${type}`;
+    
+    const now = Date.now();
+    const userLimit = userRateLimits.get(key) || {
+      count: 0,
+      lastReset: now
+    };
+    
+    // Reset counter if window has passed
+    if (now - userLimit.lastReset > limit.windowMs) {
+      userLimit.count = 0;
+      userLimit.lastReset = now;
+    }
+    
+    // Check if limit exceeded
+    if (userLimit.count >= limit.max) {
+      const resetTime = new Date(userLimit.lastReset + limit.windowMs);
+      return res.status(429).json({
+        error: `User rate limit exceeded for ${type}. Try again after ${resetTime.toISOString()}`,
+        code: `USER_${type.toUpperCase()}_RATE_LIMIT_EXCEEDED`,
+        resetTime: resetTime.toISOString()
+      });
+    }
+    
+    // Increment counter
+    userLimit.count++;
+    userRateLimits.set(key, userLimit);
+    
+    // Add rate limit info to response headers
+    res.set({
+      'X-RateLimit-Limit': limit.max,
+      'X-RateLimit-Remaining': Math.max(0, limit.max - userLimit.count),
+      'X-RateLimit-Reset': new Date(userLimit.lastReset + limit.windowMs).toISOString()
+    });
+    
+    next();
+  };
+};
+
 // Middleware
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static('uploads'));
+
+// Apply general rate limiting to all routes
+app.use(generalLimiter);
 
 // Performance monitoring middleware
 app.use((req, res, next) => {
@@ -237,7 +342,7 @@ function splitTextIntoPages(text, pageCount) {
 }
 
 // Image processing endpoint with OCR
-app.post('/api/process-image', imageUpload.array('images', 5), async (req, res) => {
+app.post('/api/process-image', aiLimiter, userRateLimit('ai'), imageUpload.array('images', 5), async (req, res) => {
   try {
     console.log('🔍 DEBUG: Request body keys:', Object.keys(req.body || {}));
     console.log('🔍 DEBUG: Request files:', req.files ? req.files.length : 'undefined');
@@ -567,7 +672,7 @@ app.post('/api/test-processing', async (req, res) => {
 });
 
 // AI Service endpoints
-app.post('/api/ai/generate-flashcards', async (req, res) => {
+app.post('/api/ai/generate-flashcards', aiLimiter, userRateLimit('ai'), async (req, res) => {
   try {
     const { content, subject, topic, userId, nativeLanguage, showNativeLanguage } = req.body;
     
@@ -620,7 +725,7 @@ app.post('/api/ai/generate-flashcards', async (req, res) => {
   }
 });
 
-app.post('/api/ai/generate-lesson', async (req, res) => {
+app.post('/api/ai/generate-lesson', aiLimiter, userRateLimit('ai'), async (req, res) => {
   try {
     const { content, subject, topic, userId, nativeLanguage, sourceFileName } = req.body;
     
@@ -803,6 +908,43 @@ app.post('/api/cleanup/emergency', async (req, res) => {
   }
 });
 
+app.get('/api/rate-limits/status', (req, res) => {
+  try {
+    const userId = req.headers['user-id'] || req.query.userId || 'anonymous';
+    
+    const userLimits = {};
+    for (const [type, limit] of Object.entries(USER_LIMITS)) {
+      const key = `${userId}:${type}`;
+      const userLimit = userRateLimits.get(key) || {
+        count: 0,
+        lastReset: Date.now()
+      };
+      
+      userLimits[type] = {
+        limit: limit.max,
+        used: userLimit.count,
+        remaining: Math.max(0, limit.max - userLimit.count),
+        resetTime: new Date(userLimit.lastReset + limit.windowMs).toISOString(),
+        windowMs: limit.windowMs
+      };
+    }
+    
+    res.json({
+      success: true,
+      userId: userId,
+      limits: userLimits,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error getting rate limit status:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get rate limit status',
+      details: error.message
+    });
+  }
+});
+
 // Pronunciation Assessment endpoint
 const pronunciationService = require('./pronunciationService');
 
@@ -846,7 +988,7 @@ const audioUpload = multer({
   }
 });
 
-app.post('/api/pronunciation-assess', audioUpload.single('audio'), async (req, res) => {
+app.post('/api/pronunciation-assess', pronunciationLimiter, userRateLimit('pronunciation'), audioUpload.single('audio'), async (req, res) => {
   try {
     console.log('\n🎤 Pronunciation assessment request received');
     
