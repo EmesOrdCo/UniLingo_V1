@@ -47,7 +47,26 @@ def process_image_with_easyocr(image_path, languages=['en']):
             sys.stderr.flush()
             process_start = time.time()
             
-            results = reader.readtext(image_path)
+            # Add progress logging with threading
+            import threading
+            stop_logging = threading.Event()
+            
+            def log_progress():
+                while not stop_logging.is_set():
+                    time.sleep(10)
+                    if not stop_logging.is_set():
+                        elapsed = time.time() - process_start
+                        sys.stderr.write(f"[OCR] Still processing... {elapsed:.0f}s elapsed\n")
+                        sys.stderr.flush()
+            
+            progress_thread = threading.Thread(target=log_progress, daemon=True)
+            progress_thread.start()
+            
+            try:
+                results = reader.readtext(image_path)
+            finally:
+                # Stop the progress logging
+                stop_logging.set()
             
             process_time = time.time() - process_start
             sys.stderr.write(f"[OCR] Image processed in {process_time:.2f} seconds, found {len(results)} text regions\n")
