@@ -270,11 +270,12 @@
                 dashboard.innerHTML = '<div class="loading">Loading system data...</div>';
                 
                 // Load all monitoring data
-                const [healthData, metricsData, pronunciationData, rateLimitData] = await Promise.all([
+                const [healthData, metricsData, pronunciationData, rateLimitData, aiData] = await Promise.all([
                     fetch(`${API_BASE}/api/health/detailed`).then(r => r.json()),
                     fetch(`${API_BASE}/api/metrics`).then(r => r.json()),
                     fetch(`${API_BASE}/api/pronunciation/status`).then(r => r.json()),
-                    fetch(`${API_BASE}/api/rate-limits/status`).then(r => r.json())
+                    fetch(`${API_BASE}/api/rate-limits/status`).then(r => r.json()),
+                    fetch(`${API_BASE}/api/ai/status`).then(r => r.json())
                 ]);
 
                 // Render dashboard
@@ -282,6 +283,7 @@
                     ${renderHealthCard(healthData)}
                     ${renderMetricsCard(metricsData)}
                     ${renderPronunciationCard(pronunciationData)}
+                    ${renderAICard(aiData)}
                     ${renderRateLimitCard(rateLimitData)}
                 `;
                 
@@ -398,6 +400,52 @@
                     <div class="metric">
                         <span class="metric-label">Circuit Breaker</span>
                         <span class="status-badge ${circuitBreaker.state === 'CLOSED' ? 'status-healthy' : 'status-degraded'}">${circuitBreaker.state || 'CLOSED'}</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderAICard(data) {
+            const status = data.status || {};
+            
+            return `
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon" style="background: #20c997; color: white;">🤖</div>
+                        <div class="card-title">OpenAI Service</div>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Queue Size</span>
+                        <span class="metric-value">${status.queueSize || 0}</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Processing</span>
+                        <span class="metric-value">${status.isProcessing ? 'Yes' : 'No'}</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Circuit Breaker</span>
+                        <span class="status-badge ${status.circuitBreakerOpen ? 'status-unhealthy' : 'status-healthy'}">
+                            ${status.circuitBreakerOpen ? 'OPEN' : 'CLOSED'}
+                        </span>
+                    </div>
+                    <div class="queue-info">
+                        <strong>Rate Limits</strong>
+                        <div class="queue-item">
+                            <span>Requests/Min:</span>
+                            <span>${status.requestsThisMinute || 0}/${status.requestsPerMinute || 50}</span>
+                        </div>
+                        <div class="progress-bar" style="margin: 5px 0;">
+                            <div class="progress-fill ${(status.requestsThisMinute / status.requestsPerMinute) > 0.8 ? 'warning' : ''}" 
+                                 style="width: ${((status.requestsThisMinute || 0) / (status.requestsPerMinute || 50)) * 100}%"></div>
+                        </div>
+                        <div class="queue-item">
+                            <span>Tokens/Min:</span>
+                            <span>${status.tokensThisMinute || 0}/${status.tokensPerMinute || 75000}</span>
+                        </div>
+                        <div class="progress-bar" style="margin: 5px 0;">
+                            <div class="progress-fill ${(status.tokensThisMinute / status.tokensPerMinute) > 0.8 ? 'warning' : ''}" 
+                                 style="width: ${((status.tokensThisMinute || 0) / (status.tokensPerMinute || 75000)) * 100}%"></div>
+                        </div>
                     </div>
                 </div>
             `;

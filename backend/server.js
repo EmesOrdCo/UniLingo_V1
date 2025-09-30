@@ -806,7 +806,7 @@ app.post('/api/ai/generate-lesson', aiLimiter, userRateLimit('ai'), async (req, 
 });
 
 // AI Service status endpoint
-app.get('/api/ai/status', (req, res) => {
+app.get('/api/ai/status', monitoringWhitelist, (req, res) => {
   try {
     const status = AIService.getStatus();
     res.json({
