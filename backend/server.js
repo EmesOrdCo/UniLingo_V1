@@ -11,6 +11,7 @@ const AIService = require('./aiService');
 const PerformanceMonitor = require('./performanceMonitor');
 const ResilientPronunciationService = require('./resilientPronunciationService');
 const FileCleanupManager = require('./fileCleanupManager');
+const errorLogger = require('./errorLogger');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 console.log('🔍 Debug - Current directory:', __dirname);
@@ -974,6 +975,65 @@ app.post('/api/cleanup/emergency', monitoringWhitelist, async (req, res) => {
   }
 });
 
+app.get('/api/errors', monitoringWhitelist, (req, res) => {
+  try {
+    const { limit = 50, type } = req.query;
+    const errors = errorLogger.getRecentErrors(parseInt(limit), type);
+    
+    res.json({
+      success: true,
+      errors: errors,
+      count: errors.length,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error getting error logs:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get error logs',
+      details: error.message
+    });
+  }
+});
+
+app.get('/api/errors/stats', monitoringWhitelist, (req, res) => {
+  try {
+    const stats = errorLogger.getErrorStats();
+    
+    res.json({
+      success: true,
+      stats: stats,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error getting error stats:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get error stats',
+      details: error.message
+    });
+  }
+});
+
+app.post('/api/errors/clear', monitoringWhitelist, (req, res) => {
+  try {
+    const count = errorLogger.clearErrors();
+    
+    res.json({
+      success: true,
+      cleared: count,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error clearing error logs:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to clear error logs',
+      details: error.message
+    });
+  }
+});
+
 app.get('/api/rate-limits/status', monitoringWhitelist, (req, res) => {
   try {
     const userId = req.headers['user-id'] || req.query.userId || 'anonymous';
@@ -1110,6 +1170,19 @@ app.post('/api/pronunciation-assess', pronunciationLimiter, userRateLimit('pronu
     
   } catch (error) {
     console.error('❌ Pronunciation assessment error:', error);
+    
+    // Log error
+    errorLogger.logError(error, {
+      type: 'pronunciation',
+      service: 'Azure Speech Service',
+      endpoint: '/api/pronunciation-assess',
+      statusCode: 500,
+      ip: req.ip,
+      details: {
+        referenceText: req.body.referenceText,
+        fileSize: req.file?.size
+      }
+    });
     
         // Clean up uploaded file if it exists
         if (req.file && req.file.path) {

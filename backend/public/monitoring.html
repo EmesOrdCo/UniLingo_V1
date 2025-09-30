@@ -199,6 +199,100 @@
             margin-top: 20px;
         }
 
+        .error-log {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .error-log-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .error-item {
+            background: #f8f9fa;
+            border-left: 4px solid #dc3545;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+        }
+
+        .error-item.warning {
+            border-left-color: #ffc107;
+        }
+
+        .error-item.info {
+            border-left-color: #17a2b8;
+        }
+
+        .error-time {
+            font-size: 0.8rem;
+            color: #666;
+        }
+
+        .error-message {
+            font-weight: 600;
+            margin: 5px 0;
+            color: #333;
+        }
+
+        .error-details {
+            font-size: 0.85rem;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .error-service {
+            display: inline-block;
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 0.75rem;
+            margin-right: 5px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0056b3;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .no-errors {
+            text-align: center;
+            padding: 40px;
+            color: #28a745;
+            font-size: 1.2rem;
+        }
+
         .service-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -254,6 +348,16 @@
             <div class="loading">Loading system data...</div>
         </div>
 
+        <div class="error-log" id="errorLog">
+            <div class="error-log-header">
+                <h2 style="margin: 0; font-size: 1.5rem;">🚨 Recent Errors</h2>
+                <button class="btn btn-danger" onclick="clearErrors()">Clear All</button>
+            </div>
+            <div id="errorList">
+                <div class="loading">Loading errors...</div>
+            </div>
+        </div>
+
         <div class="timestamp" id="timestamp"></div>
     </div>
 
@@ -287,6 +391,9 @@
                     ${renderRateLimitCard(rateLimitData)}
                 `;
                 
+                // Load errors
+                await loadErrors();
+                
                 timestamp.textContent = `Last updated: ${new Date().toLocaleString()}`;
                 
             } catch (error) {
@@ -296,6 +403,46 @@
                         <br><small>Make sure you're accessing from a whitelisted IP address.</small>
                     </div>
                 `;
+            }
+        }
+
+        async function loadErrors() {
+            const errorList = document.getElementById('errorList');
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/errors?limit=20`);
+                const data = await response.json();
+                
+                if (data.errors && data.errors.length > 0) {
+                    errorList.innerHTML = data.errors.map(error => `
+                        <div class="error-item">
+                            <div class="error-time">${new Date(error.timestamp).toLocaleString()}</div>
+                            <div class="error-message">${error.message}</div>
+                            <div class="error-details">
+                                <span class="error-service">${error.service}</span>
+                                <span>${error.endpoint}</span>
+                                ${error.statusCode ? `<span style="color: #dc3545;"> • ${error.statusCode}</span>` : ''}
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    errorList.innerHTML = '<div class="no-errors">✅ No errors logged</div>';
+                }
+            } catch (error) {
+                errorList.innerHTML = `<div class="error">Failed to load errors: ${error.message}</div>`;
+            }
+        }
+
+        async function clearErrors() {
+            if (!confirm('Are you sure you want to clear all error logs?')) {
+                return;
+            }
+            
+            try {
+                await fetch(`${API_BASE}/api/errors/clear`, { method: 'POST' });
+                await loadErrors();
+            } catch (error) {
+                alert('Failed to clear errors: ' + error.message);
             }
         }
 
