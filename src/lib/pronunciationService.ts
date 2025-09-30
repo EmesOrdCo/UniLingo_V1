@@ -99,9 +99,30 @@ export class PronunciationService {
 
       logger.info('🎤 Starting audio recording...');
 
-      // Create recording with default settings (let expo-av choose best format)
+      // Create recording with optimized settings for Azure Speech Service
       const recording = new Audio.Recording();
-      await recording.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
+      await recording.prepareToRecordAsync({
+        android: {
+          extension: '.wav',
+          outputFormat: Audio.AndroidOutputFormat.DEFAULT,
+          audioEncoder: Audio.AndroidAudioEncoder.DEFAULT,
+          sampleRate: 16000,
+          numberOfChannels: 1,
+          bitRate: 128000,
+        },
+        ios: {
+          extension: '.wav',
+          outputFormat: Audio.IOSOutputFormat.LINEARPCM,
+          audioQuality: Audio.IOSAudioQuality.HIGH,
+          sampleRate: 16000,
+          numberOfChannels: 1,
+          bitRate: 128000,
+        },
+        web: {
+          mimeType: 'audio/wav',
+          bitsPerSecond: 128000,
+        },
+      });
 
       await recording.startAsync();
       this.recording = recording;

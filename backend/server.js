@@ -7,6 +7,9 @@ const NetworkLogger = require('./networkLogger');
 const getLocalIP = require('./getLocalIP');
 const updateFrontendConfig = require('./updateFrontendConfig');
 const AIService = require('./aiService');
+const PerformanceMonitor = require('./performanceMonitor');
+const ResilientPronunciationService = require('./resilientPronunciationService');
+const FileCleanupManager = require('./fileCleanupManager');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 console.log('🔍 Debug - Current directory:', __dirname);
@@ -17,11 +20,40 @@ const PORT = process.env.PORT || 3001;
 const LOCAL_IP = getLocalIP();
 const networkLogger = new NetworkLogger();
 
+// Initialize new services
+const performanceMonitor = new PerformanceMonitor();
+const resilientPronunciationService = new ResilientPronunciationService();
+const fileCleanupManager = new FileCleanupManager();
+
 // Middleware
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static('uploads'));
+
+// Performance monitoring middleware
+app.use((req, res, next) => {
+  const startTime = Date.now();
+  
+  res.on('finish', () => {
+    const responseTime = Date.now() - startTime;
+    const success = res.statusCode < 400;
+    
+    // Determine service type based on route
+    let service = 'general';
+    if (req.path.includes('/pronunciation-assess')) {
+      service = 'pronunciation';
+    } else if (req.path.includes('/ai/')) {
+      service = 'openai';
+    } else if (req.path.includes('/ocr')) {
+      service = 'azure-ocr';
+    }
+    
+    performanceMonitor.recordRequest(responseTime, success, service);
+  });
+  
+  next();
+});
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -652,6 +684,125 @@ app.get('/api/ai/status', (req, res) => {
   }
 });
 
+// Health and monitoring endpoints
+app.get('/api/health', (req, res) => {
+  try {
+    const metrics = performanceMonitor.getMetrics();
+    const healthStatus = performanceMonitor.getHealthStatus();
+    const pronunciationStatus = resilientPronunciationService.getStatus();
+    const cleanupStats = fileCleanupManager.getStats();
+    
+    res.json({
+      success: true,
+      status: healthStatus.overall,
+      timestamp: new Date().toISOString(),
+      services: {
+        pronunciation: {
+          status: healthStatus.services.pronunciation,
+          queue: pronunciationStatus.queue,
+          circuitBreaker: pronunciationStatus.circuitBreaker
+        },
+        openai: {
+          status: healthStatus.services.openai
+        },
+        azureOcr: {
+          status: healthStatus.services.azureOcr
+        }
+      },
+      metrics: {
+        requests: metrics.requests,
+        errorRate: metrics.errorRate,
+        avgResponseTime: metrics.avgResponseTime,
+        uptime: metrics.uptime,
+        requestsPerMinute: metrics.requestsPerMinute
+      },
+      issues: healthStatus.issues,
+      cleanup: cleanupStats
+    });
+  } catch (error) {
+    console.error('Error getting health status:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get health status',
+      details: error.message
+    });
+  }
+});
+
+app.get('/api/metrics', (req, res) => {
+  try {
+    const metrics = performanceMonitor.getMetrics();
+    res.json({
+      success: true,
+      metrics: metrics,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error getting metrics:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get metrics',
+      details: error.message
+    });
+  }
+});
+
+app.get('/api/pronunciation/status', (req, res) => {
+  try {
+    const status = resilientPronunciationService.getStatus();
+    res.json({
+      success: true,
+      status: status,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error getting pronunciation service status:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get pronunciation service status',
+      details: error.message
+    });
+  }
+});
+
+app.get('/api/cleanup/stats', (req, res) => {
+  try {
+    const stats = fileCleanupManager.getStats();
+    res.json({
+      success: true,
+      stats: stats,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error getting cleanup stats:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get cleanup stats',
+      details: error.message
+    });
+  }
+});
+
+app.post('/api/cleanup/emergency', async (req, res) => {
+  try {
+    const { maxAgeMinutes = 10 } = req.body;
+    const result = await fileCleanupManager.emergencyCleanup(maxAgeMinutes);
+    
+    res.json({
+      success: true,
+      result: result,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error performing emergency cleanup:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to perform emergency cleanup',
+      details: error.message
+    });
+  }
+});
+
 // Pronunciation Assessment endpoint
 const pronunciationService = require('./pronunciationService');
 
@@ -719,15 +870,15 @@ app.post('/api/pronunciation-assess', audioUpload.single('audio'), async (req, r
     console.log(`[Pronunciation] Reference text: "${referenceText}"`);
     console.log(`[Pronunciation] File size: ${(req.file.size / 1024).toFixed(2)} KB`);
     
-    // Perform pronunciation assessment
-    const assessmentResult = await pronunciationService.assessPronunciation(
+    // Perform pronunciation assessment with resilience
+    const assessmentResult = await resilientPronunciationService.assessPronunciationWithResilience(
       req.file.path,
       referenceText
     );
     
     if (!assessmentResult.success) {
       // Clean up uploaded file
-      fs.unlinkSync(req.file.path);
+      await fileCleanupManager.safeCleanup(req.file.path);
       
       return res.status(500).json({ 
         error: assessmentResult.error,
@@ -735,11 +886,11 @@ app.post('/api/pronunciation-assess', audioUpload.single('audio'), async (req, r
       });
     }
     
-    // Get feedback
-    const feedback = pronunciationService.getFeedback(assessmentResult.result);
+    // Get feedback (using the original service for feedback generation)
+    const feedback = require('./pronunciationService').getFeedback(assessmentResult.result);
     
     // Clean up uploaded file
-    fs.unlinkSync(req.file.path);
+    await fileCleanupManager.safeCleanup(req.file.path);
     
     console.log(`[Pronunciation] ✅ Assessment complete - Score: ${assessmentResult.result.pronunciationScore}/100`);
     
@@ -752,14 +903,10 @@ app.post('/api/pronunciation-assess', audioUpload.single('audio'), async (req, r
   } catch (error) {
     console.error('❌ Pronunciation assessment error:', error);
     
-    // Clean up uploaded file if it exists
-    if (req.file && req.file.path) {
-      try {
-        fs.unlinkSync(req.file.path);
-      } catch (cleanupError) {
-        console.error('Error cleaning up file:', cleanupError);
-      }
-    }
+        // Clean up uploaded file if it exists
+        if (req.file && req.file.path) {
+          await fileCleanupManager.safeCleanup(req.file.path);
+        }
     
     res.status(500).json({ 
       error: 'Failed to assess pronunciation',
