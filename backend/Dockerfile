@@ -94,6 +94,11 @@ COPY test-easyocr.js .
 COPY ocr_processor.py .
 RUN node test-easyocr.js
 
+# Pre-download EasyOCR English model to avoid first-run delays
+RUN mkdir -p /root/.EasyOCR/model && \
+    python3 -c "import easyocr; reader = easyocr.Reader(['en'], gpu=False, verbose=True, download_enabled=True)" && \
+    echo "✅ EasyOCR English model downloaded successfully"
+
 # Copy application code
 COPY . .
 
@@ -126,6 +131,9 @@ WORKDIR /app
 # Copy Python virtual environment from builder stage
 COPY --from=builder /opt/venv /opt/venv
 
+# Copy EasyOCR models from builder stage
+COPY --from=builder /root/.EasyOCR /root/.EasyOCR
+
 # Copy built application from builder stage
 COPY --from=builder /app .
 
@@ -135,6 +143,7 @@ ENV VIRTUAL_ENV="/opt/venv"
 ENV PYTHONPATH=/opt/venv/lib/python3.11/site-packages
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
+ENV EASYOCR_MODULE_PATH=/root/.EasyOCR
 
 # Expose port
 EXPOSE 3000
