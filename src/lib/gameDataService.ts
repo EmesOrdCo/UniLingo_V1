@@ -380,7 +380,7 @@ export class GameDataService {
   /**
    * Generate speaking game questions for SpeakingGame
    */
-  static generateSpeakingGameQuestions(flashcards: UserFlashcard[], count: number, retriesPerWord: number = 3): GameData {
+  static generateSpeakingGameQuestions(flashcards: UserFlashcard[], count: number): GameData {
     const questions: GameQuestion[] = [];
     const shuffledCards = this.shuffleArray(flashcards).slice(0, count);
     
@@ -405,7 +405,6 @@ export class GameDataService {
         showHints: false,
         selectedTopic: null,
         filteredFlashcards: [],
-        retriesPerWord
       }
     };
   }

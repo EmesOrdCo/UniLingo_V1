@@ -1309,7 +1309,7 @@ export default function GamesScreen({ route }: { route?: any }) {
       }
       
       setCurrentGame('Speaking Game');
-      const gameData = GameDataService.generateSpeakingGameQuestions(filteredFlashcards, options.wordCount, options.retriesPerWord);
+      const gameData = GameDataService.generateSpeakingGameQuestions(filteredFlashcards, options.wordCount);
       setGameData(gameData);
       setShowGameModal(true);
     } catch (error) {

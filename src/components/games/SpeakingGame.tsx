@@ -29,7 +29,7 @@ const SpeakingGame: React.FC<SpeakingGameProps> = ({
   const [gameStartTime, setGameStartTime] = useState<number>(Date.now());
   const [totalScore, setTotalScore] = useState(0);
   const [currentWord, setCurrentWord] = useState('');
-  const [retriesLeft, setRetriesLeft] = useState(3);
+  const [retriesLeft, setRetriesLeft] = useState(1);
   const [currentWordPassed, setCurrentWordPassed] = useState(false);
 
   // Use ref to capture final score and prevent multiple calls
@@ -49,7 +49,7 @@ const SpeakingGame: React.FC<SpeakingGameProps> = ({
     setTotalScore(0);
     setGameComplete(false);
     setCurrentWordPassed(false);
-    setRetriesLeft(gameData.setupOptions?.retriesPerWord || 3);
+    setRetriesLeft(1);
     
     if (gameData.questions[0]) {
       setCurrentWord(gameData.questions[0].correctAnswer);
@@ -68,7 +68,7 @@ const SpeakingGame: React.FC<SpeakingGameProps> = ({
       const newResult: WordResult = {
         word: currentWord,
         score: score,
-        attempts: (gameData.setupOptions?.retriesPerWord || 3) - retriesLeft + 1,
+        attempts: 1,
         passed: true
       };
       
@@ -88,7 +88,7 @@ const SpeakingGame: React.FC<SpeakingGameProps> = ({
         const newResult: WordResult = {
           word: currentWord,
           score: score,
-          attempts: gameData.setupOptions?.retriesPerWord || 3,
+          attempts: 1,
           passed: false
         };
         
@@ -112,7 +112,7 @@ const SpeakingGame: React.FC<SpeakingGameProps> = ({
       // Move to next word
       setCurrentWordIndex(nextIndex);
       setCurrentWord(gameData.questions[nextIndex].correctAnswer);
-      setRetriesLeft(gameData.setupOptions?.retriesPerWord || 3);
+      setRetriesLeft(1);
       setCurrentWordPassed(false);
     }
   };
@@ -221,15 +221,12 @@ const SpeakingGame: React.FC<SpeakingGameProps> = ({
       <View style={styles.retriesContainer}>
         <Text style={styles.retriesLabel}>Retries left: {retriesLeft}</Text>
         <View style={styles.retriesDots}>
-          {Array.from({ length: gameData.setupOptions?.retriesPerWord || 3 }).map((_, index) => (
-            <View
-              key={index}
-              style={[
-                styles.retryDot,
-                index < retriesLeft ? styles.retryDotActive : styles.retryDotInactive
-              ]}
-            />
-          ))}
+          <View
+            style={[
+              styles.retryDot,
+              retriesLeft > 0 ? styles.retryDotActive : styles.retryDotInactive
+            ]}
+          />
         </View>
       </View>
 

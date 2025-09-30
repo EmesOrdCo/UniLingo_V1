@@ -16,7 +16,6 @@ export interface SpeakingGameSetupOptions {
   wordCount: number;
   difficulty: 'beginner' | 'intermediate' | 'expert' | 'all';
   selectedTopic: string;
-  retriesPerWord: number;
 }
 
 interface SpeakingGameSetupProps {
@@ -36,7 +35,6 @@ const SpeakingGameSetup: React.FC<SpeakingGameSetupProps> = ({
   const [wordCount, setWordCount] = useState<number>(10);
   const [selectedTopic, setSelectedTopic] = useState<string>('');
   const [selectedDifficulty, setSelectedDifficulty] = useState<'beginner' | 'intermediate' | 'expert' | 'all'>('all');
-  const [retriesPerWord, setRetriesPerWord] = useState<number>(3);
   const [topics, setTopics] = useState<string[]>([]);
   const [topicCardCounts, setTopicCardCounts] = useState<{ [topic: string]: number }>({});
   const [loadingTopics, setLoadingTopics] = useState(false);
@@ -132,12 +130,6 @@ const SpeakingGameSetup: React.FC<SpeakingGameSetupProps> = ({
     { value: 20, label: '20 Words' },
   ].filter(option => option.value <= getAvailableCardsCount());
 
-  const retryOptions = [
-    { value: 1, label: '1 Retry' },
-    { value: 2, label: '2 Retries' },
-    { value: 3, label: '3 Retries' },
-    { value: 5, label: '5 Retries' },
-  ];
 
   const handleStartGame = () => {
     const currentAvailableCards = getAvailableCardsCount();
@@ -151,7 +143,6 @@ const SpeakingGameSetup: React.FC<SpeakingGameSetupProps> = ({
       wordCount,
       difficulty: selectedDifficulty,
       selectedTopic: selectedTopic || 'All Topics',
-      retriesPerWord,
     };
 
     onStartGame(options);
@@ -395,30 +386,6 @@ const SpeakingGameSetup: React.FC<SpeakingGameSetupProps> = ({
             </View>
           </View>
 
-          {/* Retries Per Word Selection */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Retries Per Word</Text>
-            
-            <View style={styles.optionsGrid}>
-              {retryOptions.map((option) => (
-                <TouchableOpacity
-                  key={option.value}
-                  style={[
-                    styles.optionCard,
-                    retriesPerWord === option.value && styles.optionCardSelected,
-                  ]}
-                  onPress={() => setRetriesPerWord(option.value)}
-                >
-                  <Text style={[
-                    styles.optionLabel,
-                    retriesPerWord === option.value && styles.optionLabelSelected,
-                  ]}>
-                    {option.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
 
           {/* Start Button */}
           <TouchableOpacity style={styles.startButton} onPress={handleStartGame}>
