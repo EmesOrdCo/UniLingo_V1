@@ -140,10 +140,10 @@ const allowedIPs = [
   '127.0.0.1',           // localhost
   '::1',                 // localhost IPv6
   '::ffff:127.0.0.1',    // localhost IPv4-mapped IPv6
-  '146.198.140.69',      // User's current IP address
+  '146.198.140.69',      // User's home/WiFi IP address
+  '148.252.147.103',     // User's cellular/mobile IP address
   // Add additional IP addresses here if needed
   // 'your.office.ip.address',
-  // 'your.mobile.ip.address'
 ];
 
 const monitoringWhitelist = (req, res, next) => {
