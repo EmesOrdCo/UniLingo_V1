@@ -32,6 +32,13 @@ async function assessPronunciation(audioFilePath, referenceText) {
     const speechKey = process.env.AZURE_SPEECH_KEY;
     const speechRegion = process.env.AZURE_SPEECH_REGION;
     
+    console.log(`[Pronunciation] Azure credentials check:`, {
+      hasKey: !!speechKey,
+      keyLength: speechKey ? speechKey.length : 0,
+      hasRegion: !!speechRegion,
+      region: speechRegion
+    });
+    
     if (!speechKey || !speechRegion) {
       throw new Error('Azure Speech Service credentials not configured. Set AZURE_SPEECH_KEY and AZURE_SPEECH_REGION.');
     }
@@ -135,10 +142,25 @@ async function assessPronunciation(audioFilePath, referenceText) {
     };
     
   } catch (error) {
-    console.error('[Pronunciation] Error:', error.message);
+    console.error('[Pronunciation] Error details:', {
+      message: error.message,
+      code: error.code,
+      name: error.name,
+      stack: error.stack,
+      fullError: error
+    });
+    
+    // Provide more specific error messages
+    let errorMessage = 'Pronunciation assessment failed';
+    if (error.message) {
+      errorMessage = error.message;
+    } else if (error.code) {
+      errorMessage = `Azure Speech error: ${error.code}`;
+    }
+    
     return {
       success: false,
-      error: error.message
+      error: errorMessage
     };
   }
 }
