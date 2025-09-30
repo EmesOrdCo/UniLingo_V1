@@ -95,29 +95,9 @@ export class PronunciationService {
 
       logger.info('🎤 Starting audio recording...');
 
-      // Create recording with Azure Speech compatible settings
+      // Create recording with default settings (let expo-av choose best format)
       const recording = new Audio.Recording();
-      await recording.prepareToRecordAsync({
-        android: {
-          extension: '.m4a',
-          outputFormat: Audio.AndroidOutputFormat.MPEG_4,
-          audioEncoder: Audio.AndroidAudioEncoder.AAC,
-          sampleRate: 16000,
-          numberOfChannels: 1,
-          bitRate: 128000,
-        },
-        ios: {
-          extension: '.m4a',
-          audioQuality: Audio.IOSAudioQuality.HIGH,
-          sampleRate: 16000,
-          numberOfChannels: 1,
-          bitRate: 128000,
-        },
-        web: {
-          mimeType: 'audio/mp4',
-          bitsPerSecond: 128000,
-        },
-      });
+      await recording.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
 
       await recording.startAsync();
       this.recording = recording;
@@ -209,11 +189,11 @@ export class PronunciationService {
       // Prepare form data
       const formData = new FormData();
       
-      // Add audio file
+      // Add audio file (let expo-av determine the format)
       const audioFile: any = {
         uri: Platform.OS === 'ios' ? audioUri.replace('file://', '') : audioUri,
-        type: 'audio/mp4',
-        name: 'pronunciation.m4a',
+        type: 'audio/wav', // Default to WAV, will be overridden by actual file
+        name: 'pronunciation.wav',
       };
       
       formData.append('audio', audioFile);

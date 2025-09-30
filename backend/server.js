@@ -668,7 +668,9 @@ const audioUpload = multer({
     },
     filename: function (req, file, cb) {
       const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-      cb(null, 'pronunciation-' + uniqueSuffix + '.m4a');
+      // Keep original extension from the uploaded file
+      const extension = file.originalname.split('.').pop() || 'wav';
+      cb(null, 'pronunciation-' + uniqueSuffix + '.' + extension);
     }
   }),
   limits: {
