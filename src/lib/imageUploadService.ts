@@ -77,12 +77,13 @@ export class ImageUploadService {
         }
 
         // Validate selected images
+        // Note: Backend compresses images with Sharp, so we can accept larger images
         const validImages = result.assets.filter(asset => {
           if (!asset.uri) {
             console.warn('Image asset missing URI');
             return false;
           }
-          if (asset.fileSize && asset.fileSize > 4 * 1024 * 1024) {
+          if (asset.fileSize && asset.fileSize > 10 * 1024 * 1024) {
             console.warn(`Image ${asset.fileName} is too large: ${(asset.fileSize / 1024 / 1024).toFixed(2)}MB`);
             return false;
           }
@@ -92,9 +93,9 @@ export class ImageUploadService {
         if (validImages.length === 0) {
           const rejectedCount = result.assets.length - validImages.length;
           if (rejectedCount > 0) {
-            throw new Error(`No valid images selected. ${rejectedCount} image${rejectedCount > 1 ? 's were' : ' was'} rejected because they exceed the 4MB limit. Please select smaller images.`);
+            throw new Error(`No valid images selected. ${rejectedCount} image${rejectedCount > 1 ? 's were' : ' was'} rejected because they exceed the 10MB limit. Please select smaller images.`);
           } else {
-            throw new Error('No valid images selected. Please ensure images are under 4MB each.');
+            throw new Error('No valid images selected. Please ensure images are under 10MB each.');
           }
         }
 

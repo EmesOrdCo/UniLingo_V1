@@ -60,12 +60,14 @@ async function processImageWithAzureOCR(imagePath) {
         throw new Error('Azure OCR failed to process the image');
       }
       
-      // Wait 1 second before checking again
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Use exponential backoff to reduce API calls
+      // First check: 500ms, then 1s, 1.5s, 2s, etc.
+      const delay = Math.min(500 + (attempts * 500), 2000);
+      await new Promise(resolve => setTimeout(resolve, delay));
       attempts++;
       
-      if (attempts % 5 === 0) {
-        console.log(`  [Azure OCR] Still waiting... ${attempts}s elapsed`);
+      if (attempts % 3 === 0) {
+        console.log(`  [Azure OCR] Still waiting... ${attempts} attempts`);
       }
     }
     
