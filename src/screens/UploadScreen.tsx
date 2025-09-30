@@ -1064,6 +1064,14 @@ export default function UploadScreen() {
       setShowImageProcessingModal(true);
       setShowImagePreview(false);
       
+      // Reset progress to initial uploading state
+      setImageProgress({
+        stage: 'uploading',
+        progress: 0,
+        message: `Preparing to process ${selectedImages.length} image${selectedImages.length > 1 ? 's' : ''}...`,
+        totalImages: selectedImages.length,
+      });
+      
       // Add safety timeout
       safetyTimeoutRef.current = setTimeout(() => {
         console.log('⚠️ Safety timeout triggered - image processing taking longer than expected');
@@ -1078,14 +1086,6 @@ export default function UploadScreen() {
         // Keep the image processing modal visible to show the error
         setShowImageProcessingModal(true);
       }, 300000); // 5 minute timeout for image processing
-      
-      // Update progress for image processing
-      setImageProgress({
-        stage: 'uploading',
-        progress: 10,
-        message: `Processing ${selectedImages.length} image${selectedImages.length > 1 ? 's' : ''}...`,
-        totalImages: selectedImages.length,
-      });
 
       // Process images with OCR
       const imageResult = await ImageUploadService.processImages(
