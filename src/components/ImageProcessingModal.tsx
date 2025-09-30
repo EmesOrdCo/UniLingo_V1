@@ -417,7 +417,7 @@ export default function ImageProcessingModal({
                       style={[styles.actionButton, styles.retryButton]}
                       onPress={onRetry}
                     >
-                      <Ionicons name="refresh" size={20} color="#ffffff" />
+                      <Ionicons name="refresh" size={16} color="#ffffff" />
                       <Text style={styles.retryButtonText}>Try Again</Text>
                     </TouchableOpacity>
                   )}
@@ -426,7 +426,7 @@ export default function ImageProcessingModal({
                       style={[styles.actionButton, styles.alternativeButton]}
                       onPress={onUseAlternative}
                     >
-                      <Ionicons name="options" size={20} color="#8b5cf6" />
+                      <Ionicons name="options" size={16} color="#ffffff" />
                       <Text style={styles.alternativeButtonText}>Use Alternative</Text>
                     </TouchableOpacity>
                   )}
@@ -435,7 +435,7 @@ export default function ImageProcessingModal({
                       style={[styles.actionButton, styles.closeButton]}
                       onPress={onClose}
                     >
-                      <Ionicons name="close" size={20} color="#64748b" />
+                      <Ionicons name="close" size={16} color="#ffffff" />
                       <Text style={styles.closeButtonText}>Close</Text>
                     </TouchableOpacity>
                   )}
@@ -720,18 +720,18 @@ const styles = StyleSheet.create({
   },
   errorActions: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'space-between',
     width: '100%',
     marginBottom: 20,
+    gap: 8,
   },
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 16,
-    minWidth: 140,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    borderRadius: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
@@ -741,35 +741,32 @@ const styles = StyleSheet.create({
   retryButton: {
     backgroundColor: '#ef4444',
     flex: 1,
-    marginRight: 10,
   },
   retryButtonText: {
     color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '700',
-    marginLeft: 8,
+    fontSize: 13,
+    fontWeight: '600',
+    marginLeft: 6,
   },
   alternativeButton: {
     backgroundColor: '#8b5cf6',
     flex: 1,
-    marginLeft: 10,
   },
   alternativeButtonText: {
     color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '700',
-    marginLeft: 8,
+    fontSize: 13,
+    fontWeight: '600',
+    marginLeft: 6,
   },
   closeButton: {
     backgroundColor: '#64748b',
     flex: 1,
-    marginLeft: 10,
   },
   closeButtonText: {
     color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '700',
-    marginLeft: 8,
+    fontSize: 13,
+    fontWeight: '600',
+    marginLeft: 6,
   },
   continueButton: {
     backgroundColor: '#10b981',

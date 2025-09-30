@@ -154,7 +154,7 @@ export class ImageUploadService {
           throw new Error(`Backend server is not available (status: ${healthResponse.status})`);
         }
       } catch (healthError) {
-        console.error('🚨 DEBUG: Health check failed:', healthError);
+        // Don't log errors - they create LogBox notifications
         throw new Error(`Backend server is not running or not accessible: ${healthError.message}`);
       }
 
@@ -210,7 +210,7 @@ export class ImageUploadService {
           'Content-Type': 'multipart/form-data',
         },
       }).catch((networkError) => {
-        console.error('🚨 NETWORK ERROR DETAILS:', networkError);
+        // Don't log errors - they create LogBox notifications
         throw new Error(`Network request failed: ${networkError.message}`);
       });
 
@@ -225,7 +225,7 @@ export class ImageUploadService {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error('❌ DEBUG: Response not OK:', errorData);
+        // Don't log errors - they create LogBox notifications
         
         // Handle specific "no text extracted" error gracefully
         if (errorData.details && (
@@ -277,8 +277,7 @@ export class ImageUploadService {
       };
 
     } catch (error) {
-      console.error('Error processing images:', error);
-      
+      // Don't log here - let the caller handle logging
       onProgress?.({
         stage: 'error',
         progress: 0,

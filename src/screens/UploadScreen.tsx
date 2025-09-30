@@ -1261,7 +1261,8 @@ export default function UploadScreen() {
       setSelectedImages([]);
 
     } catch (error) {
-      console.error('Error processing images:', error);
+      // Don't console.error here - it creates LogBox notifications
+      // The error is already shown in the ImageProcessingModal
       
       // Clear all timeouts
       if (safetyTimeoutRef.current) {
