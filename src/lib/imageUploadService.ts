@@ -82,7 +82,7 @@ export class ImageUploadService {
             console.warn('Image asset missing URI');
             return false;
           }
-          if (asset.fileSize && asset.fileSize > 10 * 1024 * 1024) {
+          if (asset.fileSize && asset.fileSize > 4 * 1024 * 1024) {
             console.warn(`Image ${asset.fileName} is too large: ${(asset.fileSize / 1024 / 1024).toFixed(2)}MB`);
             return false;
           }
@@ -90,11 +90,16 @@ export class ImageUploadService {
         });
 
         if (validImages.length === 0) {
-          throw new Error('No valid images selected. Please ensure images are under 10MB each.');
+          const rejectedCount = result.assets.length - validImages.length;
+          if (rejectedCount > 0) {
+            throw new Error(`No valid images selected. ${rejectedCount} image${rejectedCount > 1 ? 's were' : ' was'} rejected because they exceed the 4MB limit. Please select smaller images.`);
+          } else {
+            throw new Error('No valid images selected. Please ensure images are under 4MB each.');
+          }
         }
 
-        if (validImages.length > 5) {
-          throw new Error('Maximum 5 images allowed. Please select fewer images.');
+        if (validImages.length > 10) {
+          throw new Error('Maximum 10 images allowed. Please select fewer images.');
         }
 
         // Reset retry count on success
@@ -115,7 +120,7 @@ export class ImageUploadService {
         } else if (error.message.includes('cancelled') || error.message.includes('Image selection was cancelled')) {
           // Don't log cancellation as an error - it's a normal user action
           throw error; // Re-throw cancellation errors
-        } else if (error.message.includes('No valid images')) {
+        } else if (error.message.includes('No valid images') || error.message.includes('Maximum 10 images')) {
           throw error; // Re-throw validation errors
         }
       }

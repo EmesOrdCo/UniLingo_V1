@@ -151,19 +151,19 @@ export default function ImagePreviewModal({
           <View style={styles.limitsItem}>
             <Ionicons name="images" size={14} color="#64748b" />
             <Text style={styles.limitsText}>
-              Maximum 5 images per upload
+              Maximum 10 images per upload
             </Text>
           </View>
           <View style={styles.limitsItem}>
             <Ionicons name="document" size={14} color="#64748b" />
             <Text style={styles.limitsText}>
-              Each image must be under 10MB
+              Each image must be under 4MB
             </Text>
           </View>
           <View style={styles.limitsItem}>
             <Ionicons name="time" size={14} color="#64748b" />
             <Text style={styles.limitsText}>
-              Processing time: 1-3 minutes
+              Processing time: 2-5 minutes
             </Text>
           </View>
         </View>
@@ -183,7 +183,7 @@ export default function ImagePreviewModal({
             <TouchableOpacity
               style={[styles.actionButton, styles.secondaryButton]}
               onPress={onAddMore}
-              disabled={isProcessing || images.length >= 5}
+              disabled={isProcessing || images.length >= 10}
             >
               <Ionicons name="add" size={20} color="#6366f1" />
               <Text style={styles.secondaryButtonText}>Add More</Text>

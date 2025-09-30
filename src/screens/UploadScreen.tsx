@@ -1283,6 +1283,14 @@ export default function UploadScreen() {
           errorMessage = 'AI processing timed out. Please try again with smaller images.';
         } else if (error.message.includes('No text could be extracted')) {
           errorMessage = 'No text could be extracted from the images. Please ensure the images contain clear, readable text.';
+        } else if (error.message.includes('No valid images selected')) {
+          errorMessage = error.message; // Use the detailed error message from image validation
+        } else if (error.message.includes('Maximum 10 images')) {
+          errorMessage = error.message; // Use the detailed error message from image validation
+        } else if (error.message.includes('Network request failed')) {
+          errorMessage = 'Network error. Please check your internet connection and try again.';
+        } else if (error.message.includes('Backend request failed')) {
+          errorMessage = 'Server error. Please try again in a few moments.';
         } else {
           errorMessage = error.message;
         }
