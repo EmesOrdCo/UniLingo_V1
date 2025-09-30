@@ -842,7 +842,17 @@ app.get('/api/health', (req, res) => {
 
 // Monitoring dashboard (IP whitelisted)
 app.get('/monitoring', monitoringWhitelist, (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'monitoring.html'));
+  const filePath = path.join(__dirname, 'public', 'monitoring.html');
+  console.log('[Monitoring] Serving dashboard from:', filePath);
+  res.sendFile(filePath, (err) => {
+    if (err) {
+      console.error('[Monitoring] Error serving file:', err);
+      res.status(500).json({
+        error: 'Failed to load monitoring dashboard',
+        details: err.message
+      });
+    }
+  });
 });
 
 // Detailed health and monitoring endpoints (IP whitelisted)
