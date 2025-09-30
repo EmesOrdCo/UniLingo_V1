@@ -7,9 +7,6 @@ import { useSelectedUnit } from '../contexts/SelectedUnitContext';
 import { useRefresh } from '../contexts/RefreshContext';
 import { GeneralVocabService } from '../lib/generalVocabService';
 import { UnitDataService, UnitData } from '../lib/unitDataService';
-import DailyGoalsWidget from './DailyGoalsWidget';
-import DailyChallengeBox from './DailyChallengeBox';
-import LevelProgressWidget from './LevelProgressWidget';
 
 interface DashboardContentProps {
   progressData: any;
@@ -42,8 +39,39 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
     try {
       setLoadingUnits(true);
       const units = await UnitDataService.getAllUnits();
-      // Default to A1.1 if no unit is selected
-      const defaultUnit = units.find(unit => unit.unit_code === 'A1.1') || units[0];
+      
+      // Try to find A1.1 unit
+      let defaultUnit = units.find(unit => unit.unit_code === 'A1.1');
+      
+      // If A1.1 not found with unit_code, fetch data by CEFR level as fallback
+      if (!defaultUnit) {
+        console.log('📊 A1.1 not found with unit_code, using CEFR level fallback');
+        const unitData = await UnitDataService.getUnitDataByCode('A1.1');
+        
+        if (unitData.topic_groups.length > 0) {
+          defaultUnit = {
+            unit_code: 'A1.1',
+            unit_title: UnitDataService.getUnitTitle('A1.1'),
+            topic_groups: unitData.topic_groups,
+            total_words: unitData.total_words,
+            total_lessons: 5,
+            lessons_completed: 0,
+            status: 'not_started' as const
+          };
+          console.log('✅ Created fallback unit with', unitData.topic_groups.length, 'topic groups:', unitData.topic_groups);
+        } else if (units.length > 0) {
+          // Ultimate fallback: use first available unit
+          defaultUnit = units[0];
+          console.log('⚠️ Using first available unit:', defaultUnit.unit_code, 'with', defaultUnit.topic_groups.length, 'topic groups');
+        }
+      }
+      
+      if (defaultUnit) {
+        console.log('📊 Setting default unit:', defaultUnit.unit_code, 'with topic groups:', defaultUnit.topic_groups);
+      } else {
+        console.warn('⚠️ No default unit could be loaded!');
+      }
+      
       setSelectedUnit(defaultUnit);
     } catch (error) {
       console.error('Error loading default unit:', error);
@@ -188,23 +216,9 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
         </View>
       )}
 
-      {/* Daily Challenge Box */}
-      <DailyChallengeBox refreshTrigger={refreshTrigger} />
-
-      {/* Level Progress Widget */}
-      <View style={styles.levelProgressContainer}>
-        <LevelProgressWidget onRefresh={() => {}} />
-      </View>
-
-      {/* Daily Goals Widget */}
-      <View style={styles.dailyGoalsContainer}>
-        <DailyGoalsWidget refreshTrigger={refreshTrigger} />
-      </View>
-
-      {/* TEMPORARILY HIDDEN - Course Overview Section and Course Units Section */}
-      {false && (
-        <>
-          {/* Course Overview Section */}
+      {/* Course Overview Section and Course Units Section */}
+      <>
+        {/* Course Overview Section */}
           <View style={styles.courseOverview}>
             <Text style={styles.courseLevel}>{selectedUnit?.unit_code || 'A1.1'}</Text>
             <View style={styles.courseTitleRow}>
@@ -240,24 +254,35 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
                 <Text style={styles.loadingText}>Loading units...</Text>
               </View>
             ) : selectedUnit ? (
-              selectedUnit?.topic_groups?.map((topicGroup, index) => (
-                <View key={topicGroup} style={styles.unitContainer}>
-                  <TouchableOpacity 
-                    style={[
-                      styles.unitCard,
-                      expandedUnit === index && styles.unitCardExpanded
-                    ]}
-                    onPress={() => handleUnitPress(index)}
-                  >
-                    <View style={styles.unitHeader}>
-                      <Text style={styles.unitNumber}>Unit {index + 1}</Text>
-                      <View style={styles.unitProgressBar}>
-                        <View style={[styles.unitProgressFill, { width: '0%' }]} />
-                      </View>
-                    </View>
-                    
-                    <Text style={styles.unitTitle}>{topicGroup}</Text>
-                    <Text style={styles.unitSubtitle}>{selectedUnit?.unit_code} • Topic Group</Text>
+              (() => {
+                const topicGroups = selectedUnit?.topic_groups || [];
+                console.log('🎨 Rendering topic groups. Count:', topicGroups.length, 'Groups:', topicGroups);
+                
+                if (topicGroups.length === 0) {
+                  console.warn('⚠️ No topic groups to render!');
+                  return <Text style={styles.loadingText}>No topic groups available</Text>;
+                }
+                
+                return topicGroups.map((topicGroup, index) => {
+                  console.log(`🎨 Rendering Unit ${index + 1}: "${topicGroup}"`);
+                  return (
+                    <View key={`${topicGroup}-${index}`} style={styles.unitContainer}>
+                      <TouchableOpacity 
+                        style={[
+                          styles.unitCard,
+                          expandedUnit === index && styles.unitCardExpanded
+                        ]}
+                        onPress={() => handleUnitPress(index)}
+                      >
+                        <View style={styles.unitHeader}>
+                          <Text style={styles.unitNumber}>Unit {index + 1}</Text>
+                          <View style={styles.unitProgressBar}>
+                            <View style={[styles.unitProgressFill, { width: '0%' }]} />
+                          </View>
+                        </View>
+                        
+                        <Text style={styles.unitTitle}>{topicGroup}</Text>
+                        <Text style={styles.unitSubtitle}>{selectedUnit?.unit_code} • Topic Group</Text>
                     
                     <View style={styles.unitFooter}>
                       <Ionicons name="download-outline" size={20} color="#6b7280" />
@@ -291,11 +316,12 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
                     </View>
                   )}
                 </View>
-              ))
+                  );
+                });
+              })()
             ) : null}
           </View>
-        </>
-      )}
+      </>
 
       <View style={styles.bottomSpacing} />
     </ScrollView>
@@ -319,14 +345,6 @@ const styles = StyleSheet.create({
     elevation: 6,
     borderWidth: 3,
     borderColor: '#6366f1',
-  },
-  levelProgressContainer: {
-    marginHorizontal: 16,
-    marginBottom: 16,
-  },
-  dailyGoalsContainer: {
-    marginHorizontal: 16,
-    marginBottom: 16,
   },
   courseLevel: {
     fontSize: 14,

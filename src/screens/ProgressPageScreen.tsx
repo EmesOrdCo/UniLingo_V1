@@ -18,6 +18,7 @@ import { HolisticProgressService, ProgressInsights } from '../lib/holisticProgre
 import OptimizedProgressService from '../lib/optimizedProgressService';
 import StudyCalendar from '../components/StudyCalendar';
 import ConsistentHeader from '../components/ConsistentHeader';
+import DailyGoalsWidget from '../components/DailyGoalsWidget';
 import { LessonService } from '../lib/lessonService';
 
 const { width } = Dimensions.get('window');
@@ -245,6 +246,10 @@ export default function ProgressPageScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
+        {/* Daily Goals Widget */}
+        <View style={styles.dailyGoalsContainer}>
+          <DailyGoalsWidget refreshTrigger={refreshTrigger} />
+        </View>
 
         {/* Level Progress */}
         <View style={styles.levelSection}>
@@ -888,6 +893,11 @@ const styles = StyleSheet.create({
     color: '#64748b',
     marginTop: 8,
     textAlign: 'center',
+  },
+  dailyGoalsContainer: {
+    marginHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 16,
   },
 });
 

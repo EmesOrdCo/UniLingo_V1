@@ -79,19 +79,34 @@ export class UnitDataService {
    */
   static async getTopicGroupsByCefrLevel(cefrLevel: string): Promise<{ topic_group: string, word_count: number }[]> {
     try {
+      console.log(`🔍 getTopicGroupsByCefrLevel called with: "${cefrLevel}"`);
+      
       const { data, error } = await supabase
         .from('general_english_vocab')
-        .select('topic_group')
+        .select('topic_group, cefr_level')
         .eq('cefr_level', cefrLevel);
 
+      console.log(`📊 Query result - Error:`, error, 'Data count:', data?.length || 0);
+      
       if (error) {
         logger.error('Error fetching topic groups by CEFR level:', error);
         return [];
       }
 
       if (!data || data.length === 0) {
+        console.log(`⚠️ No data found for cefr_level = "${cefrLevel}"`);
+        
+        // Try to debug - get ALL cefr_level values to see what's in the DB
+        const { data: allLevels } = await supabase
+          .from('general_english_vocab')
+          .select('cefr_level')
+          .limit(10);
+        console.log('📋 Sample cefr_level values in DB:', allLevels?.map(x => `"${x.cefr_level}"`));
+        
         return [];
       }
+
+      console.log(`✅ Found ${data.length} rows. Sample topic_groups:`, data.slice(0, 3).map(x => x.topic_group));
 
       // Group by topic_group and count words
       const groupMap = new Map<string, number>();
@@ -101,10 +116,14 @@ export class UnitDataService {
         }
       });
 
-      return Array.from(groupMap.entries()).map(([topic_group, word_count]) => ({
+      const result = Array.from(groupMap.entries()).map(([topic_group, word_count]) => ({
         topic_group,
         word_count
       }));
+      
+      console.log(`📦 Returning ${result.length} topic groups:`, result.map(x => x.topic_group));
+
+      return result;
     } catch (error) {
       logger.error('Error in getTopicGroupsByCefrLevel:', error);
       return [];
