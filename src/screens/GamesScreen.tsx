@@ -32,11 +32,13 @@ import HangmanSetup from '../components/HangmanSetup';
 import SpeedChallengeSetup from '../components/SpeedChallengeSetup';
 import TypeWhatYouHearSetup from '../components/TypeWhatYouHearSetup';
 import GravityGameSetup from '../components/GravityGameSetup';
+import SpeakingGameSetup from '../components/SpeakingGameSetup';
 import { SentenceScrambleSetupOptions } from '../components/SentenceScrambleSetup';
 import { HangmanSetupOptions } from '../components/HangmanSetup';
 import { SpeedChallengeSetupOptions } from '../components/SpeedChallengeSetup';
 import { TypeWhatYouHearSetupOptions } from '../components/TypeWhatYouHearSetup';
 import { GravityGameSetupOptions } from '../components/GravityGameSetup';
+import { SpeakingGameSetupOptions } from '../components/SpeakingGameSetup';
 import WordScrambleSetup from '../components/WordScrambleSetup';
 import { WordScrambleSetupOptions } from '../components/WordScrambleSetup';
 import { GameDataService } from '../lib/gameDataService';
@@ -61,6 +63,7 @@ import GravityGame from '../components/games/GravityGame';
 import TypeWhatYouHearGame from '../components/games/TypeWhatYouHearGame';
 import SpeedChallengeGame from '../components/games/SpeedChallengeGame';
 import SentenceScrambleGame from '../components/games/SentenceScrambleGame';
+import SpeakingGame from '../components/games/SpeakingGame';
 
 const { width } = Dimensions.get('window');
 
@@ -154,6 +157,7 @@ export default function GamesScreen({ route }: { route?: any }) {
   const [showSpeedChallengeSetup, setShowSpeedChallengeSetup] = useState(false);
   const [showTypeWhatYouHearSetup, setShowTypeWhatYouHearSetup] = useState(false);
   const [showGravityGameSetup, setShowGravityGameSetup] = useState(false);
+  const [showSpeakingGameSetup, setShowSpeakingGameSetup] = useState(false);
   
 
   // Fetch flashcards and topics
@@ -378,6 +382,10 @@ export default function GamesScreen({ route }: { route?: any }) {
           case 'Sentence Scramble':
             console.log('🎯 Launching Sentence Scramble with options:', gameOptions);
             handleSentenceScrambleSetupComplete(gameOptions);
+            break;
+          case 'Speaking Game':
+            console.log('🎯 Launching Speaking Game with options:', gameOptions);
+            handleSpeakingGameSetupComplete(gameOptions);
             break;
           default:
             console.warn('Unknown game type for auto-launch:', launchGame);
@@ -709,6 +717,7 @@ export default function GamesScreen({ route }: { route?: any }) {
       case 'Planet Defense': return 'planet';
       case 'Listen & Type': return 'ear';
       case 'Sentence Scramble': return 'document-text';
+      case 'Speaking Game': return 'mic';
       default: return 'help-circle';
     }
   };
@@ -722,6 +731,7 @@ export default function GamesScreen({ route }: { route?: any }) {
       case 'Planet Defense': return 'Arcade';
       case 'Listen & Type': return 'Listening';
       case 'Sentence Scramble': return 'Grammar';
+      case 'Speaking Game': return 'Pronunciation';
       default: return 'Quiz';
     }
   };
@@ -735,6 +745,7 @@ export default function GamesScreen({ route }: { route?: any }) {
       case 'Planet Defense': return startGravityGame;
       case 'Listen & Type': return startTypeWhatYouHear;
       case 'Sentence Scramble': return startSentenceScramble;
+      case 'Speaking Game': return startSpeakingGame;
       default: return startFlashcardQuiz;
     }
   };
@@ -824,6 +835,14 @@ export default function GamesScreen({ route }: { route?: any }) {
     setShowSentenceScrambleSetup(true);
   };
 
+  const handleSpeakingGamePlayAgain = () => {
+    // Close the game modal and reopen the setup screen
+    setShowGameModal(false);
+    setCurrentGame(null);
+    setGameData(null);
+    setShowSpeakingGameSetup(true);
+  };
+
   const startMemoryMatch = () => {
     if (flashcards.length === 0) {
       showNoFlashcardsError();
@@ -878,6 +897,14 @@ export default function GamesScreen({ route }: { route?: any }) {
       return;
     }
     setShowSentenceScrambleSetup(true);
+  };
+
+  const startSpeakingGame = () => {
+    if (flashcards.length === 0) {
+      showNoFlashcardsError();
+      return;
+    }
+    setShowSpeakingGameSetup(true);
   };
 
   // Setup completion handlers
@@ -1249,6 +1276,48 @@ export default function GamesScreen({ route }: { route?: any }) {
     }
   };
 
+  const handleSpeakingGameSetupComplete = (options: SpeakingGameSetupOptions) => {
+    try {
+      setShowSpeakingGameSetup(false);
+      setGameCompleted(false); // Reset completion flag
+      
+      // Filter flashcards based on selected topic and difficulty
+      let filteredFlashcards = flashcards;
+      
+      // Filter by topic if specific topic is selected
+      if (options.selectedTopic && options.selectedTopic !== 'All Topics') {
+        filteredFlashcards = filteredFlashcards.filter(card => card.topic === options.selectedTopic);
+      }
+      
+      // Filter by difficulty if specific difficulty is selected
+      if (options.difficulty && options.difficulty !== 'all') {
+        filteredFlashcards = filteredFlashcards.filter(card => card.difficulty === options.difficulty);
+      }
+      
+      console.log('🔍 Speaking Game filtered flashcards:', {
+        original: flashcards.length,
+        filtered: filteredFlashcards.length,
+        topic: options.selectedTopic,
+        difficulty: options.difficulty
+      });
+      
+      // Validate filtered flashcards
+      const validation = GameDataService.validateFlashcards(filteredFlashcards, 'Speaking Game');
+      if (!validation.isValid) {
+        Alert.alert('Cannot Start Game', validation.error || 'Invalid flashcard data');
+        return;
+      }
+      
+      setCurrentGame('Speaking Game');
+      const gameData = GameDataService.generateSpeakingGameQuestions(filteredFlashcards, options.wordCount, options.retriesPerWord);
+      setGameData(gameData);
+      setShowGameModal(true);
+    } catch (error) {
+      console.error('Error starting Speaking Game:', error);
+      Alert.alert('Error', 'Failed to start Speaking Game. Please try again.');
+    }
+  };
+
   // Handle game completion with aggressive debouncing
   const handleGameComplete = async (finalScore: number, timeSpent?: number, totalAnswered?: number) => {
     const completionId = Math.random().toString(36).substr(2, 9);
@@ -1532,6 +1601,13 @@ export default function GamesScreen({ route }: { route?: any }) {
           onGameComplete={handleGameComplete}
           onPlayAgain={handleSentenceScramblePlayAgain}
         />;
+      case 'Speaking Game':
+        return <SpeakingGame 
+          gameData={gameData} 
+          onClose={closeGameModal} 
+          onGameComplete={handleGameComplete}
+          onPlayAgain={handleSpeakingGamePlayAgain}
+        />;
       default:
         return null;
     }
@@ -1594,6 +1670,7 @@ export default function GamesScreen({ route }: { route?: any }) {
             { name: 'Planet Defense', tag: 'Arcade', icon: 'planet', color: '#3b82f6', bgColor: '#dbeafe', onPress: startGravityGame },
             { name: 'Listen & Type', tag: 'Listening', icon: 'ear', color: '#8b5cf6', bgColor: '#f3e8ff', onPress: startTypeWhatYouHear },
             { name: 'Sentence Scramble', tag: 'Grammar', icon: 'document-text', color: '#ec4899', bgColor: '#fdf2f8', onPress: startSentenceScramble },
+            { name: 'Speaking Game', tag: 'Pronunciation', icon: 'mic', color: '#f59e0b', bgColor: '#fffbeb', onPress: startSpeakingGame },
           ].map((game) => ({
             id: game.name,
             title: game.name,
@@ -1919,6 +1996,13 @@ export default function GamesScreen({ route }: { route?: any }) {
         visible={showGravityGameSetup}
         onClose={() => setShowGravityGameSetup(false)}
         onStartGame={handleGravityGameSetupComplete}
+        availableCards={flashcards.length}
+      />
+
+      <SpeakingGameSetup
+        visible={showSpeakingGameSetup}
+        onClose={() => setShowSpeakingGameSetup(false)}
+        onStartGame={handleSpeakingGameSetupComplete}
         availableCards={flashcards.length}
       />
 

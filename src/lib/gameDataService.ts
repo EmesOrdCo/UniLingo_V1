@@ -378,6 +378,39 @@ export class GameDataService {
   }
 
   /**
+   * Generate speaking game questions for SpeakingGame
+   */
+  static generateSpeakingGameQuestions(flashcards: UserFlashcard[], count: number, retriesPerWord: number = 3): GameData {
+    const questions: GameQuestion[] = [];
+    const shuffledCards = this.shuffleArray(flashcards).slice(0, count);
+    
+    for (const card of shuffledCards) {
+      questions.push({
+        question: 'Pronounce this word:',
+        correctAnswer: card.front, // Use the front (English word) for pronunciation
+        type: 'pronunciation',
+        front: card.front,
+        back: card.back,
+        example: card.example,
+        pronunciation: card.pronunciation
+      });
+    }
+    
+    return { 
+      questions,
+      setupOptions: {
+        cardCount: 0,
+        difficulty: 'medium',
+        timeLimit: null,
+        showHints: false,
+        selectedTopic: null,
+        filteredFlashcards: [],
+        retriesPerWord
+      }
+    };
+  }
+
+  /**
    * Validate flashcard data before generating game questions
    */
   static validateFlashcards(flashcards: UserFlashcard[], gameType: string): { isValid: boolean; error?: string } {
