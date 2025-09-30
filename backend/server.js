@@ -259,8 +259,9 @@ app.post('/api/process-image', imageUpload.array('images', 5), async (req, res) 
           console.log(`  📊 Original image: ${metadata.width}x${metadata.height}, format: ${metadata.format}`);
           
           // HANDWRITING-OPTIMIZED approach: enhance contrast and clarity for handwritten text
+          // Resize to 1600px max for faster OCR processing (EasyOCR is CPU-intensive)
           processedImageBuffer = await sharp(file.path)
-            .resize(2500, 2500, { 
+            .resize(1600, 1600, { 
               fit: 'inside',
               withoutEnlargement: false,
               kernel: sharp.kernel.lanczos3 // High-quality resizing
@@ -288,6 +289,11 @@ app.post('/api/process-image', imageUpload.array('images', 5), async (req, res) 
           throw new Error(`Image processing failed: ${sharpError.message}`);
         }
 
+        // Save processed image for OCR
+        const processedImagePath = file.path.replace(/\.(jpg|jpeg|png)$/i, '_processed.png');
+        await sharp(processedImageBuffer).toFile(processedImagePath);
+        console.log(`  💾 Processed image saved for OCR: ${processedImagePath}`);
+
 // Step 2: Use EasyOCR for handwriting recognition (PHOTO UPLOADS ONLY)
 console.log(`  🔤 Starting EasyOCR for handwriting recognition...`);
 let text = '';
@@ -298,7 +304,8 @@ try {
   // Use our custom ocr_processor.py instead of node-easyocr
   const ocrResult = await new Promise((resolve, reject) => {
     const ocrScript = path.join(__dirname, 'ocr_processor.py');
-    const python = spawn('python3', [ocrScript, file.path, '--languages', 'en']);
+    // Use processed image instead of original for faster OCR
+    const python = spawn('python3', [ocrScript, processedImagePath, '--languages', 'en']);
     let stdout = '';
     let stderr = '';
     
@@ -334,16 +341,16 @@ try {
       }
     });
     
-    // Add timeout to prevent hanging
+    // Add timeout to prevent hanging (increased to 120s for large images)
     setTimeout(() => {
       python.kill();
       reject({
         success: false,
-        error: 'OCR processor timed out after 60 seconds',
+        error: 'OCR processor timed out after 120 seconds',
         stdout: stdout,
         stderr: stderr
       });
-    }, 60000);
+    }, 120000);
   });
   
   console.log(`  🔧 OCR processing completed, analyzing results...`);
@@ -422,13 +429,18 @@ try {
     console.log(`   • Handwriting-optimized settings`);
     console.log('🎯'.repeat(20) + '\n');
 
-    // Clean up uploaded files
+    // Clean up uploaded files and processed images
     req.files.forEach(file => {
       if (fs.existsSync(file.path)) {
         fs.unlinkSync(file.path);
       }
+      // Also clean up processed image
+      const processedPath = file.path.replace(/\.(jpg|jpeg|png)$/i, '_processed.png');
+      if (fs.existsSync(processedPath)) {
+        fs.unlinkSync(processedPath);
+      }
     });
-    console.log('🧹 Uploaded files cleaned up');
+    console.log('🧹 Uploaded files and processed images cleaned up');
 
     console.log('📄 FINAL EXTRACTED TEXT DEBUG:');
     console.log(`📊 Total text length: ${allExtractedText.length} characters`);
@@ -462,6 +474,11 @@ try {
       req.files.forEach(file => {
         if (fs.existsSync(file.path)) {
           fs.unlinkSync(file.path);
+        }
+        // Also clean up processed image
+        const processedPath = file.path.replace(/\.(jpg|jpeg|png)$/i, '_processed.png');
+        if (fs.existsSync(processedPath)) {
+          fs.unlinkSync(processedPath);
         }
       });
       console.log('🧹 Error files cleaned up');
