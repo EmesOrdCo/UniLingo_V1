@@ -19,6 +19,7 @@ import { supabase } from '../lib/supabase';
 export default function YourLessonsScreen() {
   const [lessons, setLessons] = useState<(Lesson & { vocab_count: number; progress?: LessonProgress })[]>([]);
   const [loading, setLoading] = useState(true);
+  const [expandedSources, setExpandedSources] = useState<Set<string>>(new Set());
   
   const navigation = useNavigation();
   const { user } = useAuth();
@@ -75,6 +76,35 @@ export default function YourLessonsScreen() {
     // Navigate to CreateLesson screen
     navigation.navigate('CreateLesson' as never);
   };
+
+  const toggleSource = (source: string) => {
+    setExpandedSources(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(source)) {
+        newSet.delete(source);
+      } else {
+        newSet.add(source);
+      }
+      return newSet;
+    });
+  };
+
+  // Group lessons by source
+  const groupedLessons = lessons.reduce((acc, lesson) => {
+    const source = lesson.source_pdf_name || 'Unknown Source';
+    if (!acc[source]) {
+      acc[source] = [];
+    }
+    acc[source].push(lesson);
+    return acc;
+  }, {} as Record<string, typeof lessons>);
+
+  // Sort sources by most recent lesson
+  const sortedSources = Object.keys(groupedLessons).sort((a, b) => {
+    const latestA = Math.max(...groupedLessons[a].map(l => new Date(l.created_at).getTime()));
+    const latestB = Math.max(...groupedLessons[b].map(l => new Date(l.created_at).getTime()));
+    return latestB - latestA;
+  });
 
   const deleteLesson = async (lessonId: string, lessonTitle: string) => {
     if (!user) return;
@@ -240,96 +270,133 @@ export default function YourLessonsScreen() {
           </View>
         ) : (
           <View style={styles.lessonsList}>
-            {lessons.map((lesson) => (
-              <TouchableOpacity
-                key={lesson.id}
-                style={styles.lessonCard}
-                onPress={() => handleLessonPress(lesson)}
-              >
-                <View style={styles.lessonHeader}>
-                  <View style={styles.lessonTitleContainer}>
-                    <Text style={styles.lessonTitle} numberOfLines={2}>
-                      {lesson?.title || 'Unknown'}
-                    </Text>
-                    <Text style={styles.lessonSubject}>{lesson.subject}</Text>
-                  </View>
-                  <View style={styles.lessonActions}>
-                    <TouchableOpacity 
-                      style={styles.deleteButton}
-                      onPress={() => deleteLesson(lesson.id, lesson?.title || 'Unknown')}
-                    >
-                      <Ionicons name="trash-outline" size={18} color="#ef4444" />
-                    </TouchableOpacity>
-                    <View style={styles.lessonIcon}>
-                      <Ionicons name="book" size={20} color="#6366f1" />
-                    </View>
-                  </View>
-                </View>
+            {sortedSources.map((source) => {
+              const sourceLessons = groupedLessons[source];
+              const isExpanded = expandedSources.has(source);
+              const totalLessons = sourceLessons.length;
+              const totalWords = sourceLessons.reduce((sum, l) => sum + l.vocab_count, 0);
 
-                <View style={styles.lessonDetails}>
-                  <View style={styles.lessonDetailItem}>
-                    <Ionicons name="document-text" size={16} color="#6b7280" />
-                    <Text style={styles.lessonDetailText}>
-                      {lesson.vocab_count} words
-                    </Text>
-                  </View>
-                  <View style={styles.lessonDetailItem}>
-                    <Ionicons name="calendar" size={16} color="#6b7280" />
-                    <Text style={styles.lessonDetailText}>
-                      {formatDate(lesson.created_at)}
-                    </Text>
-                  </View>
-                </View>
-
-                {/* Progress Bar */}
-                {lesson.progress && (
-                  <View style={styles.progressSection}>
-                    <View style={styles.progressHeader}>
-                      <Text style={styles.progressLabel}>Progress</Text>
-                      <Text style={styles.progressPercentage}>
-                        {getProgressPercentage(lesson.progress)}%
-                      </Text>
-                    </View>
-                    <View style={styles.progressBar}>
-                      <View
-                        style={[
-                          styles.progressFill,
-                          {
-                            width: `${getProgressPercentage(lesson.progress)}%`,
-                            backgroundColor: getProgressColor(lesson.progress),
-                          },
-                        ]}
+              return (
+                <View key={source} style={styles.sourceGroup}>
+                  {/* Source Header - Collapsible */}
+                  <TouchableOpacity 
+                    style={styles.sourceHeader}
+                    onPress={() => toggleSource(source)}
+                  >
+                    <View style={styles.sourceHeaderLeft}>
+                      <Ionicons 
+                        name={isExpanded ? "folder-open" : "folder"} 
+                        size={24} 
+                        color="#6366f1" 
                       />
+                      <View style={styles.sourceInfo}>
+                        <Text style={styles.sourceName} numberOfLines={1}>{source}</Text>
+                        <Text style={styles.sourceStats}>
+                          {totalLessons} lesson{totalLessons !== 1 ? 's' : ''} • {totalWords} words
+                        </Text>
+                      </View>
                     </View>
-                    <Text style={styles.progressText}>
-                      {lesson.progress.completed_at 
-                        ? 'Completed' 
-                        : lesson.progress.started_at 
-                          ? `${lesson.progress.total_score}/${lesson.progress.max_possible_score} points`
-                          : 'Start'
-                      }
-                    </Text>
-                  </View>
-                )}
+                    <Ionicons 
+                      name={isExpanded ? "chevron-up" : "chevron-down"} 
+                      size={20} 
+                      color="#6b7280" 
+                    />
+                  </TouchableOpacity>
 
-                <View style={styles.lessonFooter}>
-                  <View style={styles.lessonStatus}>
-                    {lesson.progress && lesson.progress.started_at ? (
-                      <View style={styles.statusBadge}>
-                        <Ionicons name="play-circle" size={16} color="#6366f1" />
-                        <Text style={styles.statusText}>Continue</Text>
+                  {/* Lessons under this source */}
+                  {isExpanded && sourceLessons.map((lesson) => (
+                    <TouchableOpacity
+                      key={lesson.id}
+                      style={styles.lessonCard}
+                      onPress={() => handleLessonPress(lesson)}
+                    >
+                      <View style={styles.lessonHeader}>
+                        <View style={styles.lessonTitleContainer}>
+                          <Text style={styles.lessonTitle} numberOfLines={2}>
+                            {lesson?.title || 'Unknown'}
+                          </Text>
+                          <Text style={styles.lessonSubject}>{lesson.subject}</Text>
+                        </View>
+                        <View style={styles.lessonActions}>
+                          <TouchableOpacity 
+                            style={styles.deleteButton}
+                            onPress={() => deleteLesson(lesson.id, lesson?.title || 'Unknown')}
+                          >
+                            <Ionicons name="trash-outline" size={18} color="#ef4444" />
+                          </TouchableOpacity>
+                          <View style={styles.lessonIcon}>
+                            <Ionicons name="book" size={20} color="#6366f1" />
+                          </View>
+                        </View>
                       </View>
-                    ) : (
-                      <View style={styles.statusBadge}>
-                        <Ionicons name="play-circle" size={16} color="#6366f1" />
-                        <Text style={styles.statusText}>Start</Text>
+
+                      <View style={styles.lessonDetails}>
+                        <View style={styles.lessonDetailItem}>
+                          <Ionicons name="document-text" size={16} color="#6b7280" />
+                          <Text style={styles.lessonDetailText}>
+                            {lesson.vocab_count} words
+                          </Text>
+                        </View>
+                        <View style={styles.lessonDetailItem}>
+                          <Ionicons name="calendar" size={16} color="#6b7280" />
+                          <Text style={styles.lessonDetailText}>
+                            {formatDate(lesson.created_at)}
+                          </Text>
+                        </View>
                       </View>
-                    )}
-                  </View>
-                  <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+
+                      {/* Progress Bar */}
+                      {lesson.progress && (
+                        <View style={styles.progressSection}>
+                          <View style={styles.progressHeader}>
+                            <Text style={styles.progressLabel}>Progress</Text>
+                            <Text style={styles.progressPercentage}>
+                              {getProgressPercentage(lesson.progress)}%
+                            </Text>
+                          </View>
+                          <View style={styles.progressBar}>
+                            <View
+                              style={[
+                                styles.progressFill,
+                                {
+                                  width: `${getProgressPercentage(lesson.progress)}%`,
+                                  backgroundColor: getProgressColor(lesson.progress),
+                                },
+                              ]}
+                            />
+                          </View>
+                          <Text style={styles.progressText}>
+                            {lesson.progress.completed_at 
+                              ? 'Completed' 
+                              : lesson.progress.started_at 
+                                ? `${lesson.progress.total_score}/${lesson.progress.max_possible_score} points`
+                                : 'Start'
+                            }
+                          </Text>
+                        </View>
+                      )}
+
+                      <View style={styles.lessonFooter}>
+                        <View style={styles.lessonStatus}>
+                          {lesson.progress && lesson.progress.started_at ? (
+                            <View style={styles.statusBadge}>
+                              <Ionicons name="play-circle" size={16} color="#6366f1" />
+                              <Text style={styles.statusText}>Continue</Text>
+                            </View>
+                          ) : (
+                            <View style={styles.statusBadge}>
+                              <Ionicons name="play-circle" size={16} color="#6366f1" />
+                              <Text style={styles.statusText}>Start</Text>
+                            </View>
+                          )}
+                        </View>
+                        <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+                      </View>
+                    </TouchableOpacity>
+                  ))}
                 </View>
-              </TouchableOpacity>
-            ))}
+              );
+            })}
           </View>
         )}
       </ScrollView>
@@ -469,7 +536,43 @@ const styles = StyleSheet.create({
   lessonsList: {
     paddingBottom: 24,
   },
+  sourceGroup: {
+    marginBottom: 20,
+  },
+  sourceHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#f8fafc',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  sourceHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: 12,
+  },
+  sourceInfo: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  sourceName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1e293b',
+    marginBottom: 4,
+  },
+  sourceStats: {
+    fontSize: 13,
+    color: '#64748b',
+    fontWeight: '500',
+  },
   lessonCard: {
+    marginLeft: 16,
     backgroundColor: '#ffffff',
     borderRadius: 16,
     padding: 20,

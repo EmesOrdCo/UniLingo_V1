@@ -20,7 +20,6 @@ import { ImageUploadService, ImageUploadProgress, ImageProcessingResult } from '
 import { UserFlashcardService } from '../lib/userFlashcardService';
 import { FlashcardService } from '../lib/flashcardService';
 import FlashcardReviewModal from '../components/FlashcardReviewModal';
-import UploadProgressModal from '../components/UploadProgressModal';
 import ImageProcessingModal from '../components/ImageProcessingModal';
 import ImagePreviewModal from '../components/ImagePreviewModal';
 import { TopicEditModal } from '../components/TopicEditModal';
@@ -66,7 +65,9 @@ export default function UploadScreen() {
     progress: 0,
     message: 'Ready to select images',
   });
-  
+
+  // Source name for flashcards
+  const [sourceName, setSourceName] = useState('');
 
   
   // Use ref to ensure we always have the latest generatedFlashcards value
@@ -1571,16 +1572,7 @@ export default function UploadScreen() {
 
       </ScrollView>
 
-      {/* Progress Modal */}
-      <UploadProgressModal
-        visible={showProgressModal}
-        progress={progress}
-        onClose={handleCloseProgress}
-        onCancel={handleCancelUpload}
-        onRetry={progress.stage === 'error' ? handleRetryUpload : undefined}
-        onUseAlternative={progress.stage === 'error' ? handleUseAlternative : undefined}
-        onContinue={handleContinue}
-      />
+      {/* Progress Modal - REMOVED: Progress bar in UI already handles this */}
 
       {/* Image Processing Modal */}
       <ImageProcessingModal

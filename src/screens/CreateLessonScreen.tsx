@@ -8,6 +8,7 @@ import {
   Alert,
   ActivityIndicator,
   Dimensions,
+  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -52,6 +53,9 @@ export default function CreateLessonScreen() {
     progress: 0,
     message: 'Ready to select images',
   });
+
+  // Source name for lessons
+  const [sourceName, setSourceName] = useState('');
 
   // Get user's subject and native language from profile
   const userSubject = profile?.subjects?.[0] || 'General';
@@ -186,7 +190,7 @@ export default function CreateLessonScreen() {
           'AI Selection', // Use AI Selection mode for automatic topic detection
           user?.id || '',
           userNativeLanguage || 'English',
-          file.name // Pass PDF filename as source
+          sourceName || file.name // Use custom source name if provided, otherwise filename
         );
         
         if (!backendResult.success || !backendResult.lessons) {
@@ -598,6 +602,23 @@ export default function CreateLessonScreen() {
           </View>
         </View>
 
+        {/* Source Name Input */}
+        <View style={styles.sourceNameSection}>
+          <Text style={styles.sourceNameLabel}>
+            <Ionicons name="folder" size={16} color="#6366f1" /> Source Name (Optional)
+          </Text>
+          <Text style={styles.sourceNameHint}>
+            Give your content a custom name (e.g., "Chapter 3 Notes", "Midterm Study Guide")
+          </Text>
+          <TextInput
+            style={styles.sourceNameInput}
+            placeholder="e.g., Chapter 3 Notes"
+            placeholderTextColor="#9ca3af"
+            value={sourceName}
+            onChangeText={setSourceName}
+          />
+        </View>
+
         {/* Upload Area */}
         <View style={styles.uploadArea}>
           <View style={styles.uploadIcon}>
@@ -815,6 +836,36 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#1e293b',
     marginLeft: 8,
+  },
+  sourceNameSection: {
+    backgroundColor: '#ffffff',
+    marginHorizontal: 16,
+    marginBottom: 16,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  sourceNameLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1e293b',
+    marginBottom: 8,
+  },
+  sourceNameHint: {
+    fontSize: 12,
+    color: '#6b7280',
+    marginBottom: 12,
+    lineHeight: 16,
+  },
+  sourceNameInput: {
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 14,
+    color: '#1e293b',
   },
   uploadArea: {
     backgroundColor: '#f8fafc',
