@@ -55,6 +55,7 @@ import BrowseFlashcardsScreen from './src/screens/BrowseFlashcardsScreen';
 import UnitWordsScreen from './src/screens/UnitWordsScreen';
 import UnitListenScreen from './src/screens/UnitListenScreen';
 import UnitWriteScreen from './src/screens/UnitWriteScreen';
+import UnitSpeakScreen from './src/screens/UnitSpeakScreen';
 
 const Stack = createStackNavigator();
 
@@ -101,6 +102,7 @@ function MainNavigator() {
       <Stack.Screen name="UnitWords" component={UnitWordsScreen} />
       <Stack.Screen name="UnitListen" component={UnitListenScreen} />
       <Stack.Screen name="UnitWrite" component={UnitWriteScreen} />
+      <Stack.Screen name="UnitSpeak" component={UnitSpeakScreen} />
     </Stack.Navigator>
   );
 }
