@@ -232,8 +232,7 @@ app.post('/api/process-image', imageUpload.array('images', 5), async (req, res) 
 
     // Import required modules
     const sharp = require('sharp');
-    const { spawn } = require('child_process');
-    const path = require('path');
+    const { processImageWithAzureOCR } = require('./azureOCR');
     
     let allExtractedText = '';
     let processedImages = 0;
@@ -294,93 +293,37 @@ app.post('/api/process-image', imageUpload.array('images', 5), async (req, res) 
         await sharp(processedImageBuffer).toFile(processedImagePath);
         console.log(`  💾 Processed image saved for OCR: ${processedImagePath}`);
 
-// Step 2: Use EasyOCR for handwriting recognition (PHOTO UPLOADS ONLY)
-console.log(`  🔤 Starting EasyOCR for handwriting recognition...`);
-let text = '';
+        // Step 2: Use Azure Computer Vision OCR for handwriting recognition
+        console.log(`  🔤 Starting Azure OCR for handwriting recognition...`);
+        let text = '';
 
-try {
-  console.log(`  🔧 Running custom OCR processor...`);
-  
-  // Use our custom ocr_processor.py instead of node-easyocr
-  const ocrResult = await new Promise((resolve, reject) => {
-    const ocrScript = path.join(__dirname, 'ocr_processor.py');
-    // Use processed image instead of original for faster OCR
-    const python = spawn('python3', [ocrScript, processedImagePath, '--languages', 'en']);
-    let stdout = '';
-    let stderr = '';
-    
-    python.stdout.on('data', (data) => {
-      stdout += data.toString();
-    });
-    
-    python.stderr.on('data', (data) => {
-      const stderrData = data.toString();
-      stderr += stderrData;
-      // Log stderr in real-time for debugging
-      console.log(`  [Python] ${stderrData.trim()}`);
-    });
-    
-    python.on('close', (code) => {
-      const cleanStdout = stdout.trim();
-      
-      try {
-        if (!cleanStdout) {
-          throw new Error('No output received from OCR processor');
+        try {
+          const ocrResult = await processImageWithAzureOCR(processedImagePath);
+          
+          if (ocrResult.success && ocrResult.text) {
+            text = ocrResult.text;
+            console.log(`  ✅ Azure OCR completed successfully`);
+            console.log(`  📝 Extracted text length: ${text.length} characters`);
+            console.log(`  📖 Text preview: ${text.substring(0, 200)}...`);
+            if (ocrResult.lineCount) {
+              console.log(`  📄 Detected ${ocrResult.lineCount} lines of text`);
+            }
+            if (ocrResult.processingTime) {
+              console.log(`  ⏱️ Processing time: ${(ocrResult.processingTime / 1000).toFixed(2)}s`);
+            }
+          } else {
+            console.log(`  ⚠️ Azure OCR found no text in image`);
+            if (ocrResult.error) {
+              console.log(`  ⚠️ OCR error: ${ocrResult.error}`);
+            }
+            text = '';
+          }
+
+        } catch (azureError) {
+          console.error(`  ❌ Azure OCR failed with error:`);
+          console.error(`  Error message: ${azureError.message}`);
+          text = '';
         }
-        
-        const result = JSON.parse(cleanStdout);
-        resolve(result);
-      } catch (error) {
-        reject({
-          success: false,
-          error: `Failed to parse OCR result: ${error.message}`,
-          stdout: cleanStdout,
-          stderr: stderr,
-          exitCode: code
-        });
-      }
-    });
-    
-    // Add timeout to prevent hanging (5 minutes for CPU-based OCR)
-    setTimeout(() => {
-      python.kill();
-      reject({
-        success: false,
-        error: 'OCR processor timed out after 5 minutes',
-        stdout: stdout,
-        stderr: stderr
-      });
-    }, 300000);
-  });
-  
-  console.log(`  🔧 OCR processing completed, analyzing results...`);
-
-  // Extract text from OCR results
-  if (ocrResult.success && ocrResult.results && ocrResult.results.length > 0) {
-    text = ocrResult.results.map(item => item.text).join(' ');
-    console.log(`  ✅ EasyOCR completed successfully`);
-    console.log(`  📝 Extracted text length: ${text.length} characters`);
-    console.log(`  📖 Text preview: ${text.substring(0, 200)}...`);
-    console.log(`  🎯 Detected ${ocrResult.results.length} text regions`);
-  } else {
-    console.log(`  ⚠️ EasyOCR found no text in image`);
-    if (ocrResult.error) {
-      console.log(`  ⚠️ OCR error: ${ocrResult.error}`);
-    }
-    text = '';
-  }
-
-} catch (easyocrError) {
-  console.error(`  ❌ EasyOCR failed with detailed error:`);
-  console.error(`  Error message: ${easyocrError.error || easyocrError.message}`);
-  if (easyocrError.stdout) {
-    console.error(`  Stdout: ${easyocrError.stdout}`);
-  }
-  if (easyocrError.stderr) {
-    console.error(`  Stderr: ${easyocrError.stderr}`);
-  }
-  text = '';
-}
 
         // Post-processing: Clean and correct the extracted text
         if (text && text.trim()) {

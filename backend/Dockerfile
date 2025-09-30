@@ -1,34 +1,9 @@
-# Railway-optimized EasyOCR Docker build
-FROM node:20-slim AS builder
+# Simplified Docker build for Azure OCR backend
+FROM node:20-slim
 
-# Install system dependencies for EasyOCR
+# Install system dependencies for Sharp (image processing)
 RUN apt-get update && apt-get install -y \
-    python3 \
-    python3-pip \
-    python3-venv \
-    python3-dev \
-    build-essential \
-    libgl1-mesa-glx \
-    libgl1-mesa-dri \
-    libglib2.0-0 \
-    libgomp1 \
-    libcairo2-dev \
-    libjpeg-dev \
-    libpango1.0-dev \
-    libgif-dev \
-    libpixman-1-dev \
-    libfreetype6-dev \
-    libffi-dev \
-    libssl-dev \
-    libgfortran5 \
-    libopenblas-dev \
-    liblapack-dev \
-    gfortran \
-    pkg-config \
-    wget \
-    curl \
-    git \
-    cmake \
+    libvips-dev \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
@@ -38,119 +13,22 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Python environment setup
-COPY requirements.txt .
-RUN python3 -m venv /opt/venv
-ENV PATH="/opt/venv/bin:$PATH"
-ENV VIRTUAL_ENV="/opt/venv"
-
-# Upgrade pip and install build tools
-RUN pip install --no-cache-dir --upgrade pip setuptools wheel
-
-# Install Python dependencies in exact order for compatibility
-RUN pip install --no-cache-dir numpy==1.26.4
-RUN pip install --no-cache-dir Pillow==9.5.0
-RUN pip install --no-cache-dir opencv-python==4.8.1.78
-
-# Install PyTorch CPU-only version (most compatible)
-RUN pip install --no-cache-dir torch==2.1.0+cpu torchvision==0.16.0+cpu --index-url https://download.pytorch.org/whl/cpu
-
-# Install EasyOCR dependencies first (with compatible scikit-image version)
-RUN pip install --no-cache-dir scipy ninja opencv-python-headless pyclipper python-bidi PyYAML Shapely scikit-image==0.21.0
-
-# Install EasyOCR with specific version and force NumPy 1.x
-RUN pip install --no-cache-dir --no-deps easyocr==1.7.0
-RUN pip install --no-cache-dir --force-reinstall numpy==1.26.4
-
-# Force reinstall Pillow 9.5.0 to override any newer versions
-RUN pip install --no-cache-dir --force-reinstall Pillow==9.5.0
-
-# Verify all imports work
-RUN python3 -c "import torch; print('PyTorch:', torch.__version__)"
-RUN python3 -c "import cv2; print('OpenCV:', cv2.__version__)"
-RUN python3 -c "import numpy; print('NumPy:', numpy.__version__)"
-RUN python3 -c "from PIL import Image; print('Pillow: OK')"
-RUN python3 -c "import easyocr; print('EasyOCR: OK')"
-
 # Install Node.js dependencies
 RUN npm ci --omit=dev && npm cache clean --force
-
-# Install node-easyocr explicitly
-RUN npm install node-easyocr@^1.0.9
-
-# Verify installations
-RUN npm list node-easyocr
-RUN python3 -c "import easyocr; print('EasyOCR Python module imported successfully')"
-RUN python3 -c "import torch; print('PyTorch version:', torch.__version__)"
-RUN python3 -c "import cv2; print('OpenCV version:', cv2.__version__)"
-RUN python3 -c "import numpy; print('NumPy version:', numpy.__version__)"
-RUN python3 -c "from PIL import Image; print('Pillow imported successfully')"
-
-# Install canvas for test image generation
-RUN npm install canvas
-
-# Test EasyOCR functionality
-COPY test-easyocr.js .
-COPY ocr_processor.py .
-RUN node test-easyocr.js
-
-# Pre-download EasyOCR English model to avoid first-run delays
-RUN mkdir -p /root/.EasyOCR/model && \
-    python3 -c "import easyocr; reader = easyocr.Reader(['en'], gpu=False, verbose=True, download_enabled=True)" && \
-    echo "✅ EasyOCR English model downloaded successfully"
 
 # Copy application code
 COPY . .
 
-# Final stage - optimized runtime image
-FROM node:20-slim AS runtime
-
-# Install runtime dependencies for EasyOCR
-RUN apt-get update && apt-get install -y \
-    python3 \
-    python3-venv \
-    libgl1-mesa-glx \
-    libgl1-mesa-dri \
-    libglib2.0-0 \
-    libgomp1 \
-    libcairo2 \
-    libjpeg62 \
-    libpango1.0-0 \
-    libgif7 \
-    libpixman-1-0 \
-    libfreetype6 \
-    libgfortran5 \
-    libopenblas0 \
-    liblapack3 \
-    && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean
-
-# Set working directory
-WORKDIR /app
-
-# Copy Python virtual environment from builder stage
-COPY --from=builder /opt/venv /opt/venv
-
-# Copy EasyOCR models from builder stage
-COPY --from=builder /root/.EasyOCR /root/.EasyOCR
-
-# Copy built application from builder stage
-COPY --from=builder /app .
-
-# Set Python environment variables for EasyOCR
-ENV PATH="/opt/venv/bin:$PATH"
-ENV VIRTUAL_ENV="/opt/venv"
-ENV PYTHONPATH=/opt/venv/lib/python3.11/site-packages
-ENV PYTHONUNBUFFERED=1
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV EASYOCR_MODULE_PATH=/root/.EasyOCR
+# Set environment variables
+ENV NODE_ENV=production
+ENV PORT=8080
 
 # Expose port
-EXPOSE 3000
+EXPOSE 8080
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD node -e "require('http').get('http://localhost:3000/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
+    CMD node -e "require('http').get('http://localhost:8080/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
 
 # Start the application
 CMD ["npm", "start"]
