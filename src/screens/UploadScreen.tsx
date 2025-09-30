@@ -1176,8 +1176,17 @@ export default function UploadScreen() {
         fullResult: imageResult
       });
       
+      // Validate that text was extracted before calling AI
+      const extractedText = imageResult.text?.trim() || '';
+      if (!extractedText || extractedText.length === 0) {
+        console.log('❌ No text extracted from images - preventing AI call');
+        throw new Error('No text could be extracted from the images. Please ensure the images contain clear, readable text.');
+      }
+      
+      console.log(`✅ Text validation passed: ${extractedText.length} characters extracted`);
+      
       const flashcards = await UploadService.generateFlashcards(
-        imageResult.text,
+        extractedText,
         userSubject,
         topic,
         userNativeLanguage,

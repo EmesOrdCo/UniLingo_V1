@@ -413,8 +413,16 @@ export default function CreateLessonScreen() {
       });
 
       // Extract text from images for lesson creation
-      const extractedText = imageResult.text;
+      const extractedText = imageResult.text?.trim() || '';
       const pages = imageResult.pages;
+
+      // Validate that text was extracted before calling AI
+      if (!extractedText || extractedText.length === 0) {
+        console.log('❌ No text extracted from images - preventing AI call');
+        throw new Error('No text could be extracted from the images. Please ensure the images contain clear, readable text.');
+      }
+
+      console.log(`✅ Text validation passed: ${extractedText.length} characters extracted`);
 
       // Check if cancelled before starting AI processing
       if (isCancelled) {
