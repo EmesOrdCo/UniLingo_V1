@@ -142,6 +142,32 @@ export default function ImagePreviewModal({
           </View>
         </View>
 
+        {/* Upload Limits Info */}
+        <View style={styles.limitsContainer}>
+          <View style={styles.limitsHeader}>
+            <Ionicons name="information-circle" size={16} color="#6366f1" />
+            <Text style={styles.limitsTitle}>Upload Limits</Text>
+          </View>
+          <View style={styles.limitsItem}>
+            <Ionicons name="images" size={14} color="#64748b" />
+            <Text style={styles.limitsText}>
+              Maximum 5 images per upload
+            </Text>
+          </View>
+          <View style={styles.limitsItem}>
+            <Ionicons name="document" size={14} color="#64748b" />
+            <Text style={styles.limitsText}>
+              Each image must be under 10MB
+            </Text>
+          </View>
+          <View style={styles.limitsItem}>
+            <Ionicons name="time" size={14} color="#64748b" />
+            <Text style={styles.limitsText}>
+              Processing time: 1-3 minutes
+            </Text>
+          </View>
+        </View>
+
         {/* Action Buttons */}
         <View style={styles.actionsContainer}>
           <View style={styles.actionRow}>
@@ -299,8 +325,40 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     flex: 1,
   },
+  limitsContainer: {
+    backgroundColor: '#f0f9ff',
+    margin: 16,
+    marginTop: 0,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e0f2fe',
+  },
+  limitsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  limitsTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6366f1',
+    marginLeft: 8,
+  },
+  limitsItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  limitsText: {
+    fontSize: 13,
+    color: '#64748b',
+    marginLeft: 8,
+    flex: 1,
+  },
   actionsContainer: {
     padding: 16,
+    paddingBottom: 32, // Add extra bottom padding for safe area
     backgroundColor: '#f8fafc',
     borderTopWidth: 1,
     borderTopColor: '#e2e8f0',
