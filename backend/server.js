@@ -132,6 +132,7 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static('uploads'));
+app.use(express.static('public'));
 
 // IP whitelist for monitoring endpoints
 const allowedIPs = [
@@ -837,6 +838,11 @@ app.get('/api/health', (req, res) => {
       error: 'Health check failed'
     });
   }
+});
+
+// Monitoring dashboard (IP whitelisted)
+app.get('/monitoring', monitoringWhitelist, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'monitoring.html'));
 });
 
 // Detailed health and monitoring endpoints (IP whitelisted)

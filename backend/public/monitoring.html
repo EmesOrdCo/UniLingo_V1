@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UniLingo System Monitor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .card-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            font-size: 1.5rem;
+        }
+
+        .card-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-healthy {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-degraded {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-unhealthy {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .metric:last-child {
+            border-bottom: none;
+        }
+
+        .metric-label {
+            color: #666;
+            font-weight: 500;
+        }
+
+        .metric-value {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #28a745, #20c997);
+            transition: width 0.3s ease;
+        }
+
+        .progress-fill.warning {
+            background: linear-gradient(90deg, #ffc107, #fd7e14);
+        }
+
+        .progress-fill.danger {
+            background: linear-gradient(90deg, #dc3545, #e83e8c);
+        }
+
+        .refresh-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: #007bff;
+            color: white;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(0,123,255,0.4);
+            transition: all 0.3s ease;
+        }
+
+        .refresh-btn:hover {
+            background: #0056b3;
+            transform: scale(1.1);
+        }
+
+        .loading {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+        }
+
+        .error {
+            color: #dc3545;
+            background: #f8d7da;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+
+        .timestamp {
+            font-size: 0.85rem;
+            color: #999;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .service-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .service-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .service-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .queue-info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+        }
+
+        .queue-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .loading .card {
+            animation: pulse 2s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 UniLingo System Monitor</h1>
+            <p>Real-time system health and performance monitoring</p>
+        </div>
+
+        <div class="dashboard" id="dashboard">
+            <div class="loading">Loading system data...</div>
+        </div>
+
+        <div class="timestamp" id="timestamp"></div>
+    </div>
+
+    <button class="refresh-btn" onclick="loadData()" title="Refresh Data">🔄</button>
+
+    <script>
+        const API_BASE = window.location.origin;
+        
+        async function loadData() {
+            const dashboard = document.getElementById('dashboard');
+            const timestamp = document.getElementById('timestamp');
+            
+            try {
+                dashboard.innerHTML = '<div class="loading">Loading system data...</div>';
+                
+                // Load all monitoring data
+                const [healthData, metricsData, pronunciationData, rateLimitData] = await Promise.all([
+                    fetch(`${API_BASE}/api/health/detailed`).then(r => r.json()),
+                    fetch(`${API_BASE}/api/metrics`).then(r => r.json()),
+                    fetch(`${API_BASE}/api/pronunciation/status`).then(r => r.json()),
+                    fetch(`${API_BASE}/api/rate-limits/status`).then(r => r.json())
+                ]);
+
+                // Render dashboard
+                dashboard.innerHTML = `
+                    ${renderHealthCard(healthData)}
+                    ${renderMetricsCard(metricsData)}
+                    ${renderPronunciationCard(pronunciationData)}
+                    ${renderRateLimitCard(rateLimitData)}
+                `;
+                
+                timestamp.textContent = `Last updated: ${new Date().toLocaleString()}`;
+                
+            } catch (error) {
+                dashboard.innerHTML = `
+                    <div class="error">
+                        <strong>Error loading data:</strong> ${error.message}
+                        <br><small>Make sure you're accessing from a whitelisted IP address.</small>
+                    </div>
+                `;
+            }
+        }
+
+        function renderHealthCard(data) {
+            const statusClass = data.status === 'healthy' ? 'status-healthy' : 
+                              data.status === 'degraded' ? 'status-degraded' : 'status-unhealthy';
+            
+            return `
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon" style="background: #28a745; color: white;">🏥</div>
+                        <div class="card-title">System Health</div>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Overall Status</span>
+                        <span class="status-badge ${statusClass}">${data.status}</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Uptime</span>
+                        <span class="metric-value">${formatUptime(data.metrics?.uptime || 0)}</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Issues</span>
+                        <span class="metric-value">${data.issues?.length || 0}</span>
+                    </div>
+                    ${data.issues?.length > 0 ? `
+                        <div style="margin-top: 15px;">
+                            <strong>Issues:</strong>
+                            <ul style="margin-top: 5px; padding-left: 20px;">
+                                ${data.issues.map(issue => `<li style="color: #856404;">${issue}</li>`).join('')}
+                            </ul>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        function renderMetricsCard(data) {
+            const metrics = data.metrics || {};
+            const errorRate = metrics.errorRate || 0;
+            const progressClass = errorRate < 5 ? '' : errorRate < 15 ? 'warning' : 'danger';
+            
+            return `
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon" style="background: #17a2b8; color: white;">📊</div>
+                        <div class="card-title">Performance Metrics</div>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Total Requests</span>
+                        <span class="metric-value">${metrics.requests || 0}</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Error Rate</span>
+                        <span class="metric-value">${errorRate.toFixed(1)}%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill ${progressClass}" style="width: ${Math.min(errorRate, 100)}%"></div>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Avg Response Time</span>
+                        <span class="metric-value">${(metrics.avgResponseTime || 0).toFixed(1)}ms</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Requests/Minute</span>
+                        <span class="metric-value">${(metrics.requestsPerMinute || 0).toFixed(1)}</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderPronunciationCard(data) {
+            const status = data.status || {};
+            const queue = status.queue || {};
+            const circuitBreaker = status.circuitBreaker || {};
+            
+            return `
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon" style="background: #6f42c1; color: white;">🎤</div>
+                        <div class="card-title">Pronunciation Service</div>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Status</span>
+                        <span class="status-badge status-healthy">Healthy</span>
+                    </div>
+                    <div class="queue-info">
+                        <strong>Queue Status</strong>
+                        <div class="queue-item">
+                            <span>Size:</span>
+                            <span>${queue.size || 0}</span>
+                        </div>
+                        <div class="queue-item">
+                            <span>Processing:</span>
+                            <span>${queue.processing || 0}</span>
+                        </div>
+                        <div class="queue-item">
+                            <span>Max Concurrent:</span>
+                            <span>${queue.maxConcurrent || 20}</span>
+                        </div>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Circuit Breaker</span>
+                        <span class="status-badge ${circuitBreaker.state === 'CLOSED' ? 'status-healthy' : 'status-degraded'}">${circuitBreaker.state || 'CLOSED'}</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderRateLimitCard(data) {
+            const limits = data.limits || {};
+            
+            return `
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon" style="background: #fd7e14; color: white;">🛡️</div>
+                        <div class="card-title">Rate Limits</div>
+                    </div>
+                    ${Object.entries(limits).map(([type, limit]) => `
+                        <div style="margin-bottom: 20px;">
+                            <div class="metric">
+                                <span class="metric-label">${type.charAt(0).toUpperCase() + type.slice(1)}</span>
+                                <span class="metric-value">${limit.used || 0}/${limit.limit || 0}</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-fill ${(limit.used / limit.limit) > 0.8 ? 'warning' : ''}" 
+                                     style="width: ${((limit.used || 0) / (limit.limit || 1)) * 100}%"></div>
+                            </div>
+                            <div style="font-size: 0.85rem; color: #666; margin-top: 5px;">
+                                Resets: ${new Date(limit.resetTime).toLocaleTimeString()}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        function formatUptime(ms) {
+            const seconds = Math.floor(ms / 1000);
+            const minutes = Math.floor(seconds / 60);
+            const hours = Math.floor(minutes / 60);
+            const days = Math.floor(hours / 24);
+            
+            if (days > 0) return `${days}d ${hours % 24}h ${minutes % 60}m`;
+            if (hours > 0) return `${hours}h ${minutes % 60}m`;
+            if (minutes > 0) return `${minutes}m ${seconds % 60}s`;
+            return `${seconds}s`;
+        }
+
+        // Load data on page load
+        loadData();
+        
+        // Auto-refresh every 30 seconds
+        setInterval(loadData, 30000);
+    </script>
+</body>
+</html>
