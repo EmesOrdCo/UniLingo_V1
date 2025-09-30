@@ -64,11 +64,11 @@ async function assessPronunciation(audioFilePath, referenceText) {
     let audioConfig;
     
     if (fileExtension === 'm4a') {
-      // For M4A files, use the generic file input
-      audioConfig = sdk.AudioConfig.fromWavFileInput(audioBuffer);
+      // For M4A files, use stream input (Azure Speech SDK supports M4A via stream)
+      audioConfig = sdk.AudioConfig.fromStreamInput(audioBuffer);
     } else if (fileExtension === 'mp3') {
-      // For MP3 files, use the generic file input
-      audioConfig = sdk.AudioConfig.fromWavFileInput(audioBuffer);
+      // For MP3 files, use stream input
+      audioConfig = sdk.AudioConfig.fromStreamInput(audioBuffer);
     } else {
       // For WAV files, use the WAV-specific input
       audioConfig = sdk.AudioConfig.fromWavFileInput(audioBuffer);
