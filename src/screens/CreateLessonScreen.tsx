@@ -22,6 +22,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { ImageUploadService, ImageUploadProgress, ImageProcessingResult } from '../lib/imageUploadService';
 import ImagePreviewModal from '../components/ImagePreviewModal';
+import ImageProcessingModal from '../components/ImageProcessingModal';
 
 import { supabase } from '../lib/supabase';
 
@@ -45,6 +46,7 @@ export default function CreateLessonScreen() {
   // Image-related state
   const [selectedImages, setSelectedImages] = useState<ImagePicker.ImagePickerAsset[]>([]);
   const [showImagePreview, setShowImagePreview] = useState(false);
+  const [showImageProcessingModal, setShowImageProcessingModal] = useState(false);
   const [imageProgress, setImageProgress] = useState<ImageUploadProgress>({
     stage: 'selecting',
     progress: 0,
@@ -356,23 +358,21 @@ export default function CreateLessonScreen() {
       
       setIsProcessing(true);
       setShowImagePreview(false);
+      setShowImageProcessingModal(true);
       
       // Add safety timeout
       timeoutRef.current = setTimeout(() => {
         console.log('⚠️ Safety timeout triggered - image processing taking longer than expected');
         
         setIsProcessing(false);
-        setProgress({
+        setImageProgress({
           stage: 'error',
           progress: 0,
           message: 'Image processing timed out. The process has been stopped.',
         });
         
-        Alert.alert(
-          'Processing Timeout',
-          'The image processing has been stopped due to timeout. Please try with fewer or smaller images.',
-          [{ text: 'OK', style: 'default' }]
-        );
+        // Keep the image processing modal visible to show the error
+        setShowImageProcessingModal(true);
       }, 300000); // 5 minute timeout for image processing
       
       // Update progress for image processing
@@ -513,7 +513,8 @@ export default function CreateLessonScreen() {
       );
 
     } catch (error) {
-      console.error('Error processing images:', error);
+      // Don't console.error here - it creates LogBox notifications
+      // The error is already shown in the ImageProcessingModal
       
       // Clear all timeouts
       if (timeoutRef.current) {
@@ -536,6 +537,14 @@ export default function CreateLessonScreen() {
           errorMessage = 'AI processing timed out. Please try again with smaller images.';
         } else if (error.message.includes('No text could be extracted')) {
           errorMessage = 'No text could be extracted from the images. Please ensure the images contain clear, readable text.';
+        } else if (error.message.includes('No valid images selected')) {
+          errorMessage = error.message;
+        } else if (error.message.includes('Maximum 10 images')) {
+          errorMessage = error.message;
+        } else if (error.message.includes('Network request failed')) {
+          errorMessage = 'Network error. Please check your internet connection and try again.';
+        } else if (error.message.includes('Backend request failed')) {
+          errorMessage = 'Server error. Please try again in a few moments.';
         } else {
           errorMessage = error.message;
         }
@@ -543,11 +552,15 @@ export default function CreateLessonScreen() {
         errorMessage = error;
       }
       
-      setProgress({
+      // Update image progress with the user-friendly error message
+      setImageProgress({
         stage: 'error',
         progress: 0,
         message: errorMessage,
       });
+      
+      // Keep the image processing modal visible to show the error
+      setShowImageProcessingModal(true);
       
     } finally {
       setIsProcessing(false);
@@ -689,6 +702,28 @@ export default function CreateLessonScreen() {
         onRetake={handleImageRetake}
         onAddMore={handleAddMoreImages}
         isProcessing={isProcessing}
+      />
+
+      {/* Image Processing Modal */}
+      <ImageProcessingModal
+        visible={showImageProcessingModal}
+        progress={imageProgress}
+        onClose={() => {
+          setShowImageProcessingModal(false);
+          setIsProcessing(false);
+          if (imageProgress.stage === 'error') {
+            setImageProgress({
+              stage: 'selecting',
+              progress: 0,
+              message: 'Ready to select images',
+            });
+          }
+        }}
+        onUseAlternative={imageProgress.stage === 'error' ? () => {
+          setShowImageProcessingModal(false);
+          setIsProcessing(false);
+          // User can try PDF upload instead
+        } : undefined}
       />
     </SafeAreaView>
   );
