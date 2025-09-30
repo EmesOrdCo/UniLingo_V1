@@ -5,6 +5,8 @@
 
 const sdk = require('microsoft-cognitiveservices-speech-sdk');
 const fs = require('fs');
+const ffmpeg = require('fluent-ffmpeg');
+const path = require('path');
 
 /**
  * Assess pronunciation of spoken audio
@@ -44,7 +46,37 @@ async function assessPronunciation(audioFilePath, referenceText) {
     }
     
     console.log(`[Pronunciation] Reading audio file...`);
-    const audioBuffer = fs.readFileSync(audioFilePath);
+    
+    // Convert audio to WAV format for Azure Speech compatibility
+    const fileExtension = audioFilePath.split('.').pop().toLowerCase();
+    let wavFilePath = audioFilePath;
+    
+    if (fileExtension !== 'wav') {
+      // Convert to WAV format
+      const wavFileName = audioFilePath.replace(/\.[^/.]+$/, '.wav');
+      console.log(`[Pronunciation] Converting ${fileExtension.toUpperCase()} to WAV: ${wavFileName}`);
+      
+      await new Promise((resolve, reject) => {
+        ffmpeg(audioFilePath)
+          .toFormat('wav')
+          .audioChannels(1)
+          .audioFrequency(16000)
+          .audioBitrate('128k')
+          .on('end', () => {
+            console.log(`[Pronunciation] Conversion completed: ${wavFileName}`);
+            resolve();
+          })
+          .on('error', (err) => {
+            console.error(`[Pronunciation] Conversion error:`, err);
+            reject(err);
+          })
+          .save(wavFileName);
+      });
+      
+      wavFilePath = wavFileName;
+    }
+    
+    const audioBuffer = fs.readFileSync(wavFilePath);
     console.log(`[Pronunciation] Audio file size: ${audioBuffer.length} bytes`);
     
     // Configure speech service
@@ -59,20 +91,8 @@ async function assessPronunciation(audioFilePath, referenceText) {
       true // Enable miscue calculation
     );
     
-    // Set up audio config from file based on format
-    const fileExtension = audioFilePath.split('.').pop().toLowerCase();
-    let audioConfig;
-    
-    if (fileExtension === 'm4a') {
-      // For M4A files, use stream input (Azure Speech SDK supports M4A via stream)
-      audioConfig = sdk.AudioConfig.fromStreamInput(audioBuffer);
-    } else if (fileExtension === 'mp3') {
-      // For MP3 files, use stream input
-      audioConfig = sdk.AudioConfig.fromStreamInput(audioBuffer);
-    } else {
-      // For WAV files, use the WAV-specific input
-      audioConfig = sdk.AudioConfig.fromWavFileInput(audioBuffer);
-    }
+    // Set up audio config from WAV file
+    const audioConfig = sdk.AudioConfig.fromWavFileInput(audioBuffer);
     
     // Create speech recognizer
     const recognizer = new sdk.SpeechRecognizer(speechConfig, audioConfig);
@@ -148,6 +168,12 @@ async function assessPronunciation(audioFilePath, referenceText) {
     console.log(`[Pronunciation] Assessment complete - Score: ${assessmentResult.pronunciationScore}/100`);
     console.log(`[Pronunciation] Recognized: "${assessmentResult.recognizedText}"`);
     
+    // Clean up converted WAV file if it was created
+    if (wavFilePath !== audioFilePath && fs.existsSync(wavFilePath)) {
+      fs.unlinkSync(wavFilePath);
+      console.log(`[Pronunciation] Cleaned up converted WAV file: ${wavFilePath}`);
+    }
+    
     return {
       success: true,
       result: assessmentResult
@@ -168,6 +194,12 @@ async function assessPronunciation(audioFilePath, referenceText) {
       errorMessage = error.message;
     } else if (error.code) {
       errorMessage = `Azure Speech error: ${error.code}`;
+    }
+    
+    // Clean up converted WAV file if it was created (in case of error)
+    if (wavFilePath !== audioFilePath && fs.existsSync(wavFilePath)) {
+      fs.unlinkSync(wavFilePath);
+      console.log(`[Pronunciation] Cleaned up converted WAV file after error: ${wavFilePath}`);
     }
     
     return {
