@@ -29,7 +29,6 @@ const SpeakingGame: React.FC<SpeakingGameProps> = ({
   const [gameStartTime, setGameStartTime] = useState<number>(Date.now());
   const [totalScore, setTotalScore] = useState(0);
   const [currentWord, setCurrentWord] = useState('');
-  const [retriesLeft, setRetriesLeft] = useState(1);
   const [currentWordPassed, setCurrentWordPassed] = useState(false);
 
   // Use ref to capture final score and prevent multiple calls
@@ -49,7 +48,6 @@ const SpeakingGame: React.FC<SpeakingGameProps> = ({
     setTotalScore(0);
     setGameComplete(false);
     setCurrentWordPassed(false);
-    setRetriesLeft(1);
     
     if (gameData.questions[0]) {
       setCurrentWord(gameData.questions[0].correctAnswer);
@@ -74,30 +72,22 @@ const SpeakingGame: React.FC<SpeakingGameProps> = ({
       
       setWordResults(prev => [...prev, newResult]);
       
-      // Move to next word after a short delay
-      setTimeout(() => {
-        moveToNextWord();
-      }, 2000);
+      // Don't auto-advance, wait for user to click "Next Question"
     } else {
-      // Failed attempt
-      const newRetriesLeft = retriesLeft - 1;
-      setRetriesLeft(newRetriesLeft);
+      // Failed attempt - show result and wait for user to click Next Question
+      setCurrentWordPassed(true); // Allow user to proceed
+      setTotalScore(prev => prev + score);
       
-      if (newRetriesLeft <= 0) {
-        // No retries left, mark as failed and move on
-        const newResult: WordResult = {
-          word: currentWord,
-          score: score,
-          attempts: 1,
-          passed: false
-        };
-        
-        setWordResults(prev => [...prev, newResult]);
-        
-        setTimeout(() => {
-          moveToNextWord();
-        }, 2000);
-      }
+      const newResult: WordResult = {
+        word: currentWord,
+        score: score,
+        attempts: 1,
+        passed: false
+      };
+      
+      setWordResults(prev => [...prev, newResult]);
+      
+      // Don't auto-advance, wait for user to click "Next Question"
     }
   };
 
@@ -105,40 +95,55 @@ const SpeakingGame: React.FC<SpeakingGameProps> = ({
     const nextIndex = currentWordIndex + 1;
     
     if (nextIndex >= gameData.questions.length) {
-      // Game complete
-      finalScoreRef.current = wordResults.length;
+      // Game complete - use average score as final score
+      const averageScore = wordResults.length > 0 ? Math.round(totalScore / wordResults.length) : 0;
+      finalScoreRef.current = averageScore;
       setGameComplete(true);
+      
+      // Don't call handleGameComplete here - let user action buttons handle it
     } else {
       // Move to next word
       setCurrentWordIndex(nextIndex);
       setCurrentWord(gameData.questions[nextIndex].correctAnswer);
-      setRetriesLeft(1);
       setCurrentWordPassed(false);
+      
+      // Reset pronunciation result to show fresh question
+      // This will be handled by the PronunciationCheck component's internal state
     }
   };
 
-  const handleGameComplete = () => {
-    if (completionCalledRef.current) return;
-    completionCalledRef.current = true;
-    
-    const timeSpent = Math.round((Date.now() - gameStartTime) / 1000);
-    const totalAnswered = wordResults.length;
-    
-    onGameComplete(finalScoreRef.current, timeSpent, totalAnswered);
-  };
 
-  const handlePlayAgain = () => {
+  const handlePlayAgain = async () => {
+    // Call onGameComplete before closing to log results
+    if (!completionCalledRef.current) {
+      console.log('🎯 SpeakingGame calling onGameComplete with score:', finalScoreRef.current);
+      completionCalledRef.current = true;
+      const timeSpent = Math.round((Date.now() - gameStartTime) / 1000);
+      const totalAnswered = wordResults.length;
+      await onGameComplete(finalScoreRef.current, timeSpent, totalAnswered);
+      // Wait a moment for database operations to complete
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
     onPlayAgain();
   };
 
-  const handleExit = () => {
+  const handleExit = async () => {
+    // Call onGameComplete before closing to log results
+    if (!completionCalledRef.current) {
+      console.log('🎯 SpeakingGame calling onGameComplete with score:', finalScoreRef.current);
+      completionCalledRef.current = true;
+      const timeSpent = Math.round((Date.now() - gameStartTime) / 1000);
+      const totalAnswered = wordResults.length;
+      await onGameComplete(finalScoreRef.current, timeSpent, totalAnswered);
+      // Wait a moment for database operations to complete
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
     onClose();
   };
 
   if (gameComplete) {
     const passedWords = wordResults.filter(r => r.passed).length;
     const totalWords = wordResults.length;
-    const accuracy = totalWords > 0 ? Math.round((passedWords / totalWords) * 100) : 0;
     const averageScore = totalWords > 0 ? Math.round(totalScore / totalWords) : 0;
 
     return (
@@ -155,18 +160,18 @@ const SpeakingGame: React.FC<SpeakingGameProps> = ({
               <Text style={styles.statValue}>{passedWords}/{totalWords}</Text>
             </View>
             <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Accuracy</Text>
-              <Text style={styles.statValue}>{accuracy}%</Text>
-            </View>
-            <View style={styles.statItem}>
               <Text style={styles.statLabel}>Avg Score</Text>
               <Text style={styles.statValue}>{averageScore}</Text>
+            </View>
+            <View style={styles.statItem}>
+              <Text style={styles.statLabel}>Total Score</Text>
+              <Text style={styles.statValue}>{Math.round(totalScore)}</Text>
             </View>
           </View>
 
           <View style={styles.scoreCircle}>
-            <Text style={styles.scorePercentage}>{accuracy}%</Text>
-            <Text style={styles.scoreLabel}>Accuracy</Text>
+            <Text style={styles.scorePercentage}>{averageScore}</Text>
+            <Text style={styles.scoreLabel}>Avg Score</Text>
           </View>
 
           <View style={styles.actionButtons}>
@@ -183,7 +188,7 @@ const SpeakingGame: React.FC<SpeakingGameProps> = ({
   }
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Progress Header */}
       <View style={styles.progressHeader}>
         <View style={styles.progressInfo}>
@@ -200,70 +205,32 @@ const SpeakingGame: React.FC<SpeakingGameProps> = ({
           </View>
         </View>
         <View style={styles.scoreContainer}>
-          <Text style={styles.scoreText}>Score: {totalScore}</Text>
+          <Text style={styles.scoreText}>Score: {Math.round(totalScore)}</Text>
         </View>
       </View>
 
-      {/* Current Word Display */}
-      <View style={styles.wordContainer}>
-        <Text style={styles.wordLabel}>Pronounce this word:</Text>
-        <Text style={styles.currentWord}>{currentWord}</Text>
-        
-        {currentWordPassed && (
-          <View style={styles.successIndicator}>
-            <Ionicons name="checkmark-circle" size={32} color="#10b981" />
-            <Text style={styles.successText}>Great job!</Text>
-          </View>
-        )}
-      </View>
 
-      {/* Retries Indicator */}
-      <View style={styles.retriesContainer}>
-        <Text style={styles.retriesLabel}>Retries left: {retriesLeft}</Text>
-        <View style={styles.retriesDots}>
-          <View
-            style={[
-              styles.retryDot,
-              retriesLeft > 0 ? styles.retryDotActive : styles.retryDotInactive
-            ]}
-          />
-        </View>
-      </View>
 
       {/* Pronunciation Check Component */}
       <View style={styles.pronunciationContainer}>
         <PronunciationCheck
+          key={`pronunciation-${currentWordIndex}`}
           word={currentWord}
           onComplete={handlePronunciationResult}
           disabled={currentWordPassed}
         />
       </View>
 
-      {/* Word Results Summary */}
-      {wordResults.length > 0 && (
-        <View style={styles.resultsSummary}>
-          <Text style={styles.resultsTitle}>Recent Results:</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.resultsScroll}>
-            {wordResults.slice(-5).map((result, index) => (
-              <View key={index} style={styles.resultItem}>
-                <Text style={styles.resultWord}>{result.word}</Text>
-                <View style={[
-                  styles.resultScore,
-                  result.passed ? styles.resultScorePassed : styles.resultScoreFailed
-                ]}>
-                  <Text style={styles.resultScoreText}>{result.score}</Text>
-                </View>
-                <Ionicons 
-                  name={result.passed ? "checkmark" : "close"} 
-                  size={16} 
-                  color={result.passed ? "#10b981" : "#ef4444"} 
-                />
-              </View>
-            ))}
-          </ScrollView>
+      {/* Next Question Button */}
+      {currentWordPassed && (
+        <View style={styles.nextButtonContainer}>
+          <TouchableOpacity style={styles.nextButton} onPress={moveToNextWord}>
+            <Text style={styles.nextButtonText}>Next Question</Text>
+            <Ionicons name="arrow-forward" size={20} color="#ffffff" />
+          </TouchableOpacity>
         </View>
       )}
-    </View>
+    </ScrollView>
   );
 };
 
@@ -309,124 +276,29 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#1e293b',
   },
-  wordContainer: {
-    alignItems: 'center',
-    paddingVertical: 40,
-    paddingHorizontal: 20,
-    backgroundColor: 'white',
-    marginHorizontal: 20,
-    marginTop: 20,
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  wordLabel: {
-    fontSize: 16,
-    color: '#64748b',
-    marginBottom: 16,
-  },
-  currentWord: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: '#1e293b',
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  successIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  successText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#10b981',
-  },
-  retriesContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: 'white',
-    marginHorizontal: 20,
-    marginTop: 16,
-    borderRadius: 12,
-  },
-  retriesLabel: {
-    fontSize: 14,
-    color: '#64748b',
-  },
-  retriesDots: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  retryDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-  },
-  retryDotActive: {
-    backgroundColor: '#6366f1',
-  },
-  retryDotInactive: {
-    backgroundColor: '#e2e8f0',
-  },
   pronunciationContainer: {
-    flex: 1,
     paddingHorizontal: 20,
     paddingTop: 20,
+    paddingBottom: 20,
   },
-  resultsSummary: {
-    backgroundColor: 'white',
-    marginHorizontal: 20,
-    marginBottom: 20,
-    borderRadius: 12,
-    padding: 16,
+  nextButtonContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
   },
-  resultsTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1e293b',
-    marginBottom: 12,
-  },
-  resultsScroll: {
+  nextButton: {
+    backgroundColor: '#6366f1',
     flexDirection: 'row',
-  },
-  resultItem: {
-    alignItems: 'center',
-    marginRight: 16,
-    padding: 12,
-    backgroundColor: '#f8fafc',
-    borderRadius: 8,
-    minWidth: 80,
-  },
-  resultWord: {
-    fontSize: 12,
-    color: '#64748b',
-    marginBottom: 4,
-  },
-  resultScore: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 4,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    gap: 8,
   },
-  resultScorePassed: {
-    backgroundColor: '#f0fdf4',
-  },
-  resultScoreFailed: {
-    backgroundColor: '#fef2f2',
-  },
-  resultScoreText: {
-    fontSize: 12,
+  nextButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
     fontWeight: '600',
-    color: '#1e293b',
   },
   completionContainer: {
     flex: 1,

@@ -50,6 +50,8 @@ export interface PronunciationResult {
 export class PronunciationService {
   private static recording: Audio.Recording | null = null;
   private static isRecording = false;
+  private static recordingTimeout: NodeJS.Timeout | null = null;
+  private static onRecordingStopped: (() => void) | null = null;
 
   /**
    * Request microphone permissions
@@ -73,8 +75,10 @@ export class PronunciationService {
 
   /**
    * Start recording audio for pronunciation assessment
+   * @param maxDuration - Maximum recording duration in milliseconds (default: 5000ms)
+   * @param onStopped - Callback to call when recording stops (for UI updates)
    */
-  static async startRecording(): Promise<void> {
+  static async startRecording(maxDuration: number = 5000, onStopped?: () => void): Promise<void> {
     try {
       if (this.isRecording) {
         logger.warn('Already recording');
@@ -102,8 +106,20 @@ export class PronunciationService {
       await recording.startAsync();
       this.recording = recording;
       this.isRecording = true;
+      this.onRecordingStopped = onStopped;
 
-      logger.info('✅ Recording started');
+      // Set up automatic timeout
+      this.recordingTimeout = setTimeout(() => {
+        if (this.isRecording) {
+          logger.info('⏰ Recording timeout reached, notifying UI');
+          // Only notify UI - let UI handle the stopRecording call
+          if (this.onRecordingStopped) {
+            this.onRecordingStopped();
+          }
+        }
+      }, maxDuration);
+
+      logger.info('✅ Recording started with timeout:', maxDuration, 'ms');
     } catch (error) {
       logger.error('Failed to start recording:', error);
       this.isRecording = false;
@@ -122,6 +138,12 @@ export class PronunciationService {
         return null;
       }
 
+      // Clear the timeout
+      if (this.recordingTimeout) {
+        clearTimeout(this.recordingTimeout);
+        this.recordingTimeout = null;
+      }
+
       logger.info('🛑 Stopping recording...');
 
       await this.recording.stopAndUnloadAsync();
@@ -129,6 +151,9 @@ export class PronunciationService {
       
       this.isRecording = false;
       this.recording = null;
+      
+      // Clear callback
+      this.onRecordingStopped = null;
 
       // Reset audio mode
       await Audio.setAudioModeAsync({
@@ -142,6 +167,13 @@ export class PronunciationService {
       logger.error('Failed to stop recording:', error);
       this.isRecording = false;
       this.recording = null;
+      // Clear timeout on error too
+      if (this.recordingTimeout) {
+        clearTimeout(this.recordingTimeout);
+        this.recordingTimeout = null;
+      }
+      // Clear callback on error too
+      this.onRecordingStopped = null;
       return null;
     }
   }

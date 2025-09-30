@@ -1417,6 +1417,18 @@ export default function GamesScreen({ route }: { route?: any }) {
           accuracyPercentage,
           maxScore
         });
+      } else if (currentGame === 'Speaking Game') {
+        // For Speaking Game: finalScore = average pronunciation score, totalQuestions = words attempted
+        totalQuestions = totalAnswered || gameData.questions?.length || 1;
+        accuracyPercentage = finalScore; // finalScore is already the average score
+        maxScore = 100; // Maximum pronunciation score is 100
+        
+        console.log('🎤 Speaking Game scoring:', {
+          averageScore: finalScore,
+          totalWords: totalQuestions,
+          accuracyPercentage,
+          maxScore
+        });
       } else {
         // For other games: finalScore = correct answers, totalQuestions = total questions
         totalQuestions = gameData.questions?.length || 1;

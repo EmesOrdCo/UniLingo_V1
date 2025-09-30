@@ -9,6 +9,7 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Speech from 'expo-speech';
 import { PronunciationService, PronunciationResult } from '../lib/pronunciationService';
 
 interface PronunciationCheckProps {
@@ -32,6 +33,7 @@ const PronunciationCheck: React.FC<PronunciationCheckProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState<PronunciationResult | null>(null);
   const [pulseAnim] = useState(new Animated.Value(1));
+  const [isPlayingHint, setIsPlayingHint] = useState(false);
 
   // Pulse animation for recording
   React.useEffect(() => {
@@ -62,13 +64,94 @@ const PronunciationCheck: React.FC<PronunciationCheckProps> = ({
       setResult(null);
       setIsRecording(true);
 
-      // Start recording
-      await PronunciationService.startRecording();
+      // Start recording with timeout and callback for UI updates
+      await PronunciationService.startRecording(maxRecordingDuration, async () => {
+        // This callback is called when recording stops automatically
+        // We need to process the audio as if the user pressed stop
+        try {
+          setIsRecording(false);
+          setIsProcessing(true);
 
-      // Auto-stop after max duration
-      setTimeout(async () => {
-        await handleStopRecording();
-      }, maxRecordingDuration);
+          // Stop recording and get URI
+          const audioUri = await PronunciationService.stopRecording();
+
+          if (!audioUri) {
+            throw new Error('No audio recorded');
+          }
+
+          // Assess pronunciation
+          const referenceText = sentence || word;
+          
+          if (!referenceText || referenceText.trim() === '') {
+            throw new Error('No reference text provided for pronunciation assessment');
+          }
+
+          const assessmentResult = await PronunciationService.assessPronunciation(
+            audioUri,
+            referenceText
+          );
+
+          setResult(assessmentResult);
+          setIsProcessing(false);
+
+          // Call both callbacks for compatibility
+          if (onComplete) {
+            onComplete(assessmentResult);
+          }
+          if (onResult) {
+            onResult(assessmentResult);
+          }
+
+          // Show feedback
+          if (assessmentResult.success && assessmentResult.feedback) {
+            const score = assessmentResult.assessment?.pronunciationScore || 0;
+            if (score >= 75) {
+              // Good pronunciation - brief success message
+              Alert.alert(
+                '🌟 Great Job!',
+                assessmentResult.feedback.overall,
+                [{ text: 'Continue' }]
+              );
+            } else {
+              // Needs improvement - show detailed feedback
+              Alert.alert(
+                '📚 Keep Practicing',
+                `${assessmentResult.feedback.overall}\n\n${assessmentResult.feedback.accuracy}`,
+                [{ text: 'OK' }]
+              );
+            }
+          } else if (!assessmentResult.success) {
+            Alert.alert(
+              'Assessment Failed',
+              assessmentResult.error || 'Could not assess pronunciation. Please try again.',
+              [{ text: 'OK' }]
+            );
+          }
+        } catch (error: any) {
+          console.error('Assessment error:', error);
+          setIsRecording(false);
+          setIsProcessing(false);
+          
+          // Provide more specific error messages
+          let errorMessage = 'Failed to assess pronunciation. Please try again.';
+          
+          if (error.message?.includes('No speech recognized')) {
+            errorMessage = 'No speech detected. Please speak clearly and try again.';
+          } else if (error.message?.includes('No reference text')) {
+            errorMessage = 'Missing word to pronounce. Please restart the game.';
+          } else if (error.message?.includes('No audio recorded')) {
+            errorMessage = 'No audio was recorded. Please check your microphone and try again.';
+          } else if (error.message?.includes('permission')) {
+            errorMessage = 'Microphone permission required. Please enable microphone access in settings.';
+          }
+          
+          Alert.alert(
+            'Pronunciation Assessment Error',
+            errorMessage,
+            [{ text: 'OK' }]
+          );
+        }
+      });
     } catch (error: any) {
       console.error('Recording error:', error);
       setIsRecording(false);
@@ -91,9 +174,13 @@ const PronunciationCheck: React.FC<PronunciationCheckProps> = ({
 
   const handleStopRecording = async () => {
     try {
-      if (!isRecording || disabled) return;
+      if (disabled) return;
 
-      setIsRecording(false);
+      // Only check isRecording if we're manually stopping
+      // If called from timeout callback, isRecording might already be false
+      if (isRecording) {
+        setIsRecording(false);
+      }
       setIsProcessing(true);
 
       // Stop recording and get URI
@@ -141,7 +228,7 @@ const PronunciationCheck: React.FC<PronunciationCheckProps> = ({
           Alert.alert(
             '📚 Keep Practicing',
             `${assessmentResult.feedback.overall}\n\n${assessmentResult.feedback.accuracy}`,
-            [{ text: 'Try Again' }]
+            [{ text: 'OK' }]
           );
         }
       } else if (!assessmentResult.success) {
@@ -182,6 +269,33 @@ const PronunciationCheck: React.FC<PronunciationCheckProps> = ({
     setIsRecording(false);
   };
 
+  const handlePlayHint = async () => {
+    if (isPlayingHint) return;
+    
+    try {
+      setIsPlayingHint(true);
+      
+      // Use expo-speech for text-to-speech
+      await Speech.speak(word, {
+        language: 'en-US',
+        pitch: 1.0,
+        rate: 0.8,
+        volume: 1.0,
+        onDone: () => {
+          setIsPlayingHint(false);
+        },
+        onError: () => {
+          setIsPlayingHint(false);
+          Alert.alert('Hint Error', 'Could not play audio hint. Please try again.');
+        },
+      });
+    } catch (error) {
+      console.error('Hint playback error:', error);
+      setIsPlayingHint(false);
+      Alert.alert('Hint Error', 'Could not play audio hint. Please try again.');
+    }
+  };
+
   const getScoreColor = (score: number) => {
     if (score >= 90) return '#10b981'; // green
     if (score >= 75) return '#3b82f6'; // blue
@@ -200,7 +314,23 @@ const PronunciationCheck: React.FC<PronunciationCheckProps> = ({
     <View style={styles.container}>
       {/* Word/Sentence to pronounce */}
       <View style={styles.textContainer}>
-        <Text style={styles.label}>Say this:</Text>
+        <View style={styles.wordHeader}>
+          <Text style={styles.label}>Say this:</Text>
+          <TouchableOpacity
+            style={[styles.hintButton, isPlayingHint && styles.hintButtonActive]}
+            onPress={handlePlayHint}
+            disabled={isPlayingHint}
+          >
+            <Ionicons 
+              name={isPlayingHint ? "volume-high" : "volume-medium"} 
+              size={20} 
+              color={isPlayingHint ? "#ffffff" : "#6366f1"} 
+            />
+            <Text style={[styles.hintButtonText, isPlayingHint && styles.hintButtonTextActive]}>
+              {isPlayingHint ? "Playing..." : "Hint"}
+            </Text>
+          </TouchableOpacity>
+        </View>
         <Text style={styles.word}>{word}</Text>
         {sentence && <Text style={styles.sentence}>"{sentence}"</Text>}
       </View>
@@ -294,16 +424,6 @@ const PronunciationCheck: React.FC<PronunciationCheckProps> = ({
             </View>
           </View>
 
-          {/* Try Again Button */}
-          <TouchableOpacity
-            style={styles.tryAgainButton}
-            onPress={() => {
-              setResult(null);
-            }}
-          >
-            <Ionicons name="refresh" size={20} color="#6366f1" />
-            <Text style={styles.tryAgainText}>Try Again</Text>
-          </TouchableOpacity>
         </View>
       )}
 
@@ -336,10 +456,39 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 24,
   },
+  wordHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: 8,
+  },
   label: {
     fontSize: 14,
     color: '#64748b',
-    marginBottom: 8,
+    flex: 1,
+  },
+  hintButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: '#f0f4ff',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#6366f1',
+  },
+  hintButtonActive: {
+    backgroundColor: '#6366f1',
+  },
+  hintButtonText: {
+    fontSize: 12,
+    color: '#6366f1',
+    fontWeight: '600',
+  },
+  hintButtonTextActive: {
+    color: '#ffffff',
   },
   word: {
     fontSize: 32,
@@ -475,21 +624,6 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     flex: 1,
     textAlign: 'right',
-  },
-  tryAgainButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    backgroundColor: '#f0f4ff',
-    borderRadius: 25,
-    marginTop: 8,
-  },
-  tryAgainText: {
-    fontSize: 16,
-    color: '#6366f1',
-    fontWeight: '600',
   },
   tipsContainer: {
     flexDirection: 'row',
