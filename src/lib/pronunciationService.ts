@@ -7,7 +7,7 @@ import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system';
 import { Platform } from 'react-native';
 import { logger } from './logger';
-import ENV from '../config/backendConfig';
+import { BACKEND_CONFIG } from '../config/backendConfig';
 
 export interface PronunciationAssessment {
   accuracyScore: number;
@@ -223,7 +223,7 @@ export class PronunciationService {
       formData.append('referenceText', referenceText);
 
       // Send to backend
-      const response = await fetch(`${ENV.BACKEND_URL}/api/pronunciation-assess`, {
+      const response = await fetch(`${BACKEND_CONFIG.BASE_URL}/api/pronunciation-assess`, {
         method: 'POST',
         body: formData,
         headers: {
