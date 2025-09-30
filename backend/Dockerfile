@@ -1,9 +1,10 @@
 # Simplified Docker build for Azure OCR backend
 FROM node:20-slim
 
-# Install system dependencies for Sharp (image processing)
+# Install system dependencies for Sharp (image processing) and FFmpeg (audio conversion)
 RUN apt-get update && apt-get install -y \
     libvips-dev \
+    ffmpeg \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 

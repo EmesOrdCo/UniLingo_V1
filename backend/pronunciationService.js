@@ -15,6 +15,8 @@ const path = require('path');
  * @returns {Promise<{success: boolean, result?: object, error?: string}>}
  */
 async function assessPronunciation(audioFilePath, referenceText) {
+  let wavFilePath = audioFilePath; // Declare at function scope for error handling
+  
   try {
     console.log(`[Pronunciation] Starting assessment for: "${referenceText}"`);
     console.log(`[Pronunciation] Audio file path: ${audioFilePath}`);
@@ -49,7 +51,6 @@ async function assessPronunciation(audioFilePath, referenceText) {
     
     // Convert audio to WAV format for Azure Speech compatibility
     const fileExtension = audioFilePath.split('.').pop().toLowerCase();
-    let wavFilePath = audioFilePath;
     
     if (fileExtension !== 'wav') {
       // Convert to WAV format
@@ -76,8 +77,9 @@ async function assessPronunciation(audioFilePath, referenceText) {
       wavFilePath = wavFileName;
     }
     
-    const audioBuffer = fs.readFileSync(wavFilePath);
-    console.log(`[Pronunciation] Audio file size: ${audioBuffer.length} bytes`);
+    // Get file size for logging
+    const stats = fs.statSync(wavFilePath);
+    console.log(`[Pronunciation] Audio file size: ${stats.size} bytes`);
     
     // Configure speech service
     const speechConfig = sdk.SpeechConfig.fromSubscription(speechKey, speechRegion);
@@ -91,8 +93,8 @@ async function assessPronunciation(audioFilePath, referenceText) {
       true // Enable miscue calculation
     );
     
-    // Set up audio config from WAV file
-    const audioConfig = sdk.AudioConfig.fromWavFileInput(audioBuffer);
+    // Set up audio config from WAV file using stream
+    const audioConfig = sdk.AudioConfig.fromWavFileInput(fs.createReadStream(wavFilePath));
     
     // Create speech recognizer
     const recognizer = new sdk.SpeechRecognizer(speechConfig, audioConfig);
