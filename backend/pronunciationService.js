@@ -15,6 +15,18 @@ const fs = require('fs');
 async function assessPronunciation(audioFilePath, referenceText) {
   try {
     console.log(`[Pronunciation] Starting assessment for: "${referenceText}"`);
+    console.log(`[Pronunciation] Audio file path: ${audioFilePath}`);
+    
+    // Check if file exists
+    if (!fs.existsSync(audioFilePath)) {
+      console.error(`[Pronunciation] File not found at path: ${audioFilePath}`);
+      console.error(`[Pronunciation] Current directory: ${process.cwd()}`);
+      console.error(`[Pronunciation] Directory contents:`, fs.readdirSync('.'));
+      if (fs.existsSync('uploads')) {
+        console.error(`[Pronunciation] Uploads directory contents:`, fs.readdirSync('uploads'));
+      }
+      throw new Error(`Audio file not found: ${audioFilePath}`);
+    }
     
     // Get Azure credentials
     const speechKey = process.env.AZURE_SPEECH_KEY;
@@ -23,6 +35,10 @@ async function assessPronunciation(audioFilePath, referenceText) {
     if (!speechKey || !speechRegion) {
       throw new Error('Azure Speech Service credentials not configured. Set AZURE_SPEECH_KEY and AZURE_SPEECH_REGION.');
     }
+    
+    console.log(`[Pronunciation] Reading audio file...`);
+    const audioBuffer = fs.readFileSync(audioFilePath);
+    console.log(`[Pronunciation] Audio file size: ${audioBuffer.length} bytes`);
     
     // Configure speech service
     const speechConfig = sdk.SpeechConfig.fromSubscription(speechKey, speechRegion);
@@ -37,7 +53,7 @@ async function assessPronunciation(audioFilePath, referenceText) {
     );
     
     // Set up audio config from file
-    const audioConfig = sdk.AudioConfig.fromWavFileInput(fs.readFileSync(audioFilePath));
+    const audioConfig = sdk.AudioConfig.fromWavFileInput(audioBuffer);
     
     // Create speech recognizer
     const recognizer = new sdk.SpeechRecognizer(speechConfig, audioConfig);
