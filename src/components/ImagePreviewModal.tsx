@@ -190,24 +190,26 @@ export default function ImagePreviewModal({
             </TouchableOpacity>
           </View>
 
-          <TouchableOpacity
-            style={[
-              styles.actionButton,
-              styles.primaryButton,
-              isProcessing && styles.disabledButton
-            ]}
-            onPress={onConfirm}
-            disabled={isProcessing}
-          >
-            <Ionicons 
-              name={isProcessing ? "hourglass" : "checkmark"} 
-              size={20} 
-              color="#ffffff" 
-            />
-            <Text style={styles.primaryButtonText}>
-              {isProcessing ? 'Processing...' : 'Process Images'}
-            </Text>
-          </TouchableOpacity>
+          <View style={styles.primaryButtonContainer}>
+            <TouchableOpacity
+              style={[
+                styles.actionButton,
+                styles.primaryButton,
+                isProcessing && styles.disabledButton
+              ]}
+              onPress={onConfirm}
+              disabled={isProcessing}
+            >
+              <Ionicons 
+                name={isProcessing ? "hourglass" : "checkmark"} 
+                size={20} 
+                color="#ffffff" 
+              />
+              <Text style={styles.primaryButtonText}>
+                {isProcessing ? 'Processing...' : 'Process Images'}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     </Modal>
@@ -358,7 +360,7 @@ const styles = StyleSheet.create({
   },
   actionsContainer: {
     padding: 16,
-    paddingBottom: 80, // Increased bottom padding for safe area and home indicator
+    paddingBottom: 100, // Increased bottom padding for safe area and home indicator
     backgroundColor: '#f8fafc',
     borderTopWidth: 1,
     borderTopColor: '#e2e8f0',
@@ -368,6 +370,9 @@ const styles = StyleSheet.create({
     gap: 12,
     marginBottom: 12,
   },
+  primaryButtonContainer: {
+    width: '100%',
+  },
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -375,7 +380,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 8,
-    flex: 1,
   },
   primaryButton: {
     backgroundColor: '#6366f1',
@@ -384,11 +388,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 3,
+    width: '100%', // Make primary button full width
+    paddingVertical: 16, // Increase padding for better touch target
   },
   secondaryButton: {
     backgroundColor: 'white',
     borderWidth: 1,
     borderColor: '#e2e8f0',
+    flex: 1, // Make secondary buttons share width equally
   },
   disabledButton: {
     backgroundColor: '#cbd5e1',
