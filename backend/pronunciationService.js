@@ -77,7 +77,7 @@ async function assessPronunciation(audioFilePath, referenceText) {
       wavFilePath = wavFileName;
     }
     
-    // Get file size for logging
+    // Log file size for debugging
     const stats = fs.statSync(wavFilePath);
     console.log(`[Pronunciation] Audio file size: ${stats.size} bytes`);
     
@@ -93,8 +93,16 @@ async function assessPronunciation(audioFilePath, referenceText) {
       true // Enable miscue calculation
     );
     
-    // Set up audio config from WAV file using stream
-    const audioConfig = sdk.AudioConfig.fromWavFileInput(fs.createReadStream(wavFilePath));
+    // Set up audio config using push stream for better compatibility
+    const audioFormat = sdk.AudioStreamFormat.getWaveFormatPCM(16000, 16, 1);
+    const pushStream = sdk.AudioInputStream.createPushStream(audioFormat);
+    
+    // Read the WAV file and push to stream
+    const audioBuffer = fs.readFileSync(wavFilePath);
+    pushStream.write(audioBuffer);
+    pushStream.close();
+    
+    const audioConfig = sdk.AudioConfig.fromStreamInput(pushStream);
     
     // Create speech recognizer
     const recognizer = new sdk.SpeechRecognizer(speechConfig, audioConfig);
