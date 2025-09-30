@@ -138,8 +138,8 @@ const allowedIPs = [
   '127.0.0.1',           // localhost
   '::1',                 // localhost IPv6
   '::ffff:127.0.0.1',    // localhost IPv4-mapped IPv6
-  // Add your IP addresses here
-  // 'your.home.ip.address',
+  '146.198.140.69',      // User's current IP address
+  // Add additional IP addresses here if needed
   // 'your.office.ip.address',
   // 'your.mobile.ip.address'
 ];
