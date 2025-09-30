@@ -965,13 +965,20 @@ export default function UploadScreen() {
       progress: 0,
       message: 'Ready to upload',
     });
+    setImageProgress({
+      stage: 'selecting',
+      progress: 0,
+      message: 'Ready to select images',
+    });
     setShowProgressModal(false);
+    setShowImageProcessingModal(false);
     // User can try uploading again
   };
 
   const handleUseAlternative = () => {
     // Close progress modal and show alternative options
     setShowProgressModal(false);
+    setShowImageProcessingModal(false);
     setIsProcessing(false);
     // The fallback buttons (Test with Sample Content, Enter Text Manually) are already visible
   };
@@ -1062,18 +1069,14 @@ export default function UploadScreen() {
         console.log('⚠️ Safety timeout triggered - image processing taking longer than expected');
         
         setIsProcessing(false);
-        setShowImageProcessingModal(false);
         setImageProgress({
           stage: 'error',
           progress: 0,
           message: 'Image processing timed out. The process has been stopped.',
         });
         
-        Alert.alert(
-          'Processing Timeout',
-          'The image processing has been stopped due to timeout. Please try with fewer or smaller images.',
-          [{ text: 'OK', style: 'default' }]
-        );
+        // Keep the image processing modal visible to show the error
+        setShowImageProcessingModal(true);
       }, 300000); // 5 minute timeout for image processing
       
       // Update progress for image processing
@@ -1306,6 +1309,9 @@ export default function UploadScreen() {
         progress: 0,
         message: errorMessage,
       });
+      
+      // Keep the image processing modal visible to show the error
+      setShowImageProcessingModal(true);
       
     } finally {
       setIsProcessing(false);
