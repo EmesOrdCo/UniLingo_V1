@@ -360,7 +360,7 @@ const styles = StyleSheet.create({
   },
   actionsContainer: {
     padding: 16,
-    paddingBottom: 100, // Increased bottom padding for safe area and home indicator
+    paddingBottom: 40, // Reduced bottom padding
     backgroundColor: '#f8fafc',
     borderTopWidth: 1,
     borderTopColor: '#e2e8f0',
