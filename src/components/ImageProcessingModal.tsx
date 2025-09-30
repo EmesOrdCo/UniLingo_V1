@@ -287,7 +287,9 @@ export default function ImageProcessingModal({
                 <Text style={styles.errorDescription}>{errorDetails.description}</Text>
                 <View style={styles.solutionContainer}>
                   <Text style={styles.solutionLabel}>Solution:</Text>
-                  <Text style={styles.solutionText}>{errorDetails.solution}</Text>
+                  <Text style={styles.solutionText} numberOfLines={0}>
+                    {errorDetails.solution}
+                  </Text>
                 </View>
               </View>
             </ScrollView>
@@ -546,6 +548,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     borderWidth: 1,
     borderColor: '#fecaca',
+    flex: 1,
   },
   errorHeader: {
     flexDirection: 'row',
@@ -571,6 +574,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderLeftWidth: 3,
     borderLeftColor: '#6366f1',
+    marginTop: 8,
   },
   solutionLabel: {
     fontSize: 13,
@@ -582,6 +586,8 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#374151',
     lineHeight: 18,
+    flexWrap: 'wrap',
+    flexShrink: 1,
   },
   progressContainer: {
     width: '100%',

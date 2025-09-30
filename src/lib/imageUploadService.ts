@@ -228,7 +228,10 @@ export class ImageUploadService {
         console.error('❌ DEBUG: Response not OK:', errorData);
         
         // Handle specific "no text extracted" error gracefully
-        if (errorData.details && errorData.details.includes('No text could be extracted')) {
+        if (errorData.details && (
+          errorData.details.includes('No text could be extracted') ||
+          errorData.details.includes('No text could be extracted from any of the uploaded images')
+        )) {
           throw new Error('No text could be extracted from the images. Please ensure the images contain clear, readable text.');
         }
         
@@ -246,7 +249,10 @@ export class ImageUploadService {
       
       if (!result.success) {
         // Handle specific "no text extracted" error gracefully
-        if (result.error && result.error.includes('No text could be extracted')) {
+        if (result.error && (
+          result.error.includes('No text could be extracted') ||
+          result.error.includes('No text could be extracted from any of the uploaded images')
+        )) {
           throw new Error('No text could be extracted from the images. Please ensure the images contain clear, readable text.');
         }
         
