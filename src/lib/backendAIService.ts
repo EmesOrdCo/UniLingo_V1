@@ -80,7 +80,8 @@ class BackendAIService {
     subject: string,
     topic: string,
     userId: string,
-    nativeLanguage: string = 'English'
+    nativeLanguage: string = 'English',
+    sourceFileName?: string
   ): Promise<BackendAIResponse> {
     try {
       console.log('📚 Requesting lesson generation from backend...');
@@ -96,6 +97,7 @@ class BackendAIService {
           topic,
           userId,
           nativeLanguage,
+          sourceFileName,
         }),
       });
 

@@ -601,12 +601,12 @@ class AIService {
     }
   }
 
-  static async generateLesson(content, subject, topic, userId, nativeLanguage = 'English') {
+  static async generateLesson(content, subject, topic, userId, nativeLanguage = 'English', sourceFileName = 'Unknown Source') {
     // Backend lesson generation now matches frontend LessonService.createLessonFromPDF exactly
     // Step 1: extractKeywordsFromPDF
     // Step 2: groupKeywordsIntoTopic  
     // Step 3: generateVocabularyFromTopics
-    // Step 4: Create lesson record in database
+    // Step 4: Create lesson record in database with source filename
     // Step 5: Store vocabulary in database
     
     try {
@@ -632,13 +632,13 @@ class AIService {
       
       for (const topic of topicVocabulary) {
         // Create lesson record for this topic
-        const { data: lesson, error: lessonError } = await supabase
+        const { data: lesson, error: lessonError} = await supabase
           .from('esp_lessons')
           .insert([{
             user_id: userId,
             title: `${subject} - ${topic.topicName}`,
             subject: subject,
-            source_pdf_name: topic.topicName,
+            source_pdf_name: sourceFileName,
             native_language: nativeLanguage
           }])
           .select()

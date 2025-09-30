@@ -590,7 +590,7 @@ app.post('/api/ai/generate-flashcards', async (req, res) => {
 
 app.post('/api/ai/generate-lesson', async (req, res) => {
   try {
-    const { content, subject, topic, userId, nativeLanguage } = req.body;
+    const { content, subject, topic, userId, nativeLanguage, sourceFileName } = req.body;
     
     if (!content || !subject || !topic || !userId) {
       return res.status(400).json({ 
@@ -605,10 +605,11 @@ app.post('/api/ai/generate-lesson', async (req, res) => {
     console.log(`📚 Topic: ${topic}`);
     console.log(`👤 User: ${userId}`);
     console.log(`🌍 Native Language: ${nativeLanguage || 'English'}`);
+    console.log(`📄 Source: ${sourceFileName || 'Unknown'}`);
     console.log(`📄 Content length: ${content.length} characters`);
     console.log('📚'.repeat(20) + '\n');
 
-    const result = await AIService.generateLesson(content, subject, topic, userId, nativeLanguage || 'English');
+    const result = await AIService.generateLesson(content, subject, topic, userId, nativeLanguage || 'English', sourceFileName || 'Unknown Source');
     
     console.log('\n' + '✅'.repeat(20));
     console.log('✅ LESSON GENERATION SUCCESS');

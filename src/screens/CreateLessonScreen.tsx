@@ -185,7 +185,8 @@ export default function CreateLessonScreen() {
           selectedSubject,
           'AI Selection', // Use AI Selection mode for automatic topic detection
           user?.id || '',
-          userNativeLanguage || 'English'
+          userNativeLanguage || 'English',
+          file.name // Pass PDF filename as source
         );
         
         if (!backendResult.success || !backendResult.lessons) {
@@ -448,7 +449,8 @@ export default function CreateLessonScreen() {
           selectedSubject,
           'AI Selection', // Use AI Selection mode for automatic topic detection
           user?.id || '',
-          userNativeLanguage || 'English'
+          userNativeLanguage || 'English',
+          `Images (${selectedImages.length} photo${selectedImages.length > 1 ? 's' : ''})` // Pass image source description
         );
         
         if (!backendResult.success || !backendResult.lessons) {
