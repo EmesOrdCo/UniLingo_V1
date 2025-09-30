@@ -537,12 +537,15 @@ const styles = StyleSheet.create({
   errorDetails: {
     width: '100%',
     marginBottom: 24,
+    maxHeight: 200, // Limit height to prevent overflow
   },
   errorCard: {
     backgroundColor: '#fef3f2',
     borderRadius: 12,
-    padding: 20,
+    padding: 16,
     marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#fecaca',
   },
   errorHeader: {
     flexDirection: 'row',
@@ -550,30 +553,35 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   errorTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontWeight: '700',
     color: '#991b1b',
-    marginLeft: 12,
+    marginLeft: 8,
+    flex: 1,
   },
   errorDescription: {
     fontSize: 14,
     color: '#991b1b',
-    marginBottom: 16,
+    marginBottom: 12,
     lineHeight: 20,
   },
   solutionContainer: {
-    marginTop: 12,
+    backgroundColor: '#f8fafc',
+    padding: 12,
+    borderRadius: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: '#6366f1',
   },
   solutionLabel: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
-    color: '#475569',
-    marginBottom: 8,
+    color: '#374151',
+    marginBottom: 6,
   },
   solutionText: {
-    fontSize: 14,
-    color: '#475569',
-    lineHeight: 20,
+    fontSize: 13,
+    color: '#374151',
+    lineHeight: 18,
   },
   progressContainer: {
     width: '100%',

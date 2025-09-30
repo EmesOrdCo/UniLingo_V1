@@ -226,6 +226,12 @@ export class ImageUploadService {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         console.error('❌ DEBUG: Response not OK:', errorData);
+        
+        // Handle specific "no text extracted" error gracefully
+        if (errorData.details && errorData.details.includes('No text could be extracted')) {
+          throw new Error('No text could be extracted from the images. Please ensure the images contain clear, readable text.');
+        }
+        
         throw new Error(errorData.details || `Backend request failed with status ${response.status}`);
       }
 
@@ -239,6 +245,11 @@ export class ImageUploadService {
       });
       
       if (!result.success) {
+        // Handle specific "no text extracted" error gracefully
+        if (result.error && result.error.includes('No text could be extracted')) {
+          throw new Error('No text could be extracted from the images. Please ensure the images contain clear, readable text.');
+        }
+        
         throw new Error(result.error || 'Image processing failed');
       }
 
