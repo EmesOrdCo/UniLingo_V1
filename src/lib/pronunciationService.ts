@@ -95,29 +95,26 @@ export class PronunciationService {
 
       logger.info('🎤 Starting audio recording...');
 
-      // Create recording with optimized settings for speech
+      // Create recording with Azure Speech compatible settings
       const recording = new Audio.Recording();
       await recording.prepareToRecordAsync({
         android: {
-          extension: '.wav',
-          outputFormat: Audio.AndroidOutputFormat.DEFAULT,
-          audioEncoder: Audio.AndroidAudioEncoder.DEFAULT,
+          extension: '.m4a',
+          outputFormat: Audio.AndroidOutputFormat.MPEG_4,
+          audioEncoder: Audio.AndroidAudioEncoder.AAC,
           sampleRate: 16000,
           numberOfChannels: 1,
           bitRate: 128000,
         },
         ios: {
-          extension: '.wav',
+          extension: '.m4a',
           audioQuality: Audio.IOSAudioQuality.HIGH,
           sampleRate: 16000,
           numberOfChannels: 1,
           bitRate: 128000,
-          linearPCMBitDepth: 16,
-          linearPCMIsBigEndian: false,
-          linearPCMIsFloat: false,
         },
         web: {
-          mimeType: 'audio/wav',
+          mimeType: 'audio/mp4',
           bitsPerSecond: 128000,
         },
       });
@@ -215,8 +212,8 @@ export class PronunciationService {
       // Add audio file
       const audioFile: any = {
         uri: Platform.OS === 'ios' ? audioUri.replace('file://', '') : audioUri,
-        type: 'audio/wav',
-        name: 'pronunciation.wav',
+        type: 'audio/mp4',
+        name: 'pronunciation.m4a',
       };
       
       formData.append('audio', audioFile);

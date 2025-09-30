@@ -668,17 +668,19 @@ const audioUpload = multer({
     },
     filename: function (req, file, cb) {
       const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-      cb(null, 'pronunciation-' + uniqueSuffix + '.wav');
+      cb(null, 'pronunciation-' + uniqueSuffix + '.m4a');
     }
   }),
   limits: {
     fileSize: 5 * 1024 * 1024 // 5MB max audio file
   },
   fileFilter: function (req, file, cb) {
-    // Accept audio files
+    // Accept audio files (M4A, WAV, MP3, etc.)
     if (file.mimetype.startsWith('audio/')) {
+      console.log(`[Pronunciation] Accepting audio file: ${file.originalname}, type: ${file.mimetype}`);
       cb(null, true);
     } else {
+      console.log(`[Pronunciation] Rejecting file: ${file.originalname}, type: ${file.mimetype}`);
       cb(new Error('Only audio files are allowed!'), false);
     }
   }
