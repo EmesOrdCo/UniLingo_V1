@@ -59,8 +59,20 @@ async function assessPronunciation(audioFilePath, referenceText) {
       true // Enable miscue calculation
     );
     
-    // Set up audio config from file
-    const audioConfig = sdk.AudioConfig.fromWavFileInput(audioBuffer);
+    // Set up audio config from file based on format
+    const fileExtension = audioFilePath.split('.').pop().toLowerCase();
+    let audioConfig;
+    
+    if (fileExtension === 'm4a') {
+      // For M4A files, use the generic file input
+      audioConfig = sdk.AudioConfig.fromWavFileInput(audioBuffer);
+    } else if (fileExtension === 'mp3') {
+      // For MP3 files, use the generic file input
+      audioConfig = sdk.AudioConfig.fromWavFileInput(audioBuffer);
+    } else {
+      // For WAV files, use the WAV-specific input
+      audioConfig = sdk.AudioConfig.fromWavFileInput(audioBuffer);
+    }
     
     // Create speech recognizer
     const recognizer = new sdk.SpeechRecognizer(speechConfig, audioConfig);

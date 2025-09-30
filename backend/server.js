@@ -668,8 +668,15 @@ const audioUpload = multer({
     },
     filename: function (req, file, cb) {
       const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-      // Keep original extension from the uploaded file
-      const extension = file.originalname.split('.').pop() || 'wav';
+      // Determine extension based on MIME type, not original filename
+      let extension = 'wav'; // default
+      if (file.mimetype === 'audio/x-m4a' || file.mimetype === 'audio/mp4') {
+        extension = 'm4a';
+      } else if (file.mimetype === 'audio/mpeg') {
+        extension = 'mp3';
+      } else if (file.mimetype === 'audio/wav') {
+        extension = 'wav';
+      }
       cb(null, 'pronunciation-' + uniqueSuffix + '.' + extension);
     }
   }),
