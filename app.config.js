@@ -31,7 +31,12 @@ export default {
       adaptiveIcon: {
         foregroundImage: "./assets/adaptive-icon.png",
         backgroundColor: "#ffffff"
-      }
+      },
+      permissions: [
+        "RECORD_AUDIO",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ]
     },
     web: {
       favicon: "./assets/favicon.png"

@@ -652,6 +652,107 @@ app.get('/api/ai/status', (req, res) => {
   }
 });
 
+// Pronunciation Assessment endpoint
+const pronunciationService = require('./pronunciationService');
+
+// Configure multer for audio uploads
+const audioUpload = multer({
+  storage: multer.diskStorage({
+    destination: function (req, file, cb) {
+      cb(null, 'uploads/');
+    },
+    filename: function (req, file, cb) {
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      cb(null, 'pronunciation-' + uniqueSuffix + '.wav');
+    }
+  }),
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB max audio file
+  },
+  fileFilter: function (req, file, cb) {
+    // Accept audio files
+    if (file.mimetype.startsWith('audio/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only audio files are allowed!'), false);
+    }
+  }
+});
+
+app.post('/api/pronunciation-assess', audioUpload.single('audio'), async (req, res) => {
+  try {
+    console.log('\n🎤 Pronunciation assessment request received');
+    
+    if (!req.file) {
+      return res.status(400).json({ 
+        error: 'No audio file uploaded',
+        code: 'NO_AUDIO_FILE'
+      });
+    }
+    
+    const { referenceText } = req.body;
+    
+    if (!referenceText) {
+      return res.status(400).json({ 
+        error: 'Reference text is required',
+        code: 'NO_REFERENCE_TEXT'
+      });
+    }
+    
+    console.log(`[Pronunciation] Audio file: ${req.file.path}`);
+    console.log(`[Pronunciation] Reference text: "${referenceText}"`);
+    console.log(`[Pronunciation] File size: ${(req.file.size / 1024).toFixed(2)} KB`);
+    
+    // Perform pronunciation assessment
+    const assessmentResult = await pronunciationService.assessPronunciation(
+      req.file.path,
+      referenceText
+    );
+    
+    if (!assessmentResult.success) {
+      // Clean up uploaded file
+      fs.unlinkSync(req.file.path);
+      
+      return res.status(500).json({ 
+        error: assessmentResult.error,
+        code: 'ASSESSMENT_FAILED'
+      });
+    }
+    
+    // Get feedback
+    const feedback = pronunciationService.getFeedback(assessmentResult.result);
+    
+    // Clean up uploaded file
+    fs.unlinkSync(req.file.path);
+    
+    console.log(`[Pronunciation] ✅ Assessment complete - Score: ${assessmentResult.result.pronunciationScore}/100`);
+    
+    res.json({
+      success: true,
+      assessment: assessmentResult.result,
+      feedback: feedback
+    });
+    
+  } catch (error) {
+    console.error('❌ Pronunciation assessment error:', error);
+    
+    // Clean up uploaded file if it exists
+    if (req.file && req.file.path) {
+      try {
+        fs.unlinkSync(req.file.path);
+      } catch (cleanupError) {
+        console.error('Error cleaning up file:', cleanupError);
+      }
+    }
+    
+    res.status(500).json({ 
+      error: 'Failed to assess pronunciation',
+      details: error.message,
+      code: 'INTERNAL_ERROR'
+    });
+  }
+});
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   const clientIP = req.ip || req.connection.remoteAddress || req.socket.remoteAddress;
