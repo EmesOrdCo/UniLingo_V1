@@ -75,7 +75,7 @@ dist
 
 # Gatsby files
 .cache/
-public
+# public (Don't ignore - needed for monitoring dashboard)
 
 # Storybook build outputs
 .out
