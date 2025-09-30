@@ -613,16 +613,19 @@ class AIService {
       console.log('🚀 Creating lesson from content...');
 
       console.log('🔍 Step 1: Extracting keywords from content...');
+      console.log(`📏 Content length: ${content.length} characters`);
       
       // Step 1: Extract keywords from content
       const keywords = await this.extractKeywordsFromContent(content, subject, userId);
       
       console.log('🔍 Step 2: Grouping keywords into topics...');
+      console.log(`📊 Keywords extracted: ${keywords.length} (proportional to content)`);
       
       // Step 2: Group keywords into topics
       const topics = await this.groupKeywordsIntoTopic(keywords, subject, userId);
       
       console.log('🔍 Step 3: Generating vocabulary from topics...');
+      console.log(`📚 Topics created: ${topics.length} (proportional to ${keywords.length} keywords)`);
       
       // Step 3: Generate vocabulary from topics
       const topicVocabulary = await this.generateVocabularyFromTopics(topics, subject, nativeLanguage, userId);
@@ -699,19 +702,25 @@ class AIService {
   static async extractKeywordsFromContent(content, subject, userId) {
     const prompt = `Extract ALL important ${subject} terminology, concepts, and vocabulary from this content. 
       
+IMPORTANT: Extract ONLY the key terms that actually appear in the content. The number of terms should be PROPORTIONAL to the content length and density:
+- Short content with few terms: Extract 5-20 terms
+- Medium content: Extract 20-50 terms
+- Long/dense content: Extract 50-100+ terms
+
+DO NOT pad the list with related terms that don't appear in the content. Quality over quantity.
+
 Include:
 - Technical terms and definitions
 - Key concepts and principles
 - Important phrases and compound terms
 - Medical/scientific terminology (if applicable)
-- Return at least 50-100 terms if possible
 
 Content: ${content}`;
 
     const messages = [
       {
         role: 'system',
-        content: 'You are an expert content analyzer. You MUST return ONLY a JSON array of strings with no explanations, markdown, or text outside the JSON. Your response must start with [ and end with ]. Do NOT use backticks, code blocks, or any markdown formatting. Return raw JSON only.'
+        content: 'You are an expert content analyzer. IMPORTANT: Extract ONLY terms that appear in the provided content. The number of terms should match the content density - do not pad with related terms. You MUST return ONLY a JSON array of strings with no explanations, markdown, or text outside the JSON. Your response must start with [ and end with ]. Do NOT use backticks, code blocks, or any markdown formatting. Return raw JSON only.'
       },
       {
         role: 'user',
@@ -795,25 +804,33 @@ Content: ${content}`;
 
   // Step 2: Group keywords into topics (matches frontend groupKeywordsIntoTopic)
   static async groupKeywordsIntoTopic(keywords, subject, userId) {
-    const prompt = `Group these ${subject} keywords into logical topics. Each topic should have 3-30 keywords. Return ONLY a JSON array:
+    const prompt = `Group these ${subject} keywords into logical topics. Return ONLY a JSON array:
 
 Keywords: ${keywords.join(', ')}
+
+IMPORTANT: The number of topics should be PROPORTIONAL to the number of keywords:
+- 5-15 keywords: Create 1-2 topics
+- 15-30 keywords: Create 2-4 topics
+- 30-60 keywords: Create 3-6 topics
+- 60+ keywords: Create 4-8 topics
+
+DO NOT create many small topics if there are only a few keywords. It's better to have fewer, well-organized topics than many sparse ones.
 
 Format:
 [{"topicName": "Topic Name", "keywords": ["keyword1", "keyword2", ...]}]
 
 Requirements:
-- Each topic should have 3-30 keywords
+- Each topic should ideally have 5-30 keywords (minimum 3 for small content)
 - Group related keywords together
 - Create meaningful topic names based on the keywords
 - Ensure all keywords are included in exactly one topic
-- Let the content determine the number of topics (no fixed count)
+- Adapt the number of topics to the keyword count
 - Return ONLY the JSON array:`;
 
     const messages = [
       {
         role: 'system',
-        content: 'You are an expert educational content organizer. You MUST return ONLY a JSON array of objects with no explanations, markdown, or text outside the JSON. Your response must start with [ and end with ]. Do NOT use backticks, code blocks, or any markdown formatting. Return raw JSON only.'
+        content: 'You are an expert educational content organizer. IMPORTANT: Create a number of topics proportional to the keyword count. Fewer keywords = fewer topics. Do not create many sparse topics. You MUST return ONLY a JSON array of objects with no explanations, markdown, or text outside the JSON. Your response must start with [ and end with ]. Do NOT use backticks, code blocks, or any markdown formatting. Return raw JSON only.'
       },
       {
         role: 'user',
