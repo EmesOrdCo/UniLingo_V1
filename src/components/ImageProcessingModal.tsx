@@ -539,7 +539,7 @@ const styles = StyleSheet.create({
   errorDetails: {
     width: '100%',
     marginBottom: 24,
-    maxHeight: 200, // Limit height to prevent overflow
+    maxHeight: 250, // Increased height for better text display
   },
   errorCard: {
     backgroundColor: '#fef3f2',
@@ -575,6 +575,7 @@ const styles = StyleSheet.create({
     borderLeftWidth: 3,
     borderLeftColor: '#6366f1',
     marginTop: 8,
+    width: '100%',
   },
   solutionLabel: {
     fontSize: 13,
@@ -586,8 +587,8 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#374151',
     lineHeight: 18,
-    flexWrap: 'wrap',
     flexShrink: 1,
+    textAlign: 'left',
   },
   progressContainer: {
     width: '100%',

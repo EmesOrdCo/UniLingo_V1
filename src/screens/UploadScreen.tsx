@@ -1270,13 +1270,6 @@ export default function UploadScreen() {
         progressIntervalRef.current = null;
       }
 
-      // Update image progress with error
-      setImageProgress({
-        stage: 'error',
-        progress: 0,
-        message: error instanceof Error ? error.message : 'Failed to process images',
-      });
-      
       // Check if this was a cancellation error
       if (error instanceof Error && (error.message.includes('cancelled') || error.message.includes('Request cancelled'))) {
         console.log('🚫 Image processing was cancelled - no error alert needed');
