@@ -897,21 +897,29 @@ Requirements:
 
   // Step 3: Generate vocabulary from topics (matches frontend generateVocabularyFromTopics)
   static async generateVocabularyFromTopics(topics, subject, nativeLanguage, userId) {
-    const prompt = `Create vocabulary entries for these topic groups. Return ONLY a JSON array:
+    const prompt = `CRITICAL INSTRUCTION: You MUST ONLY create vocabulary entries for the EXACT keywords provided below. DO NOT add any additional terms or words that are not in the keyword list.
+
+Create vocabulary entries for ONLY these specific keywords. Return ONLY a JSON array:
 
 Topics: ${topics.map(topic => `${topic.topicName}: ${topic.keywords.join(', ')}`).join('\n')}
 Subject: ${subject}
 Language: ${nativeLanguage}
 
+STRICT REQUIREMENTS:
+- ONLY use keywords that appear in the topic lists above
+- DO NOT invent, add, or suggest any additional vocabulary terms
+- Each keyword must become ONE vocabulary entry
+- The english_term field MUST exactly match a keyword from the lists above
+
 Format:
-[{"topicName": "Topic Name", "vocabulary": [{"english_term": "word", "definition": "meaning", "native_translation": "translation", "example_sentence_en": "example", "example_sentence_native": "translated example"}]}]
+[{"topicName": "Topic Name", "vocabulary": [{"english_term": "EXACT keyword from list", "definition": "meaning", "native_translation": "translation", "example_sentence_en": "example", "example_sentence_native": "translated example"}]}]
 
 Return ONLY the JSON array:`;
 
     const messages = [
       {
         role: 'system',
-        content: 'You are an expert language teacher. You MUST return ONLY a JSON array of objects with no explanations, markdown, or text outside the JSON. Your response must start with [ and end with ]. Do NOT use backticks, code blocks, or any markdown formatting. Return raw JSON only.'
+        content: 'You are an expert language teacher. CRITICAL: You must ONLY create vocabulary entries for the EXACT keywords provided by the user. DO NOT add, invent, or suggest any additional terms. You MUST return ONLY a JSON array of objects with no explanations, markdown, or text outside the JSON. Your response must start with [ and end with ]. Do NOT use backticks, code blocks, or any markdown formatting. Return raw JSON only.'
       },
       {
         role: 'user',
@@ -980,11 +988,67 @@ Return ONLY the JSON array:`;
       }
 
       console.log(`✅ Generated vocabulary for ${topicVocabulary.length} topics`);
-      return topicVocabulary;
+      
+      // Validate that all vocabulary terms match the provided keywords
+      const validatedVocabulary = this.validateVocabularyAgainstKeywords(topicVocabulary, topics);
+      
+      return validatedVocabulary;
 
     } catch (error) {
       console.error('❌ Error generating vocabulary from topics:', error);
       throw error;
+    }
+  }
+
+  // Validate vocabulary against provided keywords to prevent AI hallucination
+  static validateVocabularyAgainstKeywords(topicVocabulary, originalTopics) {
+    try {
+      console.log('🔍 Validating vocabulary against provided keywords to prevent AI hallucination...');
+      
+      // Create a set of all valid keywords (normalized)
+      const validKeywords = new Set();
+      originalTopics.forEach(topic => {
+        topic.keywords.forEach(keyword => {
+          validKeywords.add(keyword.toLowerCase().trim());
+        });
+      });
+      
+      console.log(`📊 Valid keywords count: ${validKeywords.size}`);
+      
+      // Filter vocabulary to only include terms that match provided keywords
+      const validated = topicVocabulary.map(topic => {
+        const validatedVocab = topic.vocabulary.filter(vocab => {
+          const term = vocab.english_term.toLowerCase().trim();
+          const isValid = validKeywords.has(term);
+          
+          if (!isValid) {
+            console.warn(`⚠️ Removing hallucinated term: "${vocab.english_term}" (not in original keywords)`);
+          }
+          
+          return isValid;
+        });
+        
+        return {
+          ...topic,
+          vocabulary: validatedVocab
+        };
+      });
+      
+      // Count total before/after
+      const totalBefore = topicVocabulary.reduce((sum, t) => sum + t.vocabulary.length, 0);
+      const totalAfter = validated.reduce((sum, t) => sum + t.vocabulary.length, 0);
+      const removed = totalBefore - totalAfter;
+      
+      if (removed > 0) {
+        console.warn(`🚫 Removed ${removed} hallucinated vocabulary terms`);
+      }
+      
+      console.log(`✅ Validation complete: ${totalAfter} valid vocabulary terms (${removed} removed)`);
+      return validated;
+      
+    } catch (error) {
+      console.error('❌ Error validating vocabulary:', error);
+      return topicVocabulary; // Return original if validation fails
     }
   }
 
