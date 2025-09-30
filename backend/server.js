@@ -259,9 +259,9 @@ app.post('/api/process-image', imageUpload.array('images', 5), async (req, res) 
           console.log(`  📊 Original image: ${metadata.width}x${metadata.height}, format: ${metadata.format}`);
           
           // HANDWRITING-OPTIMIZED approach: enhance contrast and clarity for handwritten text
-          // Resize to 1600px max for faster OCR processing (EasyOCR is CPU-intensive)
+          // Resize to 1200px max for faster OCR processing (EasyOCR is very CPU-intensive)
           processedImageBuffer = await sharp(file.path)
-            .resize(1600, 1600, { 
+            .resize(1200, 1200, { 
               fit: 'inside',
               withoutEnlargement: false,
               kernel: sharp.kernel.lanczos3 // High-quality resizing
@@ -341,16 +341,16 @@ try {
       }
     });
     
-    // Add timeout to prevent hanging (increased to 120s for large images)
+    // Add timeout to prevent hanging (5 minutes for CPU-based OCR)
     setTimeout(() => {
       python.kill();
       reject({
         success: false,
-        error: 'OCR processor timed out after 120 seconds',
+        error: 'OCR processor timed out after 5 minutes',
         stdout: stdout,
         stderr: stderr
       });
-    }, 120000);
+    }, 300000);
   });
   
   console.log(`  🔧 OCR processing completed, analyzing results...`);
