@@ -17,19 +17,41 @@ def process_image_with_easyocr(image_path, languages=['en']):
     """
     import sys
     import os
-    from contextlib import redirect_stderr, redirect_stdout
+    from contextlib import redirect_stdout
     from io import StringIO
+    import time
     
     try:
+        # Log to stderr (won't interfere with JSON on stdout)
+        sys.stderr.write(f"[OCR] Starting EasyOCR processing for {image_path}\n")
+        sys.stderr.flush()
+        
         import easyocr
         
-        # Suppress all output to prevent progress messages from interfering
-        with redirect_stdout(StringIO()), redirect_stderr(StringIO()):
+        # Suppress stdout to prevent progress messages from interfering with JSON
+        # Keep stderr for debugging
+        with redirect_stdout(StringIO()):
+            sys.stderr.write(f"[OCR] Initializing EasyOCR reader for languages: {languages}\n")
+            sys.stderr.flush()
+            start_time = time.time()
+            
             # Create EasyOCR reader with verbose=False to minimize output
             reader = easyocr.Reader(languages, gpu=False, verbose=False)
             
+            init_time = time.time() - start_time
+            sys.stderr.write(f"[OCR] Reader initialized in {init_time:.2f} seconds\n")
+            sys.stderr.flush()
+            
             # Process the image
+            sys.stderr.write(f"[OCR] Processing image...\n")
+            sys.stderr.flush()
+            process_start = time.time()
+            
             results = reader.readtext(image_path)
+            
+            process_time = time.time() - process_start
+            sys.stderr.write(f"[OCR] Image processed in {process_time:.2f} seconds, found {len(results)} text regions\n")
+            sys.stderr.flush()
         
         # Format results for JSON output
         formatted_results = []

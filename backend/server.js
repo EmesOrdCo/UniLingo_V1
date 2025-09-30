@@ -307,7 +307,10 @@ try {
     });
     
     python.stderr.on('data', (data) => {
-      stderr += data.toString();
+      const stderrData = data.toString();
+      stderr += stderrData;
+      // Log stderr in real-time for debugging
+      console.log(`  [Python] ${stderrData.trim()}`);
     });
     
     python.on('close', (code) => {
