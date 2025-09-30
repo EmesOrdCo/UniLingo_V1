@@ -133,6 +133,39 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static('uploads'));
 
+// IP whitelist for monitoring endpoints
+const allowedIPs = [
+  '127.0.0.1',           // localhost
+  '::1',                 // localhost IPv6
+  '::ffff:127.0.0.1',    // localhost IPv4-mapped IPv6
+  // Add your IP addresses here
+  // 'your.home.ip.address',
+  // 'your.office.ip.address',
+  // 'your.mobile.ip.address'
+];
+
+const monitoringWhitelist = (req, res, next) => {
+  const clientIP = req.ip || req.connection.remoteAddress || req.socket.remoteAddress;
+  const realIP = req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || clientIP;
+  
+  // Extract the first IP if there are multiple (from proxy)
+  const ip = realIP.split(',')[0].trim();
+  
+  console.log(`[Monitoring] Access attempt from IP: ${ip}`);
+  
+  if (allowedIPs.includes(ip)) {
+    console.log(`[Monitoring] ✅ Access granted for IP: ${ip}`);
+    next();
+  } else {
+    console.log(`[Monitoring] ❌ Access denied for IP: ${ip}`);
+    res.status(403).json({
+      error: 'Access denied. Monitoring endpoints are restricted to authorized IPs only.',
+      code: 'MONITORING_ACCESS_DENIED',
+      clientIP: ip
+    });
+  }
+};
+
 // Apply general rate limiting to all routes
 app.use(generalLimiter);
 
@@ -789,8 +822,25 @@ app.get('/api/ai/status', (req, res) => {
   }
 });
 
-// Health and monitoring endpoints
+// Public health endpoint (minimal info)
 app.get('/api/health', (req, res) => {
+  try {
+    res.json({
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      message: 'UniLingo backend is running'
+    });
+  } catch (error) {
+    res.status(500).json({
+      status: 'unhealthy',
+      timestamp: new Date().toISOString(),
+      error: 'Health check failed'
+    });
+  }
+});
+
+// Detailed health and monitoring endpoints (IP whitelisted)
+app.get('/api/health/detailed', monitoringWhitelist, (req, res) => {
   try {
     const metrics = performanceMonitor.getMetrics();
     const healthStatus = performanceMonitor.getHealthStatus();
@@ -834,7 +884,7 @@ app.get('/api/health', (req, res) => {
   }
 });
 
-app.get('/api/metrics', (req, res) => {
+app.get('/api/metrics', monitoringWhitelist, (req, res) => {
   try {
     const metrics = performanceMonitor.getMetrics();
     res.json({
@@ -852,7 +902,7 @@ app.get('/api/metrics', (req, res) => {
   }
 });
 
-app.get('/api/pronunciation/status', (req, res) => {
+app.get('/api/pronunciation/status', monitoringWhitelist, (req, res) => {
   try {
     const status = resilientPronunciationService.getStatus();
     res.json({
@@ -870,7 +920,7 @@ app.get('/api/pronunciation/status', (req, res) => {
   }
 });
 
-app.get('/api/cleanup/stats', (req, res) => {
+app.get('/api/cleanup/stats', monitoringWhitelist, (req, res) => {
   try {
     const stats = fileCleanupManager.getStats();
     res.json({
@@ -888,7 +938,7 @@ app.get('/api/cleanup/stats', (req, res) => {
   }
 });
 
-app.post('/api/cleanup/emergency', async (req, res) => {
+app.post('/api/cleanup/emergency', monitoringWhitelist, async (req, res) => {
   try {
     const { maxAgeMinutes = 10 } = req.body;
     const result = await fileCleanupManager.emergencyCleanup(maxAgeMinutes);
@@ -908,7 +958,7 @@ app.post('/api/cleanup/emergency', async (req, res) => {
   }
 });
 
-app.get('/api/rate-limits/status', (req, res) => {
+app.get('/api/rate-limits/status', monitoringWhitelist, (req, res) => {
   try {
     const userId = req.headers['user-id'] || req.query.userId || 'anonymous';
     
