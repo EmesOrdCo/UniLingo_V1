@@ -1588,7 +1588,6 @@ export default function UploadScreen() {
         progress={imageProgress}
         onClose={handleCloseImageProcessing}
         onCancel={handleCancelUpload}
-        onRetry={imageProgress.stage === 'error' ? handleRetryUpload : undefined}
         onUseAlternative={imageProgress.stage === 'error' ? handleUseAlternative : undefined}
         onContinue={handleContinue}
       />
