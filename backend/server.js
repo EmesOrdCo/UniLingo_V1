@@ -232,7 +232,8 @@ app.post('/api/process-image', imageUpload.array('images', 5), async (req, res) 
 
     // Import required modules
     const sharp = require('sharp');
-    const { EasyOCR } = require('node-easyocr');
+    const { spawn } = require('child_process');
+    const path = require('path');
     
     let allExtractedText = '';
     let processedImages = 0;
@@ -292,63 +293,82 @@ console.log(`  🔤 Starting EasyOCR for handwriting recognition...`);
 let text = '';
 
 try {
-  console.log(`  🔧 Initializing EasyOCR reader...`);
+  console.log(`  🔧 Running custom OCR processor...`);
   
-  // Create EasyOCR instance with error handling
-  let ocr;
-  try {
-    ocr = new EasyOCR();
-    console.log(`  ✅ EasyOCR object created successfully`);
-  } catch (initError) {
-    console.error(`  ❌ Failed to create EasyOCR object:`, initError.message);
-    throw initError;
-  }
-
-  // Initialize with English language
-  console.log(`  🔧 Initializing EasyOCR with English language...`);
-  try {
-    await ocr.init(['en']);
-    console.log(`  ✅ EasyOCR initialized successfully`);
-  } catch (initError) {
-    console.error(`  ❌ Failed to initialize EasyOCR:`, initError.message);
-    throw initError;
-  }
-
-  // Process image with timeout and error handling
-  console.log(`  🔧 Processing image with EasyOCR...`);
-  try {
-    const result = await Promise.race([
-      ocr.readText(file.path),
-      new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('EasyOCR timeout after 30 seconds')), 30000)
-      )
-    ]);
+  // Use our custom ocr_processor.py instead of node-easyocr
+  const ocrResult = await new Promise((resolve, reject) => {
+    const ocrScript = path.join(__dirname, 'ocr_processor.py');
+    const python = spawn('python3', [ocrScript, file.path, '--languages', 'en']);
+    let stdout = '';
+    let stderr = '';
     
-    console.log(`  🔧 EasyOCR processing completed, analyzing results...`);
+    python.stdout.on('data', (data) => {
+      stdout += data.toString();
+    });
+    
+    python.stderr.on('data', (data) => {
+      stderr += data.toString();
+    });
+    
+    python.on('close', (code) => {
+      const cleanStdout = stdout.trim();
+      
+      try {
+        if (!cleanStdout) {
+          throw new Error('No output received from OCR processor');
+        }
+        
+        const result = JSON.parse(cleanStdout);
+        resolve(result);
+      } catch (error) {
+        reject({
+          success: false,
+          error: `Failed to parse OCR result: ${error.message}`,
+          stdout: cleanStdout,
+          stderr: stderr,
+          exitCode: code
+        });
+      }
+    });
+    
+    // Add timeout to prevent hanging
+    setTimeout(() => {
+      python.kill();
+      reject({
+        success: false,
+        error: 'OCR processor timed out after 60 seconds',
+        stdout: stdout,
+        stderr: stderr
+      });
+    }, 60000);
+  });
+  
+  console.log(`  🔧 OCR processing completed, analyzing results...`);
 
-    // Extract text from EasyOCR results
-    if (result && result.length > 0) {
-      text = result.map(item => item.text).join(' ');
-      console.log(`  ✅ EasyOCR completed successfully`);
-      console.log(`  📝 Extracted text length: ${text.length} characters`);
-      console.log(`  📖 Text preview: ${text.substring(0, 200)}...`);
-      console.log(`  🎯 Detected ${result.length} text regions`);
-    } else {
-      console.log(`  ⚠️ EasyOCR found no text in image`);
-      text = '';
+  // Extract text from OCR results
+  if (ocrResult.success && ocrResult.results && ocrResult.results.length > 0) {
+    text = ocrResult.results.map(item => item.text).join(' ');
+    console.log(`  ✅ EasyOCR completed successfully`);
+    console.log(`  📝 Extracted text length: ${text.length} characters`);
+    console.log(`  📖 Text preview: ${text.substring(0, 200)}...`);
+    console.log(`  🎯 Detected ${ocrResult.results.length} text regions`);
+  } else {
+    console.log(`  ⚠️ EasyOCR found no text in image`);
+    if (ocrResult.error) {
+      console.log(`  ⚠️ OCR error: ${ocrResult.error}`);
     }
-
-  } catch (processError) {
-    console.error(`  ❌ Failed to process image with EasyOCR:`, processError.message);
-    throw processError;
+    text = '';
   }
 
 } catch (easyocrError) {
   console.error(`  ❌ EasyOCR failed with detailed error:`);
-  console.error(`  Error message: ${easyocrError.message}`);
-  console.error(`  Error stack: ${easyocrError.stack}`);
-  console.error(`  Error name: ${easyocrError.name}`);
-  console.error(`  Error code: ${easyocrError.code}`);
+  console.error(`  Error message: ${easyocrError.error || easyocrError.message}`);
+  if (easyocrError.stdout) {
+    console.error(`  Stdout: ${easyocrError.stdout}`);
+  }
+  if (easyocrError.stderr) {
+    console.error(`  Stderr: ${easyocrError.stderr}`);
+  }
   text = '';
 }
 
