@@ -21,6 +21,7 @@ import { UserFlashcardService } from '../lib/userFlashcardService';
 import { FlashcardService } from '../lib/flashcardService';
 import FlashcardReviewModal from '../components/FlashcardReviewModal';
 import UploadProgressModal from '../components/UploadProgressModal';
+import ImageProcessingModal from '../components/ImageProcessingModal';
 import ImagePreviewModal from '../components/ImagePreviewModal';
 import { TopicEditModal } from '../components/TopicEditModal';
 import * as DocumentPicker from 'expo-document-picker';
@@ -44,6 +45,7 @@ export default function UploadScreen() {
   });
   const [generatedFlashcards, setGeneratedFlashcards] = useState<GeneratedFlashcard[]>([]);
   const [showProgressModal, setShowProgressModal] = useState(false);
+  const [showImageProcessingModal, setShowImageProcessingModal] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [showTopicEditModal, setShowTopicEditModal] = useState(false);
   const [editableFlashcards, setEditableFlashcards] = useState<GeneratedFlashcard[]>([]);
@@ -878,6 +880,21 @@ export default function UploadScreen() {
     }
   };
 
+  const handleCloseImageProcessing = () => {
+    setShowImageProcessingModal(false);
+    // Always reset processing state when closing image processing modal
+    setIsProcessing(false);
+    
+    if (imageProgress.stage === 'error') {
+      // Reset progress for retry
+      setImageProgress({
+        stage: 'selecting',
+        progress: 0,
+        message: 'Ready to select images',
+      });
+    }
+  };
+
   const handleCancelUpload = () => {
     console.log('🚫 User cancelled upload - stopping all processes');
     
@@ -1037,7 +1054,7 @@ export default function UploadScreen() {
       abortControllerRef.current = new AbortController();
       
       setIsProcessing(true);
-      setShowProgressModal(true);
+      setShowImageProcessingModal(true);
       setShowImagePreview(false);
       
       // Add safety timeout
@@ -1045,8 +1062,8 @@ export default function UploadScreen() {
         console.log('⚠️ Safety timeout triggered - image processing taking longer than expected');
         
         setIsProcessing(false);
-        setShowProgressModal(false);
-        setProgress({
+        setShowImageProcessingModal(false);
+        setImageProgress({
           stage: 'error',
           progress: 0,
           message: 'Image processing timed out. The process has been stopped.',
@@ -1060,10 +1077,11 @@ export default function UploadScreen() {
       }, 300000); // 5 minute timeout for image processing
       
       // Update progress for image processing
-      setProgress({
+      setImageProgress({
         stage: 'uploading',
         progress: 10,
         message: `Processing ${selectedImages.length} image${selectedImages.length > 1 ? 's' : ''}...`,
+        totalImages: selectedImages.length,
       });
 
       // Process images with OCR
@@ -1076,10 +1094,12 @@ export default function UploadScreen() {
             return;
           }
           
-          setProgress({
-            stage: 'processing',
-            progress: 30 + (progressUpdate.progress * 0.4), // Map to 30-70% range
+          setImageProgress({
+            stage: progressUpdate.stage,
+            progress: progressUpdate.progress,
             message: progressUpdate.message,
+            imagesProcessed: progressUpdate.imagesProcessed,
+            totalImages: progressUpdate.totalImages,
           });
         }
       );
@@ -1090,11 +1110,17 @@ export default function UploadScreen() {
         return;
       }
 
-      setProgress({
-        stage: 'processing',
-        progress: 70,
-        message: 'Images processed successfully, preparing for AI analysis...',
+      setImageProgress({
+        stage: 'complete',
+        progress: 100,
+        message: `Successfully processed ${imageResult.imagesProcessed}/${imageResult.totalImages} images!`,
+        imagesProcessed: imageResult.imagesProcessed,
+        totalImages: imageResult.totalImages,
       });
+
+      // Close image processing modal and show AI processing modal
+      setShowImageProcessingModal(false);
+      setShowProgressModal(true);
 
       // Generate flashcards with AI using extracted text
       const topic = selectedTopic;
@@ -1234,6 +1260,13 @@ export default function UploadScreen() {
         clearInterval(progressIntervalRef.current);
         progressIntervalRef.current = null;
       }
+
+      // Update image progress with error
+      setImageProgress({
+        stage: 'error',
+        progress: 0,
+        message: error instanceof Error ? error.message : 'Failed to process images',
+      });
       
       // Check if this was a cancellation error
       if (error instanceof Error && (error.message.includes('cancelled') || error.message.includes('Request cancelled'))) {
@@ -1257,7 +1290,8 @@ export default function UploadScreen() {
         errorMessage = error;
       }
       
-      setProgress({
+      // Update image progress with the user-friendly error message
+      setImageProgress({
         stage: 'error',
         progress: 0,
         message: errorMessage,
@@ -1528,6 +1562,17 @@ export default function UploadScreen() {
         onCancel={handleCancelUpload}
         onRetry={progress.stage === 'error' ? handleRetryUpload : undefined}
         onUseAlternative={progress.stage === 'error' ? handleUseAlternative : undefined}
+        onContinue={handleContinue}
+      />
+
+      {/* Image Processing Modal */}
+      <ImageProcessingModal
+        visible={showImageProcessingModal}
+        progress={imageProgress}
+        onClose={handleCloseImageProcessing}
+        onCancel={handleCancelUpload}
+        onRetry={imageProgress.stage === 'error' ? handleRetryUpload : undefined}
+        onUseAlternative={imageProgress.stage === 'error' ? handleUseAlternative : undefined}
         onContinue={handleContinue}
       />
 
