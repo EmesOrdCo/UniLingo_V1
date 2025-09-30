@@ -15,14 +15,18 @@ interface PronunciationCheckProps {
   word: string;
   sentence?: string;
   onComplete?: (result: PronunciationResult) => void;
+  onResult?: (result: any) => void; // For compatibility with SpeakingGame
   maxRecordingDuration?: number;
+  disabled?: boolean;
 }
 
 const PronunciationCheck: React.FC<PronunciationCheckProps> = ({
   word,
   sentence,
   onComplete,
+  onResult,
   maxRecordingDuration = 5000, // 5 seconds default
+  disabled = false,
 }) => {
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -52,6 +56,8 @@ const PronunciationCheck: React.FC<PronunciationCheckProps> = ({
   }, [isRecording]);
 
   const handleStartRecording = async () => {
+    if (disabled) return;
+    
     try {
       setResult(null);
       setIsRecording(true);
@@ -63,12 +69,21 @@ const PronunciationCheck: React.FC<PronunciationCheckProps> = ({
       setTimeout(async () => {
         await handleStopRecording();
       }, maxRecordingDuration);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Recording error:', error);
       setIsRecording(false);
+      
+      let errorMessage = 'Could not start recording. Please check microphone permissions.';
+      
+      if (error.message?.includes('permission')) {
+        errorMessage = 'Microphone permission required. Please enable microphone access in settings.';
+      } else if (error.message?.includes('busy')) {
+        errorMessage = 'Microphone is busy. Please try again in a moment.';
+      }
+      
       Alert.alert(
         'Recording Failed',
-        'Could not start recording. Please check microphone permissions.',
+        errorMessage,
         [{ text: 'OK' }]
       );
     }
@@ -76,7 +91,7 @@ const PronunciationCheck: React.FC<PronunciationCheckProps> = ({
 
   const handleStopRecording = async () => {
     try {
-      if (!isRecording) return;
+      if (!isRecording || disabled) return;
 
       setIsRecording(false);
       setIsProcessing(true);
@@ -90,6 +105,11 @@ const PronunciationCheck: React.FC<PronunciationCheckProps> = ({
 
       // Assess pronunciation
       const referenceText = sentence || word;
+      
+      if (!referenceText || referenceText.trim() === '') {
+        throw new Error('No reference text provided for pronunciation assessment');
+      }
+
       const assessmentResult = await PronunciationService.assessPronunciation(
         audioUri,
         referenceText
@@ -98,8 +118,12 @@ const PronunciationCheck: React.FC<PronunciationCheckProps> = ({
       setResult(assessmentResult);
       setIsProcessing(false);
 
+      // Call both callbacks for compatibility
       if (onComplete) {
         onComplete(assessmentResult);
+      }
+      if (onResult) {
+        onResult(assessmentResult);
       }
 
       // Show feedback
@@ -127,13 +151,27 @@ const PronunciationCheck: React.FC<PronunciationCheckProps> = ({
           [{ text: 'OK' }]
         );
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Assessment error:', error);
       setIsRecording(false);
       setIsProcessing(false);
+      
+      // Provide more specific error messages
+      let errorMessage = 'Failed to assess pronunciation. Please try again.';
+      
+      if (error.message?.includes('No speech recognized')) {
+        errorMessage = 'No speech detected. Please speak clearly and try again.';
+      } else if (error.message?.includes('No reference text')) {
+        errorMessage = 'Missing word to pronounce. Please restart the game.';
+      } else if (error.message?.includes('No audio recorded')) {
+        errorMessage = 'No audio was recorded. Please check your microphone and try again.';
+      } else if (error.message?.includes('permission')) {
+        errorMessage = 'Microphone permission required. Please enable microphone access in settings.';
+      }
+      
       Alert.alert(
-        'Error',
-        'Failed to assess pronunciation. Please try again.',
+        'Pronunciation Assessment Error',
+        errorMessage,
         [{ text: 'OK' }]
       );
     }
@@ -172,9 +210,13 @@ const PronunciationCheck: React.FC<PronunciationCheckProps> = ({
         <View style={styles.buttonContainer}>
           {!isRecording ? (
             <TouchableOpacity
-              style={styles.recordButton}
+              style={[
+                styles.recordButton,
+                disabled && styles.recordButtonDisabled,
+              ]}
               onPress={handleStartRecording}
               activeOpacity={0.8}
+              disabled={disabled}
             >
               <Ionicons name="mic" size={32} color="#ffffff" />
               <Text style={styles.recordButtonText}>Tap to Record</Text>
@@ -463,6 +505,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#64748b',
     lineHeight: 18,
+  },
+  recordButtonDisabled: {
+    backgroundColor: '#9ca3af',
+    opacity: 0.6,
   },
 });
 

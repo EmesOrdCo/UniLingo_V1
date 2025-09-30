@@ -233,8 +233,8 @@ const SpeakingGame: React.FC<SpeakingGameProps> = ({
       {/* Pronunciation Check Component */}
       <View style={styles.pronunciationContainer}>
         <PronunciationCheck
-          referenceText={currentWord}
-          onResult={handlePronunciationResult}
+          word={currentWord}
+          onComplete={handlePronunciationResult}
           disabled={currentWordPassed}
         />
       </View>
