@@ -73,7 +73,7 @@ export default function ProgressPageScreen() {
         forceRefresh 
           ? OptimizedProgressService.getProgressInsights(user!.id, true)
           : OptimizedProgressService.getProgressInsightsFast(user!.id),
-        OptimizedProgressService.getStudyDates(user!.id),
+        OptimizedProgressService.getStudyDates(user!.id, forceRefresh),
         LessonService.getUserLessonsWithProgress(user!.id)
       ]);
       
@@ -163,6 +163,8 @@ export default function ProgressPageScreen() {
     setRefreshing(false);
   }, [loadProgressData]);
 
+
+
   const formatTime = (minutes: number) => {
     if (minutes < 60) return `${minutes}m`;
     const hours = Math.floor(minutes / 60);
@@ -238,6 +240,7 @@ export default function ProgressPageScreen() {
           </TouchableOpacity>
         </View>
       )}
+
 
       <ScrollView 
         style={styles.content} 

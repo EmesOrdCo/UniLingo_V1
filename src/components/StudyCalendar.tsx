@@ -34,6 +34,7 @@ export default function StudyCalendar({ studyDates, currentMonth }: StudyCalenda
     const year = selectedMonth.getFullYear();
     const month = selectedMonth.getMonth();
     
+    
     // Get first day of the month
     const firstDay = new Date(year, month, 1);
     // Get last day of the month
@@ -46,7 +47,7 @@ export default function StudyCalendar({ studyDates, currentMonth }: StudyCalenda
     const lastDayNumber = lastDay.getDate();
     
     // Get the previous month's last few days to fill the first week
-    const prevMonth = new Date(year, month - 1, 0);
+    const prevMonth = new Date(year, month, 0); // month, 0 gives last day of previous month
     const prevMonthLastDay = prevMonth.getDate();
     
     const days: Array<{
@@ -87,24 +88,26 @@ export default function StudyCalendar({ studyDates, currentMonth }: StudyCalenda
       days.push(dayData);
     }
     
-    // Add next month's days to fill the last week (ensure we have 6 rows)
-    const totalDays = days.length;
-    const remainingDays = 42 - totalDays; // 6 rows * 7 days = 42
+    // Add next month's days to complete the last week (only add what's needed)
+    const currentDaysInGrid = days.length;
+    const daysInCurrentWeek = currentDaysInGrid % 7;
     
-    for (let day = 1; day <= remainingDays; day++) {
-      const date = new Date(year, month + 1, day);
-      days.push({
-        date,
-        day,
-        isCurrentMonth: false,
-        isToday: isToday(date),
-        isStudyDay: isStudyDay(date),
-        isFuture: isFuture(date),
-      });
+    // If we don't have a complete week, add days from next month to complete it
+    if (daysInCurrentWeek > 0) {
+      const daysToAdd = 7 - daysInCurrentWeek;
+      for (let day = 1; day <= daysToAdd; day++) {
+        const date = new Date(year, month + 1, day);
+        days.push({
+          date,
+          day,
+          isCurrentMonth: false,
+          isToday: isToday(date),
+          isStudyDay: isStudyDay(date),
+          isFuture: isFuture(date),
+        });
+      }
     }
     
-    console.log(`📅 Generated ${days.length} calendar days for ${getMonthName(selectedMonth)}`);
-    console.log(`📅 First day of week: ${firstDayOfWeek}, Last day number: ${lastDayNumber}`);
     
     setCalendarDays(days);
   };
@@ -212,14 +215,11 @@ export default function StudyCalendar({ studyDates, currentMonth }: StudyCalenda
 
       {/* Calendar Grid */}
       <View style={styles.calendarGrid}>
-        {calendarDays.map((day, index) => {
-          console.log(`📅 Rendering day ${index}: ${day.day} (${day.isCurrentMonth ? 'current' : 'other'})`);
-          return (
-            <View key={index} style={getDayStyle(day)}>
-              <Text style={getDayTextStyle(day)}>{day.day}</Text>
-            </View>
-          );
-        })}
+        {calendarDays.map((day, index) => (
+          <View key={index} style={getDayStyle(day)}>
+            <Text style={getDayTextStyle(day)}>{day.day}</Text>
+          </View>
+        ))}
       </View>
 
     </View>

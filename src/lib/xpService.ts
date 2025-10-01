@@ -384,9 +384,26 @@ export class XPService {
     durationSeconds?: number
   ): Promise<void> {
     try {
-      // REMOVED: Duplicate insert into user_activities
-      // This was causing double logging because ProgressTrackingService already inserts
-      console.log('🎯 Activity logged (no database insert - handled by ProgressTrackingService)');
+      // Log activity to user_activities table for calendar tracking
+      const { error } = await supabase
+        .from('user_activities')
+        .insert({
+          user_id: userId,
+          activity_type: activityType,
+          activity_name: activityName || `${activityType} activity`,
+          score: score,
+          max_score: maxScore,
+          accuracy_percentage: accuracyPercentage,
+          experience_points: xpEarned,
+          duration_seconds: durationSeconds || 0,
+          completed_at: new Date().toISOString()
+        });
+
+      if (error) {
+        console.error('❌ Error logging activity to database:', error);
+      } else {
+        console.log('🎯 Activity logged to database:', activityName || activityType);
+      }
     } catch (error) {
       console.error('❌ Error logging activity:', error);
     }
@@ -449,6 +466,41 @@ export class XPService {
     } catch (error) {
       console.error('❌ Error in test XP award:', error);
       return null;
+    }
+  }
+
+  /**
+   * Debug function to check user's current XP and learning stats
+   */
+  static async debugUserXP(userId: string): Promise<void> {
+    try {
+      console.log('🔍 Debugging XP for user:', userId);
+      
+      // Check if user has learning stats
+      const { data: stats, error: statsError } = await supabase
+        .from('user_learning_stats')
+        .select('*')
+        .eq('user_id', userId)
+        .maybeSingle();
+      
+      console.log('🔍 User learning stats:', { stats, statsError });
+      
+      // Check recent activities
+      const { data: activities, error: activitiesError } = await supabase
+        .from('user_activities')
+        .select('*')
+        .eq('user_id', userId)
+        .order('completed_at', { ascending: false })
+        .limit(5);
+      
+      console.log('🔍 Recent activities:', { activities, activitiesError });
+      
+      // Check level info
+      const levelInfo = await this.getLevelInfo(userId);
+      console.log('🔍 Level info:', levelInfo);
+      
+    } catch (error) {
+      console.error('❌ Error debugging user XP:', error);
     }
   }
 }

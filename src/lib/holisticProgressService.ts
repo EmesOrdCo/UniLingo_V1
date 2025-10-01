@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { XPService } from './xpService';
 
 export interface UserActivity {
   id?: string;
@@ -490,8 +491,15 @@ export class HolisticProgressService {
         .eq('user_id', userId)
         .maybeSingle(); // Use maybeSingle() to handle no rows
 
-      // Calculate level progress
-      const levelProgress = this.calculateLevelProgress(learningStats);
+      // Calculate level progress using XPService for consistency
+      const levelProgress = learningStats 
+        ? XPService.calculateLevelInfo(learningStats.experience_points || 0)
+        : {
+            currentLevel: 'Beginner',
+            experiencePoints: 0,
+            nextLevelThreshold: 100,
+            progressPercentage: 0,
+          };
 
       // Get flashcard statistics
       const flashcardStats = await this.getFlashcardStats(userId);
@@ -522,47 +530,6 @@ export class HolisticProgressService {
     }
   }
 
-  private static calculateLevelProgress(stats: LearningStats | null) {
-    if (!stats) {
-      return {
-        currentLevel: 'Beginner',
-        experiencePoints: 0,
-        nextLevelThreshold: 100,
-        progressPercentage: 0,
-      };
-    }
-
-    const levels = [
-      { name: 'Beginner', threshold: 0 },
-      { name: 'Elementary', threshold: 100 },
-      { name: 'Intermediate', threshold: 500 },
-      { name: 'Advanced', threshold: 1000 },
-      { name: 'Expert', threshold: 2500 },
-      { name: 'Master', threshold: 5000 },
-    ];
-
-    let currentLevel = levels[0];
-    let nextLevel = levels[1];
-
-    for (let i = 0; i < levels.length - 1; i++) {
-      if (stats.experience_points >= levels[i].threshold && stats.experience_points < levels[i + 1].threshold) {
-        currentLevel = levels[i];
-        nextLevel = levels[i + 1];
-        break;
-      }
-    }
-
-    const progressInLevel = stats.experience_points - currentLevel.threshold;
-    const levelRange = nextLevel.threshold - currentLevel.threshold;
-    const progressPercentage = Math.min(100, Math.max(0, (progressInLevel / levelRange) * 100));
-
-    return {
-      currentLevel: currentLevel.name,
-      experiencePoints: stats.experience_points,
-      nextLevelThreshold: nextLevel.threshold,
-      progressPercentage: Math.round(progressPercentage),
-    };
-  }
 
   // =====================================================
   // ACHIEVEMENT SYSTEM
@@ -657,19 +624,31 @@ export class HolisticProgressService {
 
   static async initializeUserProgress(userId: string): Promise<boolean> {
     try {
-      // Create initial learning stats
-      await supabase
+      // Check if learning stats already exist
+      const { data: existingStats } = await supabase
         .from('user_learning_stats')
-        .insert({
-          user_id: userId,
-          total_study_time_hours: 0,
-          total_lessons_completed: 0,
-          total_flashcards_reviewed: 0,
-          total_games_played: 0, // Will be calculated from user_activities
-          average_lesson_accuracy: 0,
-          current_level: 'Beginner',
-          experience_points: 0,
-        });
+        .select('user_id, experience_points')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (!existingStats) {
+        // Only create initial learning stats if they don't exist
+        await supabase
+          .from('user_learning_stats')
+          .insert({
+            user_id: userId,
+            total_study_time_hours: 0,
+            total_lessons_completed: 0,
+            total_flashcards_reviewed: 0,
+            total_games_played: 0, // Will be calculated from user_activities
+            average_lesson_accuracy: 0,
+            current_level: 'Beginner',
+            experience_points: 0,
+          });
+        console.log('✅ User learning stats initialized for new user:', userId);
+      } else {
+        console.log('ℹ️ User learning stats already exist for user:', userId, 'with XP:', existingStats.experience_points);
+      }
 
       // Create initial daily goals
       const today = new Date().toISOString().split('T')[0];

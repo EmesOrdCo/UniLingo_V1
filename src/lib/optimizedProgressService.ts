@@ -2,6 +2,7 @@ import { supabase } from './supabase';
 import ProgressCacheService from './progressCacheService';
 import MemoryCache from './memoryCache';
 import { ProgressInsights, HolisticProgressService } from './holisticProgressService';
+import { XPService } from './xpService';
 
 class OptimizedProgressService {
   /**
@@ -92,8 +93,15 @@ class OptimizedProgressService {
         .eq('user_id', userId)
         .maybeSingle();
 
-      // Calculate level progress
-      const levelProgress = this.calculateLevelProgress(learningStats);
+      // Calculate level progress using XPService for consistency
+      const levelProgress = learningStats 
+        ? XPService.calculateLevelInfo(learningStats.experience_points || 0)
+        : {
+            currentLevel: 'Beginner',
+            experiencePoints: 0,
+            nextLevelThreshold: 100,
+            progressPercentage: 0,
+          };
 
       // Get flashcard statistics
       const flashcardStats = await this.getFlashcardStats(userId);
@@ -253,12 +261,14 @@ class OptimizedProgressService {
   /**
    * Get study dates with caching
    */
-  static async getStudyDates(userId: string): Promise<string[]> {
+  static async getStudyDates(userId: string, forceRefresh: boolean = false): Promise<string[]> {
     try {
-      // Try cache first
-      const cachedDates = await ProgressCacheService.getStudyDates(userId);
-      if (cachedDates) {
-        return cachedDates;
+      // Try cache first (unless force refresh is requested)
+      if (!forceRefresh) {
+        const cachedDates = await ProgressCacheService.getStudyDates(userId);
+        if (cachedDates) {
+          return cachedDates;
+        }
       }
 
       // Fetch from database
@@ -268,9 +278,14 @@ class OptimizedProgressService {
         .eq('user_id', userId)
         .not('completed_at', 'is', null);
 
-      const dates = activities?.map(activity => 
-        new Date(activity.completed_at).toISOString().split('T')[0]
-      ) || [];
+      const dates = activities?.map(activity => {
+        // Use local date formatting to match the calendar's isStudyDay function
+        const date = new Date(activity.completed_at);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      }) || [];
 
       const uniqueDates = [...new Set(dates)].sort();
       
@@ -367,50 +382,6 @@ class OptimizedProgressService {
     }
   }
 
-  /**
-   * Calculate level progress
-   */
-  private static calculateLevelProgress(learningStats: any): any {
-    if (!learningStats) {
-      return {
-        currentLevel: 'Beginner',
-        experiencePoints: 0,
-        nextLevelThreshold: 100,
-        progressPercentage: 0,
-      };
-    }
-
-    const levels = ['Beginner', 'Elementary', 'Intermediate', 'Advanced', 'Expert', 'Master'];
-    const thresholds = [0, 100, 500, 1000, 2500, 5000];
-    
-    let currentLevel = 'Beginner';
-    let nextLevelThreshold = 100;
-    let progressPercentage = 0;
-    
-    const xp = learningStats.experience_points || 0;
-    
-    for (let i = 0; i < thresholds.length - 1; i++) {
-      if (xp >= thresholds[i] && xp < thresholds[i + 1]) {
-        currentLevel = levels[i];
-        nextLevelThreshold = thresholds[i + 1];
-        progressPercentage = ((xp - thresholds[i]) / (thresholds[i + 1] - thresholds[i])) * 100;
-        break;
-      }
-    }
-    
-    if (xp >= thresholds[thresholds.length - 1]) {
-      currentLevel = levels[levels.length - 1];
-      nextLevelThreshold = thresholds[thresholds.length - 1];
-      progressPercentage = 100;
-    }
-    
-    return {
-      currentLevel,
-      experiencePoints: xp,
-      nextLevelThreshold,
-      progressPercentage: Math.round(progressPercentage),
-    };
-  }
 
 
   /**

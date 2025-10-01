@@ -113,9 +113,20 @@ export default function UnitSpeakScreen() {
 
     // Award XP
     try {
-      await XPService.awardXP(user.id, earnedXP, 'pronunciation_practice');
-      setTotalXP(prev => prev + earnedXP);
-      console.log(`✨ Awarded ${earnedXP} XP for pronunciation (score: ${score})`);
+      const xpResult = await XPService.awardXP(
+        user.id,
+        'exercise', // activityType
+        score, // score
+        100, // maxScore (pronunciation is out of 100)
+        score, // accuracyPercentage (same as score for pronunciation)
+        'Pronunciation Practice', // activityName
+        30 // durationSeconds (estimated)
+      );
+      
+      if (xpResult) {
+        setTotalXP(prev => prev + xpResult.totalXP);
+        console.log(`✨ Awarded ${xpResult.totalXP} XP for pronunciation (score: ${score})`);
+      }
     } catch (error) {
       console.error('Error awarding XP:', error);
     }
@@ -148,9 +159,20 @@ export default function UnitSpeakScreen() {
 
     if (user && bonusXP > 0) {
       try {
-        await XPService.awardXP(user.id, bonusXP, 'speak_lesson_complete');
-        setTotalXP(prev => prev + bonusXP);
-        console.log(`🎉 Awarded ${bonusXP} bonus XP for completing Speak lesson`);
+        const xpResult = await XPService.awardXP(
+          user.id,
+          'exercise', // activityType
+          Math.round(averageScore), // score (average pronunciation score)
+          100, // maxScore
+          Math.round(averageScore), // accuracyPercentage
+          'Speak Lesson Complete', // activityName
+          totalWords * 30 // durationSeconds (estimated based on words completed)
+        );
+        
+        if (xpResult) {
+          setTotalXP(prev => prev + xpResult.totalXP);
+          console.log(`🎉 Awarded ${xpResult.totalXP} XP for completing Speak lesson`);
+        }
       } catch (error) {
         console.error('Error awarding bonus XP:', error);
       }

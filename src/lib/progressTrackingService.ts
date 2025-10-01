@@ -494,7 +494,7 @@ export class ProgressTrackingService {
         .from('user_learning_stats')
         .select('*')
         .eq('user_id', userId)
-        .single();
+        .maybeSingle();
 
       const now = new Date().toISOString();
 
@@ -523,7 +523,8 @@ export class ProgressTrackingService {
 
         if (error) throw error;
       } else {
-        // Create new stats record
+        // Create new stats record - preserve any existing XP from user_activities
+        console.log('⚠️ Creating new learning stats record for user:', userId);
         const newStats = {
           user_id: userId,
           total_study_time_hours: updates.totalStudyTimeHours || 0,
@@ -534,7 +535,7 @@ export class ProgressTrackingService {
           favorite_subject: null,
           best_performance_date: null,
           current_level: 'Beginner',
-          experience_points: 0,
+          experience_points: 0, // Will be calculated from existing user_activities
           created_at: now,
           updated_at: now,
         };
