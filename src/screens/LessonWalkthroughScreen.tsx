@@ -61,6 +61,15 @@ export default function LessonWalkthroughScreen() {
     loadLessonData();
   }, []);
 
+  // Load completed exercises from progress when showing flow preview
+  useEffect(() => {
+    if (currentStep === 'flow-preview' && lessonProgress && lessonProgress.completed_exercises) {
+      const savedCompleted = new Set(lessonProgress.completed_exercises);
+      console.log('🔄 Loading completed exercises from database for flow preview:', lessonProgress.completed_exercises);
+      setCompletedExercises(savedCompleted);
+    }
+  }, [currentStep, lessonProgress]);
+
   // Track active time when screen is focused/blurred
   useFocusEffect(
     React.useCallback(() => {
@@ -185,13 +194,15 @@ export default function LessonWalkthroughScreen() {
       flashcardQuiz: 0,
       sentenceScramble: 0,
       wordScramble: 0,
-      fillInBlank: 0
+      fillInBlank: 0,
+      listen: 0,
+      speak: 0
     });
     setCompletedExercises(new Set());
     
     // Initialize progress in database
     try {
-      const maxPossibleScore = lessonVocabulary.length * 5; // 5 points per word across all exercises
+      const maxPossibleScore = lessonVocabulary.length * 7; // 7 points per word across all exercises
       await LessonService.updateLessonProgress(lessonId, user.id, {
         started_at: now.toISOString(),
         completed_at: undefined,
@@ -235,7 +246,9 @@ export default function LessonWalkthroughScreen() {
       flashcardQuiz: 0,
       sentenceScramble: 0,
       wordScramble: 0,
-      fillInBlank: 0
+      fillInBlank: 0,
+      listen: 0,
+      speak: 0
     });
     setCompletedExercises(new Set());
     
@@ -279,9 +292,17 @@ export default function LessonWalkthroughScreen() {
     const estimatedScorePerExercise = lessonVocabulary.length; // Each exercise is worth vocabulary length points
     const completedExerciseCount = Math.floor(lessonProgress.total_score / estimatedScorePerExercise);
     
-    // Restore completed exercises set
-    const exerciseTypes = ['flashcards', 'flashcardQuiz', 'sentenceScramble', 'wordScramble', 'fillInBlank'];
-    const completedExercisesSet = new Set(exerciseTypes.slice(0, completedExerciseCount));
+    // Restore completed exercises from database if available
+    let completedExercisesSet: Set<string>;
+    if (lessonProgress.completed_exercises && Array.isArray(lessonProgress.completed_exercises)) {
+      completedExercisesSet = new Set(lessonProgress.completed_exercises);
+      console.log('🔄 Restored completed exercises from database:', lessonProgress.completed_exercises);
+    } else {
+      // Fallback: estimate from score
+      const exerciseTypes = ['flashcards', 'flashcardQuiz', 'sentenceScramble', 'wordScramble', 'fillInBlank', 'listen', 'speak'];
+      completedExercisesSet = new Set(exerciseTypes.slice(0, completedExerciseCount));
+      console.log('🔄 Estimated completed exercises from score:', Array.from(completedExercisesSet));
+    }
     setCompletedExercises(completedExercisesSet);
     
     // Restore exercise scores (estimated based on progress)
@@ -291,7 +312,9 @@ export default function LessonWalkthroughScreen() {
       flashcardQuiz: completedExerciseCount > 1 ? estimatedScorePerCompletedExercise : 0,
       sentenceScramble: completedExerciseCount > 2 ? estimatedScorePerCompletedExercise : 0,
       wordScramble: completedExerciseCount > 3 ? estimatedScorePerCompletedExercise : 0,
-      fillInBlank: completedExerciseCount > 4 ? estimatedScorePerCompletedExercise : 0
+      fillInBlank: completedExerciseCount > 4 ? estimatedScorePerCompletedExercise : 0,
+      listen: completedExerciseCount > 5 ? estimatedScorePerCompletedExercise : 0,
+      speak: completedExerciseCount > 6 ? estimatedScorePerCompletedExercise : 0
     };
     setExerciseScores(restoredScores);
     
@@ -321,7 +344,7 @@ export default function LessonWalkthroughScreen() {
       console.log(`Resuming to estimated position: exercise ${completedExerciseCount}`);
     }
     
-    console.log(`Resuming lesson (progress: ${lessonProgress.total_score}/${lessonVocabulary.length * 5}, completed exercises: ${completedExerciseCount})`);
+    console.log(`Resuming lesson (progress: ${lessonProgress.total_score}/${lessonVocabulary.length * 7}, completed exercises: ${completedExerciseCount})`);
   };
 
   const saveResumePosition = async (exercise: string, questionIndex: number) => {
@@ -423,6 +446,8 @@ export default function LessonWalkthroughScreen() {
   const handleExerciseComplete = async (exerciseType: string, score: number, maxScore: number) => {
     if (!user) return;
 
+    console.log(`✅ Exercise complete: ${exerciseType}, score: ${score}/${maxScore}`);
+
     // Update exercise scores
     setExerciseScores(prev => ({
       ...prev,
@@ -430,8 +455,14 @@ export default function LessonWalkthroughScreen() {
     }));
 
     // Mark exercise as completed
-    setCompletedExercises(prev => new Set([...prev, exerciseType]));
+    const newCompletedSet = new Set([...completedExercises, exerciseType]);
+    setCompletedExercises(newCompletedSet);
+    
+    console.log('🔓 Completed exercises:', Array.from(newCompletedSet));
 
+    // Save completed exercises to database
+    const completedExercisesArray = Array.from(newCompletedSet);
+    
     // Set transitioning flag to prevent resume position loading
     setIsTransitioning(true);
     
@@ -445,26 +476,43 @@ export default function LessonWalkthroughScreen() {
 
     // Update progress in database using new service
     try {
-      const totalScore = Object.values({
-        ...exerciseScores,
-        [exerciseType]: score
-      }).reduce((sum, s) => sum + s, 0);
+      // Calculate cumulative total score from previous progress + current exercise
+      const previousScore = lessonProgress?.total_score || 0;
+      const totalScore = previousScore + score;
+      
+      console.log(`📊 Score calculation:`, {
+        previousScore,
+        currentExerciseScore: score,
+        totalScore,
+        exerciseType,
+        completedExercises: completedExercisesArray
+      });
       
       const accuracyPercentage = Math.round((score / maxScore) * 100);
-      const timeSpentSeconds = 60; // Default 1 minute per exercise
+      const timeSpentSeconds = (lessonProgress?.time_spent_seconds || 0) + 60; // Add 1 minute per exercise
 
       // Update lesson progress
       await ProgressTrackingService.updateLessonProgress({
         lessonId,
         totalScore: totalScore,
-        maxPossibleScore: lessonVocabulary.length * 5,
-        exercisesCompleted: completedExercises.size + 1,
-        totalExercises: 5, // Total number of exercises
+        maxPossibleScore: lessonVocabulary.length * 7,
+        exercisesCompleted: newCompletedSet.size,
+        totalExercises: 7, // Total number of exercises
         timeSpentSeconds: timeSpentSeconds,
-        status: completedExercises.size + 1 >= 5 ? 'completed' : 'in_progress',
+        status: newCompletedSet.size >= 7 ? 'completed' : 'in_progress',
+        completedExercises: completedExercisesArray, // Save which exercises are completed
       });
 
-      console.log('✅ Lesson progress updated successfully');
+      // Update local progress state to reflect changes immediately
+      setLessonProgress(prev => prev ? {
+        ...prev,
+        total_score: totalScore,
+        max_possible_score: lessonVocabulary.length * 7,
+        completed_exercises: completedExercisesArray,
+        time_spent_seconds: timeSpentSeconds
+      } : null);
+
+      console.log('✅ Lesson progress updated successfully - Total score:', totalScore, 'Exercises completed:', newCompletedSet.size);
     } catch (error) {
       console.error('❌ Error updating lesson progress:', error);
     }
@@ -486,6 +534,12 @@ export default function LessonWalkthroughScreen() {
         nextStep = 'fill-in-blank';
         break;
       case 'fill-in-blank':
+        nextStep = 'listen';
+        break;
+      case 'listen':
+        nextStep = 'speak';
+        break;
+      case 'speak':
         nextStep = 'completed';
         break;
       default:
@@ -602,13 +656,15 @@ export default function LessonWalkthroughScreen() {
       flashcardQuiz: 0,
       sentenceScramble: 0,
       wordScramble: 0,
-      fillInBlank: 0
+      fillInBlank: 0,
+      listen: 0,
+      speak: 0
     });
     setCompletedExercises(new Set());
     
     // Reset progress in database
     try {
-      const maxPossibleScore = lessonVocabulary.length * 5; // 5 points per word across all exercises
+      const maxPossibleScore = lessonVocabulary.length * 7; // 7 points per word across all exercises
       await LessonService.updateLessonProgress(lessonId, user.id, {
         started_at: now.toISOString(),
         completed_at: undefined,
@@ -643,6 +699,7 @@ export default function LessonWalkthroughScreen() {
 
   // Debug logging
   console.log(`Current step: ${currentStep}, Current exercise: ${currentExercise}, Question index: ${currentQuestionIndex}`);
+  console.log(`🔓 Current completed exercises:`, Array.from(completedExercises));
 
   // Render flow preview screen
   if (currentStep === 'flow-preview') {
@@ -674,7 +731,7 @@ export default function LessonWalkthroughScreen() {
                     <Text style={styles.progressBoxTitle}>Progress</Text>
                     <Text style={styles.progressBoxDescription}>
                       {lessonProgress.total_score > 0 ? 
-                        `${lessonProgress.total_score}/${lessonVocabulary.length * 5} points earned` :
+                        `${lessonProgress.total_score}/${lessonVocabulary.length * 7} points earned` :
                         'Lesson started - Ready to continue'
                       }
                     </Text>
@@ -682,13 +739,13 @@ export default function LessonWalkthroughScreen() {
                       <View 
                         style={[
                           styles.progressBarFill, 
-                          { width: `${lessonProgress.total_score > 0 ? (lessonProgress.total_score / (lessonVocabulary.length * 5)) * 100 : 0}%` }
+                          { width: `${lessonProgress.total_score > 0 ? (lessonProgress.total_score / (lessonVocabulary.length * 7)) * 100 : 0}%` }
                         ]} 
                       />
                     </View>
                     <Text style={styles.progressBoxDuration}>
                       {lessonProgress.total_score > 0 ? 
-                        `${Math.floor(lessonProgress.total_score / lessonVocabulary.length)} of 5 exercises completed` :
+                        `${Math.floor(lessonProgress.total_score / lessonVocabulary.length)} of 7 exercises completed` :
                         'Click "Resume Lesson" to continue where you left off'
                       }
                     </Text>

@@ -54,6 +54,7 @@ export interface LessonProgressData {
   totalExercises: number;
   timeSpentSeconds: number;
   status: 'in_progress' | 'completed' | 'failed';
+  completedExercises?: string[]; // Track which specific exercises are completed
 }
 
 export class ProgressTrackingService {
@@ -433,6 +434,11 @@ export class ProgressTrackingService {
           time_spent_seconds: data.timeSpentSeconds,
           status: data.status,
         };
+        
+        // Add completed_exercises if provided
+        if (data.completedExercises) {
+          updates.completed_exercises = data.completedExercises;
+        }
 
         const { error } = await supabase
           .from('lesson_progress')
@@ -442,7 +448,7 @@ export class ProgressTrackingService {
         if (error) throw error;
       } else {
         // Create new progress record
-        const newProgress = {
+        const newProgress: any = {
           user_id: user.id,
           lesson_id: data.lessonId,
           started_at: now,
@@ -454,6 +460,11 @@ export class ProgressTrackingService {
           time_spent_seconds: data.timeSpentSeconds,
           status: data.status,
         };
+        
+        // Add completed_exercises if provided
+        if (data.completedExercises) {
+          newProgress.completed_exercises = data.completedExercises;
+        }
 
         const { error } = await supabase
           .from('lesson_progress')

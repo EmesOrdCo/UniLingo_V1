@@ -46,6 +46,7 @@ export interface LessonProgress {
   // New fields for precise resume functionality
   current_exercise?: string; // 'flashcards', 'flashcard-quiz', etc.
   current_question_index?: number; // Question index within the current exercise
+  completed_exercises?: string[]; // Track which exercises are completed for linear progression
 }
 
 export class LessonService {
