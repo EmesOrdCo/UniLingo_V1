@@ -14,8 +14,10 @@ import LessonFlashcardQuiz from '../components/lesson/LessonFlashcardQuiz';
 import LessonSentenceScramble from '../components/lesson/LessonSentenceScramble';
 import LessonWordScramble from '../components/lesson/LessonWordScramble';
 import LessonFillInTheBlank from '../components/lesson/LessonFillInTheBlank';
+import LessonListen from '../components/lesson/LessonListen';
+import LessonSpeak from '../components/lesson/LessonSpeak';
 
-type ExerciseStep = 'flow-preview' | 'flashcards' | 'flashcard-quiz' | 'sentence-scramble' | 'word-scramble' | 'fill-in-blank' | 'completed';
+type ExerciseStep = 'flow-preview' | 'flashcards' | 'flashcard-quiz' | 'sentence-scramble' | 'word-scramble' | 'fill-in-blank' | 'listen' | 'speak' | 'completed';
 
 interface RouteParams {
   lessonId: string;
@@ -33,7 +35,9 @@ export default function LessonWalkthroughScreen() {
     flashcardQuiz: 0,
     sentenceScramble: 0,
     wordScramble: 0,
-    fillInBlank: 0
+    fillInBlank: 0,
+    listen: 0,
+    speak: 0
   });
   const [startTime, setStartTime] = useState<Date | null>(null);
   const [totalActiveTime, setTotalActiveTime] = useState<number>(0); // Total active time in seconds
@@ -823,6 +827,58 @@ export default function LessonWalkthroughScreen() {
                   </View>
                 </View>
               </TouchableOpacity>
+
+              {/* Exercise 6: Listen */}
+              <TouchableOpacity 
+                style={styles.flowExercise}
+                onPress={() => navigateToExercise('listen')}
+                activeOpacity={0.7}
+              >
+                <View style={styles.flowExerciseNumber}>
+                  <Text style={styles.flowExerciseNumberText}>6</Text>
+                </View>
+                <View style={styles.flowExerciseContent}>
+                  <View style={styles.flowExerciseIcon}>
+                    <Ionicons name="volume-high" size={32} color="#6366f1" />
+                  </View>
+                  <View style={styles.flowExerciseInfo}>
+                    <Text style={styles.flowExerciseTitle}>Listen</Text>
+                    <Text style={styles.flowExerciseDescription}>
+                      Listen to vocabulary words and type what you hear
+                    </Text>
+                    <Text style={styles.flowExerciseDuration}>~3-4 minutes</Text>
+                  </View>
+                  <View style={styles.flowExerciseArrow}>
+                    <Ionicons name="chevron-forward" size={20} color="#cbd5e1" />
+                  </View>
+                </View>
+              </TouchableOpacity>
+
+              {/* Exercise 7: Speak */}
+              <TouchableOpacity 
+                style={styles.flowExercise}
+                onPress={() => navigateToExercise('speak')}
+                activeOpacity={0.7}
+              >
+                <View style={styles.flowExerciseNumber}>
+                  <Text style={styles.flowExerciseNumberText}>7</Text>
+                </View>
+                <View style={styles.flowExerciseContent}>
+                  <View style={styles.flowExerciseIcon}>
+                    <Ionicons name="mic" size={32} color="#6366f1" />
+                  </View>
+                  <View style={styles.flowExerciseInfo}>
+                    <Text style={styles.flowExerciseTitle}>Speak</Text>
+                    <Text style={styles.flowExerciseDescription}>
+                      Practice pronunciation with AI-powered feedback
+                    </Text>
+                    <Text style={styles.flowExerciseDuration}>~4-5 minutes</Text>
+                  </View>
+                  <View style={styles.flowExerciseArrow}>
+                    <Ionicons name="chevron-forward" size={20} color="#cbd5e1" />
+                  </View>
+                </View>
+              </TouchableOpacity>
             </View>
 
             <View style={styles.flowActions}>
@@ -940,12 +996,52 @@ export default function LessonWalkthroughScreen() {
     return (
       <LessonFillInTheBlank
         vocabulary={lessonVocabulary}
-        onComplete={(score) => handleExerciseComplete('fill-in-blank', score, lessonVocabulary.length)}
+        onComplete={(score) => {
+          handleExerciseComplete('fill-in-blank', score, lessonVocabulary.length);
+          navigateToExercise('listen');
+        }}
         onClose={() => {
           console.log('Fill in the blank close button pressed');
           navigation.goBack();
         }}
         onProgressUpdate={handleFillInBlankProgressUpdate}
+        initialQuestionIndex={0}
+      />
+    );
+  }
+
+  if (currentStep === 'listen') {
+    return (
+      <LessonListen
+        vocabulary={lessonVocabulary}
+        onComplete={(score) => {
+          handleExerciseComplete('listen', score, lessonVocabulary.length);
+          navigateToExercise('speak');
+        }}
+        onClose={() => {
+          console.log('Listen close button pressed');
+          navigation.goBack();
+        }}
+        onProgressUpdate={(index) => {
+          console.log(`Listen progress: question ${index + 1}/${lessonVocabulary.length}`);
+        }}
+        initialQuestionIndex={0}
+      />
+    );
+  }
+
+  if (currentStep === 'speak') {
+    return (
+      <LessonSpeak
+        vocabulary={lessonVocabulary}
+        onComplete={(score) => handleExerciseComplete('speak', score, lessonVocabulary.length)}
+        onClose={() => {
+          console.log('Speak close button pressed');
+          navigation.goBack();
+        }}
+        onProgressUpdate={(index) => {
+          console.log(`Speak progress: question ${index + 1}/${lessonVocabulary.length}`);
+        }}
         initialQuestionIndex={0}
       />
     );
@@ -970,7 +1066,7 @@ export default function LessonWalkthroughScreen() {
             
             <View style={styles.scoreSummary}>
               <Text style={styles.scoreText}>
-                Total Score: {Object.values(exerciseScores).reduce((sum, score) => sum + score, 0)}/{lessonVocabulary.length * 5}
+                Total Score: {Object.values(exerciseScores).reduce((sum, score) => sum + score, 0)}/{lessonVocabulary.length * 7}
               </Text>
             </View>
 
