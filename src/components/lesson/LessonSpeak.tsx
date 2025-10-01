@@ -47,17 +47,20 @@ export default function LessonSpeak({
   console.log('🎤 Example sentence:', currentSentence);
 
   const handlePronunciationResult = (result: any) => {
-    const score = result.assessment?.pronunciationScore || 0;
+    const pronunciationScore = result.assessment?.pronunciationScore || 0;
+    // Convert to binary scoring: 60+ = 1 point, <60 = 0 points
+    const binaryScore = pronunciationScore >= 60 ? 1 : 0;
     
     console.log('🎤 Pronunciation result:', {
       word: currentWord,
-      score: score,
+      pronunciationScore: pronunciationScore,
+      binaryScore: binaryScore,
       recognizedText: result.assessment?.recognizedText,
       accuracyScore: result.assessment?.accuracyScore
     });
     
-    setScores(prev => [...prev, score]);
-    setTotalScore(prev => prev + score);
+    setScores(prev => [...prev, binaryScore]);
+    setTotalScore(prev => prev + binaryScore);
     setCurrentWordPassed(true);
   };
 
@@ -66,16 +69,16 @@ export default function LessonSpeak({
       setCurrentIndex(currentIndex + 1);
       setCurrentWordPassed(false);
     } else {
-      // Exercise complete
-      const averageScore = scores.length > 0 ? Math.round(totalScore / scores.length) : 0;
+      // Exercise complete - use total binary score (0 to vocabulary.length)
+      const exerciseScore = totalScore; // Already binary: 0, 1, 2, 3, etc.
       setGameComplete(true);
-      onComplete(averageScore);
+      onComplete(exerciseScore);
     }
   };
 
   if (gameComplete) {
-    const averageScore = scores.length > 0 ? Math.round(totalScore / scores.length) : 0;
-    const passedWords = scores.filter(s => s >= 60).length;
+    const passedWords = scores.filter(s => s === 1).length; // Count words with binary score of 1
+    const totalWords = scores.length;
     
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
@@ -96,13 +99,13 @@ export default function LessonSpeak({
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
-              <Text style={styles.statValue}>{vocabulary.length}</Text>
+              <Text style={styles.statValue}>{totalWords}</Text>
               <Text style={styles.statLabel}>Total</Text>
             </View>
             <View style={styles.statDivider} />
             <View style={styles.statItem}>
-              <Text style={styles.statValue}>{averageScore}</Text>
-              <Text style={styles.statLabel}>Avg Score</Text>
+              <Text style={styles.statValue}>{passedWords}</Text>
+              <Text style={styles.statLabel}>Score</Text>
             </View>
           </View>
         </View>
@@ -146,7 +149,7 @@ export default function LessonSpeak({
               ]} 
             />
           </View>
-          <Text style={styles.scoreText}>Score: {Math.round(totalScore)}</Text>
+          <Text style={styles.scoreText}>Score: {totalScore}/{vocabulary.length}</Text>
         </View>
 
         {/* Pronunciation Assessment */}
