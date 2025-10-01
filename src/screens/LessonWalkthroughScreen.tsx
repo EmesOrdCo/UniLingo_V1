@@ -700,9 +700,13 @@ export default function LessonWalkthroughScreen() {
             <View style={styles.exerciseFlow}>
               {/* Exercise 1: Flashcards */}
               <TouchableOpacity 
-                style={styles.flowExercise}
+                style={[
+                  styles.flowExercise,
+                  !completedExercises.has('flashcards') && lessonProgress?.completed_at && styles.flowExerciseLocked
+                ]}
                 onPress={() => navigateToExercise('flashcards')}
                 activeOpacity={0.7}
+                disabled={false}
               >
                 <View style={styles.flowExerciseNumber}>
                   <Text style={styles.flowExerciseNumberText}>1</Text>
@@ -726,9 +730,13 @@ export default function LessonWalkthroughScreen() {
 
               {/* Exercise 2: Flashcard Quiz */}
               <TouchableOpacity 
-                style={styles.flowExercise}
-                onPress={() => navigateToExercise('flashcard-quiz')}
-                activeOpacity={0.7}
+                style={[
+                  styles.flowExercise,
+                  (!completedExercises.has('flashcards') && !lessonProgress?.completed_at) && styles.flowExerciseLocked
+                ]}
+                onPress={() => completedExercises.has('flashcards') || lessonProgress?.completed_at ? navigateToExercise('flashcard-quiz') : null}
+                activeOpacity={completedExercises.has('flashcards') || lessonProgress?.completed_at ? 0.7 : 1}
+                disabled={!completedExercises.has('flashcards') && !lessonProgress?.completed_at}
               >
                 <View style={styles.flowExerciseNumber}>
                   <Text style={styles.flowExerciseNumberText}>2</Text>
@@ -745,16 +753,24 @@ export default function LessonWalkthroughScreen() {
                     <Text style={styles.flowExerciseDuration}>~3-4 minutes</Text>
                   </View>
                   <View style={styles.flowExerciseArrow}>
-                    <Ionicons name="chevron-forward" size={20} color="#cbd5e1" />
+                    {!completedExercises.has('flashcards') && !lessonProgress?.completed_at ? (
+                      <Ionicons name="lock-closed" size={20} color="#94a3b8" />
+                    ) : (
+                      <Ionicons name="chevron-forward" size={20} color="#cbd5e1" />
+                    )}
                   </View>
                 </View>
               </TouchableOpacity>
 
               {/* Exercise 3: Sentence Scramble */}
               <TouchableOpacity 
-                style={styles.flowExercise}
-                onPress={() => navigateToExercise('sentence-scramble')}
-                activeOpacity={0.7}
+                style={[
+                  styles.flowExercise,
+                  (!completedExercises.has('flashcard-quiz') && !lessonProgress?.completed_at) && styles.flowExerciseLocked
+                ]}
+                onPress={() => completedExercises.has('flashcard-quiz') || lessonProgress?.completed_at ? navigateToExercise('sentence-scramble') : null}
+                activeOpacity={completedExercises.has('flashcard-quiz') || lessonProgress?.completed_at ? 0.7 : 1}
+                disabled={!completedExercises.has('flashcard-quiz') && !lessonProgress?.completed_at}
               >
                 <View style={styles.flowExerciseNumber}>
                   <Text style={styles.flowExerciseNumberText}>3</Text>
@@ -771,16 +787,24 @@ export default function LessonWalkthroughScreen() {
                     <Text style={styles.flowExerciseDuration}>~2-3 minutes</Text>
                   </View>
                   <View style={styles.flowExerciseArrow}>
-                    <Ionicons name="chevron-forward" size={20} color="#cbd5e1" />
+                    {!completedExercises.has('flashcard-quiz') && !lessonProgress?.completed_at ? (
+                      <Ionicons name="lock-closed" size={20} color="#94a3b8" />
+                    ) : (
+                      <Ionicons name="chevron-forward" size={20} color="#cbd5e1" />
+                    )}
                   </View>
                 </View>
               </TouchableOpacity>
 
               {/* Exercise 4: Word Scramble */}
               <TouchableOpacity 
-                style={styles.flowExercise}
-                onPress={() => navigateToExercise('word-scramble')}
-                activeOpacity={0.7}
+                style={[
+                  styles.flowExercise,
+                  (!completedExercises.has('sentence-scramble') && !lessonProgress?.completed_at) && styles.flowExerciseLocked
+                ]}
+                onPress={() => completedExercises.has('sentence-scramble') || lessonProgress?.completed_at ? navigateToExercise('word-scramble') : null}
+                activeOpacity={completedExercises.has('sentence-scramble') || lessonProgress?.completed_at ? 0.7 : 1}
+                disabled={!completedExercises.has('sentence-scramble') && !lessonProgress?.completed_at}
               >
                 <View style={styles.flowExerciseNumber}>
                   <Text style={styles.flowExerciseNumberText}>4</Text>
@@ -797,16 +821,24 @@ export default function LessonWalkthroughScreen() {
                     <Text style={styles.flowExerciseDuration}>~2-3 minutes</Text>
                   </View>
                   <View style={styles.flowExerciseArrow}>
-                    <Ionicons name="chevron-forward" size={20} color="#cbd5e1" />
+                    {!completedExercises.has('sentence-scramble') && !lessonProgress?.completed_at ? (
+                      <Ionicons name="lock-closed" size={20} color="#94a3b8" />
+                    ) : (
+                      <Ionicons name="chevron-forward" size={20} color="#cbd5e1" />
+                    )}
                   </View>
                 </View>
               </TouchableOpacity>
 
               {/* Exercise 5: Fill in the Blank */}
               <TouchableOpacity 
-                style={styles.flowExercise}
-                onPress={() => navigateToExercise('fill-in-blank')}
-                activeOpacity={0.7}
+                style={[
+                  styles.flowExercise,
+                  (!completedExercises.has('word-scramble') && !lessonProgress?.completed_at) && styles.flowExerciseLocked
+                ]}
+                onPress={() => completedExercises.has('word-scramble') || lessonProgress?.completed_at ? navigateToExercise('fill-in-blank') : null}
+                activeOpacity={completedExercises.has('word-scramble') || lessonProgress?.completed_at ? 0.7 : 1}
+                disabled={!completedExercises.has('word-scramble') && !lessonProgress?.completed_at}
               >
                 <View style={styles.flowExerciseNumber}>
                   <Text style={styles.flowExerciseNumberText}>5</Text>
@@ -823,16 +855,24 @@ export default function LessonWalkthroughScreen() {
                     <Text style={styles.flowExerciseDuration}>~3-4 minutes</Text>
                   </View>
                   <View style={styles.flowExerciseArrow}>
-                    <Ionicons name="chevron-forward" size={20} color="#cbd5e1" />
+                    {!completedExercises.has('word-scramble') && !lessonProgress?.completed_at ? (
+                      <Ionicons name="lock-closed" size={20} color="#94a3b8" />
+                    ) : (
+                      <Ionicons name="chevron-forward" size={20} color="#cbd5e1" />
+                    )}
                   </View>
                 </View>
               </TouchableOpacity>
 
               {/* Exercise 6: Listen */}
               <TouchableOpacity 
-                style={styles.flowExercise}
-                onPress={() => navigateToExercise('listen')}
-                activeOpacity={0.7}
+                style={[
+                  styles.flowExercise,
+                  (!completedExercises.has('fill-in-blank') && !lessonProgress?.completed_at) && styles.flowExerciseLocked
+                ]}
+                onPress={() => completedExercises.has('fill-in-blank') || lessonProgress?.completed_at ? navigateToExercise('listen') : null}
+                activeOpacity={completedExercises.has('fill-in-blank') || lessonProgress?.completed_at ? 0.7 : 1}
+                disabled={!completedExercises.has('fill-in-blank') && !lessonProgress?.completed_at}
               >
                 <View style={styles.flowExerciseNumber}>
                   <Text style={styles.flowExerciseNumberText}>6</Text>
@@ -849,16 +889,24 @@ export default function LessonWalkthroughScreen() {
                     <Text style={styles.flowExerciseDuration}>~3-4 minutes</Text>
                   </View>
                   <View style={styles.flowExerciseArrow}>
-                    <Ionicons name="chevron-forward" size={20} color="#cbd5e1" />
+                    {!completedExercises.has('fill-in-blank') && !lessonProgress?.completed_at ? (
+                      <Ionicons name="lock-closed" size={20} color="#94a3b8" />
+                    ) : (
+                      <Ionicons name="chevron-forward" size={20} color="#cbd5e1" />
+                    )}
                   </View>
                 </View>
               </TouchableOpacity>
 
               {/* Exercise 7: Speak */}
               <TouchableOpacity 
-                style={styles.flowExercise}
-                onPress={() => navigateToExercise('speak')}
-                activeOpacity={0.7}
+                style={[
+                  styles.flowExercise,
+                  (!completedExercises.has('listen') && !lessonProgress?.completed_at) && styles.flowExerciseLocked
+                ]}
+                onPress={() => completedExercises.has('listen') || lessonProgress?.completed_at ? navigateToExercise('speak') : null}
+                activeOpacity={completedExercises.has('listen') || lessonProgress?.completed_at ? 0.7 : 1}
+                disabled={!completedExercises.has('listen') && !lessonProgress?.completed_at}
               >
                 <View style={styles.flowExerciseNumber}>
                   <Text style={styles.flowExerciseNumberText}>7</Text>
@@ -875,7 +923,11 @@ export default function LessonWalkthroughScreen() {
                     <Text style={styles.flowExerciseDuration}>~4-5 minutes</Text>
                   </View>
                   <View style={styles.flowExerciseArrow}>
-                    <Ionicons name="chevron-forward" size={20} color="#cbd5e1" />
+                    {!completedExercises.has('listen') && !lessonProgress?.completed_at ? (
+                      <Ionicons name="lock-closed" size={20} color="#94a3b8" />
+                    ) : (
+                      <Ionicons name="chevron-forward" size={20} color="#cbd5e1" />
+                    )}
                   </View>
                 </View>
               </TouchableOpacity>
@@ -1302,6 +1354,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 4,
+  },
+  flowExerciseLocked: {
+    opacity: 0.5,
+    backgroundColor: '#e2e8f0',
   },
   flowExerciseNumber: {
     width: 40,
