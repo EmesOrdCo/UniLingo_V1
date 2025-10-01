@@ -1682,7 +1682,7 @@ export default function GamesScreen({ route }: { route?: any }) {
             { name: 'Planet Defense', tag: 'Arcade', icon: 'planet', color: '#3b82f6', bgColor: '#dbeafe', onPress: startGravityGame },
             { name: 'Listen & Type', tag: 'Listening', icon: 'ear', color: '#8b5cf6', bgColor: '#f3e8ff', onPress: startTypeWhatYouHear },
             { name: 'Sentence Scramble', tag: 'Grammar', icon: 'document-text', color: '#ec4899', bgColor: '#fdf2f8', onPress: startSentenceScramble },
-            { name: 'Speaking Game', tag: 'Pronunciation', icon: 'mic', color: '#f59e0b', bgColor: '#fffbeb', onPress: startSpeakingGame },
+            // { name: 'Speaking Game', tag: 'Pronunciation', icon: 'mic', color: '#f59e0b', bgColor: '#fffbeb', onPress: startSpeakingGame }, // Hidden to assess API usage costs
           ].map((game) => ({
             id: game.name,
             title: game.name,
