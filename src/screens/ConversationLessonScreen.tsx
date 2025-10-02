@@ -9,7 +9,10 @@ import {
   ActivityIndicator,
   SafeAreaView,
   Dimensions,
-  Animated
+  Animated,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -34,6 +37,20 @@ interface RouteParams {
   lessonTitle: string;
 }
 
+interface ConversationExercise {
+  type: 'flashcard' | 'speak' | 'fill-in-blank' | 'sentence-scramble';
+  keyword: string;
+  sentence: string;
+  vocabulary: LessonVocabulary;
+}
+
+interface ExerciseState {
+  isActive: boolean;
+  exercise: ConversationExercise | null;
+  isCompleted: boolean;
+  score: number;
+}
+
 export default function ConversationLessonScreen() {
   const [conversationData, setConversationData] = useState<ConversationData | null>(null);
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
@@ -45,6 +62,27 @@ export default function ConversationLessonScreen() {
   const [typingText, setTypingText] = useState('');
   const [isTypingAnimation, setIsTypingAnimation] = useState(false);
   const [userMessageCompleted, setUserMessageCompleted] = useState(false);
+  const [exerciseState, setExerciseState] = useState<ExerciseState>({
+    isActive: false,
+    exercise: null,
+    isCompleted: false,
+    score: 0
+  });
+
+  // Sentence scramble state
+  const [scrambleWords, setScrambleWords] = useState<string[]>([]);
+  const [scrambleOrder, setScrambleOrder] = useState<string[]>([]);
+  const [scrambleCorrectOrder, setScrambleCorrectOrder] = useState<string[]>([]);
+  
+  // Fill-in-blank state
+  const [fillBlankAnswer, setFillBlankAnswer] = useState<string>('');
+  
+  // Track if exercise has been created for current message
+  const [exerciseCreatedForMessage, setExerciseCreatedForMessage] = useState<number>(-1);
+  
+  // Speak exercise state
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingResult, setRecordingResult] = useState<any>(null);
   
   const navigation = useNavigation();
   const route = useRoute();
@@ -77,8 +115,10 @@ export default function ConversationLessonScreen() {
 
   // Typing animation effect
   useEffect(() => {
+    console.log('🎬 Typing animation effect triggered:', { isTypingAnimation, hasData: !!conversationDataRef.current, isRunning: isAnimationRunningRef.current });
     if (isTypingAnimation && conversationDataRef.current && !isAnimationRunningRef.current) {
       const currentMessage = conversationDataRef.current.conversation[currentMessageIndexRef.current];
+      console.log('🎬 Starting typing animation for:', currentMessage?.speaker, currentMessage?.message);
       if (currentMessage) {
         // Use requestAnimationFrame to ensure smooth start
         requestAnimationFrame(() => {
@@ -185,9 +225,9 @@ export default function ConversationLessonScreen() {
       // Try to get conversation from chat_content
       let conversation: ConversationData | null = null;
       
-      if (lessonData.vocabulary.length > 0 && (lessonData.vocabulary[0] as any).chat_content) {
+      if (lessonData.lesson.chat_content) {
         try {
-          conversation = JSON.parse((lessonData.vocabulary[0] as any).chat_content);
+          conversation = JSON.parse(lessonData.lesson.chat_content);
           console.log('✅ Loaded conversation from database');
         } catch (error) {
           console.error('❌ Error parsing conversation data:', error);
@@ -201,43 +241,11 @@ export default function ConversationLessonScreen() {
           conversation: [
             {
               speaker: "Person A",
-              message: "Hey! I heard you're studying computer science. What are you working on?"
+              message: "Hello! Let's practice some vocabulary."
             },
             {
               speaker: "User",
-              message: "Yes, I'm learning about algorithms and data structures. It's really interesting!"
-            },
-            {
-              speaker: "Person A",
-              message: "That's great! Algorithms are the foundation of programming. Have you covered sorting algorithms yet?"
-            },
-            {
-              speaker: "User",
-              message: "I've learned about quicksort and merge sort. The time complexity of quicksort is O(n log n) on average."
-            },
-            {
-              speaker: "Person A",
-              message: "Excellent! And what about data structures? Arrays and linked lists are fundamental concepts."
-            },
-            {
-              speaker: "User",
-              message: "I understand that arrays have constant time access, but linked lists require O(n) traversal time."
-            },
-            {
-              speaker: "Person A",
-              message: "Perfect! You're really getting the concepts. Have you worked with binary trees or hash tables?"
-            },
-            {
-              speaker: "User",
-              message: "Binary trees are fascinating - I love how they enable efficient searching with O(log n) complexity."
-            },
-            {
-              speaker: "Person A",
-              message: "That's impressive understanding! These data structures and algorithms form the backbone of software engineering."
-            },
-            {
-              speaker: "User",
-              message: "I'm excited to apply these concepts in my programming projects. Thanks for the great discussion!"
+              message: "Yes, let's practice!"
             }
           ]
         };
@@ -251,7 +259,9 @@ export default function ConversationLessonScreen() {
       // Start with Person A message (index 0)
       if (conversation.conversation.length > 0) {
         const firstMessage = conversation.conversation[0];
+        console.log('🎬 Starting conversation with:', firstMessage.speaker, firstMessage.message);
         if (firstMessage.speaker === 'Person A') {
+          console.log('🎬 Starting Person A typing animation');
           setIsTyping(true);
           isTypingRef.current = true;
           setIsTypingAnimation(true);
@@ -302,23 +312,359 @@ export default function ConversationLessonScreen() {
     console.log(`✅ Message advanced. Is typing: ${isTypingRef.current}`);
   }, []);
 
+  // Function to detect keywords in user message and create exercise
+  const detectKeywordsAndCreateExercise = useCallback((message: string): ConversationExercise | null => {
+    if (!vocabulary.length || !message) return null;
+
+    const words = message.toLowerCase().split(/\s+/);
+    const foundKeywords: LessonVocabulary[] = [];
+
+    console.log('🔍 Detecting keywords in message:', message);
+    console.log('🔍 Available vocabulary:', vocabulary.map(v => ({ 
+      english_term: v.english_term, 
+      keywords: v.keywords 
+    })));
+
+    // Check each word against vocabulary keywords
+    for (const word of words) {
+      const cleanWord = word.replace(/[^\w]/g, ''); // Remove punctuation
+      const vocabMatch = vocabulary.find(v => {
+        // Check if this vocabulary item has keywords
+        if (v.keywords) {
+          try {
+            let keywordList: string[] = [];
+            
+            if (typeof v.keywords === 'string') {
+              // Try to parse as JSON first, if that fails, treat as single keyword
+              try {
+                keywordList = JSON.parse(v.keywords);
+              } catch {
+                // If not JSON, treat the entire string as a single keyword
+                keywordList = [v.keywords];
+              }
+            } else if (Array.isArray(v.keywords)) {
+              keywordList = v.keywords;
+            }
+            
+            console.log('🔍 Checking keywords:', keywordList, 'against word:', cleanWord);
+            return keywordList.some((keyword: string) => 
+              keyword.toLowerCase() === cleanWord
+            );
+          } catch (error) {
+            console.error('❌ Error parsing keywords:', v.keywords, error);
+            return false;
+          }
+        }
+        return false;
+      });
+      if (vocabMatch) {
+        console.log('✅ Found keyword match:', vocabMatch.english_term, 'for word:', cleanWord);
+        foundKeywords.push(vocabMatch);
+      }
+    }
+
+    if (foundKeywords.length === 0) {
+      console.log('❌ No keywords found in message');
+      return null;
+    }
+
+    // Pick one random keyword
+    const selectedKeyword = foundKeywords[Math.floor(Math.random() * foundKeywords.length)];
+    console.log('🎯 Selected keyword for exercise:', selectedKeyword.english_term);
+
+    // Pick random exercise type
+    const exerciseTypes: ConversationExercise['type'][] = ['flashcard', 'speak', 'fill-in-blank', 'sentence-scramble'];
+    const selectedType = exerciseTypes[Math.floor(Math.random() * exerciseTypes.length)];
+
+    // Find the actual word from the message that matches this vocabulary's keywords
+    let matchedWord = '';
+    const messageWords = message.toLowerCase().split(/\s+/);
+    
+    for (const word of messageWords) {
+      const cleanWord = word.replace(/[^\w]/g, '');
+      if (selectedKeyword.keywords) {
+        try {
+          let keywordList: string[] = [];
+          if (typeof selectedKeyword.keywords === 'string') {
+            try {
+              keywordList = JSON.parse(selectedKeyword.keywords);
+            } catch {
+              keywordList = [selectedKeyword.keywords];
+            }
+          } else if (Array.isArray(selectedKeyword.keywords)) {
+            keywordList = selectedKeyword.keywords;
+          }
+          
+          const foundMatch = keywordList.some((keyword: string) =>
+            keyword.toLowerCase() === cleanWord
+          );
+          
+          if (foundMatch) {
+            matchedWord = cleanWord;
+            break;
+          }
+        } catch (error) {
+          console.error('❌ Error in word matching:', error);
+        }
+      }
+    }
+    
+    if (!matchedWord) {
+      console.log('❌ Could not find matching word in sentence');
+      return null;
+    }
+
+    console.log('🎯 Final exercise:', { matchedWord, selectedKeyword: selectedKeyword.english_term });
+
+    return {
+      type: selectedType,
+      keyword: matchedWord, // Use the actual word from the message
+      sentence: message,
+      vocabulary: selectedKeyword
+    };
+  }, [vocabulary]);
+
+  // Auto-detect keywords when user message is displayed (only after Person A finishes typing)
+  useEffect(() => {
+    if (conversationData && currentMessageIndex < conversationData.conversation.length) {
+      const currentMessage = conversationData.conversation[currentMessageIndex];
+      
+      // Only create exercise if:
+      // 1. It's a User message
+      // 2. No exercise is currently active
+      // 3. No exercise has been created for this message yet
+      // 4. Person A has finished typing (no typing animation active)
+      if (currentMessage && 
+          currentMessage.speaker === 'User' && 
+          !exerciseState.isActive && 
+          exerciseCreatedForMessage !== currentMessageIndex &&
+          !isTypingAnimation) { // Wait until Person A finishes typing
+        
+        console.log('🔍 Exercise creation check:', {
+          currentMessageIndex,
+          messageText: currentMessage.message,
+          exerciseCreatedForMessage,
+          isActive: exerciseState.isActive,
+          isTypingAnimation
+        });
+        
+        // Check for keywords and create exercise automatically
+        const exercise = detectKeywordsAndCreateExercise(currentMessage.message);
+        
+        if (exercise) {
+          console.log('🎯 Exercise created automatically for message', currentMessageIndex, ':', exercise);
+          setExerciseCreatedForMessage(currentMessageIndex); // Mark this message as processed
+          
+          setExerciseState({
+            isActive: true,
+            exercise,
+            isCompleted: false,
+            score: 0
+          });
+          
+          // Initialize scramble if it's a sentence scramble exercise
+          if (exercise.type === 'sentence-scramble') {
+            initializeScramble(exercise.sentence);
+          }
+          
+          // Reset fill-blank answer
+          setFillBlankAnswer('');
+        }
+      }
+    }
+  }, [currentMessageIndex, conversationData, exerciseState.isActive, exerciseCreatedForMessage, isTypingAnimation, detectKeywordsAndCreateExercise, initializeScramble]);
+
+  // Clear exercise when advancing to a new user message
+  useEffect(() => {
+    if (conversationData && currentMessageIndex < conversationData.conversation.length) {
+      const currentMessage = conversationData.conversation[currentMessageIndex];
+      
+      if (currentMessage && currentMessage.speaker === 'User') {
+        console.log('🔍 Checking exercise cleanup for user message:', {
+          currentMessageIndex,
+          currentMessageText: currentMessage.message,
+          exerciseCreatedForMessage,
+          exerciseActive: exerciseState.isActive
+        });
+        
+        // Always clear any existing exercise when we reach a new user message
+        if (exerciseState.isActive || exerciseCreatedForMessage >= 0) {
+          console.log('🧹 Clearing exercise for new user message:', {
+            currentMessageIndex,
+            currentMessageText: currentMessage.message,
+            oldExerciseMessageIndex: exerciseCreatedForMessage
+          });
+          
+          setExerciseState(prev => ({
+            ...prev,
+            isActive: false,
+            isCompleted: false,
+            score: 0
+          }));
+          
+          // Reset all exercise states
+          setScrambleWords([]);
+          setScrambleOrder([]);
+          setScrambleCorrectOrder([]);
+          setFillBlankAnswer('');
+          setIsRecording(false);
+          setRecordingResult(null);
+          setExerciseCreatedForMessage(-1); // Reset to allow new exercise creation
+        }
+      }
+    }
+  }, [currentMessageIndex, conversationData]);
+
   const handleSendMessage = useCallback(() => {
-    console.log('📤 Send message button pressed');
-    // Start typing animation for user message
+    // This function is no longer needed since exercises auto-trigger
+    // User messages are automatically processed when exercises complete
+    console.log('🚫 handleSendMessage called but auto-exercises handle this now');
+  }, []);
+
+
+  // Exercise completion handler
+  const handleExerciseComplete = useCallback((isCorrect: boolean) => {
+    const newScore = isCorrect ? 1 : 0;
+    
+    console.log('🎯 Exercise completed:', { isCorrect, score: newScore });
+    
+    // Mark exercise as completed and deactivate IMMEDIATELY
+    setExerciseState(prev => ({
+      ...prev,
+      isCompleted: true,
+      score: newScore,
+      isActive: false // Deactivate the exercise to hide it
+    }));
+
+    // Reset all exercise states immediately
+    setScrambleWords([]);
+    setScrambleOrder([]);
+    setScrambleCorrectOrder([]);
+    setFillBlankAnswer('');
+    setIsRecording(false);
+    setRecordingResult(null);
+    // Reset exercise tracking to allow next user message to create exercise
+    setExerciseCreatedForMessage(-1);
+
+    // Proceed with conversation immediately after hiding exercise
     if (conversationData) {
       const currentMessage = conversationData.conversation[currentMessageIndex];
       if (currentMessage && currentMessage.speaker === 'User') {
-        // Set typing animation state immediately (like Person A's initial message)
-        setTypingText(''); // Start with empty text to prevent flash
+        setTypingText('');
         setIsTypingAnimation(true);
-        // The typing animation will handle advancing to the next message when it completes
-      } else {
-        handleNextMessage();
       }
-    } else {
-      handleNextMessage();
     }
-  }, [currentMessageIndex, conversationData]);
+  }, [conversationData, currentMessageIndex]);
+
+  // Exercise skip handler
+  const handleExerciseSkip = useCallback(() => {
+    handleExerciseComplete(false); // 0 points for skip
+  }, [handleExerciseComplete]);
+
+  // Sentence scramble handlers
+  const initializeScramble = useCallback((sentence: string) => {
+    const words = sentence.split(' ').filter(word => word.trim().length > 0);
+    const shuffledWords = [...words].sort(() => Math.random() - 0.5);
+    setScrambleWords(shuffledWords);
+    setScrambleOrder([]);
+    setScrambleCorrectOrder(words);
+  }, []);
+
+  const handleScrambleWordTap = useCallback((index: number, area: 'available' | 'answer') => {
+    if (area === 'available') {
+      // Move word from available to answer
+      const word = scrambleWords[index];
+      setScrambleWords(prev => prev.filter((_, i) => i !== index));
+      setScrambleOrder(prev => [...prev, word]);
+    } else {
+      // Move word from answer back to available
+      const word = scrambleOrder[index];
+      setScrambleOrder(prev => prev.filter((_, i) => i !== index));
+      setScrambleWords(prev => [...prev, word]);
+    }
+  }, [scrambleWords, scrambleOrder]);
+
+  const handleScrambleReset = useCallback(() => {
+    const allWords = [...scrambleOrder, ...scrambleWords];
+    const shuffledWords = allWords.sort(() => Math.random() - 0.5);
+    setScrambleWords(shuffledWords);
+    setScrambleOrder([]);
+  }, [scrambleOrder, scrambleWords]);
+
+  const handleScrambleCheck = useCallback(() => {
+    const userSentence = scrambleOrder.join(' ');
+    const correctSentence = scrambleCorrectOrder.join(' ');
+    const isCorrect = userSentence === correctSentence;
+    
+    console.log('🔍 Scramble check:', {
+      userSentence,
+      correctSentence,
+      isCorrect,
+      scrambleOrder,
+      scrambleCorrectOrder
+    });
+    
+    // If incorrect, don't complete yet - let user try again
+    if (!isCorrect) {
+      Alert.alert('Try Again', 'The sentence order is not correct. Keep trying!');
+      return;
+    }
+    
+    // If correct, complete the exercise immediately without alert
+    console.log('✅ Scramble correct! Completing exercise...');
+    handleExerciseComplete(true);
+  }, [scrambleOrder, scrambleCorrectOrder, handleExerciseComplete]);
+
+  // Fill-in-blank handlers
+  const handleFillBlankCheck = useCallback(() => {
+    if (!exerciseState.exercise || !exerciseState.exercise.keyword) return;
+    
+    const correctAnswer = exerciseState.exercise.keyword.toLowerCase().trim();
+    const userAnswer = fillBlankAnswer.toLowerCase().trim();
+    const isCorrect = userAnswer === correctAnswer;
+    
+    handleExerciseComplete(isCorrect);
+  }, [fillBlankAnswer, exerciseState.exercise, handleExerciseComplete]);
+
+  const handleFillBlankReset = useCallback(() => {
+    setFillBlankAnswer('');
+  }, []);
+
+  // Speak exercise handlers
+  const handleStartRecording = useCallback(() => {
+    setIsRecording(true);
+    setRecordingResult(null);
+    // TODO: Start recording with Azure Speech Services
+    console.log('🎤 Starting recording for keyword:', exerciseState.exercise?.keyword);
+  }, [exerciseState.exercise]);
+
+  const handleStopRecording = useCallback(() => {
+    setIsRecording(false);
+    // TODO: Stop recording and process with Azure Speech Services
+    console.log('🎤 Stopping recording, processing...');
+    
+    // Simulate processing for now
+    setTimeout(() => {
+      const mockResult = {
+        assessment: {
+          pronunciationScore: Math.random() * 40 + 60, // Random score between 60-100
+          accuracyScore: Math.random() * 40 + 60,
+          recognizedText: exerciseState.exercise?.keyword || ''
+        }
+      };
+      
+      setRecordingResult(mockResult);
+      
+      // Auto-check the result
+      const score = mockResult.assessment.pronunciationScore;
+      const isCorrect = score >= 70; // 70+ considered passing
+      console.log('🎤 Pronunciation score:', score, 'Passed:', isCorrect);
+      
+      setTimeout(() => {
+        handleExerciseComplete(isCorrect);
+      }, 2000); // Show result for 2 seconds then complete
+    }, 1500);
+  }, [exerciseState.exercise, handleExerciseComplete]);
 
   const handleConversationComplete = async () => {
     if (!user) return;
@@ -413,27 +759,272 @@ export default function ConversationLessonScreen() {
     );
   }, [currentMessageIndex, isTypingAnimation, typingText, userMessageCompleted]);
 
+  // Render conversation exercise component
+  const renderConversationExercise = () => {
+    console.log('🎨 Exercise render check:', exerciseState);
+    if (!exerciseState.isActive || !exerciseState.exercise) {
+      console.log('❌ Exercise not rendering - isActive:', exerciseState.isActive, 'exercise:', exerciseState.exercise);
+      return null;
+    }
+
+    const { exercise } = exerciseState;
+    console.log('✅ Rendering exercise:', exercise.type);
+
+    switch (exercise.type) {
+      case 'flashcard':
+        return (
+          <View style={styles.integratedExerciseContainer}>
+            <Text style={styles.integratedExerciseTitle}>CHOOSE THE CORRECT TRANSLATION</Text>
+            <Text style={styles.integratedExerciseContext}>Complete this to continue the conversation</Text>
+            
+            <View style={styles.integratedFlashcardContainer}>
+                <Text style={styles.integratedFlashcardQuestion}>
+                  What is the translation of "{exercise.keyword}"?
+                </Text>
+              
+              <View style={styles.integratedFlashcardOptions}>
+                <TouchableOpacity
+                  style={[styles.integratedOption, styles.integratedCorrectOption]}
+                  onPress={() => handleExerciseComplete(true)}
+                >
+                  <Text style={styles.integratedOptionText}>{exercise.vocabulary?.native_translation || 'Unknown'}</Text>
+                </TouchableOpacity>
+                
+                {/* Add some dummy options for variety */}
+                {vocabulary.filter(v => v.id !== exercise.vocabulary?.id).slice(0, 2).map((vocab, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={[styles.integratedOption, styles.integratedIncorrectOption]}
+                    onPress={() => handleExerciseComplete(false)}
+                  >
+                    <Text style={styles.integratedOptionText}>{vocab.native_translation}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          </View>
+        );
+
+      case 'fill-in-blank':
+        console.log('🎯 Fill-blank exercise data:', {
+          sentence: exercise.sentence,
+          keyword: exercise.keyword,
+          vocabulary: exercise.vocabulary
+        });
+        
+        return (
+          <View style={styles.integratedExerciseContainer}>
+            <Text style={styles.integratedExerciseTitle}>FILL IN THE BLANK</Text>
+            <Text style={styles.integratedExerciseContext}>Complete this to continue the conversation</Text>
+            
+            <View style={styles.integratedFillBlankContainer}>
+              <View style={styles.integratedFillBlankSentenceContainer}>
+                {exercise.sentence.split(' ').map((word, index) => {
+                  // Clean both the word and keyword for comparison
+                  const cleanWord = word.toLowerCase().replace(/[^\w]/g, '');
+                  const cleanKeyword = exercise.keyword ? exercise.keyword.toLowerCase().replace(/[^\w]/g, '') : '';
+                  const isKeyword = cleanKeyword && cleanWord === cleanKeyword;
+                  
+                  console.log('🔍 Fill-blank word check:', { 
+                    word, 
+                    cleanWord, 
+                    keyword: exercise.keyword, 
+                    cleanKeyword, 
+                    isKeyword,
+                    sentence: exercise.sentence
+                  });
+                  
+                  return (
+                    <View key={index} style={styles.integratedFillBlankWordContainer}>
+                      {isKeyword ? (
+                        <TextInput
+                          style={styles.integratedFillBlankInput}
+                          value={fillBlankAnswer}
+                          onChangeText={setFillBlankAnswer}
+                          placeholder="____"
+                          placeholderTextColor="#94a3b8"
+                          autoCapitalize="none"
+                          autoCorrect={false}
+                        />
+                      ) : (
+                        <Text style={styles.integratedFillBlankWord}>{word}</Text>
+                      )}
+                    </View>
+                  );
+                })}
+              </View>
+              <Text style={styles.integratedFillBlankHint}>
+                Hint: {exercise.vocabulary?.definition || 'No hint available'}
+              </Text>
+              
+              <View style={styles.integratedFillBlankButtons}>
+                <TouchableOpacity
+                  style={[styles.integratedButton, styles.integratedResetButton]}
+                  onPress={handleFillBlankReset}
+                >
+                  <Text style={styles.integratedButtonText}>Clear</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.integratedButton, 
+                    fillBlankAnswer.trim() ? styles.integratedCorrectButton : styles.integratedDisabledButton
+                  ]}
+                  onPress={handleFillBlankCheck}
+                  disabled={!fillBlankAnswer.trim()}
+                >
+                  <Text style={styles.integratedButtonText}>Check Answer</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        );
+
+      case 'speak':
+        return (
+          <View style={styles.integratedExerciseContainer}>
+            <Text style={styles.integratedExerciseTitle}>SAY THE CORRECT RESPONSE</Text>
+            <Text style={styles.integratedExerciseContext}>Say the bold word to continue the conversation</Text>
+            
+            <View style={styles.integratedSpeakContainer}>
+              <Text style={styles.integratedSpeakSentence}>
+                {exercise.sentence.split(' ').map((word, index) => {
+                  // Clean both the word and keyword for comparison
+                  const cleanWord = word.toLowerCase().replace(/[^\w]/g, '');
+                  const cleanKeyword = exercise.keyword ? exercise.keyword.toLowerCase().replace(/[^\w]/g, '') : '';
+                  const isKeyword = cleanKeyword && cleanWord === cleanKeyword;
+                  
+                  return (
+                    <Text key={index}>
+                      <Text style={isKeyword ? styles.integratedSpeakBoldWord : styles.integratedSpeakNormalWord}>
+                        {word}
+                      </Text>
+                      {index < exercise.sentence.split(' ').length - 1 && <Text> </Text>}
+                    </Text>
+                  );
+                })}
+              </Text>
+              
+              <Text style={styles.integratedSpeakHint}>
+                Tap the microphone to record yourself saying "{exercise.keyword}"
+              </Text>
+              
+              <View style={styles.integratedSpeakButtons}>
+                {!isRecording && !recordingResult ? (
+                  <TouchableOpacity
+                    style={[styles.integratedButton, styles.integratedMicButton]}
+                    onPress={handleStartRecording}
+                  >
+                    <Ionicons name="mic" size={20} color="#ffffff" />
+                    <Text style={styles.integratedButtonText}> Tap to Record</Text>
+                  </TouchableOpacity>
+                ) : isRecording ? (
+                  <TouchableOpacity
+                    style={[styles.integratedButton, styles.integratedRecordingButton]}
+                    onPress={handleStopRecording}
+                  >
+                    <Ionicons name="stop" size={20} color="#ffffff" />
+                    <Text style={styles.integratedButtonText}> Stop Recording</Text>
+                  </TouchableOpacity>
+                ) : recordingResult ? (
+                  <View style={styles.integratedSpeakResult}>
+                    <Text style={styles.integratedSpeakScore}>
+                      Score: {Math.round(recordingResult.assessment.pronunciationScore)}%
+                    </Text>
+                    <Text style={styles.integratedSpeakFeedback}>
+                      {recordingResult.assessment.pronunciationScore >= 70 
+                        ? 'Great pronunciation! ✓' 
+                        : 'Keep practicing! Try again.'}
+                    </Text>
+                  </View>
+                ) : null}
+                
+                <TouchableOpacity
+                  style={[styles.integratedButton, styles.integratedIncorrectButton]}
+                  onPress={() => handleExerciseComplete(false)}
+                >
+                  <Text style={styles.integratedButtonText}>Skip</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        );
+
+      case 'sentence-scramble':
+        return (
+          <View style={styles.integratedExerciseContainer}>
+            <Text style={styles.integratedExerciseTitle}>REORDER THE SENTENCE</Text>
+            <Text style={styles.integratedExerciseContext}>Tap words to reorder the sentence</Text>
+            
+            <View style={styles.integratedScrambleContainer}>
+              {/* User's current order */}
+              <View style={styles.integratedScrambleAnswerArea}>
+                <Text style={styles.integratedScrambleAnswerLabel}>Your sentence:</Text>
+                <View style={styles.integratedScrambleAnswerContainer}>
+                  {scrambleOrder.map((word, index) => (
+                    <TouchableOpacity
+                      key={`answer-${index}`}
+                      style={[styles.integratedScrambleWord, styles.integratedScrambleAnswerWord]}
+                      onPress={() => handleScrambleWordTap(index, 'answer')}
+                    >
+                      <Text style={styles.integratedScrambleWordText}>{word}</Text>
+                    </TouchableOpacity>
+                  ))}
+                  {scrambleOrder.length === 0 && (
+                    <Text style={styles.integratedScramblePlaceholder}>Tap words below to build your sentence</Text>
+                  )}
+                </View>
+              </View>
+              
+              {/* Available words */}
+              <View style={styles.integratedScrambleWordsArea}>
+                <Text style={styles.integratedScrambleWordsLabel}>Available words:</Text>
+                <View style={styles.integratedScrambleWordsContainer}>
+                  {scrambleWords.map((word, index) => (
+                    <TouchableOpacity
+                      key={`word-${index}`}
+                      style={[styles.integratedScrambleWord, styles.integratedScrambleAvailableWord]}
+                      onPress={() => handleScrambleWordTap(index, 'available')}
+                    >
+                      <Text style={styles.integratedScrambleWordText}>{word}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+              
+              <View style={styles.integratedScrambleButtons}>
+                <TouchableOpacity
+                  style={[styles.integratedButton, styles.integratedResetButton]}
+                  onPress={handleScrambleReset}
+                >
+                  <Text style={styles.integratedButtonText}>Reset</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.integratedButton, 
+                    scrambleOrder.length === scrambleCorrectOrder.length ? styles.integratedCorrectButton : styles.integratedDisabledButton
+                  ]}
+                  onPress={handleScrambleCheck}
+                  disabled={scrambleOrder.length !== scrambleCorrectOrder.length}
+                >
+                  <Text style={styles.integratedButtonText}>Check Answer</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        );
+
+      default:
+        return null;
+    }
+  };
+
   const renderActionButton = () => {
     if (!conversationData) return null;
     
     const currentMessage = conversationData.conversation[currentMessageIndex];
-    const isUserTurn = currentMessage?.speaker === 'User';
-    const isPersonATyping = !isUserTurn && isTypingAnimation;
+    const isPersonATyping = currentMessage?.speaker !== 'User' && isTypingAnimation;
     
-    console.log(`🎯 Rendering action button - Current speaker: ${currentMessage?.speaker}, Is user turn: ${isUserTurn}, Is Person A typing: ${isPersonATyping}`);
-    
-    if (isUserTurn) {
-      return (
-        <TouchableOpacity
-          style={styles.sendButton}
-          onPress={handleSendMessage}
-          activeOpacity={0.8}
-        >
-          <Ionicons name="send" size={20} color="#ffffff" />
-          <Text style={styles.sendButtonText}>Send Message</Text>
-        </TouchableOpacity>
-      );
-    } else if (isPersonATyping) {
+    if (isPersonATyping) {
       return (
         <View style={styles.typingIndicator}>
           <View style={styles.typingDots}>
@@ -445,7 +1036,7 @@ export default function ConversationLessonScreen() {
         </View>
       );
     } else {
-      // Person A message is complete, no action needed
+      // No send button needed - exercises handle progression
       return null;
     }
   };
@@ -477,17 +1068,22 @@ export default function ConversationLessonScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity 
-          style={styles.backButton} 
-          onPress={() => navigation.goBack()}
-        >
-          <Ionicons name="arrow-back" size={24} color="#6366f1" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Conversation</Text>
-        <View style={styles.placeholder} />
-      </View>
+      <KeyboardAvoidingView 
+        style={styles.keyboardAvoidingView}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity 
+            style={styles.backButton} 
+            onPress={() => navigation.goBack()}
+          >
+            <Ionicons name="arrow-back" size={24} color="#6366f1" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Conversation</Text>
+          <View style={styles.placeholder} />
+        </View>
 
       {/* Progress indicator */}
       <View style={styles.progressContainer}>
@@ -518,7 +1114,11 @@ export default function ConversationLessonScreen() {
       {/* Action Button */}
       <View style={styles.actionContainer}>
         {renderActionButton()}
-      </View>
+        </View>
+        
+        {/* Exercise overlay */}
+        {renderConversationExercise()}
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -527,6 +1127,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f9fafb',
+  },
+  keyboardAvoidingView: {
+    flex: 1,
   },
   header: {
     flexDirection: 'row',
@@ -752,5 +1355,407 @@ const styles = StyleSheet.create({
   cursor: {
     color: '#6366f1',
     fontWeight: 'bold',
+  },
+  // Integrated Exercise styles (like Jumpspeak)
+  integratedExerciseContainer: {
+    backgroundColor: '#1e293b',
+    padding: 20,
+    marginTop: 20,
+    borderRadius: 16,
+    marginHorizontal: 20,
+  },
+  integratedExerciseTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#ffffff',
+    textAlign: 'center',
+    marginBottom: 8,
+    letterSpacing: 0.5,
+  },
+  integratedExerciseContext: {
+    fontSize: 14,
+    color: '#94a3b8',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  // Simple flashcard styles
+  simpleFlashcard: {
+    backgroundColor: '#f3f4f6',
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 24,
+    minHeight: 120,
+  },
+  flashcardFront: {
+    marginBottom: 16,
+  },
+  flashcardBack: {
+    borderTopWidth: 1,
+    borderTopColor: '#d1d5db',
+    paddingTop: 16,
+  },
+  flashcardLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6b7280',
+    marginBottom: 8,
+    textTransform: 'uppercase',
+  },
+  flashcardWord: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#1f2937',
+  },
+  flashcardTranslation: {
+    fontSize: 18,
+    color: '#374151',
+    marginBottom: 8,
+  },
+  flashcardDefinition: {
+    fontSize: 14,
+    color: '#6b7280',
+    fontStyle: 'italic',
+  },
+  // Speak styles
+  speakContainer: {
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  speakInstruction: {
+    fontSize: 18,
+    color: '#6b7280',
+    marginBottom: 12,
+  },
+  speakWord: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginBottom: 20,
+  },
+  speakButton: {
+    backgroundColor: '#007AFF',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  speakButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  // Fill-in-blank styles
+  fillBlankContainer: {
+    marginBottom: 24,
+  },
+  fillBlankInstruction: {
+    fontSize: 18,
+    color: '#6b7280',
+    marginBottom: 12,
+  },
+  fillBlankSentence: {
+    fontSize: 18,
+    color: '#1f2937',
+    lineHeight: 28,
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  fillBlankHint: {
+    fontSize: 14,
+    color: '#9ca3af',
+    fontStyle: 'italic',
+    textAlign: 'center',
+  },
+  // Scramble styles
+  scrambleContainer: {
+    marginBottom: 24,
+  },
+  scrambleInstruction: {
+    fontSize: 18,
+    color: '#6b7280',
+    marginBottom: 12,
+  },
+  scrambleWords: {
+    fontSize: 18,
+    color: '#1f2937',
+    lineHeight: 28,
+    textAlign: 'center',
+    backgroundColor: '#f3f4f6',
+    padding: 16,
+    borderRadius: 8,
+  },
+  // Integrated Flashcard Quiz Styles
+  integratedFlashcardContainer: {
+    marginBottom: 20,
+  },
+  integratedFlashcardQuestion: {
+    fontSize: 18,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: 20,
+    color: '#ffffff',
+  },
+  integratedFlashcardOptions: {
+    gap: 12,
+  },
+  integratedOption: {
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    borderWidth: 1,
+    alignItems: 'center',
+    backgroundColor: '#334155',
+  },
+  integratedCorrectOption: {
+    borderColor: '#10b981',
+  },
+  integratedIncorrectOption: {
+    borderColor: '#ef4444',
+  },
+  integratedOptionText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#ffffff',
+  },
+  // Integrated Fill-in-the-Blank Styles
+  integratedFillBlankContainer: {
+    marginBottom: 20,
+  },
+  integratedFillBlankSentenceContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 15,
+    gap: 4,
+  },
+  integratedFillBlankWordContainer: {
+    marginHorizontal: 2,
+  },
+  integratedFillBlankWord: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#ffffff',
+  },
+  integratedFillBlankInput: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#ffffff',
+    backgroundColor: '#1f2937',
+    borderBottomWidth: 2,
+    borderBottomColor: '#ffffff',
+    borderWidth: 0,
+    borderRadius: 0,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    minWidth: 80,
+    textAlign: 'center',
+  },
+  integratedFillBlankDebug: {
+    fontSize: 12,
+    textAlign: 'center',
+    marginBottom: 10,
+    color: '#ef4444',
+    fontStyle: 'italic',
+  },
+  integratedFillBlankHint: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 20,
+    color: '#94a3b8',
+    fontStyle: 'italic',
+  },
+  integratedFillBlankButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    gap: 10,
+  },
+  // Integrated Speak Exercise Styles
+  integratedSpeakContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  integratedSpeakSentence: {
+    fontSize: 18,
+    textAlign: 'center',
+    lineHeight: 28,
+    marginBottom: 15,
+    color: '#ffffff',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  integratedSpeakNormalWord: {
+    fontSize: 18,
+    color: '#ffffff',
+  },
+  integratedSpeakBoldWord: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#ffffff',
+    backgroundColor: '#10b981',
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  integratedSpeakHint: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 20,
+    color: '#94a3b8',
+    fontStyle: 'italic',
+  },
+  integratedSpeakButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    gap: 10,
+  },
+  integratedMicButton: {
+    backgroundColor: '#3b82f6',
+  },
+  integratedRecordingButton: {
+    backgroundColor: '#ef4444',
+  },
+  integratedSpeakResult: {
+    alignItems: 'center',
+    backgroundColor: '#334155',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 10,
+  },
+  integratedSpeakScore: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#10b981',
+    marginBottom: 4,
+  },
+  integratedSpeakFeedback: {
+    fontSize: 14,
+    color: '#ffffff',
+    textAlign: 'center',
+  },
+  // Integrated Sentence Scramble Styles
+  integratedScrambleContainer: {
+    marginBottom: 20,
+  },
+  integratedScrambleAnswerArea: {
+    marginBottom: 20,
+  },
+  integratedScrambleAnswerLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#ffffff',
+    marginBottom: 8,
+  },
+  integratedScrambleAnswerContainer: {
+    minHeight: 60,
+    backgroundColor: '#334155',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 2,
+    borderColor: '#475569',
+    borderStyle: 'dashed',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 8,
+  },
+  integratedScramblePlaceholder: {
+    fontSize: 14,
+    color: '#94a3b8',
+    fontStyle: 'italic',
+    textAlign: 'center',
+    width: '100%',
+  },
+  integratedScrambleWordsArea: {
+    marginBottom: 20,
+  },
+  integratedScrambleWordsLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#ffffff',
+    marginBottom: 8,
+  },
+  integratedScrambleWordsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  integratedScrambleWord: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  integratedScrambleAnswerWord: {
+    backgroundColor: '#1e40af',
+    borderColor: '#3b82f6',
+  },
+  integratedScrambleAvailableWord: {
+    backgroundColor: '#475569',
+    borderColor: '#64748b',
+  },
+  integratedScrambleWordText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#ffffff',
+  },
+  integratedScrambleButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    gap: 10,
+  },
+  // Common integrated button styles
+  integratedButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  integratedCorrectButton: {
+    backgroundColor: '#10b981',
+  },
+  integratedIncorrectButton: {
+    backgroundColor: '#ef4444',
+  },
+  integratedResetButton: {
+    backgroundColor: '#6b7280',
+  },
+  integratedDisabledButton: {
+    backgroundColor: '#475569',
+  },
+  integratedButtonText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  // Exercise buttons
+  exerciseButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  exerciseButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  correctButton: {
+    backgroundColor: '#10b981',
+  },
+  incorrectButton: {
+    backgroundColor: '#ef4444',
+  },
+  skipButton: {
+    backgroundColor: '#6b7280',
+  },
+  exerciseButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

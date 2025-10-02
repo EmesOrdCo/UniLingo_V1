@@ -31,6 +31,7 @@ export interface LessonVocabulary {
   native_translation: string;
   example_sentence_en: string;
   example_sentence_native: string;
+  keywords?: string | string[]; // Keywords for conversation exercises
   created_at: string;
 }
 
