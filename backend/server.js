@@ -61,8 +61,9 @@ const aiLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// Per-user rate limiting (in-memory store)
+// Enhanced User Tracking System
 const userRateLimits = new Map();
+const userTracking = new Map(); // New: Comprehensive user activity tracking
 const USER_LIMITS = {
   pronunciation: {
     windowMs: 60 * 60 * 1000, // 1 hour
@@ -74,6 +75,123 @@ const USER_LIMITS = {
   }
 };
 
+// User tracking data structure
+const initializeUserTracking = (userId) => {
+  if (!userTracking.has(userId)) {
+    userTracking.set(userId, {
+      userId: userId,
+      firstSeen: Date.now(),
+      lastSeen: Date.now(),
+      totalRequests: 0,
+      totalPronunciations: 0,
+      totalAIRequests: 0,
+      totalErrors: 0,
+      ipAddresses: new Set(),
+      requestHistory: [],
+      maxHistoryEntries: 100, // Keep last 100 requests per user
+      sessionRequestCount: 0,
+      lastSessionStart: Date.now(),
+      status: 'active', // active, inactive, suspended
+      peakUsageHour: 0,
+      averageResponseTime: 0,
+      errorRate: 0,
+      riskScore: 0 // 0-100, higher = more suspicious
+    });
+  }
+  return userTracking.get(userId);
+};
+
+// Update user activity tracking
+const updateUserActivity = (userId, ipAddress, requestType, responseTime, success) => {
+  const userData = initializeUserTracking(userId);
+  
+  const now = Date.now();
+  userData.lastSeen = now;
+  userData.totalRequests++;
+  userData.sessionRequestCount++;
+  userData.ipAddresses.add(ipAddress);
+  
+  // Update service-specific counters
+  if (requestType === 'pronunciation') {
+    userData.totalPronunciations++;
+  } else if (requestType === 'ai') {
+    userData.totalAIRequests++;
+  }
+  
+  // Track errors
+  if (!success) {
+    userData.totalErrors++;
+  }
+  
+  // Update average response time
+  const totalTime = userData.peakUsageHour > 0 ? 
+    (userData.averageResponseTime * userData.totalRequests) + responseTime : 
+    responseTime;
+  userData.averageResponseTime = totalTime / userData.totalRequests;
+  
+  // Update error rate
+  userData.errorRate = (userData.totalErrors / userData.totalRequests) * 100;
+  
+  // Add to request history
+  userData.requestHistory.push({
+    timestamp: now,
+    requestType,
+    responseTime,
+    success,
+    ipAddress
+  });
+  
+  // Keep only recent history
+  if (userData.requestHistory.length > userData.maxHistoryEntries) {
+    userData.requestHistory = userData.requestHistory.slice(-userData.maxHistoryEntries);
+  }
+  
+  // Calculate risk score (0-100)
+  const recentErrors = userData.requestHistory.slice(-10).filter(req => !req.success).length;
+  const errorWeight = (recentErrors / 10) * 40; // 40% weight for recent errors
+  
+  const avgResponseWeight = userData.averageResponseTime > 10000 ? 30 : 
+    userData.averageResponseTime > 5000 ? 15 : 0; // 30% weight for slow responses
+  
+  const requestFrequency = userData.sessionRequestCount > 50 ? 20 : 
+    userData.sessionRequestCount > 20 ? 10 : 0; // 20% weight for high frequency
+  
+  userData.riskScore = Math.min(100, errorWeight + avgResponseWeight + requestFrequency);
+  
+  // Check for session reset (if 30 minutes of inactivity)
+  if (now - userData.lastSessionStart > 30 * 60 * 1000) {
+    userData.sessionRequestCount = 0;
+    userData.lastSessionStart = now;
+  }
+  
+  userTracking.set(userId, userData);
+};
+
+// Clean up old user tracking data (every hour)
+setInterval(() => {
+  const now = Date.now();
+  const cleanupThreshold = 24 * 60 * 60 * 1000; // 24 hours
+  
+  for (const [userId, userData] of userTracking.entries()) {
+    // Clean up users inactive for 24+ hours OR with old rate limit data
+    if (now - userData.lastSeen > cleanupThreshold) {
+      userData.status = 'inactive';
+      
+      // Keep inactive users for 7 days before deletion
+      if (now - userData.lastSeen > 7 * 24 * 60 * 60 * 1000) {
+        console.log(`📊 Cleaning up inactive user: ${userId} (last seen: ${new Date(userData.lastSeen).toISOString()})`);
+        userTracking.delete(userId);
+      }
+    }
+    
+    // Reset hourly counters
+    if (userData.peakUsageHour !== 0 && now % (60 * 60 * 1000) < 1000) {
+      userData.peakUsageHour = Math.max(userData.peakUsageHour, userData.sessionRequestCount);
+      userData.sessionRequestCount = 0;
+    }
+  }
+}, 60 * 60 * 1000);
+
 // Clean up old rate limit entries every hour
 setInterval(() => {
   const now = Date.now();
@@ -84,12 +202,19 @@ setInterval(() => {
   }
 }, 60 * 60 * 1000);
 
-// Per-user rate limiting middleware
+// Per-user rate limiting middleware with activity tracking
 const userRateLimit = (type) => {
   return (req, res, next) => {
     const userId = req.headers['user-id'] || req.body.userId || 'anonymous';
+    const ipAddress = req.ip || req.connection.remoteAddress || req.socket.remoteAddress;
     const limit = USER_LIMITS[type];
     const key = `${userId}:${type}`;
+    
+    // Initialize user tracking for this request
+    initializeUserTracking(userId);
+    
+    // Track that this request is starting (before rate limit check)
+    const startTime = Date.now();
     
     const now = Date.now();
     const userLimit = userRateLimits.get(key) || {
@@ -106,6 +231,10 @@ const userRateLimit = (type) => {
     // Check if limit exceeded
     if (userLimit.count >= limit.max) {
       const resetTime = new Date(userLimit.lastReset + limit.windowMs);
+      
+      // Track rate limit exceeded as an error
+      updateUserActivity(userId, ipAddress, type, Date.now() - startTime, false);
+      
       return res.status(429).json({
         error: `User rate limit exceeded for ${type}. Try again after ${resetTime.toISOString()}`,
         code: `USER_${type.toUpperCase()}_RATE_LIMIT_EXCEEDED`,
@@ -123,6 +252,19 @@ const userRateLimit = (type) => {
       'X-RateLimit-Remaining': Math.max(0, limit.max - userLimit.count),
       'X-RateLimit-Reset': new Date(userLimit.lastReset + limit.windowMs).toISOString()
     });
+    
+    // Override response finish to track the actual response
+    const originalEnd = res.end;
+    res.end = function(chunk, encoding) {
+      const responseTime = Date.now() - startTime;
+      const success = res.statusCode < 400;
+      
+      // Track user activity after response
+      updateUserActivity(userId, ipAddress, type, responseTime, success);
+      
+      // Call original end function
+      originalEnd.call(this, chunk, encoding);
+    };
     
     next();
   };
@@ -1066,6 +1208,298 @@ app.get('/api/rate-limits/status', monitoringWhitelist, (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to get rate limit status',
+      details: error.message
+    });
+  }
+});
+
+// NEW ADMIN ENDPOINTS FOR COMPREHENSIVE USER TRACKING
+
+// Get all users overview
+app.get('/api/admin/users/overview', monitoringWhitelist, (req, res) => {
+  try {
+    const { limit = 50, sortBy = 'lastSeen', order = 'desc', status = 'all' } = req.query;
+    
+    let users = Array.from(userTracking.values());
+    
+    // Filter by status
+    if (status !== 'all') {
+      users = users.filter(user => user.status === status);
+    }
+    
+    // Sort users
+    users.sort((a, b) => {
+      let aValue, bValue;
+      
+      switch (sortBy) {
+        case 'lastSeen':
+          aValue = a.lastSeen;
+          bValue = b.lastSeen;
+          break;
+        case 'totalRequests':
+          aValue = a.totalRequests;
+          bValue = b.totalRequests;
+          break;
+        case 'riskScore':
+          aValue = a.riskScore;
+          bValue = b.riskScore;
+          break;
+        case 'errorRate':
+          aValue = a.errorRate;
+          bValue = b.errorRate;
+          break;
+        default:
+          aValue = a.lastSeen;
+          bValue = b.lastSeen;
+      }
+      
+      return order === 'desc' ? bValue - aValue : aValue - bValue;
+    });
+    
+    // Apply limit
+    const limitedUsers = users.slice(0, parseInt(limit));
+    
+    // Calculate current rate limit usage for each user
+    const usersWithLimits = limitedUsers.map(user => {
+      const userLimits = {};
+      for (const [type, limit] of Object.entries(USER_LIMITS)) {
+        const key = `${user.userId}:${type}`;
+        const userLimit = userRateLimits.get(key) || {
+          count: 0,
+          lastReset: Date.now()
+        };
+        
+        userLimits[type] = {
+          limit: limit.max,
+          used: userLimit.count,
+          remaining: Math.max(0, limit.max - userLimit.count),
+          resetTime: new Date(userLimit.lastReset + limit.windowMs).toISOString()
+        };
+      }
+      
+      return {
+        ...user,
+        ipAddresses: Array.from(user.ipAddresses), // Convert Set to Array for JSON
+        requestHistory: user.requestHistory.slice(-10), // Only last 10 requests
+        currentLimits: userLimits,
+        sessionDuration: Date.now() - user.lastSessionStart,
+        daysActive: Math.ceil((Date.now() - user.firstSeen) / (24 * 60 * 60 * 1000))
+      };
+    });
+    
+    res.json({
+      success: true,
+      totalUsers: users.length,
+      returnedUsers: usersWithLimits.length,
+      users: usersWithLimits,
+      summary: {
+        totalActiveUsers: userTracking.size,
+        usersByStatus: {
+          active: users.filter(u => u.status === 'active').length,
+          inactive: users.filter(u => u.status === 'inactive').length,
+          suspended: users.filter(u => u.status === 'suspended').length
+        },
+        averageRiskScore: users.length > 0 ? users.reduce((sum, u) => sum + u.riskScore, 0) / users.length : 0,
+        usersNearRateLimit: usersWithLimits.filter(u => 
+          u.currentLimits.pronunciation.used / u.currentLimits.pronunciation.limit > 0.8 ||
+          u.currentLimits.ai.used / u.currentLimits.ai.limit > 0.8
+        ).length
+      },
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error('Error getting users overview:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get users overview',
+      details: error.message
+    });
+  }
+});
+
+// Get detailed user activity
+app.get('/api/admin/users/:userId/detailed', monitoringWhitelist, (req, res) => {
+  try {
+    const { userId } = req.params;
+    const userData = userTracking.get(userId);
+    
+    if (!userData) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found',
+        userId: userId
+      });
+    }
+    
+    // Get current rate limits
+    const userLimits = {};
+    for (const [type, limit] of Object.entries(USER_LIMITS)) {
+      const key = `${userId}:${type}`;
+      const userLimit = userRateLimits.get(key) || {
+        count: 0,
+        lastReset: Date.now()
+      };
+      
+      userLimits[type] = {
+        limit: limit.max,
+        used: userLimit.count,
+        remaining: Math.max(0, limit.max - userLimit.count),
+        resetTime: new Date(userLimit.lastReset + limit.windowMs).toISOString()
+      };
+    }
+    
+    // Calculate additional metrics
+    const now = Date.now();
+    const hourlyActivity = {};
+    const dailyActivity = {};
+    
+    // Analyze request patterns
+    userData.requestHistory.forEach(req => {
+      const hour = new Date(req.timestamp).getHours();
+      const day = new Date(req.timestamp).toDateString();
+      
+      hourlyActivity[hour] = (hourlyActivity[hour] || 0) + 1;
+      dailyActivity[day] = (dailyActivity[day] || 0) + 1;
+    });
+    
+    const response = {
+      success: true,
+      user: {
+        ...userData,
+        ipAddresses: Array.from(userData.ipAddresses),
+        currentLimits: userLimits,
+        sessionDuration: now - userData.lastSessionStart,
+        daysActive: Math.ceil((now - userData.firstSeen) / (24 * 60 * 60 * 1000)),
+        hourlyActivity,
+        dailyActivity,
+        mostUsedService: userData.totalAIRequests > userData.totalPronunciations ? 'AI' : 'Pronunciation',
+        requestSuccessRate: ((userData.totalRequests - userData.totalErrors) / userData.totalRequests) * 100
+      },
+      timestamp: new Date().toISOString()
+    };
+    
+    res.json(response);
+    
+  } catch (error) {
+    console.error('Error getting user details:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get user details',
+      details: error.message
+    });
+  }
+});
+
+// Get user statistics and analytics
+app.get('/api/admin/users/statistics', monitoringWhitelist, (req, res) => {
+  try {
+    const users = Array.from(userTracking.values());
+    const today = new Date().toDateString();
+    
+    // Calculate comprehensive statistics
+    const stats = {
+      overview: {
+        totalUsers: users.length,
+        activeUsers24h: users.filter(u => (Date.now() - u.lastSeen) < 24 * 60 * 60 * 1000).length,
+        activeUsers7d: users.filter(u => (Date.now() - u.lastSeen) < 7 * 24 * 60 * 60 * 1000).length,
+        newUsersToday: users.filter(u => new Date(u.firstSeen).toDateString() === today).length
+      },
+      usage: {
+        totalRequests: users.reduce((sum, u) => sum + u.totalRequests, 0),
+        totalPronunciations: users.reduce((sum, u) => sum + u.totalPronunciations, 0),
+        totalAIRequests: users.reduce((sum, u) => sum + u.totalAIRequests, 0),
+        totalErrors: users.reduce((sum, u) => sum + u.totalErrors, 0),
+        averageErrorRate: users.length > 0 ? users.reduce((sum, u) => sum + u.errorRate, 0) / users.length : 0
+      },
+      performance: {
+        averageResponseTime: users.length > 0 ? users.reduce((sum, u) => sum + u.averageResponseTime, 0) / users.length : 0,
+        slowestUsers: users
+          .sort((a, b) => b.averageResponseTime - a.averageResponseTime)
+          .slice(0, 5)
+          .map(u => ({ userId: u.userId, avgResponseTime: u.averageResponseTime }))
+      },
+      riskAnalysis: {
+        averageRiskScore: users.length > 0 ? users.reduce((sum, u) => sum + u.riskScore, 0) / users.length : 0,
+        highRiskUsers: users.filter(u => u.riskScore > 70).map(u => ({
+          userId: u.userId,
+          riskScore: u.riskScore,
+          errorRate: u.errorRate,
+          totalErrors: u.totalErrors
+        })),
+        riskDistribution: {
+          low: users.filter(u => u.riskScore <= 30).length,
+          medium: users.filter(u => u.riskScore > 30 && u.riskScore <= 70).length,
+          high: users.filter(u => u.riskScore > 70).length
+        }
+      },
+      rateLimits: {
+        usersNearPronunciationLimit: users.filter(u => {
+          const key = `${u.userId}:pronunciation`;
+          const limit = userRateLimits.get(key);
+          return limit && (limit.count / USER_LIMITS.pronunciation.max) > 0.8;
+        }).length,
+        usersNearAILimit: users.filter(u => {
+          const key = `${u.userId}:ai`;
+          const limit = userRateLimits.get(key);
+          return limit && (limit.count / USER_LIMITS.ai.max) > 0.8;
+        }).length
+      }
+    };
+    
+    res.json({
+      success: true,
+      statistics: stats,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error('Error getting user statistics:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get user statistics',
+      details: error.message
+    });
+  }
+});
+
+// Suspend/unsuspend user endpoint
+app.post('/api/admin/users/:userId/suspend', monitoringWhitelist, (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { suspend = true, reason = 'No reason provided' } = req.body;
+    
+    const userData = userTracking.get(userId);
+    if (!userData) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+    
+    userData.status = suspend ? 'suspended' : 'active';
+    userData.suspensionReason = reason;
+    userData.suspensionTime = suspend ? Date.now() : null;
+    
+    userTracking.set(userId, userData);
+    
+    res.json({
+      success: true,
+      message: `User ${suspend ? 'suspended' : 'unsuspended'} successfully`,
+      user: {
+        userId: userId,
+        status: userData.status,
+        suspensionReason: reason,
+        suspensionTime: userData.suspensionTime
+      },
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error('Error updating user status:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update user status',
       details: error.message
     });
   }

@@ -373,13 +373,15 @@
             try {
                 dashboard.innerHTML = '<div class="loading">Loading system data...</div>';
                 
-                // Load all monitoring data
-                const [healthData, metricsData, pronunciationData, rateLimitData, aiData] = await Promise.all([
+                // Load all monitoring data including new admin data
+                const [healthData, metricsData, pronunciationData, rateLimitData, aiData, usersOverviewData, statsData] = await Promise.all([
                     fetch(`${API_BASE}/api/health/detailed`).then(r => r.json()),
                     fetch(`${API_BASE}/api/metrics`).then(r => r.json()),
                     fetch(`${API_BASE}/api/pronunciation/status`).then(r => r.json()),
                     fetch(`${API_BASE}/api/rate-limits/status`).then(r => r.json()),
-                    fetch(`${API_BASE}/api/ai/status`).then(r => r.json())
+                    fetch(`${API_BASE}/api/ai/status`).then(r => r.json()),
+                    fetch(`${API_BASE}/api/admin/users/overview?limit=20`).then(r => r.json()),
+                    fetch(`${API_BASE}/api/admin/users/statistics`).then(r => r.json())
                 ]);
 
                 // Render dashboard
@@ -389,6 +391,8 @@
                     ${renderPronunciationCard(pronunciationData)}
                     ${renderAICard(aiData)}
                     ${renderRateLimitCard(rateLimitData)}
+                    ${renderUsersOverviewCard(usersOverviewData)}
+                    ${renderUsersStatsCard(statsData)}
                 `;
                 
                 // Load errors
@@ -622,6 +626,176 @@
                             </div>
                         </div>
                     `).join('')}
+                </div>
+            `;
+        }
+
+        function renderUsersOverviewCard(data) {
+            if (!data.success || !data.users) {
+                return `
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-icon" style="background: #17a2b8; color: white;">👥</div>
+                            <div class="card-title">User Overview</div>
+                        </div>
+                        <div class="loading">Unable to load user data</div>
+                    </div>
+                `;
+            }
+            
+            const users = data.users || [];
+            const summary = data.summary || {};
+            
+            return `
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon" style="background: #17a2b8; color: white;">👥</div>
+                        <div class="card-title">User Overview</div>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Total Users</span>
+                        <span class="metric-value">${data.totalUsers || 0}</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Active Users</span>
+                        <span class="metric-value">${summary.usersByStatus?.active || 0}</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">High Risk Users</span>
+                        <span class="metric-value" style="color: ${summary.usersByStatus?.risk || 0 > 0 ? '#dc3545' : '#155724'}">
+                            ${users.filter(u => u.riskScore > 70).length}
+                        </span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Near Rate Limit</span>
+                        <span class="metric-value" style="color: ${summary.usersNearRateLimit > 0 ? '#ffc107' : '#155724'}">
+                            ${summary.usersNearRateLimit || 0}
+                        </span>
+                    </div>
+                    <div style="margin-top: 15px; max-height: 300px; overflow-y: auto;">
+                        <strong>Recent Users (Top 10):</strong>
+                        <div style="margin-top: 10px;">
+                            ${users.slice(0, 10).map(user => `
+                                <div style="background: #f8f9fa; padding: 8px; margin: 3px 0; border-radius: 5px; border-left: 3px solid ${user.riskScore > 70 ? '#dc3545' : user.riskScore > 30 ? '#ffc107' : '#28a745'};">
+                                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                                        <span style="font-weight: 600;">${user.userId}</span>
+                                        <span style="font-size: 0.8rem; color: #666;">
+                                            Risk: ${user.riskScore.toFixed(0)}% | 
+                                            ${user.totalRequests} req | 
+                                            Last: ${new Date(user.lastSeen).toLocaleTimeString()}
+                                        </span>
+                                    </div>
+                                    <div style="font-size: 0.75rem; color: #666; margin-top: 3px;">
+                                        Pronunciation: ${user.currentLimits?.pronunciation?.used || 0}/${user.currentLimits?.pronunciation?.limit || 0} | 
+                                        AI: ${user.currentLimits?.ai?.used || 0}/${user.currentLimits?.ai?.limit || 0}
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderUsersStatsCard(data) {
+            if (!data.success || !data.statistics) {
+                return `
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-icon" style="background: #6f42c1; color: white;">📊</div>
+                            <div class="card-title">User Statistics</div>
+                        </div>
+                        <div class="loading">Unable to load statistics</div>
+                    </div>
+                `;
+            }
+            
+            const stats = data.statistics;
+            const overview = stats.overview || {};
+            const usage = stats.usage || {};
+            const performance = stats.performance || {};
+            const riskAnalysis = stats.riskAnalysis || {};
+            const rateLimits = stats.rateLimits || {};
+            
+            return `
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon" style="background: #6f42c1; color: white;">📊</div>
+                        <div class="card-title">User Statistics</div>
+                    </div>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <strong>Activity Overview:</strong>
+                        <div class="service-grid" style="margin-top: 10px;">
+                            <div class="service-item">
+                                <div class="service-name">24h Active</div>
+                                <div style="font-size: 1.5rem; font-weight: bold; color: #007bff;">${overview.activeUsers24h || 0}</div>
+                            </div>
+                            <div class="service-item">
+                                <div class="service-name">7d Active</div>
+                                <div style="font-size: 1.5rem; font-weight: bold; color: #28a745;">${overview.activeUsers7d || 0}</div>
+                            </div>
+                            <div class="service-item">
+                                <div class="service-name">New Today</div>
+                                <div style="font-size: 1.5rem; font-weight: bold; color: #ffc107;">${overview.newUsersToday || 0}</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <strong>Usage Statistics:</strong>
+                        <div class="metric">
+                            <span class="metric-label">Total AI Requests</span>
+                            <span class="metric-value">${(usage.totalAIRequests || 0).toLocaleString()}</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Total Pronunciations</span>
+                            <span class="metric-value">${(usage.totalPronunciations || 0).toLocaleString()}</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Average Error Rate</span>
+                            <span class="metric-value" style="color: ${(usage.averageErrorRate || 0) > 10 ? '#dc3545' : '#155724'}">
+                                ${(usage.averageErrorRate || 0).toFixed(2)}%
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <strong>Risk Analysis:</strong>
+                        <div class="metric">
+                            <span class="metric-label">Average Risk Score</span>
+                            <span class="metric-value" style="color: ${(riskAnalysis.averageRiskScore || 0) > 50 ? '#dc3545' : '#155724'}">
+                                ${(riskAnalysis.averageRiskScore || 0).toFixed(1)}%
+                            </span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">High Risk Users</span>
+                            <span class="metric-value" style="color: ${(riskAnalysis.highRiskUsers || []).length > 0 ? '#dc3545' : '#155724'}">
+                                ${(riskAnalysis.highRiskUsers || []).length}
+                            </span>
+                        </div>
+                        <div style="font-size: 0.85rem; color: #666;">
+                            Risk Distribution: Low(${riskAnalysis.riskDistribution?.low || 0}) | 
+                            Medium(${riskAnalysis.riskDistribution?.medium || 0}) | 
+                            High(${riskAnalysis.riskDistribution?.high || 0})
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <strong>Rate Limit Status:</strong>
+                        <div class="metric">
+                            <span class="metric-label">Near Pronunciation Limit</span>
+                            <span class="metric-value" style="color: ${(rateLimits.usersNearPronunciationLimit || 0) > 0 ? '#ffc107' : '#155724'}">
+                                ${rateLimits.usersNearPronunciationLimit || 0}
+                            </span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Near AI Limit</span>
+                            <span class="metric-value" style="color: ${(rateLimits.usersNearAILimit || 0) > 0 ? '#ffc107' : '#155724'}">
+                                ${rateLimits.usersNearAILimit || 0}
+                            </span>
+                        </div>
+                    </div>
                 </div>
             `;
         }
