@@ -18,6 +18,7 @@ export interface Lesson {
   subject: string;
   source_pdf_name: string;
   native_language: string;
+  chat_content?: string; // Conversation script for this lesson
   created_at: string;
   updated_at: string;
 }
@@ -935,6 +936,26 @@ Return ONLY the JSON array:`;
     } catch (error) {
       console.error('Error getting lesson:', error);
       return null;
+    }
+  }
+
+  /**
+   * Get lesson vocabulary for conversation lessons
+   */
+  static async getLessonVocabulary(lessonId: string): Promise<LessonVocabulary[]> {
+    try {
+      const { data: vocabulary, error } = await supabase
+        .from('lesson_vocabulary')
+        .select('*')
+        .eq('lesson_id', lessonId)
+        .order('created_at');
+
+      if (error) throw error;
+
+      return vocabulary || [];
+    } catch (error) {
+      console.error('Error getting lesson vocabulary:', error);
+      return [];
     }
   }
 

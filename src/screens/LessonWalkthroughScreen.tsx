@@ -17,7 +17,7 @@ import LessonFillInTheBlank from '../components/lesson/LessonFillInTheBlank';
 import LessonListen from '../components/lesson/LessonListen';
 import LessonSpeak from '../components/lesson/LessonSpeak';
 
-type ExerciseStep = 'flow-preview' | 'flashcards' | 'flashcard-quiz' | 'sentence-scramble' | 'word-scramble' | 'fill-in-blank' | 'listen' | 'speak' | 'completed';
+type ExerciseStep = 'flow-preview' | 'flashcards' | 'flashcard-quiz' | 'sentence-scramble' | 'word-scramble' | 'fill-in-blank' | 'listen' | 'speak' | 'conversation' | 'completed';
 
 interface RouteParams {
   lessonId: string;
@@ -37,7 +37,8 @@ export default function LessonWalkthroughScreen() {
     wordScramble: 0,
     fillInBlank: 0,
     listen: 0,
-    speak: 0
+    speak: 0,
+    conversation: 0
   });
   const [startTime, setStartTime] = useState<Date | null>(null);
   const [totalActiveTime, setTotalActiveTime] = useState<number>(0); // Total active time in seconds
@@ -299,7 +300,7 @@ export default function LessonWalkthroughScreen() {
       console.log('🔄 Restored completed exercises from database:', lessonProgress.completed_exercises);
     } else {
       // Fallback: estimate from score
-      const exerciseTypes = ['flashcards', 'flashcardQuiz', 'sentenceScramble', 'wordScramble', 'fillInBlank', 'listen', 'speak'];
+      const exerciseTypes = ['flashcards', 'flashcardQuiz', 'sentenceScramble', 'wordScramble', 'fillInBlank', 'listen', 'speak', 'conversation'];
       completedExercisesSet = new Set(exerciseTypes.slice(0, completedExerciseCount));
       console.log('🔄 Estimated completed exercises from score:', Array.from(completedExercisesSet));
     }
@@ -386,6 +387,16 @@ export default function LessonWalkthroughScreen() {
     setCurrentQuestionIndex(questionIndex);
     saveResumePosition('fill-in-blank', questionIndex);
   }, []);
+
+  // Handle conversation navigation - must be at top level to follow Rules of Hooks
+  useEffect(() => {
+    if (currentStep === 'conversation' && lesson?.id) {
+      (navigation as any).navigate('ConversationLessonScreen', { 
+        lessonId: lesson.id, 
+        lessonTitle: lesson.title || 'Unknown'
+      });
+    }
+  }, [currentStep, lesson?.id, lesson?.title, navigation]);
 
   const loadResumePosition = async () => {
     try {
@@ -540,6 +551,9 @@ export default function LessonWalkthroughScreen() {
         nextStep = 'speak';
         break;
       case 'speak':
+        nextStep = 'conversation';
+        break;
+      case 'conversation':
         nextStep = 'completed';
         break;
       default:
@@ -988,6 +1002,40 @@ export default function LessonWalkthroughScreen() {
                   </View>
                 </View>
               </TouchableOpacity>
+
+              {/* Exercise 8: Conversation */}
+              <TouchableOpacity 
+                style={[
+                  styles.flowExercise,
+                  (!completedExercises.has('speak') && !lessonProgress?.completed_at) && styles.flowExerciseLocked
+                ]}
+                onPress={() => completedExercises.has('speak') || lessonProgress?.completed_at ? navigateToExercise('conversation') : null}
+                activeOpacity={completedExercises.has('speak') || lessonProgress?.completed_at ? 0.7 : 1}
+                disabled={!completedExercises.has('speak') && !lessonProgress?.completed_at}
+              >
+                <View style={styles.flowExerciseNumber}>
+                  <Text style={styles.flowExerciseNumberText}>8</Text>
+                </View>
+                <View style={styles.flowExerciseContent}>
+                  <View style={styles.flowExerciseIcon}>
+                    <Ionicons name="chatbubbles" size={32} color="#6366f1" />
+                  </View>
+                  <View style={styles.flowExerciseInfo}>
+                    <Text style={styles.flowExerciseTitle}>Conversation</Text>
+                    <Text style={styles.flowExerciseDescription}>
+                      Practice with AI-generated conversation scripts
+                    </Text>
+                    <Text style={styles.flowExerciseDuration}>~2-3 minutes</Text>
+                  </View>
+                  <View style={styles.flowExerciseArrow}>
+                    {!completedExercises.has('speak') && !lessonProgress?.completed_at ? (
+                      <Ionicons name="lock-closed" size={20} color="#94a3b8" />
+                    ) : (
+                      <Ionicons name="chevron-forward" size={20} color="#cbd5e1" />
+                    )}
+                  </View>
+                </View>
+              </TouchableOpacity>
             </View>
 
             <View style={styles.flowActions}>
@@ -1153,6 +1201,17 @@ export default function LessonWalkthroughScreen() {
         }}
         initialQuestionIndex={0}
       />
+    );
+  }
+
+  if (currentStep === 'conversation') {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#6366f1" />
+          <Text style={styles.loadingText}>Loading conversation...</Text>
+        </View>
+      </SafeAreaView>
     );
   }
 

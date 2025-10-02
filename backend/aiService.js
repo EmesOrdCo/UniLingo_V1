@@ -671,6 +671,32 @@ class AIService {
             console.error(`❌ Error storing vocabulary for topic ${topic.topicName}:`, vocabError);
           } else {
             console.log(`✅ Stored ${vocabularyWithLessonId.length} vocabulary items for lesson: ${topic.topicName}`);
+            
+            // Generate conversation script for this lesson
+            try {
+              console.log('🎭 Generating conversation script for lesson...');
+              const conversationScript = await this.generateConversationScript(
+                topic.vocabulary, 
+                subject, 
+                nativeLanguage, 
+                userId
+              );
+              
+              // Store conversation script in the lesson record
+              const { error: updateError } = await supabase
+                .from('esp_lessons')
+                .update({ chat_content: JSON.stringify(conversationScript) })
+                .eq('id', lesson.id);
+              
+              if (updateError) {
+                console.error('❌ Error storing conversation script:', updateError);
+              } else {
+                console.log('✅ Conversation script generated and stored in lesson');
+              }
+            } catch (conversationError) {
+              console.error('❌ Error generating conversation script:', conversationError);
+              // Don't fail the entire lesson creation if conversation generation fails
+            }
           }
         }
 
@@ -1459,6 +1485,105 @@ Return ONLY the JSON array:`;
       tokensPerMinute: RATE_LIMITS.tokensPerMinute,
       currentMinute: currentMinute
     };
+  }
+
+  /**
+   * Generate conversation script for lesson vocabulary
+   */
+  static async generateConversationScript(lessonVocabulary, subject, nativeLanguage, userId) {
+    const prompt = `Create a natural 2-way conversation script based on the lesson vocabulary provided below.
+
+Subject: ${subject}
+User's Native Language: ${nativeLanguage}
+
+Lesson Vocabulary:
+${lessonVocabulary.map(vocab => `- ${vocab.english_term}: ${vocab.definition}`).join('\n')}
+
+REQUIREMENTS:
+1. Create a casual but respectful conversation between two people
+2. Use MOST of the key vocabulary terms from the lesson (at least 70% of them)
+3. Make it approximately 45 seconds when read aloud
+4. Alternate between Person A and User responses
+5. Keep responses natural and conversational, not formal
+6. Include the vocabulary terms naturally in context
+7. Make it relevant to the subject matter
+8. Ensure the conversation flows logically
+
+FORMAT: Return a JSON object with this exact structure:
+{
+  "conversation": [
+    {
+      "speaker": "Person A",
+      "message": "Hello! I heard you're studying [vocabulary term]."
+    },
+    {
+      "speaker": "User", 
+      "message": "Yes, I'm learning about [another vocabulary term]."
+    }
+  ]
+}
+
+Return ONLY the JSON object, no explanations or markdown formatting.`;
+
+    const messages = [
+      {
+        role: 'system',
+        content: 'You are an expert conversation designer for language learning. Create natural, engaging conversations that incorporate lesson vocabulary seamlessly. Return ONLY valid JSON with no explanations, markdown, or additional text.'
+      },
+      {
+        role: 'user',
+        content: prompt
+      }
+    ];
+
+    try {
+      console.log('🎭 Generating conversation script...');
+      
+      // Estimate cost before making the API call
+      const costEstimate = await this.estimateCost(userId, messages);
+      console.log(`💰 Estimated cost: $${costEstimate.toFixed(4)}`);
+
+      if (!await this.canMakeRequest(costEstimate)) {
+        throw new Error('Rate limit exceeded or insufficient quota');
+      }
+
+      const response = await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: messages,
+        temperature: 0.7,
+        max_tokens: 1000,
+      });
+
+      // Update rate limiting counters
+      this.updateRateLimitCounters(costEstimate);
+
+      const content = response.choices[0]?.message?.content?.trim();
+      
+      if (!content) {
+        throw new Error('No response content from OpenAI');
+      }
+
+      // Parse the JSON response
+      let conversationData;
+      try {
+        conversationData = JSON.parse(content);
+      } catch (parseError) {
+        console.error('❌ Error parsing conversation JSON:', parseError);
+        throw new Error('Invalid JSON response from OpenAI');
+      }
+
+      if (!conversationData.conversation || !Array.isArray(conversationData.conversation)) {
+        throw new Error('Invalid conversation format');
+      }
+
+      console.log(`✅ Generated conversation with ${conversationData.conversation.length} exchanges`);
+      
+      return conversationData;
+
+    } catch (error) {
+      console.error('❌ Error generating conversation script:', error);
+      throw error;
+    }
   }
 }
 
