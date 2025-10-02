@@ -19,6 +19,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { LessonService, Lesson, LessonVocabulary } from '../lib/lessonService';
 import { XPService } from '../lib/xpService';
+import { PronunciationService } from '../lib/pronunciationService';
 import { logger } from '../lib/logger';
 
 const { width } = Dimensions.get('window');
@@ -220,7 +221,11 @@ export default function ConversationLessonScreen() {
       }
 
       setLesson(lessonData.lesson);
-      setVocabulary(lessonData.vocabulary);
+      
+      console.log('🔍 Raw lessonData.vocabulary:', lessonData.vocabulary);
+      console.log('🔍 Vocabulary sample:', lessonData.vocabulary?.[0]);
+      
+      setVocabulary(lessonData.vocabulary || []);
 
       // Try to get conversation from chat_content
       let conversation: ConversationData | null = null;
@@ -560,13 +565,30 @@ export default function ConversationLessonScreen() {
     
     console.log('🎯 Exercise completed:', { isCorrect, score: newScore });
     
-    // Mark exercise as completed and deactivate IMMEDIATELY
-    setExerciseState(prev => ({
-      ...prev,
-      isCompleted: true,
-      score: newScore,
-      isActive: false // Deactivate the exercise to hide it
-    }));
+    if (isCorrect) {
+      // Correct answer - complete immediately
+      setExerciseState(prev => ({
+        ...prev,
+        isCompleted: true,
+        score: newScore,
+        isActive: false // Hide exercise
+      }));
+    } else {
+      // Incorrect answer - show feedback and allow retry
+      setTimeout(() => {
+        Alert.alert(
+          '❌ Incorrect Answer',
+          'Please try again. Make sure your answer matches the keyword exactly.',
+          [
+            {
+              text: 'Try Again',
+              style: 'default'
+            }
+          ]
+        );
+      }, 500);
+      return; // Don't proceed if incorrect
+    }
 
     // Reset all exercise states immediately
     setScrambleWords([]);
@@ -655,6 +677,13 @@ export default function ConversationLessonScreen() {
     const userAnswer = fillBlankAnswer.toLowerCase().trim();
     const isCorrect = userAnswer === correctAnswer;
     
+    console.log('🔍 Fill-blank check:', {
+      correctAnswer,
+      userAnswer,
+      isCorrect,
+      keyword: exerciseState.exercise.keyword
+    });
+    
     handleExerciseComplete(isCorrect);
   }, [fillBlankAnswer, exerciseState.exercise, handleExerciseComplete]);
 
@@ -663,39 +692,126 @@ export default function ConversationLessonScreen() {
   }, []);
 
   // Speak exercise handlers
-  const handleStartRecording = useCallback(() => {
+  const handleStartRecording = useCallback(async () => {
+    if (!exerciseState.exercise?.keyword) {
+      console.error('❌ No keyword available for recording');
+      return;
+    }
+
     setIsRecording(true);
     setRecordingResult(null);
-    // TODO: Start recording with Azure Speech Services
-    console.log('🎤 Starting recording for keyword:', exerciseState.exercise?.keyword);
+    
+    try {
+      console.log('🎤 Starting recording for keyword:', exerciseState.exercise.keyword);
+      
+      // Start recording with Azure Speech Services
+      await PronunciationService.startRecording(10000); // 10 second max recording
+      
+    } catch (error) {
+      console.error('❌ Failed to start recording:', error);
+      setIsRecording(false);
+      // Show user-friendly error
+      setRecordingResult({
+        assessment: {
+          pronunciationScore: 0,
+          accuracyScore: 0,
+          recognizedText: '',
+          error: 'microphone'
+        }
+      });
+    }
   }, [exerciseState.exercise]);
 
-  const handleStopRecording = useCallback(() => {
+  const handleStopRecording = useCallback(async () => {
+    if (!exerciseState.exercise?.keyword) {
+      console.error('❌ No keyword available for processing');
+      return;
+    }
+
     setIsRecording(false);
-    // TODO: Stop recording and process with Azure Speech Services
-    console.log('🎤 Stopping recording, processing...');
+    console.log('🎤 Stopping recording, processing with Azure...');
     
-    // Simulate processing for now
-    setTimeout(() => {
-      const mockResult = {
+    try {
+      // Stop recording and get audio URI
+      const audioUri = await PronunciationService.stopRecording();
+      
+      if (!audioUri) {
+        throw new Error('No audio recorded');
+      }
+
+      console.log('📤 Processing audio with Azure Speech Services...');
+      
+      // Send to Azure for pronunciation assessment
+      const result = await PronunciationService.assessPronunciation(
+        audioUri, 
+        exerciseState.exercise.keyword
+      );
+
+      if (result.success && result.assessment) {
+        const assessment = result.assessment;
+        console.log('✅ Azure assessment complete:', {
+          pronunciationScore: assessment.pronunciationScore,
+          recognizedText: assessment.recognizedText
+        });
+
+        // Display the results
+        setRecordingResult({
+          assessment: {
+            pronunciationScore: assessment.pronunciationScore,
+            accuracyScore: assessment.accuracyScore,
+            recognizedText: assessment.recognizedText,
+            referenceText: exerciseState.exercise.keyword
+          },
+          feedback: result.feedback
+        });
+
+        // Mark as correct if pronunciation score >= 70
+        const score = assessment.pronunciationScore;
+        const isCorrect = score >= 70;
+        console.log('🎯 Pronunciation assessment complete. Score:', score, 'Passed:', isCorrect);
+        
+        // Show result for 2 seconds then complete exercise
+        setTimeout(() => {
+          handleExerciseComplete(isCorrect);
+        }, 2000);
+
+      } else {
+        console.error('❌ Azure assessment failed:', result.error);
+        setRecordingResult({
+          assessment: {
+            pronunciationScore: 0,
+            accuracyScore: 0,
+            recognizedText: '',
+            error: result.error?.includes('No speech recognized') 
+              ? 'No speech recognized' 
+              : result.error?.includes('network') 
+              ? 'network'
+              : 'assessment'
+          }
+        });
+        
+        // Auto-complete after 3 seconds with failure
+        setTimeout(() => {
+          handleExerciseComplete(false);
+        }, 3000);
+      }
+
+    } catch (error) {
+      console.error('❌ Recording/assessment error:', error);
+      setRecordingResult({
         assessment: {
-          pronunciationScore: Math.random() * 40 + 60, // Random score between 60-100
-          accuracyScore: Math.random() * 40 + 60,
-          recognizedText: exerciseState.exercise?.keyword || ''
+          pronunciationScore: 0,
+          accuracyScore: 0,
+          recognizedText: '',
+          error: 'recording'
         }
-      };
+      });
       
-      setRecordingResult(mockResult);
-      
-      // Auto-check the result
-      const score = mockResult.assessment.pronunciationScore;
-      const isCorrect = score >= 70; // 70+ considered passing
-      console.log('🎤 Pronunciation score:', score, 'Passed:', isCorrect);
-      
+      // Auto-complete after 3 seconds with failure  
       setTimeout(() => {
-        handleExerciseComplete(isCorrect);
-      }, 2000); // Show result for 2 seconds then complete
-    }, 1500);
+        handleExerciseComplete(false);
+      }, 3000);
+    }
   }, [exerciseState.exercise, handleExerciseComplete]);
 
   const handleConversationComplete = async () => {
@@ -835,22 +951,40 @@ export default function ConversationLessonScreen() {
             
               <View style={styles.integratedFlashcardOptions}>
                 <TouchableOpacity
-                  style={[styles.integratedOption, styles.integratedCorrectOption]}
+                  style={[styles.integratedFlashcardButton, styles.integratedCorrectButton]}
                   onPress={() => handleExerciseComplete(true)}
                 >
                   <Text style={styles.integratedOptionText}>{exercise.keyword}</Text>
                 </TouchableOpacity>
                 
-                {/* Add some dummy options from other vocabulary */}
-                {vocabulary.filter(v => v.english_term && v.english_term !== exercise.keyword).slice(0, 2).map((vocab, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    style={[styles.integratedOption, styles.integratedIncorrectOption]}
-                    onPress={() => handleExerciseComplete(false)}
-                  >
-                    <Text style={styles.integratedOptionText}>{vocab.english_term}</Text>
-                  </TouchableOpacity>
-                ))}
+                {/* Add 2 random incorrect keywords from lesson vocabulary */}
+                {(() => {
+                  console.log('🔍 Available vocabulary keywords:', vocabulary.map(v => v.keywords));
+                  console.log('🔍 Exercise keyword:', exercise.keyword);
+                  
+                  // Get all vocabulary keywords that are NOT the correct answer
+                  const incorrectOptions = vocabulary
+                    .filter(v => v.keywords && v.keywords !== exercise.keyword)
+                    .map(v => v.keywords);
+                  
+                  console.log('🔍 Incorrect options:', incorrectOptions);
+                  
+                  // Shuffle and take 2 random incorrect options
+                  const shuffled = incorrectOptions.sort(() => Math.random() - 0.5);
+                  const selectedIncorrect = shuffled.slice(0, 2);
+                  
+                  console.log('🔍 Selected incorrect:', selectedIncorrect);
+                  
+                  return selectedIncorrect.map((option, index) => (
+                    <TouchableOpacity
+                      key={index}
+                      style={[styles.integratedFlashcardButton, styles.integratedIncorrectButton]}
+                      onPress={() => handleExerciseComplete(false)}
+                    >
+                      <Text style={styles.integratedOptionText}>{option}</Text>
+                    </TouchableOpacity>
+                  ));
+                })()}
               </View>
             </View>
           </View>
@@ -876,14 +1010,6 @@ export default function ConversationLessonScreen() {
                   const cleanKeyword = exercise.keyword ? exercise.keyword.toLowerCase().replace(/[^\w]/g, '') : '';
                   const isKeyword = cleanKeyword && cleanWord === cleanKeyword;
                   
-                  // console.log('🔍 Fill-blank word check:', { 
-                  //   word, 
-                  //   cleanWord, 
-                  //   keyword: exercise.keyword, 
-                  //   cleanKeyword, 
-                  //   isKeyword,
-                  //   sentence: exercise.sentence
-                  // });
                   
                   return (
                     <View key={index} style={styles.integratedFillBlankWordContainer}>
@@ -978,14 +1104,51 @@ export default function ConversationLessonScreen() {
                   </TouchableOpacity>
                 ) : recordingResult ? (
                   <View style={styles.integratedSpeakResult}>
-                    <Text style={styles.integratedSpeakScore}>
-                      Score: {Math.round(recordingResult.assessment.pronunciationScore)}%
-                    </Text>
-                    <Text style={styles.integratedSpeakFeedback}>
-                      {recordingResult.assessment.pronunciationScore >= 70 
-                        ? 'Great pronunciation! ✓' 
-                        : 'Keep practicing! Try again.'}
-                    </Text>
+                    {recordingResult.assessment?.error ? (
+                      // Show graceful error message
+                      <View style={styles.integratedSpeakErrorContainer}>
+                        <Text style={styles.integratedSpeakErrorIcon}>🎤</Text>
+                        <Text style={styles.integratedSpeakErrorTitle}>Recording Issue</Text>
+                        <Text style={styles.integratedSpeakErrorText}>
+                          {recordingResult.assessment.error.includes('No speech recognized') 
+                            ? 'Please speak more clearly. Try again!'
+                            : recordingResult.assessment.error.includes('microphone')
+                            ? 'Microphone access needed. Please check permissions.'
+                            : recordingResult.assessment.error.includes('network')
+                            ? 'Network issue. Please try again.'
+                            : recordingResult.assessment.error.includes('recording')
+                            ? 'Recording failed. Please try again.'
+                            : 'Something went wrong. Please try again.'}
+                        </Text>
+                        <TouchableOpacity
+                          style={[styles.integratedButton, styles.integratedCorrectButton, { marginTop: 12 }]}
+                          onPress={() => {
+                            setRecordingResult(null);
+                            // Allow another recording attempt
+                          }}
+                        >
+                          <Text style={styles.integratedButtonText}>Try Again</Text>
+                        </TouchableOpacity>
+                      </View>
+                    ) : (
+                      // Show assessment results
+                      <>
+                        <Text style={styles.integratedSpeakScore}>
+                          Score: {Math.round(recordingResult.assessment.pronunciationScore || 0)}%
+                        </Text>
+                        <Text style={styles.integratedSpeakText}>
+                          Heard: "{recordingResult.assessment.recognizedText}"
+                        </Text>
+                        <Text style={styles.integratedSpeakFeedback}>
+                          {(recordingResult.assessment.pronunciationScore || 0) >= 70 
+                            ? 'Great pronunciation! ✓' 
+                            : 'Keep practicing! Try again.'}
+                        </Text>
+                        {recordingResult.feedback?.overall && (
+                          <Text style={styles.integratedSpeakTips}>{recordingResult.feedback.overall}</Text>
+                        )}
+                      </>
+                    )}
                   </View>
                 ) : null}
                 
@@ -1467,7 +1630,21 @@ const styles = StyleSheet.create({
   },
   integratedFlashcardOptions: {
     width: '100%',
-    gap: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 10,
+    marginTop: 10,
+  },
+  integratedFlashcardButton: {
+    flex: 1,
+    backgroundColor: '#374151',
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+    marginHorizontal: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 50,
   },
   // Simple flashcard styles
   simpleFlashcard: {
@@ -1725,6 +1902,40 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#ffffff',
     textAlign: 'center',
+  },
+  integratedSpeakText: {
+    fontSize: 14,
+    color: '#9ca3af',
+    textAlign: 'center',
+    marginVertical: 4,
+    fontStyle: 'italic',
+  },
+  integratedSpeakError: {
+    fontSize: 16,
+    color: '#ef4444',
+    textAlign: 'center',
+    marginBottom: 8,
+    fontWeight: '500',
+  },
+  integratedSpeakErrorContainer: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  integratedSpeakErrorIcon: {
+    fontSize: 32,
+    marginBottom: 8,
+  },
+  integratedSpeakErrorTitle: {
+    fontSize: 18,
+    color: '#fbbf24',
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  integratedSpeakErrorText: {
+    fontSize: 14,
+    color: '#ffffff',
+    textAlign: 'center',
+    lineHeight: 20,
   },
   // Integrated Sentence Scramble Styles
   integratedScrambleContainer: {
