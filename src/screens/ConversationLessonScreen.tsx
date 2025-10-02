@@ -379,7 +379,7 @@ export default function ConversationLessonScreen() {
     // console.log('🎯 Selected keyword for exercise:', selectedKeyword.english_term);
 
     // Pick random exercise type
-    const exerciseTypes: ConversationExercise['type'][] = ['flashcard', 'speak', 'fill-in-blank', 'sentence-scramble'];
+    const exerciseTypes: ConversationExercise['type'][] = ['flashcard-quiz', 'speak', 'fill-in-blank', 'sentence-scramble'];
     const selectedType = exerciseTypes[Math.floor(Math.random() * exerciseTypes.length)];
 
     // Find the actual word from the message that matches this vocabulary's keywords
@@ -803,33 +803,52 @@ export default function ConversationLessonScreen() {
     // console.log('✅ Rendering exercise:', exercise.type);
 
     switch (exercise.type) {
-      case 'flashcard':
+      case 'flashcard-quiz':
         return (
           <View style={styles.integratedExerciseContainer}>
-            <Text style={styles.integratedExerciseTitle}>CHOOSE THE CORRECT TRANSLATION</Text>
+            <Text style={styles.integratedExerciseTitle}>CHOOSE THE CORRECT ANSWER</Text>
             <Text style={styles.integratedExerciseContext}>Complete this to continue the conversation</Text>
             
             <View style={styles.integratedFlashcardContainer}>
-                <Text style={styles.integratedFlashcardQuestion}>
-                  What is the translation of "{exercise.keyword}"?
-                </Text>
-              
+              {/* Show sentence with blank where keyword appears */}
+              <Text style={styles.integratedFlashcardSentence}>
+                {exercise.sentence.split(' ').map((word, index) => {
+                  // Clean both the word and keyword for comparison
+                  const cleanWord = word.toLowerCase().replace(/[^\w]/g, '');
+                  const cleanKeyword = exercise.keyword ? exercise.keyword.toLowerCase().replace(/[^\w]/g, '') : '';
+                  const isKeyword = cleanKeyword && cleanWord === cleanKeyword;
+                  
+                  return (
+                    <Text key={index}>
+                      <Text style={isKeyword ? styles.integratedFlashcardBlank : styles.integratedFlashcardWord}>
+                        {isKeyword ? '_____' : word}
+                      </Text>
+                      {index < exercise.sentence.split(' ').length - 1 && <Text> </Text>}
+                    </Text>
+                  );
+                })}
+              </Text>
+            
+              <Text style={styles.integratedFlashcardHint}>
+                Which English word fits in the blank?
+              </Text>
+            
               <View style={styles.integratedFlashcardOptions}>
                 <TouchableOpacity
                   style={[styles.integratedOption, styles.integratedCorrectOption]}
                   onPress={() => handleExerciseComplete(true)}
                 >
-                  <Text style={styles.integratedOptionText}>{exercise.vocabulary?.native_translation || 'Unknown'}</Text>
+                  <Text style={styles.integratedOptionText}>{exercise.keyword}</Text>
                 </TouchableOpacity>
                 
-                {/* Add some dummy options for variety */}
-                {vocabulary.filter(v => v.id !== exercise.vocabulary?.id).slice(0, 2).map((vocab, index) => (
+                {/* Add some dummy options from other vocabulary */}
+                {vocabulary.filter(v => v.english_term && v.english_term !== exercise.keyword).slice(0, 2).map((vocab, index) => (
                   <TouchableOpacity
                     key={index}
                     style={[styles.integratedOption, styles.integratedIncorrectOption]}
                     onPress={() => handleExerciseComplete(false)}
                   >
-                    <Text style={styles.integratedOptionText}>{vocab.native_translation}</Text>
+                    <Text style={styles.integratedOptionText}>{vocab.english_term}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -1109,7 +1128,10 @@ export default function ConversationLessonScreen() {
         <View style={styles.header}>
           <TouchableOpacity 
             style={styles.backButton} 
-            onPress={() => navigation.goBack()}
+            onPress={() => {
+              // Navigate back to Your Lessons page
+              navigation.navigate('YourLessons');
+            }}
           >
             <Ionicons name="arrow-back" size={24} color="#6366f1" />
           </TouchableOpacity>
@@ -1409,6 +1431,43 @@ const styles = StyleSheet.create({
     color: '#94a3b8',
     textAlign: 'center',
     marginBottom: 20,
+  },
+  // Flashcard quiz styles
+  integratedFlashcardContainer: {
+    alignItems: 'center',
+  },
+  integratedFlashcardSentenceContainer: {
+    marginBottom: 15,
+    paddingHorizontal: 10,
+  },
+  integratedFlashcardSentence: {
+    fontSize: 16,
+    color: '#ffffff',
+    lineHeight: 24,
+    marginBottom: 15,
+    paddingHorizontal: 10,
+    textAlign: 'center',
+  },
+  integratedFlashcardWord: {
+    fontSize: 16,
+    color: '#ffffff',
+  },
+  integratedFlashcardBlank: {
+    fontSize: 16,
+    color: '#ffffff',
+    textDecorationLine: 'underline',
+    textDecorationColor: '#ffffff',
+  },
+  integratedFlashcardHint: {
+    fontSize: 14,
+    color: '#94a3b8',
+    textAlign: 'center',
+    marginBottom: 20,
+    fontStyle: 'italic',
+  },
+  integratedFlashcardOptions: {
+    width: '100%',
+    gap: 12,
   },
   // Simple flashcard styles
   simpleFlashcard: {
