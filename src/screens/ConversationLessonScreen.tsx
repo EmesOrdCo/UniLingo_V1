@@ -723,8 +723,8 @@ export default function ConversationLessonScreen() {
   }, [exerciseState.exercise]);
 
   const handleStopRecording = useCallback(async () => {
-    if (!exerciseState.exercise?.keyword) {
-      console.error('❌ No keyword available for processing');
+    if (!exerciseState.exercise?.sentence) {
+      console.error('❌ No sentence available for processing');
       return;
     }
 
@@ -744,7 +744,7 @@ export default function ConversationLessonScreen() {
       // Send to Azure for pronunciation assessment
       const result = await PronunciationService.assessPronunciation(
         audioUri, 
-        exerciseState.exercise.keyword
+        exerciseState.exercise.sentence
       );
 
       if (result.success && result.assessment) {
@@ -951,7 +951,7 @@ export default function ConversationLessonScreen() {
             
               <View style={styles.integratedFlashcardOptions}>
                 <TouchableOpacity
-                  style={[styles.integratedFlashcardButton, styles.integratedCorrectButton]}
+                  style={styles.integratedFlashcardButton}
                   onPress={() => handleExerciseComplete(true)}
                 >
                   <Text style={styles.integratedOptionText}>{exercise.keyword}</Text>
@@ -978,7 +978,7 @@ export default function ConversationLessonScreen() {
                   return selectedIncorrect.map((option, index) => (
                     <TouchableOpacity
                       key={index}
-                      style={[styles.integratedFlashcardButton, styles.integratedIncorrectButton]}
+                      style={styles.integratedFlashcardButton}
                       onPress={() => handleExerciseComplete(false)}
                     >
                       <Text style={styles.integratedOptionText}>{option}</Text>
@@ -1060,109 +1060,57 @@ export default function ConversationLessonScreen() {
         return (
           <View style={styles.integratedExerciseContainer}>
             <Text style={styles.integratedExerciseTitle}>SAY THE CORRECT RESPONSE</Text>
-            <Text style={styles.integratedExerciseContext}>Say the bold word to continue the conversation</Text>
             
-            <View style={styles.integratedSpeakContainer}>
+            <View style={styles.integratedSpeakSentenceContainer}>
               <Text style={styles.integratedSpeakSentence}>
-                {exercise.sentence.split(' ').map((word, index) => {
-                  // Clean both the word and keyword for comparison
-                  const cleanWord = word.toLowerCase().replace(/[^\w]/g, '');
-                  const cleanKeyword = exercise.keyword ? exercise.keyword.toLowerCase().replace(/[^\w]/g, '') : '';
-                  const isKeyword = cleanKeyword && cleanWord === cleanKeyword;
-                  
-                  return (
-                    <Text key={index}>
-                      <Text style={isKeyword ? styles.integratedSpeakBoldWord : styles.integratedSpeakNormalWord}>
-                        {word}
-                      </Text>
-                      {index < exercise.sentence.split(' ').length - 1 && <Text> </Text>}
-                    </Text>
-                  );
-                })}
+                {exercise.sentence}
               </Text>
-              
-              <Text style={styles.integratedSpeakHint}>
-                Tap the microphone to record yourself saying "{exercise.keyword}"
-              </Text>
-              
-              <View style={styles.integratedSpeakButtons}>
-                {!isRecording && !recordingResult ? (
-                  <TouchableOpacity
-                    style={[styles.integratedButton, styles.integratedMicButton]}
-                    onPress={handleStartRecording}
-                  >
-                    <Ionicons name="mic" size={20} color="#ffffff" />
-                    <Text style={styles.integratedButtonText}> Tap to Record</Text>
-                  </TouchableOpacity>
-                ) : isRecording ? (
-                  <TouchableOpacity
-                    style={[styles.integratedButton, styles.integratedRecordingButton]}
-                    onPress={handleStopRecording}
-                  >
-                    <Ionicons name="stop" size={20} color="#ffffff" />
-                    <Text style={styles.integratedButtonText}> Stop Recording</Text>
-                  </TouchableOpacity>
-                ) : recordingResult ? (
-                  <View style={styles.integratedSpeakResult}>
-                    {recordingResult.assessment?.error ? (
-                      // Show graceful error message
-                      <View style={styles.integratedSpeakErrorContainer}>
-                        <Text style={styles.integratedSpeakErrorIcon}>🎤</Text>
-                        <Text style={styles.integratedSpeakErrorTitle}>Recording Issue</Text>
-                        <Text style={styles.integratedSpeakErrorText}>
-                          {recordingResult.assessment.error.includes('No speech recognized') 
-                            ? 'Please speak more clearly. Try again!'
-                            : recordingResult.assessment.error.includes('microphone')
-                            ? 'Microphone access needed. Please check permissions.'
-                            : recordingResult.assessment.error.includes('network')
-                            ? 'Network issue. Please try again.'
-                            : recordingResult.assessment.error.includes('recording')
-                            ? 'Recording failed. Please try again.'
-                            : 'Something went wrong. Please try again.'}
-                        </Text>
-                        <TouchableOpacity
-                          style={[styles.integratedButton, styles.integratedCorrectButton, { marginTop: 12 }]}
-                          onPress={() => {
-                            setRecordingResult(null);
-                            // Allow another recording attempt
-                          }}
-                        >
-                          <Text style={styles.integratedButtonText}>Try Again</Text>
-                        </TouchableOpacity>
-                      </View>
-                    ) : (
-                      // Show assessment results
-                      <>
-                        <Text style={styles.integratedSpeakScore}>
-                          Score: {Math.round(recordingResult.assessment.pronunciationScore || 0)}%
-                        </Text>
-                        <Text style={styles.integratedSpeakText}>
-                          Heard: "{recordingResult.assessment.recognizedText}"
-                        </Text>
-                        <Text style={styles.integratedSpeakFeedback}>
-                          {(recordingResult.assessment.pronunciationScore || 0) >= 70 
-                            ? 'Great pronunciation! ✓' 
-                            : 'Keep practicing! Try again.'}
-                        </Text>
-                        {recordingResult.feedback?.overall && (
-                          <Text style={styles.integratedSpeakTips}>{recordingResult.feedback.overall}</Text>
-                        )}
-                      </>
-                    )}
-                  </View>
-                ) : null}
-                
-                <TouchableOpacity
-                  style={[styles.integratedButton, styles.integratedIncorrectButton]}
-                  onPress={() => handleExerciseComplete(false)}
-                >
-                  <Text style={styles.integratedButtonText}>Skip</Text>
-                </TouchableOpacity>
-              </View>
             </View>
+            
+            <View style={styles.integratedSpeakInstructions}>
+              <Text style={styles.integratedSpeakInstruction}>Say the sentence above</Text>
+            </View>
+              
+            <View style={styles.integratedSpeakRecordingCircle}>
+              {!isRecording && !recordingResult ? (
+                <TouchableOpacity
+                  style={styles.integratedSpeakMicCircle}
+                  onPress={handleStartRecording}
+                >
+                  <Ionicons name="mic" size={32} color="#ffffff" />
+                </TouchableOpacity>
+              ) : isRecording ? (
+                <TouchableOpacity
+                  style={[styles.integratedSpeakMicCircle, styles.integratedSpeakStopCircle]}
+                  onPress={handleStopRecording}
+                >
+                  <View style={styles.integratedSpeakStopIcon} />
+                </TouchableOpacity>
+              ) : recordingResult ? (
+                <View style={styles.integratedSpeakMicCircle}>
+                  {(recordingResult.assessment?.pronunciationScore || 0) >= 70 ? (
+                    <Ionicons name="checkmark" size={32} color="#10b981" />
+                  ) : (
+                    <Ionicons name="refresh" size={32} color="#ef4444" />
+                  )}
+                </View>
+              ) : null}
+            </View>
+            
+            <Text style={styles.integratedSpeakRecordingHint}>
+              {!isRecording && !recordingResult ? "Tap to Record" : 
+               isRecording ? "Speak Now - Tap to Cancel" : 
+               (recordingResult?.assessment?.pronunciationScore || 0) >= 70 ? "Great pronunciation!" : "Try speaking the sentence again"}
+            </Text>
+            
+            <TouchableOpacity
+              style={styles.integratedSpeakSkipButton}
+              onPress={() => handleExerciseComplete(false)}
+            >
+              <Text style={styles.integratedSpeakSkipText}>Skip</Text>
+            </TouchableOpacity>
           </View>
         );
-
       case 'sentence-scramble':
         return (
           <View style={styles.integratedExerciseContainer}>
@@ -1632,19 +1580,21 @@ const styles = StyleSheet.create({
     width: '100%',
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 10,
-    marginTop: 10,
+    gap: 8,
+    marginTop: 15,
+    paddingHorizontal: 10,
   },
   integratedFlashcardButton: {
     flex: 1,
     backgroundColor: '#374151',
-    borderRadius: 12,
-    paddingVertical: 16,
-    paddingHorizontal: 12,
-    marginHorizontal: 4,
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 6,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 50,
+    minHeight: 40,
+    borderWidth: 1,
+    borderColor: '#4b5563',
   },
   // Simple flashcard styles
   simpleFlashcard: {
@@ -1765,9 +1715,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     color: '#ffffff',
   },
-  integratedFlashcardOptions: {
-    gap: 12,
-  },
   integratedOption: {
     paddingVertical: 16,
     paddingHorizontal: 20,
@@ -1783,9 +1730,10 @@ const styles = StyleSheet.create({
     borderColor: '#ef4444',
   },
   integratedOptionText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     color: '#ffffff',
+    textAlign: 'center',
   },
   // Integrated Fill-in-the-Blank Styles
   integratedFillBlankContainer: {
@@ -1936,6 +1884,206 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     textAlign: 'center',
     lineHeight: 20,
+  },
+  integratedSpeakScoreContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  integratedSpeakScoreLabel: {
+    fontSize: 14,
+    color: '#9ca3af',
+    marginBottom: 8,
+    fontWeight: '500',
+  },
+  integratedSpeakScoreCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#374151',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: '#6366f1',
+  },
+  integratedSpeakScoreValue: {
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  integratedSpeakScoreGood: {
+    color: '#10b981',
+  },
+  integratedSpeakScorePoor: {
+    color: '#f59e0b',
+  },
+  integratedSpeakRecognitionContainer: {
+    backgroundColor: '#374151',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
+    alignItems: 'center',
+  },
+  integratedSpeakRecognitionLabel: {
+    fontSize: 12,
+    color: '#9ca3af',
+    marginBottom: 4,
+  },
+  integratedSpeakRecognitionText: {
+    fontSize: 16,
+    color: '#ffffff',
+    fontWeight: '500',
+    fontStyle: 'italic',
+  },
+  integratedSpeakFeedbackContainer: {
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  integratedSpeakFeedbackGood: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#10b981',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  integratedSpeakFeedbackPoor: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#f59e0b',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  integratedSpeakFeedbackSubtext: {
+    fontSize: 14,
+    color: '#d1d5db',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 8,
+  },
+  integratedSpeakFeedbackTips: {
+    fontSize: 13,
+    color: '#94a3b8',
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
+  integratedSkipButton: {
+    backgroundColor: '#6b7280',
+    marginTop: 16,
+    opacity: 0.8,
+  },
+  integratedSkipButtonText: {
+    fontSize: 16,
+    color: '#d1d5db',
+    fontWeight: '500',
+  },
+  integratedSpeakMinimalResult: {
+    alignItems: 'center',
+    marginVertical: 12,
+  },
+  integratedSpeakMinimalSuccess: {
+    fontSize: 16,
+    color: '#10b981',
+    fontWeight: '600',
+    marginBottom: 12,
+  },
+  integratedSpeakMinimalFailure: {
+    fontSize: 16,
+    color: '#f59e0b',
+    fontWeight: '500',
+    marginBottom: 12,
+  },
+  integratedSpeakRecordButton: {
+    backgroundColor: '#6366f1',
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 8,
+    marginVertical: 10,
+  },
+  integratedSpeakRecordText: {
+    fontSize: 16,
+    color: '#ffffff',
+    fontWeight: '600',
+  },
+  integratedSpeakRetryButton: {
+    backgroundColor: '#6366f1',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+  },
+  integratedSpeakRetryText: {
+    fontSize: 14,
+    color: '#ffffff',
+    fontWeight: '500',
+  },
+  integratedSpeakSkipButton: {
+    backgroundColor: '#6b7280',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    marginTop: 8,
+    opacity: 0.7,
+  },
+  integratedSpeakSkipText: {
+    fontSize: 14,
+    color: '#ffffff',
+    fontWeight: '500',
+  },
+  // New clean layout styles
+  integratedSpeakSentenceContainer: {
+    backgroundColor: '#374151',
+    borderRadius: 12,
+    padding: 14,
+    marginVertical: 16,
+    alignItems: 'center',
+  },
+  integratedSpeakSentence: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#ffffff',
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  integratedSpeakInstructions: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  integratedSpeakInstruction: {
+    fontSize: 16,
+    color: '#ffffff',
+    fontWeight: '500',
+  },
+  integratedSpeakRecordingCircle: {
+    alignItems: 'center',
+    marginVertical: 20,
+  },
+  integratedSpeakMicCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#ffffff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 4,
+    borderColor: '#6366f1',
+  },
+  integratedSpeakStopCircle: {
+    backgroundColor: '#ef4444',
+  },
+  integratedSpeakStopIcon: {
+    width: 24,
+    height: 24,
+    backgroundColor: '#ffffff',
+    borderRadius: 4,
+  },
+  integratedSpeakRecordingHint: {
+    fontSize: 14,
+    color: '#9ca3af',
+    textAlign: 'center',
+    marginTop: 8,
   },
   // Integrated Sentence Scramble Styles
   integratedScrambleContainer: {
