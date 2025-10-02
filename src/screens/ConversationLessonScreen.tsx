@@ -115,7 +115,7 @@ export default function ConversationLessonScreen() {
 
   // Typing animation effect
   useEffect(() => {
-    console.log('🎬 Typing animation effect triggered:', { isTypingAnimation, hasData: !!conversationDataRef.current, isRunning: isAnimationRunningRef.current });
+    // console.log('🎬 Typing animation effect triggered:', { isTypingAnimation, hasData: !!conversationDataRef.current, isRunning: isAnimationRunningRef.current });
     if (isTypingAnimation && conversationDataRef.current && !isAnimationRunningRef.current) {
       const currentMessage = conversationDataRef.current.conversation[currentMessageIndexRef.current];
       console.log('🎬 Starting typing animation for:', currentMessage?.speaker, currentMessage?.message);
@@ -292,11 +292,17 @@ export default function ConversationLessonScreen() {
       return;
     }
     
+    // Clear exercise immediately if advancing to Person A message
+    const nextMessage = conversationDataRef.current.conversation[nextIndex];
+    if (nextMessage && nextMessage.speaker === 'Person A' && exerciseState.isActive) {
+      console.log('🧹 Immediate exercise cleanup - Person A approaching');
+      setExerciseState(prev => ({ ...prev, isActive: false, isCompleted: false, score: 0 }));
+      setExerciseCreatedForMessage(-1);
+    }
+
     // Update state
     setCurrentMessageIndex(nextIndex);
     currentMessageIndexRef.current = nextIndex;
-    
-    const nextMessage = conversationDataRef.current.conversation[nextIndex];
     
     // Set typing state based on next speaker
     if (nextMessage.speaker === 'Person A') {
@@ -319,11 +325,11 @@ export default function ConversationLessonScreen() {
     const words = message.toLowerCase().split(/\s+/);
     const foundKeywords: LessonVocabulary[] = [];
 
-    console.log('🔍 Detecting keywords in message:', message);
-    console.log('🔍 Available vocabulary:', vocabulary.map(v => ({ 
-      english_term: v.english_term, 
-      keywords: v.keywords 
-    })));
+    // console.log('🔍 Detecting keywords in message:', message);
+    // console.log('🔍 Available vocabulary:', vocabulary.map(v => ({ 
+    //   english_term: v.english_term, 
+    //   keywords: v.keywords 
+    // })));
 
     // Check each word against vocabulary keywords
     for (const word of words) {
@@ -346,7 +352,7 @@ export default function ConversationLessonScreen() {
               keywordList = v.keywords;
             }
             
-            console.log('🔍 Checking keywords:', keywordList, 'against word:', cleanWord);
+            // console.log('🔍 Checking keywords:', keywordList, 'against word:', cleanWord);
             return keywordList.some((keyword: string) => 
               keyword.toLowerCase() === cleanWord
             );
@@ -358,7 +364,7 @@ export default function ConversationLessonScreen() {
         return false;
       });
       if (vocabMatch) {
-        console.log('✅ Found keyword match:', vocabMatch.english_term, 'for word:', cleanWord);
+        // console.log('✅ Found keyword match:', vocabMatch.english_term, 'for word:', cleanWord);
         foundKeywords.push(vocabMatch);
       }
     }
@@ -370,7 +376,7 @@ export default function ConversationLessonScreen() {
 
     // Pick one random keyword
     const selectedKeyword = foundKeywords[Math.floor(Math.random() * foundKeywords.length)];
-    console.log('🎯 Selected keyword for exercise:', selectedKeyword.english_term);
+    // console.log('🎯 Selected keyword for exercise:', selectedKeyword.english_term);
 
     // Pick random exercise type
     const exerciseTypes: ConversationExercise['type'][] = ['flashcard', 'speak', 'fill-in-blank', 'sentence-scramble'];
@@ -438,15 +444,19 @@ export default function ConversationLessonScreen() {
           currentMessage.speaker === 'User' && 
           !exerciseState.isActive && 
           exerciseCreatedForMessage !== currentMessageIndex &&
-          !isTypingAnimation) { // Wait until Person A finishes typing
+          !isTypingAnimation && // Wait until ALL typing animations finish
+          !isTyping) { // Additional check to ensure no typing is happening
         
         console.log('🔍 Exercise creation check:', {
           currentMessageIndex,
           messageText: currentMessage.message,
           exerciseCreatedForMessage,
           isActive: exerciseState.isActive,
-          isTypingAnimation
+          isTypingAnimation,
+          isTyping
         });
+        
+        console.log('🔍 About to create exercise, will set exerciseCreatedForMessage to:', currentMessageIndex);
         
         // Check for keywords and create exercise automatically
         const exercise = detectKeywordsAndCreateExercise(currentMessage.message);
@@ -454,6 +464,7 @@ export default function ConversationLessonScreen() {
         if (exercise) {
           console.log('🎯 Exercise created automatically for message', currentMessageIndex, ':', exercise);
           setExerciseCreatedForMessage(currentMessageIndex); // Mark this message as processed
+          console.log('🔍 JUST SET exerciseCreatedForMessage to:', currentMessageIndex);
           
           setExerciseState({
             isActive: true,
@@ -472,24 +483,25 @@ export default function ConversationLessonScreen() {
         }
       }
     }
-  }, [currentMessageIndex, conversationData, exerciseState.isActive, exerciseCreatedForMessage, isTypingAnimation, detectKeywordsAndCreateExercise, initializeScramble]);
+  }, [currentMessageIndex, conversationData, exerciseState.isActive, exerciseCreatedForMessage, isTypingAnimation, isTyping, detectKeywordsAndCreateExercise, initializeScramble]);
 
-  // Clear exercise when advancing to a new user message
+  // Clear exercise when advancing to ANY new message (User or Person A)
   useEffect(() => {
     if (conversationData && currentMessageIndex < conversationData.conversation.length) {
       const currentMessage = conversationData.conversation[currentMessageIndex];
       
-      if (currentMessage && currentMessage.speaker === 'User') {
-        console.log('🔍 Checking exercise cleanup for user message:', {
+      // Clear exercise when advancing to ANY Person A message (they start typing)
+      if (currentMessage && currentMessage.speaker === 'Person A') {
+        console.log('🔍 Checking exercise cleanup for Person A message:', {
           currentMessageIndex,
           currentMessageText: currentMessage.message,
-          exerciseCreatedForMessage,
-          exerciseActive: exerciseState.isActive
+          exerciseActive: exerciseState.isActive,
+          exerciseCreatedForMessage
         });
         
-        // Always clear any existing exercise when we reach a new user message
+        // Always clear any existing exercise when Person A starts typing
         if (exerciseState.isActive || exerciseCreatedForMessage >= 0) {
-          console.log('🧹 Clearing exercise for new user message:', {
+          console.log('🧹 Clearing exercise - Person A starting to type:', {
             currentMessageIndex,
             currentMessageText: currentMessage.message,
             oldExerciseMessageIndex: exerciseCreatedForMessage
@@ -512,8 +524,28 @@ export default function ConversationLessonScreen() {
           setExerciseCreatedForMessage(-1); // Reset to allow new exercise creation
         }
       }
+      // Similarly clear when advancing to a User message
+      else if (currentMessage && currentMessage.speaker === 'User') {
+        // Additional cleanup logic for user messages if needed
+        if (exerciseState.isActive && exerciseCreatedForMessage >= 0 && exerciseCreatedForMessage < currentMessageIndex) {
+          console.log('🧹 Clearing stale exercise for new user message:', {
+            currentMessageIndex,
+            currentMessageText: currentMessage.message,
+            oldExerciseMessageIndex: exerciseCreatedForMessage
+          });
+          
+          setExerciseState(prev => ({
+            ...prev,
+            isActive: false,
+            isCompleted: false,
+            score: 0
+          }));
+          
+          setExerciseCreatedForMessage(-1);
+        }
+      }
     }
-  }, [currentMessageIndex, conversationData]);
+  }, [currentMessageIndex, conversationData, exerciseState.isActive, exerciseCreatedForMessage]);
 
   const handleSendMessage = useCallback(() => {
     // This function is no longer needed since exercises auto-trigger
@@ -543,8 +575,8 @@ export default function ConversationLessonScreen() {
     setFillBlankAnswer('');
     setIsRecording(false);
     setRecordingResult(null);
-    // Reset exercise tracking to allow next user message to create exercise
-    setExerciseCreatedForMessage(-1);
+    // Don't reset exerciseCreatedForMessage here - keep it to prevent duplicate creation
+    // setExerciseCreatedForMessage(-1);
 
     // Proceed with conversation immediately after hiding exercise
     if (conversationData) {
@@ -761,14 +793,14 @@ export default function ConversationLessonScreen() {
 
   // Render conversation exercise component
   const renderConversationExercise = () => {
-    console.log('🎨 Exercise render check:', exerciseState);
+    // console.log('🎨 Exercise render check:', exerciseState);
     if (!exerciseState.isActive || !exerciseState.exercise) {
-      console.log('❌ Exercise not rendering - isActive:', exerciseState.isActive, 'exercise:', exerciseState.exercise);
+      // console.log('❌ Exercise not rendering - isActive:', exerciseState.isActive, 'exercise:', exerciseState.exercise);
       return null;
     }
 
     const { exercise } = exerciseState;
-    console.log('✅ Rendering exercise:', exercise.type);
+    // console.log('✅ Rendering exercise:', exercise.type);
 
     switch (exercise.type) {
       case 'flashcard':
@@ -806,11 +838,11 @@ export default function ConversationLessonScreen() {
         );
 
       case 'fill-in-blank':
-        console.log('🎯 Fill-blank exercise data:', {
-          sentence: exercise.sentence,
-          keyword: exercise.keyword,
-          vocabulary: exercise.vocabulary
-        });
+        // console.log('🎯 Fill-blank exercise data:', {
+        //   sentence: exercise.sentence,
+        //   keyword: exercise.keyword,
+        //   vocabulary: exercise.vocabulary
+        // });
         
         return (
           <View style={styles.integratedExerciseContainer}>
@@ -825,14 +857,14 @@ export default function ConversationLessonScreen() {
                   const cleanKeyword = exercise.keyword ? exercise.keyword.toLowerCase().replace(/[^\w]/g, '') : '';
                   const isKeyword = cleanKeyword && cleanWord === cleanKeyword;
                   
-                  console.log('🔍 Fill-blank word check:', { 
-                    word, 
-                    cleanWord, 
-                    keyword: exercise.keyword, 
-                    cleanKeyword, 
-                    isKeyword,
-                    sentence: exercise.sentence
-                  });
+                  // console.log('🔍 Fill-blank word check:', { 
+                  //   word, 
+                  //   cleanWord, 
+                  //   keyword: exercise.keyword, 
+                  //   cleanKeyword, 
+                  //   isKeyword,
+                  //   sentence: exercise.sentence
+                  // });
                   
                   return (
                     <View key={index} style={styles.integratedFillBlankWordContainer}>
