@@ -189,8 +189,8 @@ export class UnitDataService {
       { id: 1, title: 'Words', status: 'active' },
       { id: 2, title: 'Listen', status: 'active' },
       { id: 3, title: 'Write', status: 'active' },
-      { id: 4, title: 'Speak', status: 'active' }, // ✅ Pronunciation assessment implemented
-      { id: 5, title: 'Roleplay', status: 'locked' }, // TODO: Implement when ready
+      { id: 4, title: 'Speak', status: 'active' },
+      { id: 5, title: 'Roleplay', status: 'active' },
     ];
 
     return lessons;

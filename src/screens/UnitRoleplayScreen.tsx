@@ -11,50 +11,42 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
+import PronunciationCheck from '../components/PronunciationCheck';
+import { PronunciationResult } from '../lib/pronunciationService';
 
-// Hardcoded conversation dialogue
+// Hardcoded conversation dialogue (same as Write)
 const CONVERSATION = [
   {
     appMessage: { french: 'Bonjour !', english: 'Hello / Good morning!' },
     userMessage: { french: 'Salut, ça va ?', english: 'Hi, how are you?' },
-    type: 'choice' as const,
-    wrongOption: 'tout'
   },
   {
     appMessage: { french: 'Ça va, merci. Et toi ?', english: "I'm fine, thanks. And you?" },
     userMessage: { french: 'Bien, merci. Bonjour !', english: 'Good, thanks. Hello!' },
-    type: 'choice' as const,
-    wrongOption: 'revoir'
   },
   {
     appMessage: { french: 'Bon après-midi !', english: 'Good afternoon!' },
     userMessage: { french: 'Merci, bon après-midi à toi aussi.', english: 'Thanks, good afternoon to you too.' },
-    type: 'choice' as const,
-    wrongOption: 'Au revoir !'
   },
   {
     appMessage: { french: 'Bonsoir !', english: 'Good evening!' },
     userMessage: { french: 'Bonsoir !', english: 'Good evening!' },
-    type: 'scramble' as const,
   },
   {
     appMessage: { french: "S'il vous plaît, comment allez-vous ?", english: 'Please, how are you?' },
     userMessage: { french: 'Très bien, merci. Et vous ?', english: 'Very well, thank you. And you?' },
-    type: 'scramble' as const,
   },
   {
     appMessage: { french: 'Bien, merci beaucoup.', english: 'Fine, thank you very much.' },
     userMessage: { french: 'Bonne soirée !', english: 'Have a good evening!' },
-    type: 'scramble' as const,
   },
   {
     appMessage: { french: 'Au revoir !', english: 'Goodbye!' },
     userMessage: { french: 'Au revoir !', english: 'Goodbye!' },
-    type: 'scramble' as const,
   },
 ];
 
-export default function UnitWriteScreen() {
+export default function UnitRoleplayScreen() {
   const navigation = useNavigation();
   const { user } = useAuth();
   const scrollViewRef = useRef<ScrollView>(null);
@@ -65,15 +57,14 @@ export default function UnitWriteScreen() {
     english: string;
   }>>([]);
   const [currentExchangeIndex, setCurrentExchangeIndex] = useState(0);
-  const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
-  const [userAnswer, setUserAnswer] = useState<string[]>([]);
-  const [availableWords, setAvailableWords] = useState<string[]>([]);
   const [showResult, setShowResult] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
   const [score, setScore] = useState(0);
   const [completed, setCompleted] = useState(false);
   const [showExitModal, setShowExitModal] = useState(false);
-  const [checkButtonText, setCheckButtonText] = useState('Check');
+  const [attemptKey, setAttemptKey] = useState(0);
+  const [lastResult, setLastResult] = useState<PronunciationResult | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const currentExchange = CONVERSATION[currentExchangeIndex] || CONVERSATION[0];
   const isLastExchange = currentExchangeIndex === CONVERSATION.length - 1;
@@ -89,18 +80,6 @@ export default function UnitWriteScreen() {
     }
   }, []);
 
-  // Initialize scramble words when needed
-  useEffect(() => {
-    if (!completed && currentExchangeIndex < CONVERSATION.length) {
-      const exchange = CONVERSATION[currentExchangeIndex];
-      if (exchange && exchange.type === 'scramble' && conversationHistory.length > 0) {
-        const words = exchange.userMessage.french.split(' ');
-        setAvailableWords([...words].sort(() => Math.random() - 0.5));
-        setUserAnswer([]);
-      }
-    }
-  }, [currentExchangeIndex, conversationHistory.length, completed]);
-
   // Auto-scroll to bottom when conversation updates
   useEffect(() => {
     setTimeout(() => {
@@ -108,41 +87,19 @@ export default function UnitWriteScreen() {
     }, 100);
   }, [conversationHistory]);
 
-  const handleAnswerSelect = (answer: string) => {
-    if (showResult) return;
-    setSelectedAnswer(answer);
-  };
+  const handlePronunciationComplete = async (result: PronunciationResult) => {
+    if (!result.success || !result.assessment) return;
 
-  const handleWordPress = (word: string, fromAnswer: boolean) => {
-    if (showResult) return;
+    const pronunciationScore = result.assessment.pronunciationScore;
+    setLastResult(result);
     
-    if (fromAnswer) {
-      setUserAnswer(userAnswer.filter(w => w !== word));
-      setAvailableWords([...availableWords, word]);
-    } else {
-      setUserAnswer([...userAnswer, word]);
-      setAvailableWords(availableWords.filter(w => w !== word));
-    }
-  };
-
-  const handleCheck = () => {
-    if (currentExchange.type === 'choice' && !selectedAnswer) return;
-    if (currentExchange.type === 'scramble' && userAnswer.length === 0) return;
-
-    let correct = false;
-    if (currentExchange.type === 'choice') {
-      correct = selectedAnswer === currentExchange.userMessage.french;
-    } else {
-      const userSentence = userAnswer.join(' ');
-      correct = userSentence === currentExchange.userMessage.french;
-    }
-
-    setIsCorrect(correct);
+    // Consider score >= 60 as passing
+    const passed = pronunciationScore >= 60;
+    setIsCorrect(passed);
     setShowResult(true);
-
-    if (correct) {
+    
+    if (passed) {
       setScore(score + 1);
-      setCheckButtonText('Correct! ✓');
       
       // After 1 second, add user message to chat and move to next
       setTimeout(() => {
@@ -166,11 +123,8 @@ export default function UnitWriteScreen() {
 
         setConversationHistory(newHistory);
         setCurrentExchangeIndex(currentExchangeIndex + 1);
-        setSelectedAnswer(null);
-        setUserAnswer([]);
-        setAvailableWords([]);
         setShowResult(false);
-        setCheckButtonText('Check');
+        setAttemptKey(attemptKey + 1);
 
         if (isLastExchange) {
           // Show completion after brief delay
@@ -183,14 +137,9 @@ export default function UnitWriteScreen() {
   };
 
   const handleRetry = () => {
-    setSelectedAnswer(null);
-    setUserAnswer([]);
-    if (currentExchange.type === 'scramble') {
-      const words = currentExchange.userMessage.french.split(' ');
-      setAvailableWords([...words].sort(() => Math.random() - 0.5));
-    }
     setShowResult(false);
     setIsCorrect(false);
+    setAttemptKey(attemptKey + 1);
   };
 
   const handleSkip = () => {
@@ -213,11 +162,9 @@ export default function UnitWriteScreen() {
 
     setConversationHistory(newHistory);
     setCurrentExchangeIndex(currentExchangeIndex + 1);
-    setSelectedAnswer(null);
-    setUserAnswer([]);
-    setAvailableWords([]);
     setShowResult(false);
     setIsCorrect(false);
+    setAttemptKey(attemptKey + 1);
 
     if (isLastExchange) {
       setTimeout(() => {
@@ -251,51 +198,45 @@ export default function UnitWriteScreen() {
     const accuracyPercentage = Math.round((score / CONVERSATION.length) * 100);
     
     return (
-      <SafeAreaView style={styles.completionContainer}>
-        <View style={styles.completionContent}>
-          <Text style={styles.completionEmoji}>🎉</Text>
-          <Text style={styles.completionTitle}>Write Complete!</Text>
-          <Text style={styles.completionSubtitle}>Great conversation practice!</Text>
-          
-          <View style={styles.completionStats}>
-            <View style={styles.completionStatCard}>
-              <Text style={styles.completionStatValue}>{score}/{CONVERSATION.length}</Text>
-              <Text style={styles.completionStatLabel}>Correct</Text>
-            </View>
-            <View style={styles.completionStatCard}>
-              <Text style={styles.completionStatValue}>{accuracyPercentage}%</Text>
-              <Text style={styles.completionStatLabel}>Accuracy</Text>
-            </View>
+      <View style={styles.completionContainer}>
+        <Text style={styles.completionTitle}>🎉 Roleplay Complete!</Text>
+        <Text style={styles.completionSubtitle}>Great job!</Text>
+        
+        <View style={styles.statsContainer}>
+          <View style={styles.statItem}>
+            <Text style={styles.statLabel}>Score</Text>
+            <Text style={styles.statValue}>{score}/{CONVERSATION.length}</Text>
           </View>
-          
-          <View style={styles.completionButtons}>
-            <TouchableOpacity 
-              style={styles.completionRetryButton} 
-              onPress={() => {
-                setConversationHistory([{
-                  type: 'app',
-                  french: CONVERSATION[0].appMessage.french,
-                  english: CONVERSATION[0].appMessage.english,
-                }]);
-                setCurrentExchangeIndex(0);
-                setScore(0);
-                setCompleted(false);
-                setSelectedAnswer(null);
-                setShowResult(false);
-                setUserAnswer([]);
-                setAvailableWords([]);
-                setCheckButtonText('Check');
-              }}
-            >
-              <Text style={styles.completionRetryButtonText}>Retry</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity style={styles.completionContinueButton} onPress={handleContinue}>
-              <Text style={styles.completionContinueButtonText}>Continue</Text>
-            </TouchableOpacity>
+          <View style={styles.statItem}>
+            <Text style={styles.statLabel}>Percentage</Text>
+            <Text style={styles.statValue}>{accuracyPercentage}%</Text>
           </View>
         </View>
-      </SafeAreaView>
+        
+        <View style={styles.actionButtons}>
+          <TouchableOpacity 
+            style={styles.resetButton} 
+            onPress={() => {
+              setConversationHistory([{
+                type: 'app',
+                french: CONVERSATION[0].appMessage.french,
+                english: CONVERSATION[0].appMessage.english,
+              }]);
+              setCurrentExchangeIndex(0);
+              setScore(0);
+              setCompleted(false);
+              setShowResult(false);
+              setAttemptKey(0);
+            }}
+          >
+            <Text style={styles.resetButtonText}>Retry</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.exitButton} onPress={handleContinue}>
+            <Text style={styles.exitButtonText}>Continue</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
     );
   }
 
@@ -406,148 +347,74 @@ export default function UnitWriteScreen() {
         ))}
       </ScrollView>
 
-      {/* Input Area */}
+      {/* Speech Input Area */}
       {currentExchangeIndex < CONVERSATION.length && (
         <View style={styles.inputContainer}>
-          <Text style={styles.inputTitle}>
-            {currentExchange.type === 'choice' ? 'TAP THE CORRECT ANSWER' : 'CORRECT THE ORDERING'}
-          </Text>
+          <Text style={styles.inputTitle}>SAY YOUR RESPONSE</Text>
+          <Text style={styles.responsePrompt}>{currentExchange.userMessage.english}</Text>
 
-          {currentExchange.type === 'choice' ? (
-            // Multiple Choice
-            <View style={styles.choiceContainer}>
-              <Text style={styles.choicePrompt}>{currentExchange.userMessage.english}</Text>
-              
-              <TouchableOpacity
-                style={[
-                  styles.choiceButton,
-                  selectedAnswer === currentExchange.userMessage.french && !showResult && styles.choiceButtonSelected,
-                  showResult && selectedAnswer === currentExchange.userMessage.french && isCorrect && styles.choiceButtonCorrect,
-                  showResult && selectedAnswer === currentExchange.userMessage.french && !isCorrect && styles.choiceButtonIncorrect,
-                ]}
-                onPress={() => handleAnswerSelect(currentExchange.userMessage.french)}
-                disabled={showResult}
-              >
-                <Text style={[
-                  styles.choiceButtonText,
-                  selectedAnswer === currentExchange.userMessage.french && !showResult && styles.choiceButtonTextSelected,
-                  showResult && selectedAnswer === currentExchange.userMessage.french && isCorrect && styles.choiceButtonTextCorrect,
-                  showResult && selectedAnswer === currentExchange.userMessage.french && !isCorrect && styles.choiceButtonTextIncorrect,
-                ]}>
-                  {currentExchange.userMessage.french}
-                </Text>
-                {showResult && selectedAnswer === currentExchange.userMessage.french && isCorrect && (
-                  <Ionicons name="checkmark-circle" size={24} color="#10b981" />
-                )}
-                {showResult && selectedAnswer === currentExchange.userMessage.french && !isCorrect && (
-                  <Ionicons name="close-circle" size={24} color="#ef4444" />
-                )}
-              </TouchableOpacity>
-              
-              <TouchableOpacity
-                style={[
-                  styles.choiceButton,
-                  selectedAnswer === currentExchange.wrongOption && !showResult && styles.choiceButtonSelected,
-                  showResult && selectedAnswer === currentExchange.wrongOption && styles.choiceButtonIncorrect,
-                ]}
-                onPress={() => handleAnswerSelect(currentExchange.wrongOption)}
-                disabled={showResult}
-              >
-                <Text style={[
-                  styles.choiceButtonText,
-                  selectedAnswer === currentExchange.wrongOption && !showResult && styles.choiceButtonTextSelected,
-                  showResult && selectedAnswer === currentExchange.wrongOption && styles.choiceButtonTextIncorrect,
-                ]}>
-                  {currentExchange.wrongOption}
-                </Text>
-                {showResult && selectedAnswer === currentExchange.wrongOption && (
-                  <Ionicons name="close-circle" size={24} color="#ef4444" />
-                )}
-              </TouchableOpacity>
-            </View>
-          ) : (
-            // Sentence Scramble
-            <View style={styles.scrambleContainer}>
-              <Text style={styles.scramblePrompt}>{currentExchange.userMessage.english}</Text>
-              
-              {/* User Answer Area */}
-              <View style={styles.answerArea}>
-                {userAnswer.map((word, index) => (
-                  <TouchableOpacity
-                    key={`answer-${index}`}
-                    style={styles.wordChip}
-                    onPress={() => handleWordPress(word, true)}
-                    disabled={showResult}
-                  >
-                    <Text style={styles.wordChipText}>{word}</Text>
-                  </TouchableOpacity>
-                ))}
-                {userAnswer.length === 0 && (
-                  <Text style={styles.placeholderText}>Tap the words below</Text>
-                )}
-              </View>
-
-              {/* Available Words */}
-              <View style={styles.wordsContainer}>
-                {availableWords.map((word, index) => (
-                  <TouchableOpacity
-                    key={`available-${index}`}
-                    style={styles.wordChip}
-                    onPress={() => handleWordPress(word, false)}
-                    disabled={showResult}
-                  >
-                    <Text style={styles.wordChipText}>{word}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
+          {/* Pronunciation Check Component - Hide the text, show only record button */}
+          {!showResult && (
+            <PronunciationCheck
+              key={`${currentExchangeIndex}-${attemptKey}`}
+              word={currentExchange.userMessage.french}
+              onComplete={handlePronunciationComplete}
+              maxRecordingDuration={8000}
+              showAlerts={false}
+              hideScoreRing={true}
+              hideWordDisplay={true}
+            />
           )}
 
           {/* Result Message */}
-          {showResult && !isCorrect && (
+          {showResult && (
             <View style={styles.resultMessage}>
-              <Text style={styles.resultTitle}>Incorrect! 😔</Text>
-              <Text style={styles.resultSubtitle}>
-                The correct answer is: {currentExchange.userMessage.french}
+              <Text style={[
+                styles.resultTitle,
+                isCorrect ? styles.resultTitleCorrect : styles.resultTitleIncorrect
+              ]}>
+                {isCorrect ? 'You got this 🙌' : 'Incorrect! 😔'}
               </Text>
+              
+              {!isCorrect && lastResult?.assessment && (
+                <>
+                  <Text style={styles.resultSubtitle}>
+                    It sounded as if you said:
+                  </Text>
+                  <Text style={styles.recognizedSpeech}>
+                    {lastResult.assessment.recognizedText || 'No speech detected'}
+                  </Text>
+                  
+                  <View style={styles.metrics}>
+                    <View style={styles.metricRow}>
+                      <Text style={styles.metricLabel}>Accuracy:</Text>
+                      <Text style={styles.metricValue}>
+                        {Math.round(lastResult.assessment.accuracyScore)}/100
+                      </Text>
+                    </View>
+                    <View style={styles.metricRow}>
+                      <Text style={styles.metricLabel}>Fluency:</Text>
+                      <Text style={styles.metricValue}>
+                        {Math.round(lastResult.assessment.fluencyScore)}/100
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.incorrectActions}>
+                    <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
+                      <Text style={styles.retryButtonText}>Retry</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
+                      <Text style={styles.skipButtonText}>Skip</Text>
+                      <Ionicons name="arrow-forward" size={20} color="#64748b" />
+                    </TouchableOpacity>
+                  </View>
+                </>
+              )}
             </View>
           )}
         </View>
       )}
-
-      {/* Bottom Actions */}
-      <View style={styles.bottomActions}>
-        {!showResult || isCorrect ? (
-          <TouchableOpacity
-            style={[
-              styles.checkButton,
-              (currentExchange.type === 'choice' && !selectedAnswer) || 
-              (currentExchange.type === 'scramble' && userAnswer.length === 0) 
-                ? styles.checkButtonDisabled 
-                : isCorrect 
-                ? styles.checkButtonCorrect 
-                : null
-            ]}
-            onPress={handleCheck}
-            disabled={
-              (currentExchange.type === 'choice' && !selectedAnswer) || 
-              (currentExchange.type === 'scramble' && userAnswer.length === 0)
-            }
-          >
-            <Text style={styles.checkButtonText}>{checkButtonText}</Text>
-          </TouchableOpacity>
-        ) : (
-          <View style={styles.incorrectActions}>
-            <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
-              <Text style={styles.retryButtonText}>Retry</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
-              <Text style={styles.skipButtonText}>Skip</Text>
-              <Ionicons name="arrow-forward" size={20} color="#64748b" />
-            </TouchableOpacity>
-          </View>
-        )}
-      </View>
     </SafeAreaView>
   );
 }
@@ -676,7 +543,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
     paddingTop: 20,
     paddingHorizontal: 20,
-    paddingBottom: 12,
+    paddingBottom: 20,
     borderTopWidth: 1,
     borderTopColor: '#e5e7eb',
   },
@@ -685,156 +552,70 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#9ca3af',
     textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: 8,
     letterSpacing: 0.5,
   },
-  choiceContainer: {
-    gap: 12,
-  },
-  choicePrompt: {
+  responsePrompt: {
     fontSize: 18,
     fontWeight: '600',
     color: '#1e293b',
     textAlign: 'center',
-    marginBottom: 8,
-  },
-  choiceButton: {
-    backgroundColor: '#f8fafc',
-    paddingVertical: 18,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    borderWidth: 3,
-    borderColor: '#e2e8f0',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  choiceButtonSelected: {
-    borderColor: '#a5d88f',
-    backgroundColor: '#f0fdf4',
-  },
-  choiceButtonCorrect: {
-    borderColor: '#10b981',
-    backgroundColor: '#dcfce7',
-  },
-  choiceButtonIncorrect: {
-    borderColor: '#ef4444',
-    backgroundColor: '#fee2e2',
-  },
-  choiceButtonText: {
-    fontSize: 16,
-    color: '#1e293b',
-    fontWeight: '500',
-    flex: 1,
-  },
-  choiceButtonTextSelected: {
-    color: '#166534',
-    fontWeight: '600',
-  },
-  choiceButtonTextCorrect: {
-    color: '#166534',
-    fontWeight: '600',
-  },
-  choiceButtonTextIncorrect: {
-    color: '#991b1b',
-    fontWeight: '600',
-  },
-  scrambleContainer: {
-    gap: 16,
-  },
-  scramblePrompt: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1e293b',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  answerArea: {
-    minHeight: 60,
-    backgroundColor: '#f8fafc',
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#cbd5e1',
-    padding: 12,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  wordsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    justifyContent: 'center',
-  },
-  wordChip: {
-    backgroundColor: '#ffffff',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: '#cbd5e1',
-  },
-  wordChipText: {
-    color: '#1e293b',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  placeholderText: {
-    color: '#94a3af',
-    fontSize: 16,
-    fontStyle: 'italic',
+    marginBottom: 16,
   },
   resultMessage: {
-    backgroundColor: '#fee2e2',
+    backgroundColor: '#f8fafc',
     borderRadius: 12,
     padding: 16,
     marginTop: 12,
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#fecaca',
   },
   resultTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#991b1b',
-    marginBottom: 4,
+    marginBottom: 8,
+  },
+  resultTitleCorrect: {
+    color: '#10b981',
+  },
+  resultTitleIncorrect: {
+    color: '#ef4444',
   },
   resultSubtitle: {
     fontSize: 14,
-    color: '#7f1d1d',
+    color: '#64748b',
     textAlign: 'center',
+    marginBottom: 8,
   },
-  bottomActions: {
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 12,
-    backgroundColor: '#ffffff',
-    borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
-  },
-  checkButton: {
-    backgroundColor: '#cbd5e1',
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  checkButtonDisabled: {
-    backgroundColor: '#e5e7eb',
-    opacity: 0.5,
-  },
-  checkButtonCorrect: {
-    backgroundColor: '#10b981',
-  },
-  checkButtonText: {
+  recognizedSpeech: {
     fontSize: 16,
-    fontWeight: '700',
+    color: '#1e293b',
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  metrics: {
+    width: '100%',
+    gap: 8,
+    marginBottom: 16,
+  },
+  metricRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+  },
+  metricLabel: {
+    fontSize: 14,
+    color: '#64748b',
+  },
+  metricValue: {
+    fontSize: 14,
+    fontWeight: '600',
     color: '#1e293b',
   },
   incorrectActions: {
     flexDirection: 'row',
     gap: 12,
+    width: '100%',
   },
   retryButton: {
     flex: 1,
@@ -869,81 +650,71 @@ const styles = StyleSheet.create({
   },
   completionContainer: {
     flex: 1,
-    backgroundColor: '#7c6ee0',
-  },
-  completionContent: {
-    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 32,
-  },
-  completionEmoji: {
-    fontSize: 72,
-    marginBottom: 24,
+    padding: 40,
   },
   completionTitle: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: '700',
-    color: '#ffffff',
+    color: '#1e293b',
     textAlign: 'center',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   completionSubtitle: {
     fontSize: 18,
-    color: '#e0e7ff',
+    color: '#64748b',
     textAlign: 'center',
-    marginBottom: 48,
+    marginBottom: 40,
   },
-  completionStats: {
+  statsContainer: {
     flexDirection: 'row',
-    gap: 24,
-    marginBottom: 48,
+    gap: 40,
+    marginBottom: 40,
   },
-  completionStatCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    paddingVertical: 24,
-    paddingHorizontal: 32,
-    borderRadius: 16,
+  statItem: {
     alignItems: 'center',
-    minWidth: 120,
   },
-  completionStatValue: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: '#ffffff',
+  statLabel: {
+    fontSize: 14,
+    color: '#64748b',
     marginBottom: 8,
   },
-  completionStatLabel: {
-    fontSize: 14,
-    color: '#e0e7ff',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+  statValue: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#6466E9',
   },
-  completionButtons: {
-    width: '100%',
+  actionButtons: {
+    flexDirection: 'row',
     gap: 12,
+    marginTop: 24,
   },
-  completionRetryButton: {
-    backgroundColor: '#ffffff',
+  resetButton: {
+    flex: 1,
+    backgroundColor: '#6466E9',
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
   },
-  completionRetryButtonText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#7c6ee0',
-  },
-  completionContinueButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  completionContinueButtonText: {
-    fontSize: 18,
+  resetButtonText: {
+    fontSize: 16,
     fontWeight: '600',
     color: '#ffffff',
+  },
+  exitButton: {
+    flex: 1,
+    backgroundColor: '#f1f5f9',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  exitButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#64748b',
   },
   modalOverlay: {
     flex: 1,
@@ -997,3 +768,4 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
+

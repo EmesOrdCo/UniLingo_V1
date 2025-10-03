@@ -146,7 +146,12 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
           break;
           
         case 'Roleplay':
-          Alert.alert('Coming Soon', `${lessonTitle} functionality will be available soon!`);
+          (navigation as any).navigate('UnitRoleplay', {
+            unitId: parseInt(unitCode.split('.')[1]),
+            unitTitle: selectedUnit?.unit_title || unitCode,
+            topicGroup: selectedTopicGroup,
+            unitCode: unitCode
+          });
           break;
           
         default:

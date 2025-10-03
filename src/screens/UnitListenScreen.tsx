@@ -239,39 +239,45 @@ export default function UnitListenScreen() {
     const accuracyPercentage = Math.round((score / totalQuestions) * 100);
     
     return (
-      <View style={styles.completionContainer}>
-        <Text style={styles.completionTitle}>🎉 Listening Complete!</Text>
-        <Text style={styles.completionSubtitle}>Great job!</Text>
-        
-        <View style={styles.statsContainer}>
-          <View style={styles.statItem}>
-            <Text style={styles.statLabel}>Score</Text>
-            <Text style={styles.statValue}>{score}/{totalQuestions}</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={styles.statLabel}>Percentage</Text>
-            <Text style={styles.statValue}>{accuracyPercentage}%</Text>
-          </View>
-        </View>
-        
-        <View style={styles.actionButtons}>
-          <TouchableOpacity style={styles.resetButton} onPress={() => {
-            setCurrentQuestion(0);
-            setScore(0);
-            setCompleted(false);
-            setSelectedAnswer(null);
-            setShowResult(false);
-            setUserAnswer([]);
-            setAvailableWords([]);
-          }}>
-            <Text style={styles.resetButtonText}>Retry</Text>
-          </TouchableOpacity>
+      <SafeAreaView style={styles.completionContainer}>
+        <View style={styles.completionContent}>
+          <Text style={styles.completionEmoji}>🎉</Text>
+          <Text style={styles.completionTitle}>Listening Complete!</Text>
+          <Text style={styles.completionSubtitle}>Great listening practice!</Text>
           
-          <TouchableOpacity style={styles.exitButton} onPress={handleContinue}>
-            <Text style={styles.exitButtonText}>Continue</Text>
-          </TouchableOpacity>
+          <View style={styles.completionStats}>
+            <View style={styles.completionStatCard}>
+              <Text style={styles.completionStatValue}>{score}/{totalQuestions}</Text>
+              <Text style={styles.completionStatLabel}>Correct</Text>
+            </View>
+            <View style={styles.completionStatCard}>
+              <Text style={styles.completionStatValue}>{accuracyPercentage}%</Text>
+              <Text style={styles.completionStatLabel}>Accuracy</Text>
+            </View>
+          </View>
+          
+          <View style={styles.completionButtons}>
+            <TouchableOpacity 
+              style={styles.completionRetryButton} 
+              onPress={() => {
+                setCurrentQuestion(0);
+                setScore(0);
+                setCompleted(false);
+                setSelectedAnswer(null);
+                setShowResult(false);
+                setUserAnswer([]);
+                setAvailableWords([]);
+              }}
+            >
+              <Text style={styles.completionRetryButtonText}>Retry</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.completionContinueButton} onPress={handleContinue}>
+              <Text style={styles.completionContinueButtonText}>Continue</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
 
@@ -769,72 +775,81 @@ const styles = StyleSheet.create({
   },
   completionContainer: {
     flex: 1,
+    backgroundColor: '#7c6ee0',
+  },
+  completionContent: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 40,
-    backgroundColor: '#f8fafc',
+    padding: 32,
+  },
+  completionEmoji: {
+    fontSize: 72,
+    marginBottom: 24,
   },
   completionTitle: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: '700',
-    color: '#1e293b',
+    color: '#ffffff',
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
   },
   completionSubtitle: {
     fontSize: 18,
-    color: '#64748b',
+    color: '#e0e7ff',
     textAlign: 'center',
-    marginBottom: 40,
+    marginBottom: 48,
   },
-  statsContainer: {
+  completionStats: {
     flexDirection: 'row',
-    gap: 40,
-    marginBottom: 40,
+    gap: 24,
+    marginBottom: 48,
   },
-  statItem: {
+  completionStatCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    paddingVertical: 24,
+    paddingHorizontal: 32,
+    borderRadius: 16,
     alignItems: 'center',
+    minWidth: 120,
   },
-  statLabel: {
-    fontSize: 14,
-    color: '#64748b',
+  completionStatValue: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#ffffff',
     marginBottom: 8,
   },
-  statValue: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#6466E9',
+  completionStatLabel: {
+    fontSize: 14,
+    color: '#e0e7ff',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
-  actionButtons: {
-    flexDirection: 'row',
+  completionButtons: {
+    width: '100%',
     gap: 12,
-    marginTop: 24,
   },
-  resetButton: {
-    flex: 1,
-    backgroundColor: '#6466E9',
+  completionRetryButton: {
+    backgroundColor: '#ffffff',
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
   },
-  resetButtonText: {
-    fontSize: 16,
+  completionRetryButtonText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#7c6ee0',
+  },
+  completionContinueButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  completionContinueButtonText: {
+    fontSize: 18,
     fontWeight: '600',
     color: '#ffffff',
-  },
-  exitButton: {
-    flex: 1,
-    backgroundColor: '#f1f5f9',
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
-  exitButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#64748b',
   },
   modalOverlay: {
     flex: 1,

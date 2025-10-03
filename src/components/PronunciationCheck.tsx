@@ -19,6 +19,10 @@ interface PronunciationCheckProps {
   onResult?: (result: any) => void; // For compatibility with SpeakingGame
   maxRecordingDuration?: number;
   disabled?: boolean;
+  showAlerts?: boolean; // Control whether to show alert modals
+  translation?: string; // Translation to show instead of tips
+  hideScoreRing?: boolean; // Hide the score circle, only show metrics
+  hideWordDisplay?: boolean; // Hide the "Say this:" section entirely
 }
 
 const PronunciationCheck: React.FC<PronunciationCheckProps> = ({
@@ -28,6 +32,10 @@ const PronunciationCheck: React.FC<PronunciationCheckProps> = ({
   onResult,
   maxRecordingDuration = 5000, // 5 seconds default
   disabled = false,
+  showAlerts = true, // Default to true for backward compatibility
+  translation,
+  hideScoreRing = false,
+  hideWordDisplay = false,
 }) => {
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -102,30 +110,32 @@ const PronunciationCheck: React.FC<PronunciationCheckProps> = ({
             onResult(assessmentResult);
           }
 
-          // Show feedback
-          if (assessmentResult.success && assessmentResult.feedback) {
-            const score = assessmentResult.assessment?.pronunciationScore || 0;
-            if (score >= 75) {
-              // Good pronunciation - brief success message
+          // Show feedback (only if showAlerts is true)
+          if (showAlerts) {
+            if (assessmentResult.success && assessmentResult.feedback) {
+              const score = assessmentResult.assessment?.pronunciationScore || 0;
+              if (score >= 75) {
+                // Good pronunciation - brief success message
+                Alert.alert(
+                  '🌟 Great Job!',
+                  assessmentResult.feedback.overall,
+                  [{ text: 'Continue' }]
+                );
+              } else {
+                // Needs improvement - show detailed feedback
+                Alert.alert(
+                  '📚 Keep Practicing',
+                  `${assessmentResult.feedback.overall}\n\n${assessmentResult.feedback.accuracy}`,
+                  [{ text: 'OK' }]
+                );
+              }
+            } else if (!assessmentResult.success) {
               Alert.alert(
-                '🌟 Great Job!',
-                assessmentResult.feedback.overall,
-                [{ text: 'Continue' }]
-              );
-            } else {
-              // Needs improvement - show detailed feedback
-              Alert.alert(
-                '📚 Keep Practicing',
-                `${assessmentResult.feedback.overall}\n\n${assessmentResult.feedback.accuracy}`,
+                'Assessment Failed',
+                assessmentResult.error || 'Could not assess pronunciation. Please try again.',
                 [{ text: 'OK' }]
               );
             }
-          } else if (!assessmentResult.success) {
-            Alert.alert(
-              'Assessment Failed',
-              assessmentResult.error || 'Could not assess pronunciation. Please try again.',
-              [{ text: 'OK' }]
-            );
           }
         } catch (error: any) {
           console.error('Assessment error:', error);
@@ -213,30 +223,32 @@ const PronunciationCheck: React.FC<PronunciationCheckProps> = ({
         onResult(assessmentResult);
       }
 
-      // Show feedback
-      if (assessmentResult.success && assessmentResult.feedback) {
-        const score = assessmentResult.assessment?.pronunciationScore || 0;
-        if (score >= 75) {
-          // Good pronunciation - brief success message
+      // Show feedback (only if showAlerts is true)
+      if (showAlerts) {
+        if (assessmentResult.success && assessmentResult.feedback) {
+          const score = assessmentResult.assessment?.pronunciationScore || 0;
+          if (score >= 75) {
+            // Good pronunciation - brief success message
+            Alert.alert(
+              '🌟 Great Job!',
+              assessmentResult.feedback.overall,
+              [{ text: 'Continue' }]
+            );
+          } else {
+            // Needs improvement - show detailed feedback
+            Alert.alert(
+              '📚 Keep Practicing',
+              `${assessmentResult.feedback.overall}\n\n${assessmentResult.feedback.accuracy}`,
+              [{ text: 'OK' }]
+            );
+          }
+        } else if (!assessmentResult.success) {
           Alert.alert(
-            '🌟 Great Job!',
-            assessmentResult.feedback.overall,
-            [{ text: 'Continue' }]
-          );
-        } else {
-          // Needs improvement - show detailed feedback
-          Alert.alert(
-            '📚 Keep Practicing',
-            `${assessmentResult.feedback.overall}\n\n${assessmentResult.feedback.accuracy}`,
+            'Assessment Failed',
+            assessmentResult.error || 'Could not assess pronunciation. Please try again.',
             [{ text: 'OK' }]
           );
         }
-      } else if (!assessmentResult.success) {
-        Alert.alert(
-          'Assessment Failed',
-          assessmentResult.error || 'Could not assess pronunciation. Please try again.',
-          [{ text: 'OK' }]
-        );
       }
     } catch (error: any) {
       console.error('Assessment error:', error);
@@ -313,9 +325,33 @@ const PronunciationCheck: React.FC<PronunciationCheckProps> = ({
   return (
     <View style={styles.container}>
       {/* Word/Sentence to pronounce */}
-      <View style={styles.textContainer}>
-        <View style={styles.wordHeader}>
-          <Text style={styles.label}>Say this:</Text>
+      {!hideWordDisplay && (
+        <View style={styles.textContainer}>
+          <View style={styles.wordHeader}>
+            <Text style={styles.label}>Say this:</Text>
+            <TouchableOpacity
+              style={[styles.hintButton, isPlayingHint && styles.hintButtonActive]}
+              onPress={handlePlayHint}
+              disabled={isPlayingHint}
+            >
+              <Ionicons 
+                name={isPlayingHint ? "volume-high" : "volume-medium"} 
+                size={20} 
+                color={isPlayingHint ? "#ffffff" : "#6366f1"} 
+              />
+              <Text style={[styles.hintButtonText, isPlayingHint && styles.hintButtonTextActive]}>
+                {isPlayingHint ? "Playing..." : "Hint"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.word}>{word}</Text>
+          {sentence && <Text style={styles.sentence}>"{sentence}"</Text>}
+        </View>
+      )}
+
+      {/* Hint button for when word display is hidden */}
+      {hideWordDisplay && (
+        <View style={styles.hintOnlyContainer}>
           <TouchableOpacity
             style={[styles.hintButton, isPlayingHint && styles.hintButtonActive]}
             onPress={handlePlayHint}
@@ -331,9 +367,7 @@ const PronunciationCheck: React.FC<PronunciationCheckProps> = ({
             </Text>
           </TouchableOpacity>
         </View>
-        <Text style={styles.word}>{word}</Text>
-        {sentence && <Text style={styles.sentence}>"{sentence}"</Text>}
-      </View>
+      )}
 
       {/* Recording Button */}
       {!isProcessing && !result && (
@@ -385,25 +419,27 @@ const PronunciationCheck: React.FC<PronunciationCheckProps> = ({
       {/* Results */}
       {result && result.success && result.assessment && (
         <View style={styles.resultsContainer}>
-          <View
-            style={[
-              styles.scoreCircle,
-              { borderColor: getScoreColor(result.assessment.pronunciationScore) },
-            ]}
-          >
-            <Text style={styles.scoreEmoji}>
-              {getScoreEmoji(result.assessment.pronunciationScore)}
-            </Text>
-            <Text
+          {!hideScoreRing && (
+            <View
               style={[
-                styles.scoreText,
-                { color: getScoreColor(result.assessment.pronunciationScore) },
+                styles.scoreCircle,
+                { borderColor: getScoreColor(result.assessment.pronunciationScore) },
               ]}
             >
-              {Math.round(result.assessment.pronunciationScore)}
-            </Text>
-            <Text style={styles.scoreLabel}>Score</Text>
-          </View>
+              <Text style={styles.scoreEmoji}>
+                {getScoreEmoji(result.assessment.pronunciationScore)}
+              </Text>
+              <Text
+                style={[
+                  styles.scoreText,
+                  { color: getScoreColor(result.assessment.pronunciationScore) },
+                ]}
+              >
+                {Math.round(result.assessment.pronunciationScore)}
+              </Text>
+              <Text style={styles.scoreLabel}>Score</Text>
+            </View>
+          )}
 
           <View style={styles.detailsContainer}>
             <View style={styles.detailRow}>
@@ -427,13 +463,22 @@ const PronunciationCheck: React.FC<PronunciationCheckProps> = ({
         </View>
       )}
 
-      {/* Tips */}
+      {/* Tips or Translation */}
       {!isRecording && !isProcessing && !result && (
-        <View style={styles.tipsContainer}>
-          <Ionicons name="information-circle" size={16} color="#64748b" />
-          <Text style={styles.tipsText}>
-            Speak clearly and naturally. Recording will stop automatically after {maxRecordingDuration / 1000} seconds.
-          </Text>
+        <View style={translation ? styles.translationContainer : styles.tipsContainer}>
+          {translation ? (
+            <>
+              <Text style={styles.translationLabel}>TRANSLATION:</Text>
+              <Text style={styles.translationText}>{translation}</Text>
+            </>
+          ) : (
+            <>
+              <Ionicons name="information-circle" size={16} color="#64748b" />
+              <Text style={styles.tipsText}>
+                Speak clearly and naturally. Recording will stop automatically after {maxRecordingDuration / 1000} seconds.
+              </Text>
+            </>
+          )}
         </View>
       )}
     </View>
@@ -482,6 +527,10 @@ const styles = StyleSheet.create({
   hintButtonActive: {
     backgroundColor: '#6366f1',
   },
+  hintOnlyContainer: {
+    alignItems: 'center',
+    marginBottom: 16,
+  },
   hintButtonText: {
     fontSize: 12,
     color: '#6366f1',
@@ -495,6 +544,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#1e293b',
     marginBottom: 4,
+    textAlign: 'center',
   },
   sentence: {
     fontSize: 16,
@@ -639,6 +689,24 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#64748b',
     lineHeight: 18,
+  },
+  translationContainer: {
+    marginTop: 16,
+    padding: 12,
+    backgroundColor: '#f8fafc',
+    borderRadius: 8,
+  },
+  translationLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6b7280',
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  translationText: {
+    fontSize: 16,
+    color: '#1e293b',
+    fontWeight: '500',
   },
   recordButtonDisabled: {
     backgroundColor: '#9ca3af',

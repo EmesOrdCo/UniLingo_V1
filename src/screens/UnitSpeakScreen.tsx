@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -6,331 +6,277 @@ import {
   TouchableOpacity,
   SafeAreaView,
   ScrollView,
-  Alert,
-  ActivityIndicator,
+  Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
-import { GeneralVocabService, ProcessedVocabItem } from '../lib/generalVocabService';
-import { XPService } from '../lib/xpService';
 import PronunciationCheck from '../components/PronunciationCheck';
 import { PronunciationResult } from '../lib/pronunciationService';
 
+// Hardcoded vocabulary for "Saying Hello"
+const VOCABULARY = [
+  { french: 'salut', english: 'hi' },
+  { french: 'bonjour', english: 'hello' },
+  { french: 'bon après-midi', english: 'good afternoon' },
+  { french: 'bonsoir', english: 'good evening' },
+  { french: 'au revoir', english: 'goodbye' },
+  { french: "s'il vous plaît", english: 'please' },
+  { french: 'bonjour', english: 'good morning' }, // Using bonjour again for good morning
+];
+
+// Hardcoded sentences
+const SENTENCES = [
+  { french: 'Salut, comment ça va ?', english: 'Hi, how are you?' },
+  { french: "Bonjour, je m'appelle Marie.", english: 'Hello, my name is Marie.' },
+  { french: 'Bonjour, ce matin il fait beau.', english: 'Good morning, the weather is nice today.' },
+  { french: "Bon après-midi, amuse-toi bien à l'école.", english: 'Good afternoon, have fun at school.' },
+  { french: 'Bonsoir, nous allons au cinéma.', english: 'Good evening, we are going to the cinema.' },
+  { french: 'Au revoir, à demain !', english: 'Goodbye, see you tomorrow!' },
+  { french: "Un café, s'il vous plaît.", english: 'A coffee, please.' },
+];
+
+type Question = {
+  type: 'word' | 'sentence';
+  french: string;
+  english: string;
+};
+
 export default function UnitSpeakScreen() {
   const navigation = useNavigation();
-  const route = useRoute();
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
   
-  const { unitId, unitTitle, topicGroup, unitCode } = (route.params as any) || { 
-    unitId: 1, 
-    unitTitle: 'Basic Concepts', 
-    topicGroup: 'Basic Concepts', 
-    unitCode: 'A1.1' 
-  };
+  // Generate all 14 questions: 7 words + 7 sentences
+  const [questions] = useState<Question[]>(() => [
+    ...VOCABULARY.map(v => ({ type: 'word' as const, french: v.french, english: v.english })),
+    ...SENTENCES.map(s => ({ type: 'sentence' as const, french: s.french, english: s.english })),
+  ]);
   
-  const [vocabulary, setVocabulary] = useState<ProcessedVocabItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [currentWordIndex, setCurrentWordIndex] = useState(0);
-  const [wordScores, setWordScores] = useState<{ [key: number]: number }>({});
-  const [wordAttempts, setWordAttempts] = useState<{ [key: number]: number }>({});
-  const [totalXP, setTotalXP] = useState(0);
-  const [isCompleted, setIsCompleted] = useState(false);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [score, setScore] = useState(0);
+  const [completed, setCompleted] = useState(false);
+  const [showExitModal, setShowExitModal] = useState(false);
+  const [showResult, setShowResult] = useState(false);
+  const [isCorrect, setIsCorrect] = useState(false);
+  const [lastResult, setLastResult] = useState<PronunciationResult | null>(null);
+  const [attemptKey, setAttemptKey] = useState(0);
 
-  const MAX_ATTEMPTS = 3;
-
-  useEffect(() => {
-    loadVocabulary();
-  }, []);
-
-  const loadVocabulary = async () => {
-    try {
-      setLoading(true);
-      console.log(`🎤 Loading vocabulary for Speak lesson: ${topicGroup}`);
-      
-      const vocab = await GeneralVocabService.getVocabByTopicGroup(
-        topicGroup, 
-        profile?.native_language || 'english'
-      );
-      
-      console.log(`🎤 Loaded ${vocab.length} words for pronunciation practice`);
-      
-      if (vocab.length === 0) {
-        Alert.alert(
-          'No Vocabulary Available',
-          `No vocabulary found for "${topicGroup}".`,
-          [
-            { text: 'Go Back', onPress: () => navigation.goBack() }
-          ]
-        );
-        return;
-      }
-      
-      setVocabulary(vocab);
-    } catch (error) {
-      console.error('❌ Error loading vocabulary:', error);
-      Alert.alert(
-        'Error',
-        `Failed to load vocabulary: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        [
-          { text: 'Go Back', onPress: () => navigation.goBack() },
-          { text: 'Retry', onPress: loadVocabulary }
-        ]
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+  const currentQuestion = questions[currentQuestionIndex];
+  const totalQuestions = questions.length;
 
   const handlePronunciationComplete = async (result: PronunciationResult) => {
-    if (!result.success || !result.assessment || !user) return;
+    if (!result.success || !result.assessment) return;
 
-    const currentWord = vocabulary[currentWordIndex];
-    const score = result.assessment.pronunciationScore;
-    const currentAttempts = wordAttempts[currentWordIndex] || 0;
-
-    // Update score (keep highest score)
-    const previousScore = wordScores[currentWordIndex] || 0;
-    if (score > previousScore) {
-      setWordScores(prev => ({ ...prev, [currentWordIndex]: score }));
-    }
-
-    // Update attempts
-    const newAttempts = currentAttempts + 1;
-    setWordAttempts(prev => ({ ...prev, [currentWordIndex]: newAttempts }));
-
-    // Calculate XP based on score
-    let earnedXP = 0;
-    if (score >= 90) {
-      earnedXP = 15; // Excellent
-    } else if (score >= 75) {
-      earnedXP = 10; // Good
-    } else if (score >= 60) {
-      earnedXP = 5; // Fair
-    } else {
-      earnedXP = 2; // Attempted
-    }
-
-    // Award XP
-    try {
-      const xpResult = await XPService.awardXP(
-        user.id,
-        'exercise', // activityType
-        score, // score
-        100, // maxScore (pronunciation is out of 100)
-        score, // accuracyPercentage (same as score for pronunciation)
-        'Pronunciation Practice', // activityName
-        30 // durationSeconds (estimated)
-      );
-      
-      if (xpResult) {
-        setTotalXP(prev => prev + xpResult.totalXP);
-        console.log(`✨ Awarded ${xpResult.totalXP} XP for pronunciation (score: ${score})`);
-      }
-    } catch (error) {
-      console.error('Error awarding XP:', error);
-    }
-
-    // Check if should move to next word
-    if (score >= 60 || newAttempts >= MAX_ATTEMPTS) {
-      // Move to next word after a delay (so user can see feedback)
+    const pronunciationScore = result.assessment.pronunciationScore;
+    setLastResult(result);
+    
+    // Consider score >= 60 as passing
+    const passed = pronunciationScore >= 60;
+    setIsCorrect(passed);
+    setShowResult(true);
+    
+    if (passed) {
+      setScore(score + 1);
+      // Auto-advance after 1 second if correct
       setTimeout(() => {
-        moveToNextWord();
-      }, 2000);
+        handleNext();
+      }, 1000);
     }
   };
 
-  const moveToNextWord = () => {
-    if (currentWordIndex < vocabulary.length - 1) {
-      setCurrentWordIndex(currentWordIndex + 1);
+  const handleNext = () => {
+    if (currentQuestionIndex < totalQuestions - 1) {
+      setCurrentQuestionIndex(currentQuestionIndex + 1);
+      setShowResult(false);
+      setIsCorrect(false);
+      setLastResult(null);
     } else {
-      // Lesson complete!
-      completeLesson();
+      setCompleted(true);
     }
   };
 
-  const completeLesson = async () => {
-    setIsCompleted(true);
+  const handleRetry = () => {
+    setShowResult(false);
+    setIsCorrect(false);
+    setLastResult(null);
+    setAttemptKey(prev => prev + 1); // Force remount of PronunciationCheck
+  };
 
-    // Calculate final stats
-    const totalWords = vocabulary.length;
-    const averageScore = Object.values(wordScores).reduce((a, b) => a + b, 0) / totalWords;
-    const bonusXP = Math.round(averageScore / 10); // Bonus based on average score
+  const handleSkip = () => {
+    handleNext();
+  };
 
-    if (user && bonusXP > 0) {
-      try {
-        const xpResult = await XPService.awardXP(
-          user.id,
-          'exercise', // activityType
-          Math.round(averageScore), // score (average pronunciation score)
-          100, // maxScore
-          Math.round(averageScore), // accuracyPercentage
-          'Speak Lesson Complete', // activityName
-          totalWords * 30 // durationSeconds (estimated based on words completed)
-        );
-        
-        if (xpResult) {
-          setTotalXP(prev => prev + xpResult.totalXP);
-          console.log(`🎉 Awarded ${xpResult.totalXP} XP for completing Speak lesson`);
-        }
-      } catch (error) {
-        console.error('Error awarding bonus XP:', error);
-      }
+  const handleBackPress = () => {
+    if (completed) {
+      navigation.goBack();
+    } else {
+      setShowExitModal(true);
     }
   };
 
-  const currentWord = vocabulary[currentWordIndex];
-  const currentAttempts = wordAttempts[currentWordIndex] || 0;
-  const currentScore = wordScores[currentWordIndex];
-  const attemptsRemaining = MAX_ATTEMPTS - currentAttempts;
+  const handleConfirmExit = () => {
+    setShowExitModal(false);
+    navigation.goBack();
+  };
 
-  if (loading) {
+  const handleCancelExit = () => {
+    setShowExitModal(false);
+  };
+
+  const handleContinue = () => {
+    navigation.goBack();
+  };
+
+  if (completed) {
+    const accuracyPercentage = Math.round((score / totalQuestions) * 100);
+    
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#6366f1" />
-          <Text style={styles.loadingText}>Loading pronunciation lesson...</Text>
+      <SafeAreaView style={styles.completionContainer}>
+        <View style={styles.completionContent}>
+          <Text style={styles.completionEmoji}>🎉</Text>
+          <Text style={styles.completionTitle}>Speaking Complete!</Text>
+          <Text style={styles.completionSubtitle}>Great work on your pronunciation!</Text>
+          
+          <View style={styles.completionStats}>
+            <View style={styles.completionStatCard}>
+              <Text style={styles.completionStatValue}>{score}/{totalQuestions}</Text>
+              <Text style={styles.completionStatLabel}>Correct</Text>
+            </View>
+            <View style={styles.completionStatCard}>
+              <Text style={styles.completionStatValue}>{accuracyPercentage}%</Text>
+              <Text style={styles.completionStatLabel}>Accuracy</Text>
+            </View>
+          </View>
+          
+          <View style={styles.completionButtons}>
+            <TouchableOpacity 
+              style={styles.completionRetryButton} 
+              onPress={() => {
+                setCurrentQuestionIndex(0);
+                setScore(0);
+                setCompleted(false);
+                setShowResult(false);
+                setAttemptKey(0);
+              }}
+            >
+              <Text style={styles.completionRetryButtonText}>Retry</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.completionContinueButton} onPress={handleContinue}>
+              <Text style={styles.completionContinueButtonText}>Continue</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </SafeAreaView>
-    );
-  }
-
-  if (isCompleted) {
-    const totalWords = vocabulary.length;
-    const averageScore = Object.values(wordScores).reduce((a, b) => a + b, 0) / totalWords;
-    const perfectWords = Object.values(wordScores).filter(score => score >= 90).length;
-
-    return (
-      <SafeAreaView style={styles.container}>
-        <ScrollView contentContainerStyle={styles.completedContainer}>
-          <View style={styles.completedHeader}>
-            <Ionicons name="checkmark-circle" size={80} color="#10b981" />
-            <Text style={styles.completedTitle}>Lesson Complete! 🎉</Text>
-            <Text style={styles.completedSubtitle}>{topicGroup}</Text>
-          </View>
-
-          <View style={styles.statsContainer}>
-            <View style={styles.statCard}>
-              <Text style={styles.statValue}>{totalWords}</Text>
-              <Text style={styles.statLabel}>Words Practiced</Text>
-            </View>
-            
-            <View style={styles.statCard}>
-              <Text style={styles.statValue}>{Math.round(averageScore)}</Text>
-              <Text style={styles.statLabel}>Average Score</Text>
-            </View>
-            
-            <View style={styles.statCard}>
-              <Text style={styles.statValue}>{perfectWords}</Text>
-              <Text style={styles.statLabel}>Perfect Scores</Text>
-            </View>
-          </View>
-
-          <View style={styles.xpCard}>
-            <Ionicons name="star" size={32} color="#f59e0b" />
-            <Text style={styles.xpText}>+{totalXP} XP Earned</Text>
-          </View>
-
-          <TouchableOpacity
-            style={styles.doneButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Text style={styles.doneButtonText}>Done</Text>
-          </TouchableOpacity>
-        </ScrollView>
       </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#1e293b" />
+        <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color="#000000" />
         </TouchableOpacity>
-        <View style={styles.headerTitle}>
-          <Text style={styles.headerTitleText}>Speak Practice</Text>
-          <Text style={styles.headerSubtitle}>{topicGroup}</Text>
-        </View>
-        <View style={styles.headerRight}>
-          <Ionicons name="star" size={20} color="#f59e0b" />
-          <Text style={styles.xpCounter}>{totalXP}</Text>
-        </View>
+        <Text style={styles.headerTitle}>Saying Hello</Text>
+        <View style={styles.headerSpacer} />
       </View>
 
-      {/* Progress Bar */}
-      <View style={styles.progressSection}>
-        <View style={styles.progressBar}>
-          <View 
-            style={[
-              styles.progressFill, 
-              { width: `${((currentWordIndex + 1) / vocabulary.length) * 100}%` }
-            ]} 
-          />
-        </View>
-        <Text style={styles.progressText}>
-          Word {currentWordIndex + 1} of {vocabulary.length}
-        </Text>
-      </View>
-
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Current Score */}
-        {currentScore !== undefined && (
-          <View style={styles.scoreCard}>
-            <Text style={styles.scoreLabel}>Best Score:</Text>
-            <Text style={styles.scoreValue}>{Math.round(currentScore)}/100</Text>
+      {/* Exit Confirmation Modal */}
+      <Modal
+        visible={showExitModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={handleCancelExit}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Are you sure you want to leave?</Text>
+            <Text style={styles.modalSubtitle}>
+              Your progress won't be saved for this lesson, and you'll have to start again when you return.
+            </Text>
+            
+            <TouchableOpacity style={styles.modalConfirmButton} onPress={handleConfirmExit}>
+              <Text style={styles.modalConfirmButtonText}>Yes, I want to leave</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.modalCancelButton} onPress={handleCancelExit}>
+              <Text style={styles.modalCancelButtonText}>Not Now</Text>
+            </TouchableOpacity>
           </View>
-        )}
+        </View>
+      </Modal>
+
+      {/* Progress Bar with Segments */}
+      <View style={styles.progressContainer}>
+        <View style={styles.progressSegments}>
+          {questions.map((_, idx) => (
+            <View
+              key={idx}
+              style={[
+                styles.progressSegment,
+                idx < currentQuestionIndex && styles.progressSegmentCompleted,
+                idx === currentQuestionIndex && styles.progressSegmentActive,
+              ]}
+            />
+          ))}
+        </View>
+      </View>
+
+      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+        {/* Question Type Indicator */}
+        <Text style={styles.questionTypeLabel}>
+          {currentQuestion.type === 'word' ? 'Say the word' : 'Say the sentence'}
+        </Text>
 
         {/* Pronunciation Check Component */}
-        {currentWord && (
+        {currentQuestion && (
           <PronunciationCheck
-            word={currentWord.english_term}
+            key={`${currentQuestionIndex}-${attemptKey}`}
+            word={currentQuestion.french}
             onComplete={handlePronunciationComplete}
-            maxRecordingDuration={5000}
+            maxRecordingDuration={currentQuestion.type === 'word' ? 3000 : 8000}
+            showAlerts={false}
+            translation={currentQuestion.english}
+            hideScoreRing={true}
           />
         )}
 
-        {/* Attempts Info */}
-        <View style={styles.attemptsCard}>
-          <Ionicons 
-            name={attemptsRemaining > 1 ? 'refresh-circle' : 'alert-circle'} 
-            size={20} 
-            color={attemptsRemaining > 1 ? '#3b82f6' : '#f59e0b'} 
-          />
-          <Text style={styles.attemptsText}>
-            {attemptsRemaining > 0 
-              ? `${attemptsRemaining} attempt${attemptsRemaining !== 1 ? 's' : ''} remaining` 
-              : 'Moving to next word...'}
-          </Text>
-        </View>
-
-        {/* Definition Card */}
-        {currentWord && (
-          <View style={styles.definitionCard}>
-            <Text style={styles.definitionLabel}>Definition:</Text>
-            <Text style={styles.definitionText}>{currentWord.definition}</Text>
-            {currentWord.example_sentence && (
+        {/* Result Message - appears below PronunciationCheck */}
+        {showResult && (
+          <View style={styles.resultMessage}>
+            <Text style={[
+              styles.resultTitle,
+              isCorrect ? styles.resultTitleCorrect : styles.resultTitleIncorrect
+            ]}>
+              {isCorrect ? 'You got this 🙌' : 'Incorrect! 😔'}
+            </Text>
+            
+            {!isCorrect && lastResult?.assessment && (
               <>
-                <Text style={styles.exampleLabel}>Example:</Text>
-                <Text style={styles.exampleText}>"{currentWord.example_sentence}"</Text>
+                <Text style={styles.resultSubtitle}>
+                  It sounded as if you said:
+                </Text>
+                <Text style={styles.recognizedSpeech}>
+                  {lastResult.assessment.recognizedText || 'No speech detected'}
+                </Text>
               </>
             )}
           </View>
         )}
-
-        {/* Skip Button */}
-        {attemptsRemaining > 0 && (
-          <TouchableOpacity
-            style={styles.skipButton}
-            onPress={moveToNextWord}
-          >
-            <Text style={styles.skipButtonText}>Skip This Word</Text>
-            <Ionicons name="arrow-forward" size={16} color="#64748b" />
-          </TouchableOpacity>
-        )}
       </ScrollView>
+
+      {/* Bottom Actions */}
+      {showResult && !isCorrect && (
+        <View style={styles.bottomActions}>
+          <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
+            <Text style={styles.skipButtonText}>Skip</Text>
+            <Ionicons name="arrow-forward" size={20} color="#64748b" />
+          </TouchableOpacity>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -340,235 +286,291 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f8fafc',
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#64748b',
-  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#ffffff',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: '#f8fafc',
     borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
+    borderBottomColor: '#e5e7eb',
   },
   backButton: {
-    padding: 8,
+    width: 40,
   },
   headerTitle: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  headerTitleText: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1e293b',
+    fontWeight: '600',
+    color: '#000000',
+    flex: 1,
+    textAlign: 'center',
   },
-  headerSubtitle: {
-    fontSize: 12,
-    color: '#64748b',
-    marginTop: 2,
+  headerSpacer: {
+    width: 40,
   },
-  headerRight: {
+  progressContainer: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: '#f8fafc',
+  },
+  progressSegments: {
     flexDirection: 'row',
-    alignItems: 'center',
     gap: 4,
-    backgroundColor: '#fef3c7',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
   },
-  xpCounter: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#f59e0b',
+  progressSegment: {
+    flex: 1,
+    height: 4,
+    backgroundColor: '#e5e7eb',
+    borderRadius: 2,
   },
-  progressSection: {
-    padding: 16,
-    backgroundColor: '#ffffff',
-  },
-  progressBar: {
-    height: 8,
-    backgroundColor: '#e2e8f0',
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
+  progressSegmentCompleted: {
     backgroundColor: '#6366f1',
   },
-  progressText: {
-    fontSize: 14,
-    color: '#64748b',
-    textAlign: 'center',
-    marginTop: 8,
+  progressSegmentActive: {
+    backgroundColor: '#6366f1',
   },
   content: {
     flex: 1,
-    padding: 16,
   },
-  scoreCard: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#f0f4ff',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 16,
+  contentContainer: {
+    padding: 20,
   },
-  scoreLabel: {
-    fontSize: 16,
-    color: '#6366f1',
-    fontWeight: '600',
-  },
-  scoreValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#6366f1',
-  },
-  attemptsCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: '#f8fafc',
-    padding: 12,
-    borderRadius: 8,
-    marginTop: 16,
-  },
-  attemptsText: {
+  questionTypeLabel: {
     fontSize: 14,
-    color: '#64748b',
+    fontWeight: '600',
+    color: '#6b7280',
+    textAlign: 'center',
+    marginBottom: 24,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
-  definitionCard: {
+  translationCard: {
     backgroundColor: '#ffffff',
-    padding: 16,
+    padding: 20,
     borderRadius: 12,
-    marginTop: 16,
+    marginTop: 24,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: '#e5e7eb',
   },
-  definitionLabel: {
+  translationLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#64748b',
+    color: '#6b7280',
     textTransform: 'uppercase',
     marginBottom: 8,
   },
-  definitionText: {
+  translationText: {
     fontSize: 16,
     color: '#1e293b',
     lineHeight: 24,
   },
-  exampleLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#64748b',
-    textTransform: 'uppercase',
-    marginTop: 16,
+  resultMessage: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 24,
+    marginTop: 24,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+    borderWidth: 2,
+    borderColor: '#e5e7eb',
+  },
+  resultTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  resultTitleCorrect: {
+    color: '#10b981',
+  },
+  resultTitleIncorrect: {
+    color: '#ef4444',
+  },
+  resultSubtitle: {
+    fontSize: 16,
+    color: '#6b7280',
+    textAlign: 'center',
     marginBottom: 8,
   },
-  exampleText: {
-    fontSize: 14,
-    color: '#64748b',
+  recognizedSpeech: {
+    fontSize: 18,
+    color: '#1e293b',
+    fontWeight: '600',
+    textAlign: 'center',
     fontStyle: 'italic',
-    lineHeight: 20,
+  },
+  bottomActions: {
+    flexDirection: 'row',
+    gap: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: '#f8fafc',
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+  },
+  retryButton: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#e2e8f0',
+  },
+  retryButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1e293b',
   },
   skipButton: {
-    flexDirection: 'row',
+    flex: 1,
+    backgroundColor: '#ffffff',
+    paddingVertical: 16,
+    borderRadius: 12,
     alignItems: 'center',
+    flexDirection: 'row',
     justifyContent: 'center',
     gap: 8,
-    padding: 16,
-    marginTop: 24,
+    borderWidth: 2,
+    borderColor: '#e2e8f0',
   },
   skipButtonText: {
     fontSize: 16,
+    fontWeight: '600',
     color: '#64748b',
   },
-  // Completion Screen Styles
-  completedContainer: {
-    flexGrow: 1,
-    padding: 24,
-    alignItems: 'center',
+  completionContainer: {
+    flex: 1,
+    backgroundColor: '#7c6ee0',
+  },
+  completionContent: {
+    flex: 1,
     justifyContent: 'center',
-  },
-  completedHeader: {
     alignItems: 'center',
-    marginBottom: 32,
+    padding: 32,
   },
-  completedTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#1e293b',
-    marginTop: 16,
-  },
-  completedSubtitle: {
-    fontSize: 16,
-    color: '#64748b',
-    marginTop: 8,
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    gap: 12,
+  completionEmoji: {
+    fontSize: 72,
     marginBottom: 24,
   },
-  statCard: {
-    flex: 1,
+  completionTitle: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#ffffff',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  completionSubtitle: {
+    fontSize: 18,
+    color: '#e0e7ff',
+    textAlign: 'center',
+    marginBottom: 48,
+  },
+  completionStats: {
+    flexDirection: 'row',
+    gap: 24,
+    marginBottom: 48,
+  },
+  completionStatCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    paddingVertical: 24,
+    paddingHorizontal: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    minWidth: 120,
+  },
+  completionStatValue: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#ffffff',
+    marginBottom: 8,
+  },
+  completionStatLabel: {
+    fontSize: 14,
+    color: '#e0e7ff',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  completionButtons: {
+    width: '100%',
+    gap: 12,
+  },
+  completionRetryButton: {
     backgroundColor: '#ffffff',
-    padding: 16,
+    paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
   },
-  statValue: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#6366f1',
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#64748b',
-    marginTop: 4,
-    textAlign: 'center',
-  },
-  xpCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: '#fef3c7',
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 16,
-    marginBottom: 32,
-  },
-  xpText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#f59e0b',
-  },
-  doneButton: {
-    backgroundColor: '#6366f1',
-    paddingVertical: 16,
-    paddingHorizontal: 48,
-    borderRadius: 25,
-    shadowColor: '#6366f1',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  doneButtonText: {
-    color: '#ffffff',
+  completionRetryButtonText: {
     fontSize: 18,
     fontWeight: '600',
+    color: '#7c6ee0',
+  },
+  completionContinueButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  completionContinueButtonText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#ffffff',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#ffffff',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 32,
+    paddingBottom: 40,
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#000000',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  modalSubtitle: {
+    fontSize: 16,
+    color: '#6b7280',
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 32,
+  },
+  modalConfirmButton: {
+    backgroundColor: '#6366f1',
+    paddingVertical: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  modalConfirmButtonText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#ffffff',
+    textAlign: 'center',
+  },
+  modalCancelButton: {
+    backgroundColor: '#ffffff',
+    paddingVertical: 16,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#e5e7eb',
+  },
+  modalCancelButtonText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#6b7280',
+    textAlign: 'center',
   },
 });
