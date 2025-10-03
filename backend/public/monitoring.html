@@ -604,12 +604,17 @@
 
         function renderRateLimitCard(data) {
             const limits = data.limits || {};
+            const userId = data.userId || 'unknown';
             
             return `
                 <div class="card">
                     <div class="card-header">
                         <div class="card-icon" style="background: #fd7e14; color: white;">🛡️</div>
-                        <div class="card-title">Rate Limits</div>
+                        <div class="card-title">Rate Limits (Highest Usage User)</div>
+                    </div>
+                    <div style="margin-bottom: 15px; padding: 10px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #fd7e14;">
+                        <div style="font-size: 0.9rem; color: #666; margin-bottom: 5px;">Showing limits for:</div>
+                        <div style="font-weight: 600; color: #333; font-family: monospace;">${userId}</div>
                     </div>
                     ${Object.entries(limits).map(([type, limit]) => `
                         <div style="margin-bottom: 20px;">
