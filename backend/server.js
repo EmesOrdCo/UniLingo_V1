@@ -310,8 +310,22 @@ const monitoringWhitelist = (req, res, next) => {
   }
 };
 
-// Apply general rate limiting to all routes
-app.use(generalLimiter);
+// Apply general rate limiting to all routes EXCEPT monitoring endpoints
+app.use((req, res, next) => {
+  // Skip rate limiting for monitoring endpoints
+  if (req.path.startsWith('/monitoring') || 
+      req.path.startsWith('/api/health') || 
+      req.path.startsWith('/api/metrics') || 
+      req.path.startsWith('/api/pronunciation/status') || 
+      req.path.startsWith('/api/rate-limits/status') || 
+      req.path.startsWith('/api/ai/status') || 
+      req.path.startsWith('/api/cleanup') || 
+      req.path.startsWith('/api/errors') || 
+      req.path.startsWith('/api/admin/')) {
+    return next();
+  }
+  generalLimiter(req, res, next);
+});
 
 // Performance monitoring middleware
 app.use((req, res, next) => {
@@ -1178,11 +1192,28 @@ app.post('/api/errors/clear', monitoringWhitelist, (req, res) => {
 
 app.get('/api/rate-limits/status', monitoringWhitelist, (req, res) => {
   try {
-    const userId = req.headers['user-id'] || req.query.userId || 'anonymous';
+    // Find the user with the highest pronunciation usage
+    let highestUsageUser = 'anonymous';
+    let highestUsage = 0;
+    
+    // Check all users for highest pronunciation usage
+    for (const [key, userLimit] of userRateLimits.entries()) {
+      if (key.includes(':pronunciation')) {
+        if (userLimit.count > highestUsage) {
+          highestUsage = userLimit.count;
+          highestUsageUser = key.split(':')[0]; // Extract userId from "userId:pronunciation"
+        }
+      }
+    }
+    
+    // If no users found, fall back to anonymous or request user
+    if (highestUsage === 0) {
+      highestUsageUser = req.headers['user-id'] || req.query.userId || 'anonymous';
+    }
     
     const userLimits = {};
     for (const [type, limit] of Object.entries(USER_LIMITS)) {
-      const key = `${userId}:${type}`;
+      const key = `${highestUsageUser}:${type}`;
       const userLimit = userRateLimits.get(key) || {
         count: 0,
         lastReset: Date.now()
@@ -1199,7 +1230,7 @@ app.get('/api/rate-limits/status', monitoringWhitelist, (req, res) => {
     
     res.json({
       success: true,
-      userId: userId,
+      userId: highestUsageUser,
       limits: userLimits,
       timestamp: new Date().toISOString()
     });
