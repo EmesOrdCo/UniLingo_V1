@@ -5,6 +5,7 @@ import OpenAIWithRateLimit from './openAIWithRateLimit';
 import * as FileSystem from 'expo-file-system';
 import { CostEstimator } from './costEstimator';
 import { HolisticProgressService } from './holisticProgressService';
+import { SimpleTokenTracker } from './simpleTokenTracker';
 
 // Initialize OpenAI client with rate limiting
 const openai = new OpenAIWithRateLimit({
@@ -174,7 +175,6 @@ Content: ${pdfText}`;
       // Record token usage in monthly tracking
       if ('usage' in response && response.usage) {
         try {
-          const { SimpleTokenTracker } = await import('./simpleTokenTracker');
           await SimpleTokenTracker.recordTokenUsage(
             user.id, 
             response.usage.prompt_tokens, 
@@ -297,7 +297,6 @@ Return ONLY a JSON array of strings with no explanations, markdown, or formattin
         // Record token usage in monthly tracking
         if ('usage' in response && response.usage) {
           try {
-            const { SimpleTokenTracker } = await import('./simpleTokenTracker');
             await SimpleTokenTracker.recordTokenUsage(
               user.id, 
               response.usage.prompt_tokens, 
@@ -477,7 +476,6 @@ Requirements:
       // Record token usage in monthly tracking
       if ('usage' in response && response.usage) {
         try {
-          const { SimpleTokenTracker } = await import('./simpleTokenTracker');
           await SimpleTokenTracker.recordTokenUsage(
             user.id, 
             response.usage.prompt_tokens, 
@@ -684,7 +682,6 @@ Return ONLY the JSON array:`;
       // Record token usage in monthly tracking
       if ('usage' in response && response.usage) {
         try {
-          const { SimpleTokenTracker } = await import('./simpleTokenTracker');
           await SimpleTokenTracker.recordTokenUsage(
             user.id, 
             response.usage.prompt_tokens, 
@@ -783,7 +780,6 @@ Return ONLY the JSON array:`;
       // Record token usage in monthly tracking
       if ('usage' in response && response.usage) {
         try {
-          const { SimpleTokenTracker } = await import('./simpleTokenTracker');
           await SimpleTokenTracker.recordTokenUsage(
             user.id, 
             response.usage.prompt_tokens, 

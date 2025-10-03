@@ -7,6 +7,7 @@ import { ENV } from './envConfig';
 import { CostEstimator } from './costEstimator';
 import { supabase } from './supabase';
 import BackendAIService from './backendAIService';
+import { SimpleTokenTracker } from './simpleTokenTracker';
 
 // Initialize OpenAI client with rate limiting - will be created when needed
 let openai: OpenAIWithRateLimit | null = null;
@@ -428,7 +429,6 @@ export class UploadService {
       // Record token usage in monthly tracking
       if ('usage' in completion && completion.usage && userId) {
         try {
-          const { SimpleTokenTracker } = await import('./simpleTokenTracker');
           await SimpleTokenTracker.recordTokenUsage(
             userId, 
             completion.usage.prompt_tokens, 
