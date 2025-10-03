@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -6,97 +6,118 @@ import {
   TouchableOpacity,
   SafeAreaView,
   ScrollView,
-  Alert,
-  TextInput,
+  Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
-import { GeneralVocabService, ProcessedVocabItem } from '../lib/generalVocabService';
-import { ProgressTrackingService } from '../lib/progressTrackingService';
-import { SimpleUnitProgressService } from '../lib/simpleUnitProgressService';
 import * as Speech from 'expo-speech';
 
-interface UnitListenScreenProps {
-  navigation: any;
-  route: any;
-}
+// Hardcoded vocabulary for "Saying Hello"
+const VOCABULARY = [
+  { french: 'salut', english: 'hi' },
+  { french: 'bonjour', english: 'hello' },
+  { french: 'bon après-midi', english: 'good afternoon' },
+  { french: 'bonsoir', english: 'good evening' },
+];
+
+// Hardcoded sentences using the vocabulary
+const SENTENCES = [
+  { french: 'Bonjour, comment allez-vous?', english: 'Hello, how are you?' },
+  { french: 'Bonsoir, ça va bien?', english: 'Good evening, are you well?' },
+  { french: 'Salut, ça va?', english: 'Hi, how are you?' },
+];
 
 export default function UnitListenScreen() {
   const navigation = useNavigation();
   const route = useRoute();
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
   
-  const { unitId, unitTitle, topicGroup, unitCode } = (route.params as any) || { unitId: 1, unitTitle: 'Basic Concepts', topicGroup: 'Basic Concepts', unitCode: 'A1.1' };
+  const { unitTitle } = (route.params as any) || { unitTitle: 'Saying Hello' };
   
-  // Extract CEFR level and unit number from unitCode
-  const cefrLevel = unitCode ? unitCode.split('.')[0] : 'A1';
-  const unitNumber = unitCode ? parseInt(unitCode.split('.')[1]) : unitId;
-  
-  const [vocabulary, setVocabulary] = useState<ProcessedVocabItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [userInput, setUserInput] = useState('');
+  const [currentQuestion, setCurrentQuestion] = useState(0);
+  const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [showResult, setShowResult] = useState(false);
+  const [isCorrect, setIsCorrect] = useState(false);
   const [score, setScore] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [completed, setCompleted] = useState(false);
+  const [showExitModal, setShowExitModal] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [userAnswer, setUserAnswer] = useState<string[]>([]);
+  const [availableWords, setAvailableWords] = useState<string[]>([]);
 
-  useEffect(() => {
-    loadVocabulary();
-  }, []);
-
-  const loadVocabulary = async () => {
-    try {
-      setLoading(true);
-      console.log(`🎧 Loading vocabulary for topic: ${topicGroup}, language: ${profile?.native_language}`);
+  // Generate 14 questions: 7 multiple choice (4 words + 3 sentences), 7 sentence scramble
+  const generateQuestions = () => {
+    const questions = [];
+    
+    // First 4: Words - multiple choice
+    for (let i = 0; i < VOCABULARY.length; i++) {
+      const correctAnswer = VOCABULARY[i].french;
+      const wrongAnswers = VOCABULARY
+        .filter((_, idx) => idx !== i)
+        .map(v => v.french)
+        .sort(() => Math.random() - 0.5)
+        .slice(0, 1);
       
-      const vocab = await GeneralVocabService.getVocabByTopicGroup(topicGroup, profile?.native_language || 'english');
-      console.log(`🎧 Loaded ${vocab.length} vocabulary items for ${topicGroup}`);
-      
-      if (vocab.length === 0) {
-        console.log('⚠️ No vocabulary found, showing error');
-        Alert.alert(
-          'No Vocabulary Available',
-          `No vocabulary found for "${topicGroup}". Please check your database setup.`,
-          [
-            { text: 'Go Back', onPress: () => navigation.goBack() },
-            { text: 'Retry', onPress: loadVocabulary }
-          ]
-        );
-        return;
-      }
-      
-      setVocabulary(vocab);
-    } catch (error) {
-      console.error('❌ Error loading vocabulary:', error);
-      Alert.alert(
-        'Error Loading Vocabulary',
-        `Failed to load vocabulary: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        [
-          { text: 'Go Back', onPress: () => navigation.goBack() },
-          { text: 'Retry', onPress: loadVocabulary }
-        ]
-      );
-    } finally {
-      setLoading(false);
+      questions.push({
+        type: 'word-choice' as const,
+        audio: VOCABULARY[i].french,
+        correctAnswer,
+        options: [correctAnswer, ...wrongAnswers].sort(() => Math.random() - 0.5),
+        translation: VOCABULARY[i].english,
+      });
     }
+    
+    // Next 3: Sentences - multiple choice
+    for (let i = 0; i < SENTENCES.length; i++) {
+      const correctAnswer = SENTENCES[i].french;
+      const wrongAnswers = SENTENCES
+        .filter((_, idx) => idx !== i)
+        .map(v => v.french)
+        .sort(() => Math.random() - 0.5)
+        .slice(0, 1);
+      
+      questions.push({
+        type: 'sentence-choice' as const,
+        audio: SENTENCES[i].french,
+        correctAnswer,
+        options: [correctAnswer, ...wrongAnswers].sort(() => Math.random() - 0.5),
+        translation: SENTENCES[i].english,
+      });
+    }
+    
+    // Last 7: Sentence scramble
+    const scrambleSentences = [...SENTENCES, ...SENTENCES, ...SENTENCES].slice(0, 7);
+    for (let i = 0; i < scrambleSentences.length; i++) {
+      const words = scrambleSentences[i].french.split(' ');
+      const scrambled = [...words].sort(() => Math.random() - 0.5);
+      
+      questions.push({
+        type: 'scramble' as const,
+        audio: scrambleSentences[i].french,
+        correctAnswer: scrambleSentences[i].french,
+        words: words,
+        scrambled: scrambled,
+        translation: scrambleSentences[i].english,
+      });
+    }
+    
+    return questions;
   };
 
-  const playAudio = async () => {
-    if (isPlaying || vocabulary.length === 0) return;
+  const [questions] = useState(generateQuestions());
+  const question = questions[currentQuestion];
+  const totalQuestions = questions.length;
+
+  const playAudio = async (speed: number = 1.0) => {
+    if (isPlaying) return;
     
     try {
       setIsPlaying(true);
-      const currentVocab = vocabulary[currentIndex];
-      
-      await Speech.speak(currentVocab.english_term, {
-        language: 'en-US',
-        pitch: 1.0,
-        rate: 0.8,
+      await Speech.speak(question.audio, {
+        language: 'fr-FR',
+        rate: speed,
       });
-      
-      // Reset playing state after speech completes
       setTimeout(() => setIsPlaying(false), 2000);
     } catch (error) {
       console.error('Error playing audio:', error);
@@ -104,250 +125,372 @@ export default function UnitListenScreen() {
     }
   };
 
-  const checkAnswer = () => {
-    if (!userInput.trim()) return;
-    
-    const currentVocab = vocabulary[currentIndex];
-    const isCorrect = userInput.toLowerCase().trim() === currentVocab.english_term.toLowerCase();
-    
-    setShowResult(true);
-    
-    if (isCorrect) {
-      setScore(score + 1);
-    }
-    
-    setTimeout(() => {
-      if (currentIndex < vocabulary.length - 1) {
-        setCurrentIndex(currentIndex + 1);
-        setUserInput('');
-        setShowResult(false);
-      } else {
-        setCompleted(true);
-        recordActivity();
-      }
-    }, 2000);
+  const handleAnswerSelect = (answer: string) => {
+    if (showResult || question.type === 'scramble') return;
+    setSelectedAnswer(answer);
   };
 
-  const recordActivity = async () => {
-    if (!user) return;
+  const handleWordPress = (word: string, fromAnswer: boolean) => {
+    if (showResult) return;
     
-    try {
-      const accuracyPercentage = Math.round((score / vocabulary.length) * 100);
-      
-      await ProgressTrackingService.recordLessonActivity({
-        activityType: 'lesson',
-        lessonId: `unit-${unitCode}-listen`,
-        activityName: `${topicGroup} - Listen`,
-        durationSeconds: 300, // 5 minutes estimated
-        score: score,
-        maxScore: vocabulary.length,
-        accuracyPercentage: accuracyPercentage,
-      });
-      
-      // Record unit progress completion
-      if (user?.id) {
-        await SimpleUnitProgressService.recordLessonCompletion(user.id, cefrLevel, unitNumber, 'listen');
-      }
-      
-      console.log('✅ Unit Listen activity recorded');
-    } catch (error) {
-      console.error('Error recording activity:', error);
+    if (fromAnswer) {
+      // Move word back to available
+      setUserAnswer(userAnswer.filter(w => w !== word));
+      setAvailableWords([...availableWords, word]);
+    } else {
+      // Move word to answer
+      setUserAnswer([...userAnswer, word]);
+      setAvailableWords(availableWords.filter(w => w !== word));
     }
   };
 
-  const restartExercise = () => {
-    setCurrentIndex(0);
-    setUserInput('');
+  const initializeScramble = () => {
+    if (question.type === 'scramble') {
+      setAvailableWords(question.scrambled);
+      setUserAnswer([]);
+    }
+  };
+
+  React.useEffect(() => {
+    if (question.type === 'scramble') {
+      initializeScramble();
+    }
+  }, [currentQuestion]);
+
+  const handleCheck = () => {
+    if (question.type === 'scramble') {
+      if (userAnswer.length === 0) return;
+      const userSentence = userAnswer.join(' ');
+      const correct = userSentence === question.correctAnswer;
+      setIsCorrect(correct);
+      setShowResult(true);
+      
+      if (correct) {
+        setScore(score + 1);
+        setTimeout(() => {
+          handleNext();
+        }, 1000);
+      }
+    } else {
+      if (!selectedAnswer) return;
+      
+      const correct = selectedAnswer === question.correctAnswer;
+      setIsCorrect(correct);
+      setShowResult(true);
+      
+      if (correct) {
+        setScore(score + 1);
+        setTimeout(() => {
+          handleNext();
+        }, 1000);
+      }
+    }
+  };
+
+  const handleNext = () => {
+    if (currentQuestion < totalQuestions - 1) {
+      setCurrentQuestion(currentQuestion + 1);
+      setSelectedAnswer(null);
+      setShowResult(false);
+      setIsCorrect(false);
+      setUserAnswer([]);
+      setAvailableWords([]);
+    } else {
+      setCompleted(true);
+    }
+  };
+
+  const handleRetry = () => {
+    if (question.type === 'scramble') {
+      initializeScramble();
+    } else {
+      setSelectedAnswer(null);
+    }
     setShowResult(false);
-    setScore(0);
-    setCompleted(false);
+    setIsCorrect(false);
   };
 
-  if (loading) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={24} color="#000000" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>{topicGroup} - Listen</Text>
-        </View>
-        <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Loading vocabulary...</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
+  const handleSkip = () => {
+    handleNext();
+  };
 
-  if (vocabulary.length === 0) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={24} color="#000000" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>{topicGroup} - Listen</Text>
-        </View>
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>No vocabulary found for this unit.</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={loadVocabulary}>
-            <Text style={styles.retryButtonText}>Retry</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    );
-  }
+  const handleContinue = () => {
+    navigation.goBack();
+  };
+
+  const handleBackPress = () => {
+    if (completed) {
+      navigation.goBack();
+    } else {
+      setShowExitModal(true);
+    }
+  };
+
+  const handleConfirmExit = () => {
+    setShowExitModal(false);
+    navigation.goBack();
+  };
+
+  const handleCancelExit = () => {
+    setShowExitModal(false);
+  };
 
   if (completed) {
-    const accuracyPercentage = Math.round((score / vocabulary.length) * 100);
+    const accuracyPercentage = Math.round((score / totalQuestions) * 100);
     
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={24} color="#000000" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>{unitTitle} - Completed</Text>
+      <View style={styles.completionContainer}>
+        <Text style={styles.completionTitle}>🎉 Listening Complete!</Text>
+        <Text style={styles.completionSubtitle}>Great job!</Text>
+        
+        <View style={styles.statsContainer}>
+          <View style={styles.statItem}>
+            <Text style={styles.statLabel}>Score</Text>
+            <Text style={styles.statValue}>{score}/{totalQuestions}</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={styles.statLabel}>Percentage</Text>
+            <Text style={styles.statValue}>{accuracyPercentage}%</Text>
+          </View>
         </View>
         
-        <ScrollView style={styles.content}>
-          <View style={styles.completionContainer}>
-            <View style={styles.completionIcon}>
-              <Ionicons name="checkmark-circle" size={80} color="#10b981" />
-            </View>
-            
-            <Text style={styles.completionTitle}>Excellent Listening!</Text>
-            <Text style={styles.completionSubtitle}>You completed the Listen exercise</Text>
-            
-            <View style={styles.scoreContainer}>
-              <Text style={styles.scoreText}>Score: {score}/{vocabulary.length}</Text>
-              <Text style={styles.accuracyText}>Accuracy: {accuracyPercentage}%</Text>
-            </View>
-            
-            <View style={styles.actionsContainer}>
-              <TouchableOpacity style={styles.restartButton} onPress={restartExercise}>
-                <Ionicons name="refresh" size={20} color="#6366f1" />
-                <Text style={styles.restartButtonText}>Try Again</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={styles.continueButton} 
-                onPress={() => navigation.goBack()}
-              >
-                <Text style={styles.continueButtonText}>Continue</Text>
-                <Ionicons name="arrow-forward" size={20} color="#ffffff" />
-              </TouchableOpacity>
-            </View>
-          </View>
-        </ScrollView>
-      </SafeAreaView>
+        <View style={styles.actionButtons}>
+          <TouchableOpacity style={styles.resetButton} onPress={() => {
+            setCurrentQuestion(0);
+            setScore(0);
+            setCompleted(false);
+            setSelectedAnswer(null);
+            setShowResult(false);
+            setUserAnswer([]);
+            setAvailableWords([]);
+          }}>
+            <Text style={styles.resetButtonText}>Retry</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.exitButton} onPress={handleContinue}>
+            <Text style={styles.exitButtonText}>Continue</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
     );
   }
-
-  const currentVocab = vocabulary[currentIndex];
-  const isCorrect = userInput.toLowerCase().trim() === currentVocab.english_term.toLowerCase();
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
+        <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#000000" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{topicGroup} - Listen</Text>
+        <Text style={styles.headerTitle}>Saying Hello</Text>
+        <View style={styles.headerSpacer} />
       </View>
-      
+
+      {/* Exit Confirmation Modal */}
+      <Modal
+        visible={showExitModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={handleCancelExit}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Are you sure you want to leave?</Text>
+            <Text style={styles.modalSubtitle}>
+              Your progress won't be saved for this lesson, and you'll have to start again when you return.
+            </Text>
+            
+            <TouchableOpacity style={styles.modalConfirmButton} onPress={handleConfirmExit}>
+              <Text style={styles.modalConfirmButtonText}>Yes, I want to leave</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.modalCancelButton} onPress={handleCancelExit}>
+              <Text style={styles.modalCancelButtonText}>Not Now</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Progress Bar with Segments */}
       <View style={styles.progressContainer}>
-        <Text style={styles.progressText}>
-          Question {currentIndex + 1} of {vocabulary.length}
-        </Text>
-        <View style={styles.progressBar}>
-          <View 
-            style={[
-              styles.progressFill, 
-              { width: `${((currentIndex + 1) / vocabulary.length) * 100}%` }
-            ]} 
-          />
+        <View style={styles.progressSegments}>
+          {Array.from({ length: totalQuestions }).map((_, idx) => (
+            <View
+              key={idx}
+              style={[
+                styles.progressSegment,
+                idx < currentQuestion && styles.progressSegmentCompleted,
+                idx === currentQuestion && styles.progressSegmentActive,
+              ]}
+            />
+          ))}
         </View>
       </View>
 
-      <ScrollView style={styles.content}>
-        <View style={styles.questionContainer}>
-          <View style={styles.audioContainer}>
-            <TouchableOpacity 
-              style={[styles.playButton, isPlaying && styles.playButtonDisabled]}
-              onPress={playAudio}
-              disabled={isPlaying}
-            >
-              <Ionicons 
-                name={isPlaying ? "volume-high" : "play"} 
-                size={40} 
-                color={isPlaying ? "#9ca3af" : "#6366f1"} 
-              />
-            </TouchableOpacity>
-            <Text style={styles.playText}>
-              {isPlaying ? 'Playing...' : 'Tap to hear the word'}
-            </Text>
-          </View>
-          
-          <Text style={styles.instructionText}>
-            Type what you hear in English:
-          </Text>
-          
-          <TextInput
-            style={[
-              styles.input,
-              showResult && isCorrect && styles.inputCorrect,
-              showResult && !isCorrect && styles.inputIncorrect
-            ]}
-            value={userInput}
-            onChangeText={setUserInput}
-            placeholder="Type the word you heard..."
-            placeholderTextColor="#9ca3af"
-            autoCapitalize="none"
-            autoCorrect={false}
-            editable={!showResult}
-          />
-          
-          {showResult && (
-            <View style={styles.resultContainer}>
-              <View style={styles.resultRow}>
-                <Ionicons 
-                  name={isCorrect ? "checkmark-circle" : "close-circle"} 
-                  size={24} 
-                  color={isCorrect ? "#10b981" : "#ef4444"} 
-                />
-                <Text style={[
-                  styles.resultText,
-                  isCorrect ? styles.resultTextCorrect : styles.resultTextIncorrect
-                ]}>
-                  {isCorrect ? 'Correct!' : 'Incorrect'}
-                </Text>
-              </View>
-              
-              {!isCorrect && (
-                <Text style={styles.correctAnswerText}>
-                  Correct answer: {currentVocab.english_term}
-                </Text>
-              )}
-              
-              <Text style={styles.definitionText}>
-                {currentVocab.definition}
-              </Text>
-            </View>
+      <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
+        {/* Question Text */}
+        {question.type === 'word-choice' && (
+          <Text style={styles.questionText}>Tap the correct answer</Text>
+        )}
+        {question.type === 'sentence-choice' && (
+          <Text style={styles.questionText}>Tap the correct answer</Text>
+        )}
+        {question.type === 'scramble' && (
+          <Text style={styles.questionText}>Tap what you hear</Text>
+        )}
+
+        {/* Audio Play Button */}
+        <View style={styles.audioSection}>
+          <TouchableOpacity 
+            style={styles.playButton}
+            onPress={() => playAudio(1.0)}
+          >
+            <Ionicons name="play" size={48} color="#6366f1" />
+          </TouchableOpacity>
+          {question.type !== 'scramble' && (
+            <Text style={styles.translationText}>{question.translation}</Text>
           )}
         </View>
+
+        {/* Multiple Choice Options */}
+        {(question.type === 'word-choice' || question.type === 'sentence-choice') && (
+          <View style={styles.optionsContainer}>
+            {question.options.map((option, index) => {
+              const isSelected = selectedAnswer === option;
+              const isCorrectAnswer = option === question.correctAnswer;
+              const showCorrect = showResult && isCorrectAnswer;
+              const showIncorrect = showResult && isSelected && !isCorrect;
+
+              return (
+                <TouchableOpacity
+                  key={index}
+                  style={[
+                    styles.optionButton,
+                    isSelected && !showResult && styles.optionButtonSelected,
+                    showCorrect && styles.optionButtonCorrect,
+                    showIncorrect && styles.optionButtonIncorrect,
+                  ]}
+                  onPress={() => handleAnswerSelect(option)}
+                  disabled={showResult}
+                >
+                  <Text
+                    style={[
+                      styles.optionText,
+                      isSelected && !showResult && styles.optionTextSelected,
+                      showCorrect && styles.optionTextCorrect,
+                      showIncorrect && styles.optionTextIncorrect,
+                    ]}
+                  >
+                    {option}
+                  </Text>
+                  {showCorrect && (
+                    <Ionicons name="checkmark-circle" size={24} color="#10b981" />
+                  )}
+                  {showIncorrect && (
+                    <Ionicons name="close-circle" size={24} color="#ef4444" />
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        )}
+
+        {/* Sentence Scramble */}
+        {question.type === 'scramble' && (
+          <View style={styles.scrambleContainer}>
+            {/* User Answer Area */}
+            <View style={styles.answerArea}>
+              {userAnswer.map((word, index) => (
+                <TouchableOpacity
+                  key={`answer-${index}`}
+                  style={styles.wordChip}
+                  onPress={() => handleWordPress(word, true)}
+                  disabled={showResult}
+                >
+                  <Text style={styles.wordChipText}>{word}</Text>
+                </TouchableOpacity>
+              ))}
+              {userAnswer.length === 0 && (
+                <Text style={styles.placeholderText}>Tap the words below</Text>
+              )}
+            </View>
+
+            {/* Available Words */}
+            <View style={styles.wordsContainer}>
+              {availableWords.map((word, index) => (
+                <TouchableOpacity
+                  key={`available-${index}`}
+                  style={styles.wordChip}
+                  onPress={() => handleWordPress(word, false)}
+                  disabled={showResult}
+                >
+                  <Text style={styles.wordChipText}>{word}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* Result Message */}
+        {showResult && (
+          <View style={styles.resultMessage}>
+            <Text style={[
+              styles.resultTitle,
+              isCorrect ? styles.resultTitleCorrect : styles.resultTitleIncorrect
+            ]}>
+              {isCorrect ? 'Correct! 🎉' : 'Incorrect! 😔'}
+            </Text>
+            
+            <Text style={styles.resultSubtitle}>
+              {isCorrect ? 'Great job!' : `The correct answer is: ${question.correctAnswer}`}
+            </Text>
+          </View>
+        )}
       </ScrollView>
 
+      {/* Bottom Action Buttons */}
       <View style={styles.bottomActions}>
-        <TouchableOpacity 
-          style={[styles.submitButton, !userInput.trim() && styles.submitButtonDisabled]}
-          onPress={checkAnswer}
-          disabled={!userInput.trim() || showResult}
-        >
-          <Text style={styles.submitButtonText}>
-            {showResult ? 'Next' : 'Check Answer'}
-          </Text>
-        </TouchableOpacity>
+        {!showResult || !isCorrect ? (
+          <>
+            <TouchableOpacity 
+              style={styles.speedButton}
+              onPress={() => playAudio(1.0)}
+            >
+              <Ionicons name="volume-high" size={24} color="#6366f1" />
+            </TouchableOpacity>
+
+            {!showResult ? (
+              <TouchableOpacity
+                style={[
+                  styles.checkButton,
+                  ((question.type === 'scramble' && userAnswer.length === 0) || 
+                   (question.type !== 'scramble' && !selectedAnswer)) && styles.checkButtonDisabled
+                ]}
+                onPress={handleCheck}
+                disabled={(question.type === 'scramble' && userAnswer.length === 0) || 
+                         (question.type !== 'scramble' && !selectedAnswer)}
+              >
+                <Text style={styles.checkButtonText}>Check</Text>
+              </TouchableOpacity>
+            ) : !isCorrect ? (
+              <View style={styles.incorrectActions}>
+                <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
+                  <Text style={styles.retryButtonText}>Retry</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
+                  <Text style={styles.skipButtonText}>Skip</Text>
+                  <Ionicons name="arrow-forward" size={20} color="#64748b" />
+                </TouchableOpacity>
+              </View>
+            ) : null}
+
+            <TouchableOpacity 
+              style={styles.speedButton}
+              onPress={() => playAudio(0.75)}
+            >
+              <Text style={styles.speedButtonText}>0.75×</Text>
+            </TouchableOpacity>
+          </>
+        ) : null}
       </View>
     </SafeAreaView>
   );
@@ -356,251 +499,392 @@ export default function UnitListenScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: '#f8fafc',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 16,
+    backgroundColor: '#f8fafc',
     borderBottomWidth: 1,
     borderBottomColor: '#e5e7eb',
+  },
+  backButton: {
+    width: 40,
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#000000',
-    marginLeft: 16,
-  },
-  loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    fontSize: 16,
-    color: '#6b7280',
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-  },
-  errorText: {
-    fontSize: 16,
-    color: '#6b7280',
     textAlign: 'center',
-    marginBottom: 20,
   },
-  retryButton: {
-    backgroundColor: '#6366f1',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  retryButtonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '600',
+  headerSpacer: {
+    width: 40,
   },
   progressContainer: {
     paddingHorizontal: 20,
     paddingVertical: 16,
+    backgroundColor: '#f8fafc',
   },
-  progressText: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginBottom: 8,
+  progressSegments: {
+    flexDirection: 'row',
+    gap: 4,
   },
-  progressBar: {
+  progressSegment: {
+    flex: 1,
     height: 4,
     backgroundColor: '#e5e7eb',
     borderRadius: 2,
   },
-  progressFill: {
-    height: '100%',
+  progressSegmentCompleted: {
     backgroundColor: '#6366f1',
-    borderRadius: 2,
+  },
+  progressSegmentActive: {
+    backgroundColor: '#6366f1',
   },
   content: {
     flex: 1,
+    backgroundColor: '#f8fafc',
+  },
+  contentContainer: {
     paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 20,
   },
-  questionContainer: {
-    marginTop: 40,
-    alignItems: 'center',
+  questionText: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#000000',
+    textAlign: 'center',
+    marginBottom: 32,
   },
-  audioContainer: {
+  audioSection: {
     alignItems: 'center',
     marginBottom: 40,
   },
   playButton: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
     backgroundColor: '#f0f4ff',
-    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
-    borderWidth: 2,
+    justifyContent: 'center',
+    borderWidth: 3,
     borderColor: '#6366f1',
+    marginBottom: 16,
   },
-  playButtonDisabled: {
-    backgroundColor: '#f3f4f6',
-    borderColor: '#9ca3af',
-  },
-  playText: {
+  translationText: {
     fontSize: 16,
     color: '#6b7280',
     textAlign: 'center',
   },
-  instructionText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#000000',
-    textAlign: 'center',
-    marginBottom: 20,
+  optionsContainer: {
+    gap: 12,
+    marginBottom: 24,
   },
-  input: {
-    width: '100%',
-    height: 50,
+  optionButton: {
     backgroundColor: '#ffffff',
-    borderWidth: 2,
-    borderColor: '#e5e7eb',
+    paddingVertical: 18,
+    paddingHorizontal: 20,
     borderRadius: 12,
-    paddingHorizontal: 16,
-    fontSize: 16,
-    color: '#000000',
-    marginBottom: 20,
+    borderWidth: 3,
+    borderColor: 'transparent',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
-  inputCorrect: {
+  optionButtonSelected: {
+    borderColor: '#6466E9',
+    backgroundColor: '#f0f4ff',
+  },
+  optionButtonCorrect: {
     borderColor: '#10b981',
     backgroundColor: '#f0fdf4',
   },
-  inputIncorrect: {
+  optionButtonIncorrect: {
     borderColor: '#ef4444',
     backgroundColor: '#fef2f2',
   },
-  resultContainer: {
-    width: '100%',
+  optionText: {
+    fontSize: 16,
+    color: '#1e293b',
+    fontWeight: '500',
+    flex: 1,
+  },
+  optionTextSelected: {
+    color: '#6466E9',
+    fontWeight: '600',
+  },
+  optionTextCorrect: {
+    color: '#10b981',
+    fontWeight: '600',
+  },
+  optionTextIncorrect: {
+    color: '#ef4444',
+    fontWeight: '600',
+  },
+  scrambleContainer: {
+    gap: 24,
+  },
+  answerArea: {
+    minHeight: 80,
     backgroundColor: '#ffffff',
     borderRadius: 12,
-    padding: 20,
-    marginTop: 10,
-  },
-  resultRow: {
+    borderWidth: 2,
+    borderColor: '#e5e7eb',
+    padding: 16,
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
     alignItems: 'center',
-    marginBottom: 12,
+    justifyContent: 'center',
   },
-  resultText: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginLeft: 8,
+  wordsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    justifyContent: 'center',
   },
-  resultTextCorrect: {
-    color: '#10b981',
+  wordChip: {
+    backgroundColor: '#6366f1',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 8,
   },
-  resultTextIncorrect: {
-    color: '#ef4444',
-  },
-  correctAnswerText: {
+  wordChipText: {
+    color: '#ffffff',
     fontSize: 16,
-    color: '#6b7280',
+    fontWeight: '600',
+  },
+  placeholderText: {
+    color: '#9ca3af',
+    fontSize: 16,
+  },
+  resultMessage: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 24,
+    alignItems: 'center',
+    marginTop: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  resultTitle: {
+    fontSize: 28,
+    fontWeight: '700',
     marginBottom: 8,
   },
-  definitionText: {
-    fontSize: 14,
-    color: '#9ca3af',
-    fontStyle: 'italic',
+  resultTitleCorrect: {
+    color: '#10b981',
+  },
+  resultTitleIncorrect: {
+    color: '#ef4444',
+  },
+  resultSubtitle: {
+    fontSize: 18,
+    color: '#6b7280',
+    textAlign: 'center',
   },
   bottomActions: {
-    paddingHorizontal: 20,
-    paddingVertical: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingTop: 12,
+    paddingBottom: 0,
+    backgroundColor: '#f8fafc',
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+    gap: 12,
   },
-  submitButton: {
-    backgroundColor: '#000000',
+  speedButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#f0f4ff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  speedButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6366f1',
+  },
+  checkButton: {
+    flex: 1,
+    backgroundColor: '#6366f1',
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
   },
-  submitButtonDisabled: {
+  checkButtonDisabled: {
     backgroundColor: '#9ca3af',
+    opacity: 0.5,
   },
-  submitButtonText: {
-    color: '#ffffff',
+  checkButtonText: {
     fontSize: 16,
     fontWeight: '600',
+    color: '#ffffff',
+  },
+  incorrectActions: {
+    flex: 1,
+    flexDirection: 'row',
+    gap: 12,
+  },
+  retryButton: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#e2e8f0',
+  },
+  retryButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1e293b',
+  },
+  skipButton: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 8,
+    borderWidth: 2,
+    borderColor: '#e2e8f0',
+  },
+  skipButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#64748b',
   },
   completionContainer: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 60,
-  },
-  completionIcon: {
-    marginBottom: 20,
+    padding: 40,
+    backgroundColor: '#f8fafc',
   },
   completionTitle: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#000000',
+    color: '#1e293b',
+    textAlign: 'center',
     marginBottom: 8,
   },
   completionSubtitle: {
+    fontSize: 18,
+    color: '#64748b',
+    textAlign: 'center',
+    marginBottom: 40,
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    gap: 40,
+    marginBottom: 40,
+  },
+  statItem: {
+    alignItems: 'center',
+  },
+  statLabel: {
+    fontSize: 14,
+    color: '#64748b',
+    marginBottom: 8,
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#6466E9',
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 24,
+  },
+  resetButton: {
+    flex: 1,
+    backgroundColor: '#6466E9',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  resetButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#ffffff',
+  },
+  exitButton: {
+    flex: 1,
+    backgroundColor: '#f1f5f9',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  exitButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#64748b',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#ffffff',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 32,
+    paddingBottom: 40,
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#000000',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  modalSubtitle: {
     fontSize: 16,
     color: '#6b7280',
     textAlign: 'center',
-    marginBottom: 30,
+    lineHeight: 24,
+    marginBottom: 32,
   },
-  scoreContainer: {
-    backgroundColor: '#ffffff',
-    paddingHorizontal: 30,
-    paddingVertical: 20,
-    borderRadius: 16,
-    marginBottom: 30,
-    alignItems: 'center',
+  modalConfirmButton: {
+    backgroundColor: '#6366f1',
+    paddingVertical: 16,
+    borderRadius: 12,
+    marginBottom: 12,
   },
-  scoreText: {
-    fontSize: 20,
+  modalConfirmButtonText: {
+    fontSize: 18,
     fontWeight: '600',
-    color: '#000000',
-    marginBottom: 4,
-  },
-  accuracyText: {
-    fontSize: 16,
-    color: '#6b7280',
-  },
-  actionsContainer: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  restartButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: '#6366f1',
-    gap: 8,
-  },
-  restartButtonText: {
-    color: '#6366f1',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  continueButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#000000',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 8,
-    gap: 8,
-  },
-  continueButtonText: {
     color: '#ffffff',
-    fontSize: 16,
+    textAlign: 'center',
+  },
+  modalCancelButton: {
+    backgroundColor: '#ffffff',
+    paddingVertical: 16,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#e5e7eb',
+  },
+  modalCancelButtonText: {
+    fontSize: 18,
     fontWeight: '600',
+    color: '#6b7280',
+    textAlign: 'center',
   },
 });

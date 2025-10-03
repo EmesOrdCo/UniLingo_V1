@@ -38,43 +38,47 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
   const loadDefaultUnit = async () => {
     try {
       setLoadingUnits(true);
-      const units = await UnitDataService.getAllUnits();
       
-      // Try to find A1.1 unit
-      let defaultUnit = units.find(unit => unit.unit_code === 'A1.1');
+      // Focus only on Unit 1 (A1.1) - fetch data specifically for A1.1
+      console.log('📊 Loading Unit 1 (A1.1) only');
+      const unitData = await UnitDataService.getUnitDataByCode('A1.1');
       
-      // If A1.1 not found with unit_code, fetch data by CEFR level as fallback
-      if (!defaultUnit) {
-        console.log('📊 A1.1 not found with unit_code, using CEFR level fallback');
-        const unitData = await UnitDataService.getUnitDataByCode('A1.1');
-        
-        if (unitData.topic_groups.length > 0) {
-          defaultUnit = {
-            unit_code: 'A1.1',
-            unit_title: UnitDataService.getUnitTitle('A1.1'),
-            topic_groups: unitData.topic_groups,
-            total_words: unitData.total_words,
-            total_lessons: 5,
-            lessons_completed: 0,
-            status: 'not_started' as const
-          };
-          console.log('✅ Created fallback unit with', unitData.topic_groups.length, 'topic groups:', unitData.topic_groups);
-        } else if (units.length > 0) {
-          // Ultimate fallback: use first available unit
-          defaultUnit = units[0];
-          console.log('⚠️ Using first available unit:', defaultUnit.unit_code, 'with', defaultUnit.topic_groups.length, 'topic groups');
-        }
+      let defaultUnit = null;
+      
+      if (unitData.topic_groups.length > 0) {
+        defaultUnit = {
+          unit_code: 'A1.1',
+          unit_title: UnitDataService.getUnitTitle('A1.1'),
+          topic_groups: unitData.topic_groups,
+          total_words: unitData.total_words,
+          total_lessons: 5,
+          lessons_completed: 0,
+          status: 'not_started' as const
+        };
+        console.log('✅ Created Unit 1 with', unitData.topic_groups.length, 'topic groups:', unitData.topic_groups);
+      } else {
+        // Fallback: create a basic Unit 1 structure
+        defaultUnit = {
+          unit_code: 'A1.1',
+          unit_title: 'Foundation',
+          topic_groups: ['Basic Concepts'],
+          total_words: 0,
+          total_lessons: 5,
+          lessons_completed: 0,
+          status: 'not_started' as const
+        };
+        console.log('⚠️ Using fallback Unit 1 structure');
       }
       
       if (defaultUnit) {
-        console.log('📊 Setting default unit:', defaultUnit.unit_code, 'with topic groups:', defaultUnit.topic_groups);
+        console.log('📊 Setting Unit 1:', defaultUnit.unit_code, 'with topic groups:', defaultUnit.topic_groups);
       } else {
-        console.warn('⚠️ No default unit could be loaded!');
+        console.warn('⚠️ No Unit 1 could be loaded!');
       }
       
       setSelectedUnit(defaultUnit);
     } catch (error) {
-      console.error('Error loading default unit:', error);
+      console.error('Error loading Unit 1:', error);
     } finally {
       setLoadingUnits(false);
     }
@@ -230,19 +234,10 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
           <View style={styles.courseOverview}>
             <Text style={styles.courseLevel}>{selectedUnit?.unit_code || 'A1.1'}</Text>
             <View style={styles.courseTitleRow}>
-              <Text style={styles.courseTitle}>{selectedUnit?.unit_title || 'Foundation'}</Text>
-              <TouchableOpacity 
-                style={styles.changeButton}
-                onPress={() => {
-                  console.log('🔄 Change button pressed - navigating to Courses');
-                  (navigation as any).navigate('Courses');
-                }}
-              >
-                <Text style={styles.changeButtonText}>Change</Text>
-              </TouchableOpacity>
+              <Text style={styles.courseTitle}>Saying Hello</Text>
             </View>
             <Text style={styles.courseDescription}>
-              Learn how to introduce yourself and answer simple questions about your basic needs.
+              Learn essential greetings and polite expressions: hi, hello, good morning, good afternoon, good evening, goodbye, please.
             </Text>
             
             {/* Progress Bar */}
@@ -256,77 +251,62 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
 
           {/* Course Units Section */}
           <View style={styles.unitsSection}>
-            {/* Selected Unit Topic Groups */}
+            {/* Unit 1 Lessons */}
             {loadingUnits ? (
               <View style={styles.loadingContainer}>
-                <Text style={styles.loadingText}>Loading units...</Text>
+                <Text style={styles.loadingText}>Loading lessons...</Text>
               </View>
             ) : selectedUnit ? (
-              (() => {
-                const topicGroups = selectedUnit?.topic_groups || [];
-                console.log('🎨 Rendering topic groups. Count:', topicGroups.length, 'Groups:', topicGroups);
-                
-                if (topicGroups.length === 0) {
-                  console.warn('⚠️ No topic groups to render!');
-                  return <Text style={styles.loadingText}>No topic groups available</Text>;
-                }
-                
-                return topicGroups.map((topicGroup, index) => {
-                  console.log(`🎨 Rendering Unit ${index + 1}: "${topicGroup}"`);
-                  return (
-                    <View key={`${topicGroup}-${index}`} style={styles.unitContainer}>
-                      <TouchableOpacity 
-                        style={[
-                          styles.unitCard,
-                          expandedUnit === index && styles.unitCardExpanded
-                        ]}
-                        onPress={() => handleUnitPress(index)}
-                      >
-                        <View style={styles.unitHeader}>
-                          <Text style={styles.unitNumber}>Unit {index + 1}</Text>
-                          <View style={styles.unitProgressBar}>
-                            <View style={[styles.unitProgressFill, { width: '0%' }]} />
-                          </View>
-                        </View>
-                        
-                        <Text style={styles.unitTitle}>{topicGroup}</Text>
-                        <Text style={styles.unitSubtitle}>{selectedUnit?.unit_code} • Topic Group</Text>
-                    
-                    <View style={styles.unitFooter}>
-                      <Ionicons name="download-outline" size={20} color="#6b7280" />
-                      <Ionicons 
-                        name={expandedUnit === index ? "chevron-up" : "chevron-down"} 
-                        size={20} 
-                        color="#6b7280" 
-                      />
+              <View style={styles.unitContainer}>
+                <TouchableOpacity 
+                  style={[
+                    styles.unitCard,
+                    expandedUnit === 0 && styles.unitCardExpanded
+                  ]}
+                  onPress={() => handleUnitPress(0)}
+                >
+                  <View style={styles.unitHeader}>
+                    <Text style={styles.unitNumber}>Unit 1</Text>
+                    <View style={styles.unitProgressBar}>
+                      <View style={[styles.unitProgressFill, { width: '0%' }]} />
                     </View>
-                  </TouchableOpacity>
+                  </View>
+                  
+                  <Text style={styles.unitTitle}>Saying Hello</Text>
+                  <Text style={styles.unitSubtitle}>{selectedUnit?.unit_code} • General Lessons</Text>
+              
+                  <View style={styles.unitFooter}>
+                    <Ionicons name="book-outline" size={20} color="#6b7280" />
+                    <Ionicons 
+                      name={expandedUnit === 0 ? "chevron-up" : "chevron-down"} 
+                      size={20} 
+                      color="#6b7280" 
+                    />
+                  </View>
+                </TouchableOpacity>
 
-                  {/* Expanded Lessons */}
-                  {expandedUnit === index && (
-                    <View style={styles.lessonsContainer}>
-                      {selectedUnit && UnitDataService.getLessonsForUnit(selectedUnit).map((lesson) => (
-                        <View 
-                          key={lesson.id} 
-                          style={[
-                            styles.lessonCard,
-                            isNavigating && styles.lessonCardDisabled
-                          ]}
-                        >
-                          <View style={styles.lessonContent}>
-                            <Text style={styles.lessonTitle}>{lesson?.title || 'Unknown'}</Text>
-                          </View>
-                          <View style={styles.lessonActions}>
-                            {getStatusButton(lesson.status, selectedUnit?.unit_code || '', lesson?.title || 'Unknown', topicGroup)}
-                          </View>
+                {/* Expanded Lessons */}
+                {expandedUnit === 0 && (
+                  <View style={styles.lessonsContainer}>
+                    {selectedUnit && UnitDataService.getLessonsForUnit(selectedUnit).map((lesson) => (
+                      <View 
+                        key={lesson.id} 
+                        style={[
+                          styles.lessonCard,
+                          isNavigating && styles.lessonCardDisabled
+                        ]}
+                      >
+                        <View style={styles.lessonContent}>
+                          <Text style={styles.lessonTitle}>{lesson?.title || 'Unknown'}</Text>
                         </View>
-                      ))}
-                    </View>
-                  )}
-                </View>
-                  );
-                });
-              })()
+                        <View style={styles.lessonActions}>
+                          {getStatusButton(lesson.status, selectedUnit?.unit_code || '', lesson?.title || 'Unknown')}
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </View>
             ) : null}
           </View>
       </>
