@@ -12,6 +12,7 @@ const PerformanceMonitor = require('./performanceMonitor');
 const ResilientPronunciationService = require('./resilientPronunciationService');
 const FileCleanupManager = require('./fileCleanupManager');
 const errorLogger = require('./errorLogger');
+const ipWhitelistManager = require('./ipWhitelistManager');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 console.log('🔍 Debug - Current directory:', __dirname);
@@ -277,17 +278,7 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static('uploads'));
 app.use(express.static('public'));
 
-// IP whitelist for monitoring endpoints
-const allowedIPs = [
-  '127.0.0.1',           // localhost
-  '::1',                 // localhost IPv6
-  '::ffff:127.0.0.1',    // localhost IPv4-mapped IPv6
-  '146.198.140.69',      // User's home/WiFi IP address
-  '148.252.147.103',     // User's cellular/mobile IP address
-  // Add additional IP addresses here if needed
-  // 'your.office.ip.address',
-];
-
+// IP whitelist for monitoring endpoints - now managed via database
 const monitoringWhitelist = (req, res, next) => {
   const clientIP = req.ip || req.connection.remoteAddress || req.socket.remoteAddress;
   const realIP = req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || clientIP;
@@ -297,15 +288,19 @@ const monitoringWhitelist = (req, res, next) => {
   
   console.log(`[Monitoring] Access attempt from IP: ${ip}`);
   
-  if (allowedIPs.includes(ip)) {
+  // Check if IP is allowed using database-backed whitelist
+  if (ipWhitelistManager.isAllowed(ip)) {
     console.log(`[Monitoring] ✅ Access granted for IP: ${ip}`);
+    // Record IP usage (fire and forget)
+    ipWhitelistManager.recordIPUsage(ip).catch(() => {});
     next();
   } else {
     console.log(`[Monitoring] ❌ Access denied for IP: ${ip}`);
     res.status(403).json({
       error: 'Access denied. Monitoring endpoints are restricted to authorized IPs only.',
       code: 'MONITORING_ACCESS_DENIED',
-      clientIP: ip
+      clientIP: ip,
+      hint: 'Contact admin to add your IP to the whitelist'
     });
   }
 };
@@ -1494,6 +1489,116 @@ app.get('/api/admin/users/statistics', monitoringWhitelist, (req, res) => {
   }
 });
 
+// IP Whitelist Management Endpoints
+app.get('/api/admin/ips', monitoringWhitelist, async (req, res) => {
+  try {
+    const result = await ipWhitelistManager.getAllIPs();
+    res.json({
+      success: true,
+      ...result,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error getting IPs:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get IP whitelist',
+      details: error.message
+    });
+  }
+});
+
+app.post('/api/admin/ips/add', monitoringWhitelist, async (req, res) => {
+  try {
+    const { ipAddress, description } = req.body;
+    
+    if (!ipAddress) {
+      return res.status(400).json({
+        success: false,
+        error: 'IP address is required'
+      });
+    }
+    
+    const result = await ipWhitelistManager.addIP(ipAddress, description || '');
+    res.json({
+      success: true,
+      ...result,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error adding IP:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to add IP to whitelist',
+      details: error.message
+    });
+  }
+});
+
+app.post('/api/admin/ips/remove', monitoringWhitelist, async (req, res) => {
+  try {
+    const { ipAddress } = req.body;
+    
+    if (!ipAddress) {
+      return res.status(400).json({
+        success: false,
+        error: 'IP address is required'
+      });
+    }
+    
+    const result = await ipWhitelistManager.removeIP(ipAddress);
+    res.json({
+      success: true,
+      ...result,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error removing IP:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to remove IP from whitelist',
+      details: error.message
+    });
+  }
+});
+
+app.post('/api/admin/ips/reload', monitoringWhitelist, async (req, res) => {
+  try {
+    const result = await ipWhitelistManager.reloadFromDatabase();
+    res.json({
+      success: true,
+      message: 'IP whitelist reloaded from database',
+      ...result,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error reloading IPs:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to reload IP whitelist',
+      details: error.message
+    });
+  }
+});
+
+app.get('/api/admin/ips/status', monitoringWhitelist, (req, res) => {
+  try {
+    const status = ipWhitelistManager.getStatus();
+    res.json({
+      success: true,
+      status: status,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error getting IP whitelist status:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get IP whitelist status',
+      details: error.message
+    });
+  }
+});
+
 // Suspend/unsuspend user endpoint
 app.post('/api/admin/users/:userId/suspend', monitoringWhitelist, (req, res) => {
   try {
@@ -1741,13 +1846,21 @@ app.use((error, req, res, next) => {
 });
 
 // Start server
-app.listen(PORT, '0.0.0.0', () => {
+app.listen(PORT, '0.0.0.0', async () => {
   // Update frontend configuration with current IP
   updateFrontendConfig();
   
   console.log(`🚀 Backend server running on port ${PORT}`);
   console.log(`📁 Upload directory: ${path.resolve('uploads')}`);
   console.log(`🌐 Network accessible at: http://${LOCAL_IP}:${PORT}`);
+  
+  // Initialize IP whitelist manager
+  try {
+    await ipWhitelistManager.initialize();
+  } catch (error) {
+    console.error('⚠️ Failed to initialize IP whitelist manager:', error);
+    console.error('⚠️ Monitoring endpoints may not work correctly');
+  }
   
   // Network connectivity tests removed - not necessary for local development
 });
