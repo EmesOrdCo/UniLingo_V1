@@ -13,6 +13,9 @@ import MinesweeperGame from '../games/MinesweeperGame';
 import PacManGame from '../games/PacManGame';
 import FlappyBirdGame from '../games/FlappyBirdGame';
 import AsteroidsGame from '../games/AsteroidsGame';
+import BubbleShooterGame from '../games/BubbleShooterGame';
+import SudokuGame from '../games/SudokuGame';
+import FlowFreeGame from '../games/FlowFreeGame';
 
 interface ArcadeGameLauncherProps {
   visible: boolean;
@@ -27,7 +30,7 @@ export default function ArcadeGameLauncher({ visible, game, onClose }: ArcadeGam
   if (!game) return null;
 
   // Determine if this is a React Native game or WebView game
-  const isReactNativeGame = ['snake', '2048', 'tetris', 'breakout', 'space-invaders', 'pong', 'minesweeper', 'pacman', 'flappy-bird', 'asteroids'].includes(game.game_url) || game.game_url.startsWith('native://');
+  const isReactNativeGame = ['snake', '2048', 'tetris', 'breakout', 'space-invaders', 'pong', 'minesweeper', 'pacman', 'flappy-bird', 'asteroids', 'bubble-shooter', 'sudoku', 'flow-free'].includes(game.game_url) || game.game_url.startsWith('native://');
 
   const handleGameComplete = async (score: number) => {
     const durationSeconds = Math.floor((Date.now() - gameStartTime) / 1000);
@@ -182,6 +185,45 @@ export default function ArcadeGameLauncher({ visible, game, onClose }: ArcadeGam
           onRequestClose={handleClose}
         >
           <AsteroidsGame onClose={handleClose} onGameComplete={handleGameComplete} />
+        </Modal>
+      );
+    }
+    
+    if (game.game_url === 'bubble-shooter') {
+      return (
+        <Modal
+          visible={visible}
+          animationType="slide"
+          presentationStyle="fullScreen"
+          onRequestClose={handleClose}
+        >
+          <BubbleShooterGame onClose={handleClose} onGameComplete={handleGameComplete} />
+        </Modal>
+      );
+    }
+    
+    if (game.game_url === 'sudoku') {
+      return (
+        <Modal
+          visible={visible}
+          animationType="slide"
+          presentationStyle="fullScreen"
+          onRequestClose={handleClose}
+        >
+          <SudokuGame onClose={handleClose} onGameComplete={handleGameComplete} />
+        </Modal>
+      );
+    }
+    
+    if (game.game_url === 'flow-free') {
+      return (
+        <Modal
+          visible={visible}
+          animationType="slide"
+          presentationStyle="fullScreen"
+          onRequestClose={handleClose}
+        >
+          <FlowFreeGame onClose={handleClose} onGameComplete={handleGameComplete} />
         </Modal>
       );
     }

@@ -32,7 +32,7 @@ export default function GameWebView({ visible, game, onClose, onGameEnd }: GameW
   if (!game) return null;
 
   // Safety check: Don't try to load React Native games in WebView
-  const reactNativeGames = ['snake', '2048', 'tetris', 'breakout', 'space-invaders', 'pong', 'minesweeper', 'pacman', 'flappy-bird', 'asteroids'];
+  const reactNativeGames = ['snake', '2048', 'tetris', 'breakout', 'space-invaders', 'pong', 'minesweeper', 'pacman', 'flappy-bird', 'asteroids', 'bubble-shooter', 'sudoku', 'flow-free'];
   if (reactNativeGames.includes(game.game_url)) {
     console.warn('GameWebView: Attempted to load React Native game in WebView:', game.game_url);
     return null;
