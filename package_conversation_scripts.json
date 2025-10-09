@@ -1,0 +1,18 @@
+{
+  "name": "conversation-script-generator",
+  "version": "1.0.0",
+  "description": "Generate conversation scripts using OpenAI for language learning",
+  "main": "generate_conversation_scripts.js",
+  "scripts": {
+    "generate-all": "node generate_conversation_scripts.js all",
+    "generate-subject": "node generate_conversation_scripts.js"
+  },
+  "dependencies": {
+    "openai": "^4.20.0",
+    "@supabase/supabase-js": "^2.38.0",
+    "dotenv": "^16.3.1"
+  },
+  "keywords": ["openai", "language-learning", "conversation", "scripts"],
+  "author": "UniLingo",
+  "license": "MIT"
+}

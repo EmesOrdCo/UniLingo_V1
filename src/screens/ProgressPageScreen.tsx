@@ -254,6 +254,25 @@ export default function ProgressPageScreen() {
           <DailyGoalsWidget refreshTrigger={refreshTrigger} />
         </View>
 
+        {/* Arcade Button */}
+        <View style={styles.arcadeButtonContainer}>
+          <TouchableOpacity 
+            style={styles.arcadeButton}
+            onPress={() => navigation.navigate('Arcade' as never)}
+          >
+            <View style={styles.arcadeButtonContent}>
+              <View style={styles.arcadeButtonLeft}>
+                <Ionicons name="game-controller" size={28} color="#6366F1" />
+                <View style={styles.arcadeButtonText}>
+                  <Text style={styles.arcadeButtonTitle}>🎮 Arcade Games</Text>
+                  <Text style={styles.arcadeButtonSubtitle}>Play fun games - All FREE!</Text>
+                </View>
+              </View>
+              <Ionicons name="chevron-forward" size={24} color="#9CA3AF" />
+            </View>
+          </TouchableOpacity>
+        </View>
+
         {/* Level Progress */}
         <View style={styles.levelSection}>
           <View style={styles.sectionTitleContainer}>
@@ -901,6 +920,46 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 16,
     marginBottom: 16,
+  },
+  arcadeButtonContainer: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+  },
+  arcadeButton: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+    borderWidth: 2,
+    borderColor: '#6366F1',
+  },
+  arcadeButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  arcadeButtonLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    flex: 1,
+  },
+  arcadeButtonText: {
+    flex: 1,
+  },
+  arcadeButtonTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  arcadeButtonSubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
   },
 });
 

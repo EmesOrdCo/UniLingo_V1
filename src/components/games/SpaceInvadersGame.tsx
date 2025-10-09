@@ -203,121 +203,89 @@ const SpaceInvadersGame: React.FC<SpaceInvadersGameProps> = ({ onClose, onGameCo
     lastEnemyShootTime.current = now;
   }, [enemies, enemyOffsetX, enemyOffsetY, gameOver, won, isPaused]);
 
-  // Check collisions - using refs to avoid nested setState issues
+  // Check collisions
   const checkCollisions = useCallback(() => {
-    setEnemies(prevEnemies => {
-      setBullets(prevBullets => {
-        const bulletsToRemove: number[] = [];
-        const enemiesToKill: number[] = [];
-        let scoreGain = 0;
+    let newEnemies = [...enemies];
+    let newBullets = [...bullets];
+    let scoreGain = 0;
+    let playerHit = false;
 
-        // For each bullet, find the first enemy it hits
-        for (const bullet of prevBullets) {
-          if (!bullet.friendly) continue;
-          
-          // Skip if this bullet already hit something
-          if (bulletsToRemove.includes(bullet.id)) continue;
+    // Player bullets vs enemies
+    newBullets = newBullets.filter(bullet => {
+      if (!bullet.friendly) return true;
+      
+      let hit = false;
+      newEnemies = newEnemies.map(enemy => {
+        if (!enemy.alive || hit) return enemy;
 
-          // Check against all enemies
-          for (const enemy of prevEnemies) {
-            if (!enemy.alive) continue;
-            
-            // Skip if this enemy already killed
-            if (enemiesToKill.includes(enemy.id)) continue;
+        const enemyX = enemyOffsetX + enemy.col * ENEMY_SPACING_X;
+        const enemyY = enemyOffsetY + enemy.row * ENEMY_SPACING_Y;
 
-            const enemyX = enemyOffsetX + enemy.col * ENEMY_SPACING_X;
-            const enemyY = enemyOffsetY + enemy.row * ENEMY_SPACING_Y;
-
-            // Collision detection
-            const bulletRight = bullet.x + BULLET_WIDTH;
-            const bulletLeft = bullet.x;
-            const bulletTop = bullet.y;
-            const bulletBottom = bullet.y + BULLET_HEIGHT;
-
-            const enemyRight = enemyX + ENEMY_SIZE;
-            const enemyLeft = enemyX;
-            const enemyTop = enemyY;
-            const enemyBottom = enemyY + ENEMY_SIZE;
-
-            // Check if bullet and enemy overlap
-            if (
-              bulletRight >= enemyLeft &&
-              bulletLeft <= enemyRight &&
-              bulletTop <= enemyBottom &&
-              bulletBottom >= enemyTop
-            ) {
-              // HIT! Mark both for removal
-              bulletsToRemove.push(bullet.id);
-              enemiesToKill.push(enemy.id);
-              scoreGain += enemy.type * 10 * wave;
-              
-              console.log(`💥 Bullet ${bullet.id} hit enemy ${enemy.id}!`); // Debug
-              break; // STOP - this bullet hit one enemy, don't check more
-            }
-          }
+        if (
+          bullet.x + BULLET_WIDTH >= enemyX &&
+          bullet.x <= enemyX + ENEMY_SIZE &&
+          bullet.y <= enemyY + ENEMY_SIZE &&
+          bullet.y + BULLET_HEIGHT >= enemyY
+        ) {
+          hit = true;
+          scoreGain += enemy.type * 10 * wave;
+          return { ...enemy, alive: false };
         }
-
-        // Update score
-        if (scoreGain > 0) {
-          setScore(prev => prev + scoreGain);
-        }
-
-        // Update enemies - mark hit ones as dead
-        const newEnemies = prevEnemies.map(enemy => {
-          if (enemiesToKill.includes(enemy.id)) {
-            return { ...enemy, alive: false };
-          }
-          return enemy;
-        });
-
-        // Check win/lose conditions
-        if (newEnemies.every(e => !e.alive)) {
-          setWon(true);
-        }
-
-        const lowestAliveEnemy = newEnemies
-          .filter(e => e.alive)
-          .reduce((lowest, e) => Math.max(lowest, e.row), 0);
-        
-        if (enemyOffsetY + lowestAliveEnemy * ENEMY_SPACING_Y + ENEMY_SIZE >= GAME_HEIGHT - 60) {
-          setGameOver(true);
-        }
-
-        // Update enemies state
-        setEnemies(newEnemies);
-
-        // Remove bullets that hit enemies
-        let newBullets = prevBullets.filter(b => !bulletsToRemove.includes(b.id));
-
-        // Check enemy bullets vs player
-        newBullets = newBullets.filter(bullet => {
-          if (!bullet.friendly) {
-            const playerY = GAME_HEIGHT - 20 - PLAYER_HEIGHT;
-            if (
-              bullet.x + BULLET_WIDTH >= playerX &&
-              bullet.x <= playerX + PLAYER_WIDTH &&
-              bullet.y + BULLET_HEIGHT >= playerY &&
-              bullet.y <= playerY + PLAYER_HEIGHT
-            ) {
-              setLives(prev => {
-                const newLives = prev - 1;
-                if (newLives <= 0) {
-                  setGameOver(true);
-                }
-                return newLives;
-              });
-              return false;
-            }
-          }
-          return true;
-        });
-
-        return newBullets;
+        return enemy;
       });
 
-      return prevEnemies; // Return enemies unchanged here since we update them inside
+      return !hit;
     });
-  }, [playerX, enemyOffsetX, enemyOffsetY, wave]);
+
+    // Enemy bullets vs player
+    newBullets = newBullets.filter(bullet => {
+      if (bullet.friendly) return true;
+
+      const playerY = GAME_HEIGHT - 20 - PLAYER_HEIGHT; // Player's top position
+      if (
+        bullet.x + BULLET_WIDTH >= playerX &&
+        bullet.x <= playerX + PLAYER_WIDTH &&
+        bullet.y + BULLET_HEIGHT >= playerY &&
+        bullet.y <= playerY + PLAYER_HEIGHT
+      ) {
+        playerHit = true;
+        return false;
+      }
+      return true;
+    });
+
+    // Check if enemies reached player
+    const lowestAliveEnemy = enemies
+      .filter(e => e.alive)
+      .reduce((lowest, e) => Math.max(lowest, e.row), 0);
+    
+    if (enemyOffsetY + lowestAliveEnemy * ENEMY_SPACING_Y + ENEMY_SIZE >= GAME_HEIGHT - 60) {
+      setGameOver(true);
+    }
+
+    // Apply changes
+    setEnemies(newEnemies);
+    setBullets(newBullets);
+    
+    if (scoreGain > 0) {
+      setScore(prev => prev + scoreGain);
+    }
+
+    if (playerHit) {
+      setLives(prev => {
+        const newLives = prev - 1;
+        if (newLives <= 0) {
+          setGameOver(true);
+        }
+        return newLives;
+      });
+    }
+
+    // Check if all enemies destroyed
+    if (newEnemies.every(e => !e.alive)) {
+      setWon(true);
+    }
+  }, [enemies, bullets, playerX, enemyOffsetX, enemyOffsetY, wave]);
 
   // Main game loop
   const updateGame = useCallback(() => {

@@ -300,6 +300,8 @@ const styles = StyleSheet.create({
   today: {
     backgroundColor: '#6366f1',
     borderRadius: 20,
+    width: 40,
+    height: 40,
   },
   todayText: {
     color: '#ffffff',
@@ -308,6 +310,8 @@ const styles = StyleSheet.create({
   studyDay: {
     backgroundColor: '#059669', // Deeper green that better complements the purple theme
     borderRadius: 20,
+    width: 40,
+    height: 40,
   },
   studyDayText: {
     color: '#ffffff', // Changed from '#065f46' to white for better contrast

@@ -15,10 +15,10 @@ const GAME_WIDTH = Math.min(width - 40, 400);
 const GAME_HEIGHT = height - 280;
 const BIRD_SIZE = 30;
 const PIPE_WIDTH = 50;
-const PIPE_GAP = 140;
-const GRAVITY = 0.6;
-const FLAP_STRENGTH = -10;
-const PIPE_SPEED = 3;
+const PIPE_GAP = 160; // Increased from 140 for more forgiveness
+const GRAVITY = 0.5; // Reduced from 0.6 for gentler falling
+const FLAP_STRENGTH = -7.5; // Reduced from -10 for less violent flap
+const PIPE_SPEED = 2.5; // Reduced from 3 for more reaction time
 
 type Pipe = {
   id: number;
@@ -36,6 +36,7 @@ const FlappyBirdGame: React.FC<FlappyBirdGameProps> = ({ onClose, onGameComplete
   const [bestScore, setBestScore] = useState(0);
   const [gameOver, setGameOver] = useState(false);
   const [gameStarted, setGameStarted] = useState(false);
+  const [groundOffset, setGroundOffset] = useState(0); // Synced with pipes
 
   // Refs
   const gameLoop = useRef<number | null>(null);
@@ -47,6 +48,13 @@ const FlappyBirdGame: React.FC<FlappyBirdGameProps> = ({ onClose, onGameComplete
   // Animated values
   const birdRotation = useRef(new Animated.Value(0)).current;
   const bgScroll = useRef(new Animated.Value(0)).current;
+  const wingFlap = useRef(new Animated.Value(0)).current;
+  const cloudScroll1 = useRef(new Animated.Value(0)).current;
+  const cloudScroll2 = useRef(new Animated.Value(0)).current;
+  const cloudScroll3 = useRef(new Animated.Value(0)).current;
+  const cloudScroll4 = useRef(new Animated.Value(0)).current;
+  const cloudScroll5 = useRef(new Animated.Value(0)).current;
+  const groundScroll = useRef(new Animated.Value(0)).current;
 
   // Bird flap
   const flap = useCallback(() => {
@@ -58,10 +66,18 @@ const FlappyBirdGame: React.FC<FlappyBirdGameProps> = ({ onClose, onGameComplete
 
     setBirdVelocity(FLAP_STRENGTH);
     
-    // Animate bird rotation
+    // Set bird rotation immediately on flap
+    birdRotation.setValue(-20); // Immediate upward tilt (reduced from -30)
+    
+    // Animate wing flap
     Animated.sequence([
-      Animated.timing(birdRotation, {
-        toValue: -20,
+      Animated.timing(wingFlap, {
+        toValue: 1,
+        duration: 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(wingFlap, {
+        toValue: 0,
         duration: 100,
         useNativeDriver: true,
       }),
@@ -87,13 +103,25 @@ const FlappyBirdGame: React.FC<FlappyBirdGameProps> = ({ onClose, onGameComplete
     setBirdVelocity(prev => {
       const newVelocity = prev + GRAVITY;
       
-      // Update rotation based on velocity
-      const rotation = Math.min(Math.max(newVelocity * 3, -20), 90);
-      Animated.timing(birdRotation, {
-        toValue: rotation,
-        duration: 50,
-        useNativeDriver: true,
-      }).start();
+      // Update rotation based on velocity - visible but not too dramatic
+      // When falling (positive velocity), rotate downward
+      let rotation;
+      if (newVelocity < -1) {
+        // Rising fast - upward tilt
+        rotation = Math.max(newVelocity * 2.5, -20);
+      } else if (newVelocity < 0) {
+        // Rising slowly - gentle upward tilt
+        rotation = Math.max(newVelocity * 2, -15);
+      } else if (newVelocity < 3) {
+        // Falling slowly - start tilting down
+        rotation = Math.min(newVelocity * 4, 25);
+      } else {
+        // Falling fast - nose-dive
+        rotation = Math.min(newVelocity * 5, 60);
+      }
+      
+      // Use setValue for immediate rotation (no animation delay)
+      birdRotation.setValue(rotation);
       
       return newVelocity;
     });
@@ -105,7 +133,7 @@ const FlappyBirdGame: React.FC<FlappyBirdGameProps> = ({ onClose, onGameComplete
 
     // Spawn new pipe
     const now = Date.now();
-    if (now - lastPipeSpawn.current > 2000) {
+    if (now - lastPipeSpawn.current > 2200) { // Increased from 2000 for more time between pipes
       const minHeight = 50;
       const maxHeight = GAME_HEIGHT - PIPE_GAP - 100;
       const topHeight = Math.random() * (maxHeight - minHeight) + minHeight;
@@ -123,7 +151,7 @@ const FlappyBirdGame: React.FC<FlappyBirdGameProps> = ({ onClose, onGameComplete
       lastPipeSpawn.current = now;
     }
 
-    // Move pipes
+    // Move pipes and ground together
     setPipes(prev => {
       return prev
         .map(pipe => ({
@@ -131,6 +159,13 @@ const FlappyBirdGame: React.FC<FlappyBirdGameProps> = ({ onClose, onGameComplete
           x: pipe.x - PIPE_SPEED,
         }))
         .filter(pipe => pipe.x > -PIPE_WIDTH);
+    });
+    
+    // Update ground offset to match pipe movement
+    setGroundOffset(prev => {
+      const newOffset = prev - PIPE_SPEED;
+      // Loop back when scrolled 300 pixels (longer pattern)
+      return newOffset <= -300 ? newOffset + 300 : newOffset;
     });
   }, [gameStarted, gameOver]);
 
@@ -212,6 +247,39 @@ const FlappyBirdGame: React.FC<FlappyBirdGameProps> = ({ onClose, onGameComplete
     ).start();
   }, [bgScroll]);
 
+  // Cloud scroll animations - each at different speeds for parallax effect
+  useEffect(() => {
+    const createCloudAnimation = (animValue: Animated.Value, duration: number, startDelay: number = 0) => {
+      // Start clouds offscreen to the right
+      animValue.setValue(width);
+      
+      return Animated.loop(
+        Animated.sequence([
+          Animated.delay(startDelay),
+          Animated.timing(animValue, {
+            toValue: -200, // Scroll left until offscreen
+            duration: duration,
+            useNativeDriver: true,
+          }),
+          Animated.timing(animValue, {
+            toValue: width, // Jump back to right side
+            duration: 0,
+            useNativeDriver: true,
+          }),
+        ])
+      );
+    };
+
+    // Start each cloud animation with different speeds and delays
+    createCloudAnimation(cloudScroll1, 25000, 0).start();
+    createCloudAnimation(cloudScroll2, 30000, 5000).start();
+    createCloudAnimation(cloudScroll3, 20000, 2000).start();
+    createCloudAnimation(cloudScroll4, 28000, 8000).start();
+    createCloudAnimation(cloudScroll5, 18000, 3000).start();
+  }, [cloudScroll1, cloudScroll2, cloudScroll3, cloudScroll4, cloudScroll5]);
+
+  // Ground scroll is now synced directly with pipe movement in updatePipes
+
   const handleRestart = () => {
     setBirdY(GAME_HEIGHT / 2);
     setBirdVelocity(0);
@@ -219,6 +287,7 @@ const FlappyBirdGame: React.FC<FlappyBirdGameProps> = ({ onClose, onGameComplete
     setScore(0);
     setGameOver(false);
     setGameStarted(false);
+    setGroundOffset(0);
     lastPipeSpawn.current = 0;
     completionCalledRef.current = false;
     finalScoreRef.current = 0;
@@ -236,8 +305,13 @@ const FlappyBirdGame: React.FC<FlappyBirdGameProps> = ({ onClose, onGameComplete
 
   const birdLeft = GAME_WIDTH / 3;
   const rotationInterpolate = birdRotation.interpolate({
-    inputRange: [-20, 90],
-    outputRange: ['-20deg', '90deg'],
+    inputRange: [-20, 0, 60],
+    outputRange: ['-20deg', '0deg', '60deg'], // Balanced rotation range
+  });
+  
+  const wingRotation = wingFlap.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '-30deg'],
   });
 
   return (
@@ -245,19 +319,66 @@ const FlappyBirdGame: React.FC<FlappyBirdGameProps> = ({ onClose, onGameComplete
       <View style={styles.container}>
         {/* Sky Background */}
         <View style={styles.skyBackground}>
-          {/* Clouds */}
-          {[...Array(5)].map((_, i) => (
-            <View
-              key={i}
-              style={[
-                styles.cloud,
-                {
-                  left: (i * 120) % GAME_WIDTH,
-                  top: 60 + (i * 40) % 100,
-                },
-              ]}
-            />
-          ))}
+          {/* Sun */}
+          <View style={styles.sun}>
+            <View style={styles.sunGlow} />
+          </View>
+          
+          {/* Clouds with more detail - Animated */}
+          <Animated.View
+            style={[
+              styles.cloud1,
+              { transform: [{ translateX: cloudScroll1 }] },
+            ]}
+          >
+            <View style={[styles.cloudPart, styles.cloudPart1]} />
+            <View style={[styles.cloudPart, styles.cloudPart2]} />
+            <View style={[styles.cloudPart, styles.cloudPart3]} />
+          </Animated.View>
+          
+          <Animated.View
+            style={[
+              styles.cloud2,
+              { transform: [{ translateX: cloudScroll2 }] },
+            ]}
+          >
+            <View style={[styles.cloudPart, styles.cloudPart1]} />
+            <View style={[styles.cloudPart, styles.cloudPart2]} />
+            <View style={[styles.cloudPart, styles.cloudPart3]} />
+          </Animated.View>
+          
+          <Animated.View
+            style={[
+              styles.cloud3,
+              { transform: [{ translateX: cloudScroll3 }] },
+            ]}
+          >
+            <View style={[styles.cloudPart, styles.cloudPart1]} />
+            <View style={[styles.cloudPart, styles.cloudPart2]} />
+            <View style={[styles.cloudPart, styles.cloudPart3]} />
+          </Animated.View>
+          
+          <Animated.View
+            style={[
+              styles.cloud4,
+              { transform: [{ translateX: cloudScroll4 }] },
+            ]}
+          >
+            <View style={[styles.cloudPart, styles.cloudPart1]} />
+            <View style={[styles.cloudPart, styles.cloudPart2]} />
+            <View style={[styles.cloudPart, styles.cloudPart3]} />
+          </Animated.View>
+          
+          <Animated.View
+            style={[
+              styles.cloud5,
+              { transform: [{ translateX: cloudScroll5 }] },
+            ]}
+          >
+            <View style={[styles.cloudPart, styles.cloudPart1]} />
+            <View style={[styles.cloudPart, styles.cloudPart2]} />
+            <View style={[styles.cloudPart, styles.cloudPart3]} />
+          </Animated.View>
         </View>
 
         {/* Header */}
@@ -282,28 +403,31 @@ const FlappyBirdGame: React.FC<FlappyBirdGameProps> = ({ onClose, onGameComplete
               {/* Top Pipe */}
               <View
                 style={[
-                  styles.pipe,
-                  styles.pipeTop,
+                  styles.pipeContainer,
                   {
                     left: pipe.x,
+                    top: 0,
                     height: pipe.topHeight,
-                    width: PIPE_WIDTH,
                   },
                 ]}
-              />
+              >
+                <View style={styles.pipeBody} />
+                <View style={[styles.pipeCap, styles.pipeCapBottom]} />
+              </View>
               {/* Bottom Pipe */}
               <View
                 style={[
-                  styles.pipe,
-                  styles.pipeBottom,
+                  styles.pipeContainer,
                   {
                     left: pipe.x,
                     top: pipe.topHeight + PIPE_GAP,
                     height: GAME_HEIGHT - pipe.topHeight - PIPE_GAP,
-                    width: PIPE_WIDTH,
                   },
                 ]}
-              />
+              >
+                <View style={[styles.pipeCap, styles.pipeCapTop]} />
+                <View style={styles.pipeBody} />
+              </View>
             </View>
           ))}
 
@@ -318,9 +442,27 @@ const FlappyBirdGame: React.FC<FlappyBirdGameProps> = ({ onClose, onGameComplete
               },
             ]}
           >
-            <View style={styles.birdBody} />
-            <View style={styles.birdWing} />
-            <View style={styles.birdEye} />
+            {/* Bird Body - main circle */}
+            <View style={styles.birdBody}>
+              {/* Body highlight for 3D effect */}
+              <View style={styles.birdHighlight} />
+            </View>
+            {/* Beak */}
+            <View style={styles.birdBeak} />
+            {/* Wing - Animated */}
+            <Animated.View 
+              style={[
+                styles.birdWing,
+                { transform: [{ rotate: wingRotation }] }
+              ]} 
+            />
+            {/* Eye white */}
+            <View style={styles.birdEyeWhite}>
+              {/* Eye pupil */}
+              <View style={styles.birdEyePupil} />
+            </View>
+            {/* Tail feathers */}
+            <View style={styles.birdTail} />
           </Animated.View>
 
           {/* Start Message */}
@@ -334,7 +476,113 @@ const FlappyBirdGame: React.FC<FlappyBirdGameProps> = ({ onClose, onGameComplete
 
         {/* Ground */}
         <View style={styles.ground}>
-          <Text style={styles.groundText}>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</Text>
+          {/* Grass top layer with varying heights - Synced with pipes */}
+          <View 
+            style={[
+              styles.grassTopLayer,
+              { transform: [{ translateX: groundOffset }] }
+            ]}
+          >
+            {/* Create repeating grass pattern - optimized with fewer blades */}
+            {[...Array(90)].map((_, i) => {
+              const bladeSpacing = 13.33; // Wider spacing = fewer blades
+              const patternLength = 300;
+              const xPosition = i * bladeSpacing;
+              const positionInPattern = xPosition % patternLength;
+              
+              // More complex wave pattern for variety
+              const height = 12 + 
+                Math.sin(positionInPattern * 0.1) * 2.5 + 
+                Math.sin(positionInPattern * 0.03) * 1.5;
+              
+              return (
+                <View 
+                  key={i} 
+                  style={[
+                    styles.grassBlade, 
+                    { 
+                      left: xPosition,
+                      height: height,
+                      backgroundColor: (positionInPattern / 5) % 3 === 0 ? '#7CB342' : (positionInPattern / 5) % 3 === 1 ? '#8BC34A' : '#689F38',
+                    }
+                  ]} 
+                />
+              );
+            })}
+          </View>
+          
+          {/* Dirt base with texture - Synced with pipes */}
+          <View 
+            style={[
+              styles.dirtBase,
+              { transform: [{ translateX: groundOffset }] }
+            ]}
+          >
+            {/* Create repeating dirt pattern every 300px - OPTIMIZED */}
+            {[...Array(4)].flatMap((_, section) => 
+              [...Array(12)].map((__, spotIndex) => {
+                const patternLength = 300;
+                const xInPattern = spotIndex * 25; // Spread across 300px
+                const x = section * patternLength + xInPattern;
+                
+                // Multiple pseudo-random generators for more variation
+                const seed = Math.floor(xInPattern);
+                const rand1 = ((seed * 9301 + 49297) % 233280) / 233280;
+                const rand2 = ((seed * 1103 + 377) % 233280) / 233280;
+                const rand3 = ((seed * 2207 + 1511) % 233280) / 233280;
+                const rand4 = ((seed * 5471 + 2819) % 233280) / 233280;
+                
+                return (
+                  <View 
+                    key={`dirt-${section}-${spotIndex}`} 
+                    style={[
+                      styles.dirtSpot, 
+                      { 
+                        left: x + (rand1 - 0.5) * 20, // More spread
+                        top: 5 + rand2 * 35,
+                        width: 4 + Math.floor(rand3 * 5), // Larger variation
+                        height: 4 + Math.floor(rand3 * 5),
+                        opacity: 0.25 + (rand4 * 0.4),
+                      }
+                    ]} 
+                  />
+                );
+              })
+            )}
+            
+            {/* Create repeating rock pattern every 300px - OPTIMIZED */}
+            {[...Array(4)].flatMap((_, section) => 
+              [...Array(5)].map((__, rockIndex) => {
+                const patternLength = 300;
+                const xInPattern = rockIndex * 60; // Wide spread across 300px
+                const x = section * patternLength + xInPattern;
+                
+                // Use multiple seeds for more varied distribution
+                const seed = Math.floor(xInPattern);
+                const rand1 = ((seed * 7919 + 3331) % 233280) / 233280;
+                const rand2 = ((seed * 4421 + 1987) % 233280) / 233280;
+                const rand3 = ((seed * 6329 + 4157) % 233280) / 233280;
+                
+                return (
+                  <View 
+                    key={`rock-${section}-${rockIndex}`} 
+                    style={[
+                      styles.rock, 
+                      { 
+                        left: x + (rand1 - 0.5) * 30, // Much more horizontal spread
+                        top: 10 + rand2 * 25,
+                        width: 6 + Math.floor(rand3 * 5), // Variable size
+                        height: 5 + Math.floor(rand3 * 4),
+                      }
+                    ]} 
+                  />
+                );
+              })
+            )}
+          </View>
+          
+          {/* Bottom border for definition */}
+          <View style={styles.groundBorder} />
         </View>
 
         {/* Instructions */}
@@ -388,7 +636,7 @@ const FlappyBirdGame: React.FC<FlappyBirdGameProps> = ({ onClose, onGameComplete
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#4EC0CA',
+    backgroundColor: '#87CEEB',
     alignItems: 'center',
     justifyContent: 'flex-start',
   },
@@ -398,15 +646,95 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: '80%',
-    backgroundColor: '#4EC0CA',
+    backgroundColor: '#87CEEB',
   },
-  cloud: {
+  sun: {
     position: 'absolute',
-    width: 60,
-    height: 30,
+    top: 80,
+    right: 40,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#FFD700',
+    shadowColor: '#FFD700',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 20,
+    elevation: 5,
+  },
+  sunGlow: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(255, 215, 0, 0.3)',
+    transform: [{ scale: 1.4 }],
+  },
+  cloudGroup: {
+    position: 'absolute',
+    width: 80,
+    height: 35,
+  },
+  cloud1: {
+    position: 'absolute',
+    width: 80,
+    height: 35,
+    left: 0, // Start at 0, animation will move from right
+    top: 80,
+  },
+  cloud2: {
+    position: 'absolute',
+    width: 80,
+    height: 35,
+    left: 0,
+    top: 120,
+  },
+  cloud3: {
+    position: 'absolute',
+    width: 80,
+    height: 35,
+    left: 0,
+    top: 150,
+  },
+  cloud4: {
+    position: 'absolute',
+    width: 80,
+    height: 35,
+    left: 0,
+    top: 90,
+  },
+  cloud5: {
+    position: 'absolute',
+    width: 80,
+    height: 35,
+    left: 0,
+    top: 60,
+  },
+  cloudPart: {
+    position: 'absolute',
     backgroundColor: '#FFFFFF',
-    borderRadius: 15,
-    opacity: 0.6,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  cloudPart1: {
+    width: 40,
+    height: 25,
+    left: 0,
+    top: 8,
+  },
+  cloudPart2: {
+    width: 35,
+    height: 30,
+    left: 25,
+    top: 0,
+  },
+  cloudPart3: {
+    width: 30,
+    height: 22,
+    left: 50,
+    top: 10,
   },
   header: {
     flexDirection: 'row',
@@ -461,52 +789,175 @@ const styles = StyleSheet.create({
     width: BIRD_SIZE,
     height: BIRD_SIZE,
     borderRadius: BIRD_SIZE / 2,
-    backgroundColor: '#FFEB3B',
-    borderWidth: 2,
+    backgroundColor: '#FFD54F',
+    borderWidth: 3,
     borderColor: '#F57C00',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 5,
+  },
+  birdHighlight: {
+    position: 'absolute',
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+    top: 5,
+    left: 7,
+  },
+  birdBeak: {
+    position: 'absolute',
+    width: 8,
+    height: 6,
+    backgroundColor: '#FF6F00',
+    borderRadius: 2,
+    top: 13,
+    left: 26,
+    borderWidth: 1,
+    borderColor: '#E65100',
   },
   birdWing: {
     position: 'absolute',
-    width: 12,
-    height: 8,
+    width: 14,
+    height: 10,
     backgroundColor: '#FFA726',
-    borderRadius: 4,
-    top: 14,
-    right: 2,
+    borderRadius: 6,
+    top: 15,
+    right: 4,
+    borderWidth: 2,
+    borderColor: '#F57C00',
+    shadowColor: '#000',
+    shadowOffset: { width: 1, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
   },
-  birdEye: {
+  birdEyeWhite: {
     position: 'absolute',
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#000000',
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#FFFFFF',
     top: 8,
     left: 18,
+    borderWidth: 1,
+    borderColor: '#000000',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  pipe: {
+  birdEyePupil: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#000000',
+  },
+  birdTail: {
     position: 'absolute',
-    backgroundColor: '#8BC34A',
-    borderWidth: 3,
-    borderColor: '#689F38',
+    width: 8,
+    height: 12,
+    backgroundColor: '#FFB74D',
     borderRadius: 4,
+    top: 12,
+    left: -2,
+    borderWidth: 2,
+    borderColor: '#F57C00',
+    transform: [{ rotate: '45deg' }],
   },
-  pipeTop: {
-    top: 0,
+  pipeContainer: {
+    position: 'absolute',
+    width: PIPE_WIDTH,
   },
-  pipeBottom: {
+  pipeBody: {
+    flex: 1,
+    backgroundColor: '#66BB6A',
+    borderLeftWidth: 4,
+    borderRightWidth: 4,
+    borderLeftColor: '#81C784',
+    borderRightColor: '#43A047',
+    shadowColor: '#000',
+    shadowOffset: { width: 2, height: 0 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  pipeCap: {
+    width: PIPE_WIDTH + 8,
+    height: 24,
+    backgroundColor: '#66BB6A',
+    borderWidth: 4,
+    borderColor: '#43A047',
+    borderRadius: 4,
+    marginLeft: -4,
+    shadowColor: '#000',
+    shadowOffset: { width: 2, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 4,
+    elevation: 6,
+  },
+  pipeCapTop: {
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
+  },
+  pipeCapBottom: {
+    borderBottomLeftRadius: 8,
+    borderBottomRightRadius: 8,
   },
   ground: {
     width: '100%',
-    backgroundColor: '#DEB887',
-    paddingVertical: 8,
-    alignItems: 'center',
-    borderTopWidth: 3,
-    borderTopColor: '#8B4513',
+    height: 70,
+    backgroundColor: '#8B6F47',
+    borderTopWidth: 0,
+    position: 'relative',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 8,
   },
-  groundText: {
-    fontSize: 12,
-    color: '#8B4513',
-    fontWeight: '700',
+  grassTopLayer: {
+    position: 'absolute',
+    top: 0,
+    width: 1200, // 4 x 300px pattern sections
+    height: 18,
+    backgroundColor: '#558B2F',
+    flexDirection: 'row',
+    borderBottomWidth: 2,
+    borderBottomColor: '#33691E',
+  },
+  grassBlade: {
+    position: 'absolute',
+    width: 3,
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
+    bottom: 0,
+  },
+  dirtBase: {
+    position: 'absolute',
+    top: 18,
+    width: 1200, // 4 x 300px pattern sections
+    height: 52,
+    backgroundColor: '#6D4C41',
+  },
+  dirtSpot: {
+    position: 'absolute',
+    borderRadius: 50,
+    backgroundColor: '#5D4037',
+  },
+  rock: {
+    position: 'absolute',
+    borderRadius: 4,
+    backgroundColor: '#78909C',
+    borderWidth: 1,
+    borderColor: '#546E7A',
+  },
+  groundBorder: {
+    position: 'absolute',
+    bottom: 0,
+    width: '100%',
+    height: 3,
+    backgroundColor: '#3E2723',
   },
   startMessage: {
     position: 'absolute',

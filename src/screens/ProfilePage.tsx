@@ -13,6 +13,7 @@ import ProfileAvatar from '../components/ProfileAvatar';
 import ContactSupportModal from '../components/ContactSupportModal';
 import SubscriptionStatus from '../components/SubscriptionStatus';
 import AIUsageBar from '../components/AIUsageBar';
+// Character system removed - will implement custom 2D system
 
 export default function ProfilePage() {
   const navigation = useNavigation();
@@ -24,6 +25,7 @@ export default function ProfilePage() {
   const [showContactSupport, setShowContactSupport] = useState(false);
   const [isDarkTheme, setIsDarkTheme] = useState(false);
   const [profileImage, setProfileImage] = useState<string | null>(null);
+  // Character system state removed
 
   useEffect(() => {
     const fetchStreak = async () => {
@@ -372,6 +374,7 @@ export default function ProfilePage() {
         visible={showContactSupport}
         onClose={() => setShowContactSupport(false)}
       />
+
     </SafeAreaView>
   );
 }

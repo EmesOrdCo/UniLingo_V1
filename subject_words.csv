@@ -1,0 +1,2850 @@
+CEFR level,order_index,subject,subject_words ,need their own video lessons ,used 
+A1,1,Saying Hello,"hi, hello, good morning, good afternoon, good evening, goodbye, please, bye ",the,early 
+A1,2,Meeting New People,"meet, friend, nice, this, is, from, yes, no, ",be,late
+A1,3,Asking Someone’s Name,"what, your, name, am, called ",and,now
+A1,4,Asking a Question,"who, where, when, why, how, you",of,later
+A1,5,Talking About Age,"old, age, years, young, number, man, woman, ",to,need
+A1,6,this or that,"not, that, or, would, other, some, really, either, may, nor",a,corner
+A1,7,Counting from 1 to 10,"one, two, three, four, five, six, seven, eight, nine, ten",in,no 
+A1,8,Asking the Time,"time, clock, hour, minute, early, late, now, later, recent",have,yes 
+A1,9,Asking About Location,"here, there, place, city, home, school, street",it,bathroom
+A1,10,Making a Quick Request,"give, take, help, want, need, thank you, okay, for",you,where
+A1,11,Giving Basic Directions,"left, right, straight, turn, go, stop, near, far, corner",he,how
+A1,12,Shopping for Groceries,"shop, buy, food, milk, bread, fruit, rice, egg, price, pay",need a he/she/they/you lesson,handsome
+A1,13,Asking for the Meaning,"say, mean, word, speak, language, english",they ,meeting
+A1,14,Around the House,"room, bed, chair, table, kitchen, door, window, light, bathroom",my,not
+A1,15,Talking at a Party,"dance, music, drink, fun, talk, people, song, happy, smile",,that
+A1,16,Light Flirtation,"pretty, handsome, look, like, love, eyes, sweet",we,
+A2,1,Family Gatherings,"mother, father, sister, brother, family, uncle, aunt, cousin, little",is/isn't ,on
+A2,2,Meeting Coworkers,"work, office, job, boss, team, meeting, desk, coffee, computer",,with
+A2,3,Making Plans,"plan, tomorrow, today, lunch, dinner, weekend",am/am not,this
+A2,4,Going on a First Date,"date, eat, cinema, walk, park, gift, begin, end",i,
+A2,5,Movie Night,"movie, film, watch, screen, seat, ticket, act, role",do/does/don't ,do
+A2,6,Going Shopping,"shirt, pants, shoes, dress, bag, hat, colour, list, boot ",,as
+A2,7,Do You Have Plans?,"maybe, free, busy, stay, might, actual, else, feed",,at
+A2,8,Basic Directions,"ahead, opposite, beside, behind, along, toward, through, back, among",she,
+A2,9,Meeting Coworkers Again,"colleague, project, manager, report, schedule, assignment",we should do a lesson on americanisms ,but
+A2,10,Introducing My Partner,"partner, relationship, married, boyfriend, girlfriend, wife, husband, couple, together",gonna need a way to save lessons most relevant,from
+A2,11,What Do You Do?,"career, profession, doctor, engineer, factory, writer, lawyer ",need to think about american vs english generally ,by
+A2,12,Giving Directions,"traffic, sign, follow, continue, path, exit, further, passage",need a lesson on the ideal of plurality ,will
+A2,13,Times of the Day,"midday, midnight, sunrise, sunset, night",bought/buy,or
+A2,14,What Is That?,"object, item, thing, stuff, material, plastic, metal, shape",teach/ taught,
+A2,15,Work and Hobbies,"painting, cooking, cycling, jogging, gardening, reading, swimming, hiking, knitting",(lessons on past/present/future),go
+A2,16,Telling the Time,"quarter, half, past, exact ",,so
+A2,17,What Do You Like to Do?,"enjoy, prefer, relax, exercise, travel, listen",,all
+A2,18,Ordering Coffee,"sugar, cream, small, medium, large, prepare",,if
+A2,19,Learning Colours,"red, blue, green, yellow, orange, purple, black, white, grey, brown, pink",,one
+A2,20,Describing Where You’re From,"country, village, capital, region, culture, tradition, origin, base",,would
+A2,21,Talking About Music,"artist, band, instrument, concert, sing, style, sound",,about
+A2,22,Guessing Game,"think, know, guess, idea, question, answer, try",,can
+A2,23,Your Favorite Artist,"favourite, famous, beautiful, popular",,which
+A2,24,Which Languages Do You Speak?,"understand, learn, study, communication, international, accent",,there
+A2,25,Talking About Languages,"translate, native, foreign, sentence, phrase, grammar",,know
+A2,26,Job Interview Practice,"company, experience, skill, practice, opportunity",,more
+A2,27,Nationalities,"national, world, earth, bitish, american, indian, chinese, ",,get
+,,Nationalities 2 ,"pakistani, bangladeshi, spanish, french, german, italian",,
+A2,28,Where Did You Get It?,"store, market, money, order, find, payment, new ",,who
+A2,29,Dressing for a Date,"clothes, wear, belt, attractive, cap, tie",,like
+A2,30,I Lost My Phone,"phone, call, contact, message, lost, lose, important, problem, found",,when
+A2,31,Seasons and Months,"summer, winter, spring, autumn, year, season, holiday, weather",,think
+A2,32,School Subjects,"subject, class, maths, history, science, art, essay",,make
+A2,33,Talking About Age 2,"child, parent, life, live, ",,time
+A2,34,School Subjects 2,"politics, philosophy, law, religion, business, finance, medicine, education",,see
+A2,35,Making Appointments,"appointment, arrange, book, confirm, available, wait, day, everyday",,what
+A2,36,When Is the Party?,"party, invite, host, guest, start, finish, tonight, address, location",,up
+A2,37,I Miss You,"miss, feel, remember, heart, hope, alone, without",,some
+A2,38,Food and Cooking,"cook, meal, restaurant, plate, dish, taste, breakfast, weigh ",,other
+A2,39,What’s the Right Word?,"on, with, as, at, but, by, so, if, about, into, upon",,out
+A2,40,Talking About Travel,"trip, car, bus, train, flight, arrive, visit, road, taxi",,good
+A2,41,Sharing Social Handles,"email, page, account, information",,people
+A2,42,Old Social Media,"post, write, photo, picture, share, comment, network",,year
+A2,43,Social Media Influencers,"influence, media, story, image, trend, random",,take
+A2,44,Talking About Family,"son, daughter, dad, girl, baby, boy, mum, male, female",,no
+A2,45,Cat or Dog Person,"cat, dog, animal, pet, person, rat, personally",,well
+A2,46,Arriving for an Appointment,"sorry, present, ready, form, reason",,
+A2,47,months of the year,"month, janruary, february, march, april, may, june",,very
+,,months of the year 2," july, august, september, octover, november, december",,
+A2,48,Gossiping with Friends,"gossip, secret, conversation, discuss, discussion, chat",,just
+A2,49,Too Much or Not Enough,"more, well, very, just, than, also, only, most, even, too",,come
+A2,50,Borrowing Money,"sell, spend, bank, credit, debt, due, because, owe ",,could
+A2,51,Hotel Horror Story,"hotel, service, staff, issue, bad, noise, dirty, hole",,work
+A2,52,Wedding Conversations,"marry, ring, ceremony, celebrate, union, join, celebration, relation, announcement",,use
+A2,53,Cooking 1,"mix, mixture, element, salt, pot, ",,than
+,,Cooking with a recipe,"potato, cheese, fish, vegetable, meat, cake",,
+A2,54,Have You Heard?,"hear, news, surprise, mention, ask, opinion, note, announce, explain",,now
+A2,55,Grocery Shopping,"cheap, provide, supply, loose, till, acceptable",,then
+A2,56,Payment Declined,"fail, limit, error, wrong, check, reduce, successfully",,also
+A2,57,Planning a Party,"event, group, around, special, occasion, case",,into
+A2,58,bodyparts 1,"finger, tooth, breast, nose, ear, chest, bone, brain, knee, foot",,only
+A2,59,Ordering Takeout,"menu, choose, pack, serve, bring, cost, value",,look
+A2,60,Food Delivery,"deliver, driver, fast, carry, move, quick, ride, manner",,want
+A2,61,Have You Tried?,"attempt, test, experiment, effort, pursue, risk",,give
+A2,62,We’re Going to Cook,"fire, burn, knife, stir, chicken, off, substantial ",,first
+A2,63,Pulling a Prank,"trick, joke, laugh, lie, fool, shock, funny, pretend, silly, disappear ",,new
+A2,64,bodyparts 2,"head, hand, arm, leg, face, mouth, skin, hair, shoulder, ",,way
+A2,65,Trying on Clothes,"size, fit, change, choice, describe, different, stock, exchange",,find
+A2,66,Buying Souvenirs,"local, memory, sale, deal, less, worth, possess",,over
+A2,67,Online Shopping,"online, website, card, purchase, customer, expensive, fashion",,any
+A2,68,Talking About Homes,"house, floor, hall, furniture, area, space, design, mortgage ",,after
+A2,69,Apartment Hunting,"rent, estate, resident, wall, acommodation, suitable",,day
+A2,70,Apartment Hunting Again,"apartment, property, key, unit, option, neighborhood, modern",,where
+A2,71,Moving into a New Place,"box, truck, van, install, electricity, water, settle",,thing
+A2,72,Messy Apartment,"mess, stain, smell, bin, pile, sink, wet, clean, rid",,most
+A2,73,Relaxing with Netflix,"television, program, series, episode, remote, stream, pause, sit",,should
+A2,74,Housewarming Party,"neighbor, laughter, decorate, many, few",,need
+A2,75,Holiday Plans,"tourist, escape, transport, map, reach, shall",,much
+A2,76,dual meanings 1,,,right
+A2,77,Not as Smart as You,"knowledge, mistake, difficult, smart, top, intelligence, potential",, how
+A2,78,Talking About Temperature,"temperature, degree, warm, cold, heat, hot, cool, freeze",,back
+A2,79,Talking About the Weather,"rain, sun, cloud, wind, storm, sky, environment",,mean
+A2,80,Weather Conditions,"snow, ice, climate, dry, constant, circumstance",,even
+A2,81,buying a house ,"minimum, maximum, own, bid, afford, contract, agreement,",,may
+A2,82,Why Are You Late?,"happen, away, result, until, concern, effect, affect",,here
+A2,83,Transportation Basics,,,many
+A2,84,The Uber Has Arrived,"open, hold, come, allow, close, remain, almost",,such
+A2,85,Talking About Your Car,"drive, power, system, engine, force, machine, develop",,last
+A2,86,Flight Check-in,"return, pass, level, record, point, position",,child
+A2,87,Diet Talk,"body, fat, weight, care, habit, diet, urge, over, under, figure",,tell
+A2,88,When Will You Be Back?,"soon, after, next, then, once, future, period",,really
+A2,89,First Day of School,"first, read, state, member, society,primary",prefixes and suffixes ,call
+A2,90,Talking About Illness,"patient, pain, suffer, health, disease, trouble, cause, touch, injury, cancer, sick",, before
+A2,91,Suggesting TV Shows,"play, interest, drama, part, view, fascinate",,company
+A2,92,first day of school 2 ," focus, discipline, confuse, spell, secondary",,through
+A2,93,Bike Heist,"attack, steal, drop, run, damage, witness, alarm, trap, kill",,down
+A2,94,Talking About Money,"fund, charge, amount, percent, financial, income, budget",,show
+A2,95,Recording Something,"tape, video, feature, contain, section, input, track, attach, document",,life
+A2,96,Renting a Car,"branch, vehicles, route, acquire, insurance, fee, license, collect, temporary",,man
+A2,97,Timezone Confusion,"long, between, delay, shift, distance, difference, parallel, moment",,change
+A2,98,Calendar Conflicts,"week, eventually, annual, conflict, session",,place
+A2,99,Asking for More Info,"detail, review, suggest, consultant, inquiry, analyze, communicate",,long
+A2,100,Using Should and Could,"will, should, could, must, ought, intend, determine, decide",,between
+A2,101,Discussing Travel Plans,"airport, locate, guide, fly, tour, offer, whether ",,feel
+A2,102,Shopping for Party Clothes,"healthy, treatment, medical, hospital, symptom, shut",,too
+A2,103,Comparisons and Opinions,"compare, contrast, disagree, agree, differ, rather, critical",,still
+A2,104,Visiting the Doctor 2,"convince, examine, recover, specialist, drug, absence, cast",,problem
+B1,1,Late for Your Flight,"rush, hurry, rapid, rapidly, cancel, aircraft, passenger, accident, avoid",,write
+B1,2,Talking to a Taxi Driver,"direct, miles, acquire, claim, much, reverse",,same
+B1,3,Speaking with a Tour Guide,"explore, attract, display, ancient, illustrate",,lot
+B1,4,Catching Up with a Friend,"voice, recall, connect, still, unfortunately, combination ",,great
+B1,5,Wedding Crashers,"crowd, enter, guard, ignore, involve, stranger, fight, violence",,try
+B1,6,Work Events," task, professional, agenda, final, conference, unless",,leave
+B1,7,Second Date,"second, lovely, romantic, impression, excitement, curious, both, abortion",,number
+B1,8,Planning a Birthday Party,"invitation, gather, create, wish, hopefully, social, include",,both
+B1,9,Chatting About Your Neighbor,"community, fence, yard, complain, nearby, town, mind, knock",,own
+B1,10,What’s Your Type?,"type, kind, ideal, vision, specifically, characteristic, personality, attraction, desire",,part
+B1,11,Meeting the Boss,"director, principal, formal, debate, respect, inform, necessary",,point
+B1,12,Asking Her Out,"motion, propose, promise, approach, seek",,little
+B1,13,Guess Who Gave the Gift,"somebody, someone, something, award, receive, keep",,help
+B1,14,Talking About Hollywood,"entertainment, production, piece, show, appear, title",,ask
+B1,15,Gardening Tips,"plant, garden, grow, seed, flower, root, dig, farm, organic, crop",,meet
+B1,16,Weekend Plans,"break, down, rest, leave, before, another, pub",,start
+B1,17,Hosting a Party,"welcome, attend, pressure, get",,talk
+B1,18,What Game Should We Play?,"game, player, contest, sport, match, challenge",,something
+B1,19,Cleaning the House,"sweep, wash, wipe, remove, clear, dust, toy",,put
+B1,20,Giving a TED-Style Talk,"speech,presentation,stage,theory,analysis,argument,conclusion",,another
+B1,21,Moving Day,"load,arrangement,package,household,settlement, newly",,become
+B1,22,Car Troubles,"fuel,tire,crash,speed,maintenance,mechanism,fix, wheel,repair",,interest
+B1,23,Late Again,"excuse,suddenly,immediately,frequently,finally, responsibility ",,country
+B1,24,At the Movies,"actor,scene,character,novel,chapter,audience",,old
+B1,25,Family Gossip,"relative,generation,herself,himself,themselves, myself",,each
+B1,26,Tattoos Last Forever,"mark,symbol,paint, never, put, always ",,school
+B1,27,Preparing a Presentation,"topic,data,research,evidence, argue, college",,late
+B1,28,Buying a Gift for a Friend,"selection,collection, wonderful, alternative",,high
+B1,29,Getting Bad News,"death,illness,worry,stress,crisis, allege",, different
+B1,30,I Expected That,"expect,probably,seem,likely,perhaps,sure,actually,already, presumably ",,off
+B1,31,Do You Believe Me?,"suppose, believe, assume, doubt, recommend, approve, reject",,next
+B1,32,Seasons and Weather,"natural,river,air,energy, expectation, reliable",,end
+B1,33,Talking About a New Job,"employee,employer,employment,firm,organisation, manage",,live
+B1,34,Getting Bad News 2 ,"fear, cope, forget, die, abuse, shot, affair",,why
+B1,35,Food Lovers,"wine,beer,chocolate, entire",,while
+B1,36,Election Fever,"government, political, policy, nation, campaign, election, military, minister, president",,world
+B1,37,Study Partners,"university,professor,academic, hard, course, easy, scientific",,week
+B1,38,,,,play
+B1,39,Talking About Work,"industry, build, support, improve, benefit, trade, range ",,might
+B1,40,Favorite School Subjects,"article, literature, lesson, teach, however",,must
+B1,41,Job Interview Practice 2,"ability, apply, candidate, requirement, therefore, clearly",,home
+B1,42,Five-Year Plan,"goal, success, achieve, kid, generally, unlikely, era",,never
+B1,43,Courtroom Drama,"court, police, crime, judge, prison, victim, criminal, regulation, justice",,include
+B1,44,Dealing with Burnout,"tired, struggle, balance, anyway, separate",,course
+B1,45,Vacation Stories,"beach, mountain, camp, excellent, wave",,house
+B1,46,Vacation Stories Continued,"island, landscape, journey, bike, rural",,report
+B1,47,Describing Your Day,"daily, routine, activity, sleep, variety, target, swear",,group
+B1,48,Money on the Table,"economic, demand, investment, consumer, revenue, corporation, profit",,case
+B1,49,The People Around Us,"human, public, individual, citizen, worker, leader, population ",,woman
+B1,50,"Bigger, Better, Faster","increase, rise, growth, expand, extend, progress",,around
+B1,51,Hot Off the Press,"paper, text, press, magazine, newspaper, publish, reporter, advertisement",,book
+B1,52,Tech Talk,"technology, database,scientist, method, technique, researcher, software, row",,family
+B1,53,How Do You Feel Today?,"afraid, proud, angry, glad, nervous, serious, strange, reasonable",,seem
+B1,54,When Wars Break Out,"war, strike, weapon, bomb, murder, army, boom",,let
+B1,55,On the Move,"stand, fall, push, throw, jump, climb, pull, strengthen",,again
+B1,56,Talking About Time,"yesterday, recently, usually, sometimes, constantly, rarely, forever, nowadays",,kind
+B1,57,Out in Nature,"land, forest, sea, soil, nature",,keep
+B1,58,Do the Math,"rate, sum, proportion, quantity",,hear
+B1,59,Shaping the World,"development, last, fully, inside, former, attention, major, surround, matter, reveal",,system
+B1,60,Risks and Rewards,"safe, yet, bill, each, become, anything, pick, fine, pound",,every
+B1,61,Power and Order,"lot, conduct, chance, secretary, decline, extent, handle, exist",,question
+B1,62,Everyday Actions,"pair, station, make, hide, front, category,treat",,during
+B1,63,Ideas in Motion,"raise, response, loss, general, real, refer",,always
+B1,64,Building Blocks,"operation, middle, suit, addition, fact",,big
+B1,65,Sparks of Change,"estimate, appeal, search, ever, responsible, below, ensure, excite, successful",,set
+B1,66,Signals and Reactions,"ground, repeat, within, though, refuse, notice, nearly, send, exactly",,small
+B1,67,Shadows and Power,"dark, statement, none, nuclear, basis, rich",,study
+B1,68,Central Forces,"reflect, central, official, bottom, church, plus",,follow
+B1,69,Holding It Together,"whole, reality, neither, single, perfect, occur",,begin
+B1,70,Points of View,"importance, catch, instance, side, indeed, again, star, proposal, introduce",,important
+B1,71,Short and Sharp,"advertise, adult, various, reply, shoot, strength",,since
+B1,72,Deals and Decisions,"accord, solution, quality, cent, roll, satisfy, tax, concept",,run
+B1,73,Tools at Hand,"tool, block, easily, function, regard, decade, slow, produce",,under
+B1,74,Hidden Strengths,"strong, secure, protect, safety, defense, survive, security ",,turn
+B1,75,Everyday Exchanges,"grant, favor, transfer, whereas, correct, example ",,few
+B1,76,Shifting Opinions,"decision, judgment, belief, oppose, evil ",,bring
+B1,77,The Natural Flow,"stone, grass, shade, grain, tree",,early
+B1,78,Complex Minds,"imagine, realize, wonder, aware, perception, logic",,hand
+B1,79,Steps Forward,"proceed, advance, movement, forward, step, lead",,state
+B1,80,Quiet Moments,"quiet, silence, soft, gentle, gently, slowly, careful",,move
+B1,81,Conflict and Control,"against, protest, command, threat, control",,money
+B1,82,Numbers and Measures,"ratio, scale, measure, count, calculate",,fact
+B1,83,Work and Effort,"labor, duty, action, process, continuous, voluntary ",,however
+B1,84,Office Gossip,"department,officer,corporate,procedure,institution,commission, launch",,area
+B1,85,Talking About Feelings,"emotion,guilty,depression,anxious,relief,mood,anger,happiness",,provide
+B1,86,Favorite Sports,"competition,coach,league,victory,athlete,tournament,football,championship, bet",,name
+B1,87,New Tech Gadgets,"code,digital,device,compute,monitor,electronic,update,operator",,read
+B1,88,Talking About Money 2,"economy,dollar,investor,wage,salary,asset,loan,invest",,friend
+B1,89,Science Experiments,"experimental,laboratory,gene,protein,biological,hypothesis,statistic,discovery",,month
+B1,90,Planning a Trip,"border,district,coast,northern,southern,east,west,port,arrival,gate",,large
+B1,91,Visiting the Doctor,"nurse,blood,breath,infection,surgery,clinical,virus,muscle,ill",,business
+B1,92,Breaking News,"radio,broadcast,interview,publication,quote,editor,summary,channel",,without
+B1,93,Political Debate,"legal,legislation,voter,politician,presidential,opposition,sanction,jury,democracy",,information
+B1,94,Hiking Adventure,"hill,surface,edge,north,south,spot,horse, pleasant",,open
+B1,95,Embarrassing School Day,"exam,student,teacher,instruction,grade,library",,order
+B1,96,Shopping Trouble,"discount,peak,brand,product,expense",,government
+B1,97,When Wars Break Out 2 ,"glass,oil, battle, danger, ally, gun, hunt, cross, beat, destroy",,word
+B1,98,Work & Institutions,"agency, council, administration, sector, leadership, board, executive, chairman",,issue
+B1,99,Feelings & Mind,"emotional, anxiety, satisfaction, mad, sad, confidence, awareness",,market
+B1,100,Science & Measurement,"variable, sample, equation, formula, probability, precisely, definition, proof",,pay
+B1,101,Geography & Places,"urban, province, territory, western, eastern, lake, ocean, harbor, valley, castle, empire",,build
+B1,102,Communication & Media,"lecture, journal, journalist, remark, declare, shout, dialog, edit",,hold
+B1,103,Business & Economy,"enterprise, retail, supplier, buyer, promotion, compensation, deficit, inflation, acquisition",,service
+B1,104,Health & Body,"tissue, throat, stomach, nerve, mental, therapy, pregnant, pregnancy",,against
+B1,105,Arts & Culture,"album, singer, musical, poem, poetry, gallery, opera, festival, classical",,believe
+B1,106,Government & Public Affairs,"democratic, govern, governor, elect, amendment, civilian, welfare, reform",,second
+B1,107,Nature & Environment,"species, desert, flood, sand, planet, moon, shore, sheep, cow",,though
+B1,108,Trying Something New,"do, use, perform, operate, establish, engage",,yes
+B1,109,good or bad ideas ,"great, poor, possible, impossible, certain, unclear ",,love
+B1,110,Not Sure What You Mean,"indicate, express, define, consider, conclude, possibly, hardly",,increase
+B1,111,When Things Go Wrong,"cut, hurt, waste, decrease, dead, deny",,job
+B1,112,Making Big Plans,"set, require, organize, aim, request, incorporate",,plan
+B1,113,Too Much or Not Enough 2,"enough, least, low, high, full, empty, bear ",,result
+B1,114,How It Feels Today,"pleasure, comfortable, honest, grateful, lucky, calm",,away
+B1,115,Permission Denied,"permit, approval, entitle, permission, admit",,example
+B1,116,Have You Heard Yet? ,"warn, advise, acknowledge, respond, blame",,happen
+B1,117,Getting Things Working,"solve, adjust, prevent, enable, assist, restore, alter",,offer
+B1,118,Starting Something Simple,"all, can, see, up, out, way, output",,young
+B1,119,Not the Same Thing,"any, such, same, while, let, although",,close
+B1,120,Every Moment Counts,"every, during, big, since, often, quite",,program
+B2,1,Nothing in the Middle,"able, line, sort, center, nothing, several, bit",,lead
+B2,2,Writing a Short Letter,"letter, ago, per, sense, add, rule, short, dear",,buy
+B2,3,Covering Every Situation,"everything, cover, situation, above, condition, main, especially",,understand
+B2,4,Catching Up After Work,"friendly, fellow, everybody, anybody, guy, lady",,thank
+B2,5,At the Front Desk,"entry, register, identity, label, signal, index",,far
+B2,6,Counting the Cash,"cash, earn, save, percentage, owner, coin",,today
+B2,7,Making Tea for Guests,"tea, bottle, cup, bowl, slice, pour",,hour
+B2,8,Meeting the New Team,"chief, expert, senior, assistant, representative, crew",,student
+B2,9,Fixing a Tough Problem,"difficulty, assess, improvement, resolve, modify, evaluate",,face
+B2,10,Paperwork & Procedures,"standard, scheme, application, registration, guideline, pattern",,hope
+B2,11,Across the Map,"regional, county, zone, boundary, somewhere, beyond",,idea
+B2,12,Business on Paper,"industrial, manufacturer, commercial, producer, import, export",,cost
+B2,13,"Strong Feelings, Big Reactions","pride, joy, panic, embarrass, impress, scare",,less
+B2,14,At the Lab,"chemical, equipment, investigation, analyst, measurement, foundation",,room
+B2,15,By Land and Sea,"ship, boat, cycle, rail, sail, pilot",,until
+B2,16,Digital Life,"web, log, platform, profile, click, cable, user",,reason
+B2,17,Law & Order,"arrest, prisoner, illegal, accuse, defend, counsel",,form
+B2,18,Reading the Fine Print,"clause, penalty, obligation, guarantee, restriction, ban",,spend
+B2,19,In the Workshop,"steel, panel, wire, tube, gear, switch, mount",,head
+B2,20,Town Hall Night,"mayor, farmer, youth, participant, speaker, visitor",,car
+B2,21,Mixed Emotions Today,"confident, regret, delight, awful, horrible, terrible, upset",,learn
+B2,22,Numbers and Measures 2,"length, volume, mass, height, depth, frequency, meter",,level
+B2,23,Plans and Promises,"commit, commitment, insist, assure, intention, definitely",,person
+B2,24,Under Pressure,"strain, tight, immediate, emergency, constraint, burden",,experience
+B2,25,Quiet Night In,"bedroom, quietly, fiction, carpet, curtain, blog, sheet",,once
+B2,26,Weekend in the Mountains,"trail, slope, tent, ski, adventure, wander",,member
+B2,27,Art Night at Home,"creative, literary, historic, imagination, poet, portrait",,enough
+B2,28,Meeting New Colleagues,"adviser, scholar, musician, historian, personnel, supporter",,bad
+B2,29,Fixing What Went Wrong,"collapse, disaster, recovery, transform, overcome, sustain",,city
+B2,30,Big Changes Ahead,"transition, expansion, innovation, revolution, evolution, gradually",,night
+B2,31,Money and Power,"wealthy, privilege, stake, sponsor, dealer, charity, fortune ",,able
+B2,32,Around the Building,"entrance, tower, roof, stair, theater, square",,support
+B2,33,After the Accident,"wound, injure, severe, sudden, vital, stroke",,whether
+B2,34,Debate Night,"critic, criticize, opponent, persuade, resist, accurate, resistance, civil",,line
+B2,35,On the Factory Floor,"component, capacity, technical, assessment, proper, tough",,present
+B2,36,True or False?,"TRUE, FALSE, truth, prove, assumption, obvious, positive, negative",,side
+B2,37,Music Night In,"guitar, piano, tune, studio, compose, distinct ",,quite
+B2,38,Sketching a Plan,"draw, model, outline, version, print, copy",,although
+B2,39,Are You Sure About That?,"certainly, apparently, obviously, mostly, relatively, merely, truly",,sure
+B2,40,At the Help Desk,"access, reference, author, resource, connection",,term
+B2,41,Making It Work,"effective, efficient, practical, appropriate, useful, active, capable",,least
+B2,42,In Good Spirits,"attitude, spirit, faith, moral, honor, passion",,age
+B2,43,Keep It Moving,"spread, divide, swing, flow, direction, march",,low
+B2,44,Have You Heard Yet?,"introduction, emerge, background, consequence, reaction, outcome, explanation, arise",,speak
+B2,45,Tech on the Desk,"camera, mouse, pen, disk, chip, printer, core",,within
+B2,46,When Things Get Tough,"dangerous, threaten, impose, unable, weak, complaint, dispute, weakness",,process
+B2,47,Who’s Who Around Here,"soldier, troop, club, association, agent, traditional, master, king",,public
+B2,48,holding It Together 2 ,"vote, committee, maintain, anyone, throughout",,often
+B2,49,Outside the Office,"outside, site, field, round, itself, instead",,train
+B2,50,Forms and Formalities,"performance, accept, complete, personal, current, century",,possible
+B2,51,Explaining How Things Work,"similar, particularly, source, simply, factor, relate",,actually
+B2,52,People and Privacy,"private, everyone, represent, structure, whatever, behavior, diversity",,rather
+B2,53,Keep It Simple,"simple, average, hit, gain, wide, link",,view
+B2,54,"Rules, Risks, and Rewards","despite, advantage, release, specific, identify, particular, reward",,together
+B2,55,Filling in the Blanks,"file, bar, deep, except, tend, fill, normal, expose",,consider
+B2,56,Trust and Tone,"highly, trust, flat, absolutely, fair, additional, hang",,price
+B2,57,On the Record,"double, observe, nobody, lay, slightly, overall",,parent
+B2,58,Status Update,"regular, physical, apart, federal, peace, status",,hard
+B2,59,Clear or Extreme,"equal, expression, extremely, plane, apparent",,party
+B2,60,At the Event Hall,"demonstration, exhibition, incident, draft, accompany, slip, exhibit",,local
+B2,61,Routes & Connections,"via, closely, multiple, yield, unlike, mobile, implement, chart",,control
+B2,62,Taking a Poll,"poll, reserve, reduction, mission, tone, somehow, joint, somewhat",,already
+B2,63,Around the House 2,"bath, tap, seal, rough, mail, ordinary, fan",,concern
+B2,64,Study Session,"investigate, recommendation, rank, typical, concentrate, graduate",,product
+B2,65,Big and Lasting,"enormous, permanent, stable, vast, tall, huge",,lose
+B2,66,Cultural Buzz,"cultural, promote, currently, pop, essential, appreciate ",,story
+B2,67,Danger & Defense,"enemy, defeat, violent, terrorist, jail, shelter, crucial",,almost
+B2,68,Thinking It Through,"perceive, insight, psychological, abstract, notion, interpret",,continue
+B2,69,Back to Basics,"common, total, basic, previous, initial",,stand
+B2,70,Signs of Life at the Office,"presence, select, global, net, gas, lift",,whole
+B2,71,Running Late All Day,"pace, heavily, devote, justify, spare, whenever",,yet
+B2,72,Prepping for the Big Presentation,"undertake, preparation, representation, emphasis, edition, silver",,rate
+B2,73,How It Really Feels,"seriously, wild, unique, odd, briefly, badly",,care
+B2,74,Finding Things Anywhere,"anywhere, capture, tip, circle, helpful, column",,expect
+B2,75,Measuring the Details,"gap, dozen, inch, trace, equivalent, solid",,effect
+B2,76,Onboarding a New Hire,"bond, hire, chain, internal, frame, bright",,sort
+B2,77,Tools on the Table,"coat, pocket, slide, spin, wrap, drag",,ever
+B2,78,Results and Recognition,"examination, achievement, prize, winner, encounter, recognition",,anything
+B2,79,Motivation Monday,"motivation, determination, inspire, initiative, firmly, external",,cause
+B2,80,Hard Hats & Heavy Lifts,"construction, concrete, iron, pipe, tank, crack",,fall
+B2,81,Borders & Beyond,"immigration, refugee, overseas, airline, tourism, abroad",,
+B2,82,Health & Hazards,"pollution, disorder, breathe, infant, exposure, survival",,water
+B2,83,Big Feelings,"frighten, amaze, disappoint, ashamed, cry, surprisingly",,send
+C1,1,Teamwork & Trust,"cooperation, participation, partnership, motivate, mutual, recruit",,allow
+C1,2,Air & Atmosphere,"atmosphere, density, carbon, substance, preserve",,soon
+C1,3,Money Matters,"currency, deposit, expenditure, luxury, consume, weekly",,watch
+C1,4,Growing Up,"childhood, grandmother, birth, adopt, teenager",,base
+C1,5,"Lights, Camera, Action!","comedy, gesture, entertain, fantastic, flash, mirror",,probably
+C1,6,romance,"lover, sex, sexual, kiss, dramatically, fancy, gay, lip",,suggest
+C1,7,New Ideas at Work,"discover, possibility, original, replace, survey, majority",,past
+C1,8,Setbacks and Solutions,"failure, contribute, combine, lack, depend",,power
+C1,9,Morning Motivation,"purpose, encourage, powerful, aid, fresh, twice",,test
+C1,10,Office Politics 101,"conservative, rely, succeed, narrow, comparison",,visit
+C1,11,Home & Habits,"belong, bind, normally, sight, familiar, domestic, remind",,center
+C1,12,Promotion Season,"appoint, prior, priority, resolution, qualify, competitive",,grow
+C1,13,Argue Your Point,"emphasize, context, complex, directly, negotiation, reputation, efficiency",,nothing
+C1,14,On the Computer,"format, assign, storage, scan, module, filter, flexible",,return
+C1,15,Big & Mysterious,"giant, god, portion, extensive, inner, shadow, magic, mystery",,mother
+C1,16,"Decisions, Decisions","evaluation, compromise, accomplish, prospect, criteria, primarily, retain",,walk
+C1,17,Strange Day at the Clinic,"cough, weird, fade, scream, tender, tongue ",,matter
+C1,18,Digging for Value,"mine, coal, gold, wealth, valuable, golden",,mind
+C1,19,"Boss, Buddy, or Hero?","servant, immigrant, veteran, hero, mate, pupil ",,value
+C1,20,Standing Your Ground,"dare, barrier, counter, absolute, capability, dismiss, beneath",,office
+C1,21,Building from Scratch,"formation, creation, establishment, characterize, specify",,record
+C1,22,Late-Night Philosophy,"existence, self, prime, theoretical, narrative, conventional",,stay
+C1,23,"Left, Right, and Otherwise","liberal, radical, vice, similarly, behave, chase",,force
+C1,24,Space & Silence,"universe, nowhere, darkness, whisper, rear",,stop
+C1,25,Wardrobe Refresh,"clothing, shelf, tail, boost, evolve, sake, possession, vary, impressive",,several
+C1,26,Say It Nicely,"embrace, praise, friendship, grin, rose",,light 
+C1,27,First Day Forms,"ownership, qualification, suspend, functional, institutional, subsequently",, develop
+C1,28,Mailroom Run,"envelope, stamp, paragraph, maker, correspond, margin",,remember
+C1,29,Join the Club,"membership, shareholder, advocate, convention, volunteer, attendance",,bit
+C1,30,Lab Talk,"genetic, interpretation, derive, intellectual, sharp ",,share
+C1,31,Build & Fix,"construct, adapt, rescue, convert, integrate, distribute",,real
+C1,32,Spicy Debate,"controversial, raw, confusion, cluster, disturb, crazy",,answer
+C1,33,Tell the Story,"literally, verb, noun, reckon, hesitate, pro, automatically, comprehensive",,sit
+C1,34,Smooth Looks,"strip, smooth, leather, shine, jacket",,figure
+C1,35,Big Numbers,"approximately, numerous, virtually, slight, unknown, frequent, implementation",,letter
+C1,36,Stay Steady,"stability, steady, framework, uniform, consistent, ",,decide
+,,Study Skills,"observation, concentration, implication, educational, fundamental, highlight",,language
+,,Office Paperwork,"catalog, attachment, holder, extract, liability",,subject
+,,Talking About Feelings 2,"remarkable, ugly, lazy, innocent, alive, bore",,class
+,,Favorite Sports 2 ,"golf, tennis, swim, tackle, offense, champion, ball, bias ",,development
+,,Hands-On Practice,"participate, wood, bend, curve, angle, pump",,town
+,,Planning a Trip 2,"resort, historical, wherever, royal, gaze, fold",,half
+,,Science Experiments 2,"cell, phenomenon, vessel, demonstrate, reflection",,minute
+,,Career Goals,"retire, pension, dedicate, fulfill, objective, assistance",,
+,,Counting and Measuring,"sufficient, exceed, massive, precise, roughly, upper",,break
+,,Debate Club,"criticism, imply, prompt, react, revise, hint, versus, significant ",,clear
+,,Talking About Time 2,"previously, initially, meanwhile, furthermore, increasingly, ultimately, secondly, altogether, firstly",,future
+,,Workplace Processes,"submit, coverage, tension, sensitive, exclude, restrict, regulate",,either
+,,Beliefs and Values,"religious, pray, bless, soul, wise, completely",,ago
+,,Moving and Changing,"stretch, withdraw, undergo, leap, snap, twist, shake, abandon",, per
+,,Nature and Animals,"bird, pig, creature, breed, wing, agricultural, dominate ",,remain
+,,Social Connections,"greet, admire, gentleman, listener, racial, ethnic",,top
+,,Degrees and Amounts,"largely, significantly, considerable, greatly, extreme, tiny, visible",,among
+,,Design and Structure,"structural, architecture, dimension, mode, extension, compound",,win
+,,Health and Habits,"cigarette, alcohol, poverty, blind, pure, hunger",,
+,,Story Writing,"plot, sequence, dramatic, premise, plain, theme",,involve
+,,Office Logistics,"facility, division, provision, consist, perspective, relevant, consideration, protection, regardless",, reach
+,,Talking Feelings,"deserve, unusual, classic, luck, fortunate, alright, bother, apologize, genuine",,social
+,,Talent Show,"talent, competitor, brilliant, extraordinary, charm, venture",,period
+,,Civic Life,"race, gender, freedom, independence, constitute, universal, adequate",,across
+,,Daily Habits,"regularly, occasionally, rare, usual, carefully, tendency",,note
+,,Study Session 2,"educate, significance, visual, segment, custom, forecast, minor",,history
+,,Health & Care,"elderly, retirement, insure, ease, occupy, pale, comfort",,create
+,,Machines in Motion,"electric, motor, trigger, chamber, float, properly",,drive
+,,Conflict Resolution,"divorce, ruin, bury, neglect, resign, strict, damn, dependent",,along
+,,Stages of Change,"phase, latter, originally, subsequent, consequently",,type
+,,Talking About Attitude,"intense, keen, stupid, loud, silent, mature, aggressive, bloody",,sound
+,,Creative Projects,"composition, illustration, brush, craft, adjustment, supplement, substitute",,eyes
+,,Office Communication,"content, description, contribution, advice, brief, interaction",,music
+,,Linking Ideas in Writing,"nevertheless, moreover, hence, otherwise, equally, forth",,game
+,,How Much Is Enough,"plenty, entirely, strongly, totally, partly, barely, deeply, widely, anymore",,political
+,,People & Identity,"independent, associate, ourselves, unite, isolate ",,free
+,,Places and Distance,"everywhere, interior, distant, situate, aside",,receive
+,,Market Moves,"rival, preference, incentive, moderate, detect, scope, potentially, ",,moment
+,,Body Check-In,"shower, thirst, cheek, thin, thick, enhance, broad, lean",,sale
+,,Everyday Devices,"button, hook, bell, string, flag, solar, lock",,policy
+,,Creating Something New,"invent, stimulate, generate, anticipate, specialize",,further
+,,Making a Deal,"negotiate, borrow, lend, involvement, predict, exception ",,body
+,,Health & Risk,"harm, excess, exhaust, bite, depress, uncertainty, eliminate",,require
+,,Connecting Ideas in Writing,"whilst, effectively, elsewhere, onto, perfectly",,wait
+,,Looks & Style,"appearance, beauty, glance, skirt, neck",,general
+,,Quick Actions,"kick, grab, tear, split, pose, stare",,appear
+,,People & Roles,"folk, twin, sir, slave, grand",,toward
+,,Clear Thinking,"suspect, recognize, consult, cite, underlie, distinction, attribute",,team
+,,Structure and Data,"layer, variation, respectively, comprise, summarize, distinguish",,easy
+,,Nature & Materials,"rock, liquid, shell, stem, burst, blow, stick, naturally",,individual
+,,I had a dream,"dream, extra, heavy, bridge, pool",,full
+,,how much or how little? ,"basically, mainly, fairly, surely, minority, typically ",,black
+,,what game should we play 2,"compete, strategy, score, term, pitch ",, sense
+,,Dealing with Limits,"fault, indication, limitation, destruction, complexity, complicate",,perhaps
+,,Sharing and Storytelling,"peer, tale, humor, faithfully, fragment, alongside",,add
+,,,,,rule
+,,Dual meaning: Everyday Nature,"light, rock, spring, fall, well, plant, wave",,pass
+,,Dual meaning: Resources & Objects,"mine, fire, draft, block, line, mark, bar, nail",,produce
+,,Dual meaning: People & Roles,"head, face, kind, court, party, page, coach, judge",,sell
+,,Dual meaning: Society & Community,"row, fair, bank, deal, charge, order, league, club",,short
+,,Dual meaning: Time & Change,"season, present, issue, state, change, round, date, period",,agree
+,,Dual meaning: Actions & Movement,"set, match, train, watch, play, trip, run, turn",,law
+,,Dual meaning: Work & Knowledge,"book, file, note, record, case, right, draft, report",,everything
+,,Dual meaning: Communication & Ideas,"point, letter, sign, sound, park, mark, type, address",,research
+,,Dual meaning: Home & Places,"house, room, ground, field, school, yard, court, board",,cover
+,,Dual meaning: Money & Trade,"bill, check, interest, fair, charge, bank, credit, capital",,paper
+,,Dual meaning: Law & Authority,"sentence, appeal, court, case, fine, charge, order",,position
+,,Dual meaning: Body & Health,"arm, leg, hand, foot, face, head, heart, back",,near
+,,Dual meaning: Technology & Media,"program, channel, post, stream, file, link, page, web",,human
+,,,,,computer
+,,,,,situation
+,,,,,staff
+,,,,,activity
+,,,,,film
+,,,,,morning
+,,,,,war
+,,,,,account
+,,,,,shop
+,,,,,major
+,,,,,someone
+,,,,,above
+,,,,,design
+,,,,,event
+,,,,,special
+,,,,,sometimes
+,,,,,condition
+,,,,,carry
+,,,,,choose
+,,,,,father
+,,,,,decision
+,,,,,table
+,,,,,certain
+,,,,,forward
+,,,,,main
+,,,,,die
+,,,,,bear
+,,,,,cut
+,,,,,describe
+,,,,,himself
+,,,,,available
+,,,,,especially
+,,,,,strong
+,,,,,rise
+,,,,,girl
+,,,,,maybe
+,,,,,community
+,,,,,else
+,,,,,particular
+,,,,,role
+,,,,,join
+,,,,,difficult
+,,,,,please 
+,,,,,detail
+,,,,,difference
+,,,,,action
+,,,,,health
+,,,,,eat
+,,,,,step
+,,,,,TRUE
+,,,,,phone
+,,,,,themselves
+,,,,,draw
+,,,,,white
+,,,,,date
+,,,,,practice
+,,,,,model
+,,,,,raise
+,,,,,customer
+,,,,,front
+,,,,,explain
+,,,,,door
+,,,,,outside
+,,,,,behind
+,,,,,economic
+,,,,,site
+,,,,,approach
+,,,,,teacher
+,,,,,land
+,,,,,charge
+,,,,,finally
+,,,,,sign
+,,,,,claim
+,,,,,relationship
+,,,,,travel
+,,,,,enjoy
+,,,,,death
+,,,,,nice
+,,,,,amount
+,,,,,improve
+,,,,,picture
+,,,,,boy
+,,,,,regard
+,,,,,organization
+,,,,,happy
+,,,,,couple
+,,,,,act
+,,,,,range
+,,,,,quality
+,,,,,project
+,,,,,round
+,,,,,opportunity
+,,,,,road
+,,,,,accord
+,,,,,list
+,,,,,wish
+,,,,,therefore
+,,,,,wear
+,,,,,fund
+,,,,,rest
+,,,,,kid
+,,,,,industry
+,,,,,education
+,,,,,measure
+,,,,,kill
+,,,,,serve
+,,,,,likely
+,,,,,certainly
+,,,,,national
+,,,,,itself
+,,,,,teach
+,,,,,field
+,,,,,security
+,,,,,air
+,,,,,benefit
+,,,,,trade
+,,,,,risk
+,,,,,news
+,,,,,standard
+,,,,,vote
+,,,,,percent
+,,,,,focus
+,,,,,stage
+,,,,,space
+,,,,,instead
+,,,,,realize
+,,,,,usually
+,,,,,data
+,,,,,single
+,,,,,address
+,,,,,performance
+,,,,,chance
+,,,,,accept
+,,,,,society
+,,,,, technology
+,,,,,mention
+,,,,,choice
+,,,,,save
+,,,,,common
+,,,,,culture
+,,,,,total
+,,,,,demand
+,,,,,material
+,,,,,limit
+,,,,,listen
+,,,,,due
+,,,,,wrong
+,,,,,foot
+,,,,,effort
+,,,,,attention
+,,,,,upon
+,,,,,check
+,,,,,complete
+,,,,,lie
+,,,,,pick
+,,,,,reduce
+,,,,,personal
+,,,,,ground
+,,,,,animal
+,,,,,arrive
+,,,,,patient
+,,,,,current
+,,,,,century
+,,,,,evidence
+,,,,,exist
+,,,,,similar
+,,,,,fight
+,,,,,leader
+,,,,,fine
+,,,,,street
+,,,,,former
+,,,,,contact
+,,,,,particularly
+,,,,,wife
+,,,,,sport
+,,,,,prepare
+,,,,,discuss
+,,,,,response
+,,,,,voice
+,,,,,piece
+,,,,,finish
+,,,,,suppose
+,,,,,apply
+,,,,,president
+,,,,,fire
+,,,,,compare
+,,,,,court
+,,,,,police
+,,,,,store
+,,,,,poor
+,,,,,knowledge
+,,,,,laugh
+,,,,,arm
+,,,,,heart
+,,,,,source
+,,,,,employee
+,,,,,manage
+,,,,,simply
+,,,,,bank
+,,,,,firm
+,,,,,cell
+,,,,,article
+,,,,,fast
+,,,,,attack
+,,,,,foreign
+,,,,,surprise
+,,,,,feature
+,,,,,factor
+,,,,,pretty 
+,,,,,recently
+,,,,,affect
+,,,,,drop
+,,,,,recent
+,,,,,relate
+,,,,,official
+,,,,,financial
+,,,,,miss
+,,,,,art
+,,,,,campaign
+,,,,,private
+,,,,,pause
+,,,,,everyone
+,,,,,forget
+,,,,,page
+,,,,,worry
+,,,,,summer
+,,,,,drink
+,,,,,opinion
+,,,,,park
+,,,,,represent
+,,,,,key
+,,,,,inside
+,,,,,manager
+,,,,,international
+,,,,,contain
+,,,,,notice
+,,,,,wonder
+,,,,,nature
+,,,,,structure
+,,,,,section
+,,,,,myself
+,,,,,exactly
+,,,,,plant
+,,,,,paint
+,,,,,worker
+,,,,,press
+,,,,,whatever
+,,,,,necessary
+,,,,,region
+,,,,,growth
+,,,,,evening
+,,,,,influence
+,,,,,respect
+,,,,,various
+,,,,,catch
+,,,,,
+,,,,,skill
+,,,,,attempt
+,,,,,son
+,,,,,simple
+,,,,,medium
+,,,,,average
+,,,,,stock
+,,,,,management
+,,,,, character
+,,,,,bed
+,,,,,hit
+,,,,,establish
+,,,,,indeed
+,,,,,final
+,,,,,economy
+,,,,,fit
+,,,,,guy
+,,,,,function
+,,,,, yesterday
+,,,,,image
+,,,,,size
+,,,,,behavior
+,,,,,addition
+,,,,,determine
+,,,,,station
+,,,,,population
+,,,,,fail
+,,,,,environment
+,,,,,production
+,,,,,contract
+,,,,,player
+,,,,,comment
+,,,,,enter
+,,,,,occur
+,,,,,alone
+,,,,,significant
+,,,,,drug
+,,,,,wall
+,,,,,series
+,,,,,direct
+,,,,,success
+,,,,,tomorrow
+,,,,,director
+,,,,,clearly
+,,,,,lack
+,,,,,review
+,,,,,depend
+,,,,,race
+,,,,,recognize
+,,,,,window
+,,,,,purpose
+,,,,,department
+,,,,,gain
+,,,,,tree
+,,,,,college
+,,,,,argue
+,,,,,board
+,,,,,holiday
+,,,,,mark
+,,,,,church
+,,,,,machine
+,,,,,achieve
+,,,,,item
+,,,,,prove
+,,,,,cent
+,,,,,season
+,,,,,floor
+,,,,,stuff
+,,,,,wide
+,,,,,anyone
+,,,,,method
+,,,,,analysis
+,,,,,election
+,,,,,military
+,,,,,hotel
+,,,,,club
+,,,,,below
+,,,,,movie
+,,,,,doctor
+,,,,,discussion
+,,,,,sorry
+,,,,,challenge
+,,,,,nation
+,,,,,nearly
+,,,,,statement
+,,,,,link
+,,,,,despite
+,,,,,introduce
+,,,,,advantage
+,,,,,ready
+,,,,,marry
+,,,,,strike
+,,,,,mile
+,,,,,seek
+,,,,,ability
+,,,,,unit
+,,,,,card
+,,,,,hospital
+,,,,,quickly
+,,,,,interview
+,,,,,agreement
+,,,,,release
+,,,,,tax
+,,,,,solution
+,,,,,capital
+,,,,,popular
+,,,,,specific
+,,,,,beautiful
+,,,,,fear
+,,,,,aim
+,,,,, television
+,,,,,serious
+,,,,,target
+,,,,,degree
+,,,,,pull
+,,,,,red
+,,,,,husband
+,,,,,access
+,,,,,movement
+,,,,,treat
+,,,,,identify
+,,,,,loss
+,,,,,shall
+,,,,,modern
+,,,,,pressure
+,,,,,bus
+,,,,,treatment
+,,,,,conference
+,,,,,your
+,,,,,supply
+,,,,,village
+,,,,,worth
+,,,,,natural
+,,,,,express
+,,,,,indicate
+,,,,,attend
+,,,,,brother
+,,,,,investment
+,,,,,score
+,,,,,organize
+,,,,,trip
+,,,,,beyond
+,,,,,sleep
+,,,,,fish
+,,,,,promise
+,,,,,potential
+,,,,,energy
+,,,,,trouble
+,,,,,relation
+,,,,,touch
+,,,,,file
+,,,,,middle
+,,,,,bar
+,,,,,suffer
+,,,,,strategy
+,,,,,deep
+,,,,,except
+,,,,,clean
+,,,,,tend
+,,,,,advance
+,,,,,fill
+,,,,,star
+,,,,,network
+,,,,,generally
+,,,,,operation
+,,,,,match
+,,,,,avoid
+,,,,,seat
+,,,,,throw
+,,,,,task
+,,,,,normal
+,,,,,goal
+,,,,,associate
+,,,,,blue
+,,,,,positive
+,,,,,option
+,,,,,box
+,,,,,huge
+,,,,,message
+,,,,,instance
+,,,,,style
+,,,,,refer
+,,,,,cold
+,,,,,push
+,,,,,quarter
+,,,,,assume
+,,,,,baby
+,,,,,successful
+,,,,,sing
+,,,,,doubt
+,,,,,competition
+,,,,,theory
+,,,,,propose
+,,,,,reference
+,,,,,argument
+,,,,,adult
+,,,,,fly
+,,,,,document
+,,,,,pattern
+,,,,,application
+,,,,,hot
+,,,,,obviously
+,,,,,unclear
+,,,,,bill
+,,,,,search
+,,,,,separate
+,,,,,central
+,,,,,career
+,,,,,anyway
+,,,,,speech
+,,,,,dog
+,,,,,officer
+,,,,,throughout
+,,,,,oil
+,,,,,dress
+,,,,,profit
+,,,,,guess
+,,,,,fun
+,,,,,protect
+,,,,,resource
+,,,,,science
+,,,,,disease
+,,,,,balance
+,,,,,damage
+,,,,,basis
+,,,,,author
+,,,,,basic
+,,,,,encourage
+,,,,,hair
+,,,,,male
+,,,,,operate
+,,,,,reflect
+,,,,,exercise
+,,,,,useful
+,,,,,restaurant
+,,,,,income
+,,,,, property
+,,,,,previous
+,,,,,dark
+,,,,,imagine
+,,,,,okay
+,,,,,earn
+,,,,,daughter
+,,,,,post
+,,,,,newspaper
+,,,,,define
+,,,,,conclusion
+,,,,,clock
+,,,,,everybody
+,,,,,weekend
+,,,,,perform
+,,,,,professional
+,,,,,mine
+,,,,,debate
+,,,,,memory
+,,,,,green
+,,,,,song
+,,,,,object
+,,,,,maintain
+,,,,,credit
+,,,,,ring
+,,,,,discover
+,,,,,dead
+,,,,,afternoon
+,,,,,prefer
+,,,,,extend
+,,,,,possibility
+,,,,,direction
+,,,,,facility
+,,,,,variety
+,,,,,daily
+,,,,,clothes
+,,,,,screen
+,,,,,track
+,,,,,dance
+,,,,,completely
+,,,,,female
+,,,,,responsibility
+,,,,,original
+,,,,,sister
+,,,,,rock
+,,,,,dream
+,,,,,nor
+,,,,,university
+,,,,,easily
+,,,,,agency
+,,,,,dollar
+,,,,,garden
+,,,,,fix
+,,,,,ahead
+,,,,,cross
+,,,,,
+,,,,,candidate
+,,,,,weight
+,,,,,legal
+,,,,,proposal
+,,,,,version
+,,,,,conversation
+,,,,,somebody
+,,,,,pound
+,,,,,magazine
+,,,,,shape
+,,,,,sea
+,,,,,immediately
+,,,,,welcome
+,,,,,smile
+,,,,,communication
+,,,,,agent
+,,,,, traditional
+,,,,,replace
+,,,,,judge
+,,,,,herself
+,,,,,suddenly
+,,,,,generation
+,,,,,estimate
+,,,,,
+,,,,,difficulty
+,,,,,purchase
+,,,,,shoot
+,,,,,announce
+,,,,,unless
+,,,,,independent
+,,,,,recommend
+,,,,,survey
+,,,,,majority
+,,,,,stick
+,,,,,request
+,,,,,rich
+,,,,, wind
+,,,,,none
+,,,,,exchange
+,,,,,budget
+,,,,,famous
+,,,,,blood
+,,,,,appropriate
+,,,,,block
+,,,,,warm
+,,,,,count
+,,,,,scene
+,,,,,writer
+,,,,,content
+,,,,,prevent
+,,,,,safe
+,,,,,invite
+,,,,,mix
+,,,,,element
+,,,,,effective
+,,,,,correct
+,,,,,medical
+,,,,,admit
+,,,,,beat
+,,,,,
+,,,,,copy
+,,,,,committee
+,,,,,aware
+,,,,,advice
+,,,,,handle
+,,,,,glass
+,,,,,
+,,,,,stress
+,,,,,
+,,,,,administration
+,,,,,complex
+,,,,,text
+,,,,,context
+,,,,,ride
+,,,,,directly
+,,,,,heavy
+,,,,,remove
+,,,,,conduct
+,,,,,equipment
+,,,,,otherwise
+,,,,,title
+,,,,,extra
+,,,,,executive
+,,,,,chair
+,,,,,expensive
+,,,,,sample
+,,,,,sex
+,,,,,deliver
+,,,,,video
+,,,,,connection
+,,,,,primary
+,,,,,weather
+,,,,,collect
+,,,,,inform
+,,,,,principle
+,,,,,straight
+,,,,,appeal
+,,,,,highly
+,,,,,trust
+,,,,,wonderful
+,,,,,flat
+,,,,,absolutely
+,,,,,flow
+,,,,,fair
+,,,,,additional
+,,,,,responsible
+,,,,,farm
+,,,,,collection
+,,,,,hang
+,,,,,negative
+,,,,,band
+,,,,,relative
+,,,,,tour
+,,,,,alternative
+,,,,, software
+,,,,,pair
+,,,,,ship
+,,,,,attitude
+,,,,,cheap
+,,,,,double
+,,,,,leg
+,,,,,observe
+,,,,,sentence
+,,,,,print
+,,,,,progress
+,,,,,truth
+,,,,,nobody
+,,,,,examine
+,,,,,lay
+,,,,,speed
+,,,,,politics
+,,,,,reply
+,,,,,display
+,,,,,transfer
+,,,,,perfect
+,,,,,slightly
+,,,,,overall
+,,,,,intend
+,,,,,user
+,,,,,respond
+,,,,,dinner
+,,,,,slow
+,,,,,regular
+,,,,,physical
+,,,,,apart
+,,,,,suit
+,,,,,federal
+,,,,,reveal
+,,,,,percentage
+,,,,,peace
+,,,,,status
+,,,,,crime
+,,,,,decline
+,,,,,decade
+,,,,,launch
+,,,,,warn
+,,,,,consumer
+,,,,,favor
+,,,,, dry
+,,,,,partner
+,,,,,institution
+,,,,,spot
+,,,,,horse
+,,,,,eventually
+,,,,,heat
+,,,,,excite
+,,,,,
+,,,,,importance
+,,,,,distance
+,,,,,guide
+,,,,,grant
+,,,,,taxi
+,,,,,feed
+,,,,,pain
+,,,,,sector
+,,,,,mistake
+,,,,,ensure
+,,,,,satisfy
+,,,,,chief
+,,,,, cool
+,,,,,expert
+,,,,,wave
+,,,,,south
+,,,,,labor
+,,,,,surface
+,,,,,library
+,,,,,excellent
+,,,,,edge
+,,,,,camp
+,,,,,audience
+,,,,,lift
+,,,,,procedure
+,,,,,email
+,,,,,global
+,,,,,struggle
+,,,,,advertise
+,,,,,select
+,,,,,surround
+,,,,,extent
+,,,,,river
+,,,,,annual
+,,,,,fully
+,,,,,contrast
+,,,,,roll
+,,,,,reality
+,,,,,
+,,,,,artist
+,,,,,conflict
+,,,,,entire
+,,,,,presence
+,,,,,crowd
+,,,,,
+,,,,,gas
+,,,,,shift
+,,,,,net
+,,,,,category
+,,,,,secretary
+,,,,,defense
+,,,,,quick
+,,,,,cook
+,,,,,spread
+,,,,,nuclear
+,,,,,scale
+,,,,,driver
+,,,,,ball
+,,,,,cry
+,,,,,introduction
+,,,,,requirement
+,,,,,south
+,,,,,confirm
+,,,,,senior
+,,,,,photo
+,,,,,refuse
+,,,,,transport
+,,,,,emerge
+,,,,,map
+,,,,,concept
+,,,,,island
+,,,,,reform
+,,,,,neither
+,,,,,football
+,,,,,survive
+,,,,,flight
+,,,,,left
+,,,,,solve
+,,,,,neighbor
+,,,,,background
+,,,,,technique
+,,,,,traffic
+,,,,,improvement
+,,,,,tool
+,,,,,consequence
+,,,,,circumstance
+,,,,,smoke
+,,,,,reaction
+,,,,,rain
+,,,,,busy
+,,,,,lesson
+,,,,,brain
+,,,,,mass
+,,,,,funny
+,,,,,contribute
+,,,,,failure
+,,,,,schedule
+,,,,,speaker
+,,,,,bottom
+,,,,,adopt
+,,,,,combine
+,,,,,mountain
+,,,,,waste
+,,,,,hide
+,,,,,married 
+,,,,,ticket
+,,,,,meal
+,,,,,colleague
+,,,,,bag
+,,,,,repeat
+,,,,,equal
+,,,,,expression
+,,,,,plus
+,,,,,extremely
+,,,,,owner
+,,,,,plane
+,,,,,commercial
+,,,,,lady
+,,,,,duty
+,,,,,strength
+,,,,,connect
+,,,,,cultural
+,,,,,arrange
+,,,,,scheme
+,,,,,payment
+,,,,,unfortunately
+,,,,,brief
+,,,,,bird
+,,,,,demonstrate
+,,,,,contribution
+,,,,,appreciate
+,,,,,chapter
+,,,,,secret
+,,,,,apparently
+,,,,,novel
+,,,,,union
+,,,,,burn
+,,,,,trend
+,,,,,initial
+,,,,,pleasure
+,,,,,suggestion
+,,,,,critical
+,,,,,gather
+,,,,,mostly
+,,,,,earth
+,,,,,pop
+,,,,,essential
+,,,,,desire
+,,,,,promote
+,,,,,currently
+,,,,,employ
+,,,,,path
+,,,,,topic
+,,,,,beach
+,,,,,attract
+,,,,,engage
+,,,,,powerful
+,,,,,flower
+,,,,,crisis
+,,,,,settle
+,,,,,boat
+,,,,,aid
+,,,,,fan
+,,,,,kitchen
+,,,,,twice
+,,,,,fresh
+,,,,,delay
+,,,,,safety
+,,,,,engineer
+,,,,,quiet
+,,,,,insurance
+,,,,,nurse
+,,,,,divide
+,,,,,length
+,,,,,investigation
+,,,,,package
+,,,,,somewhere
+,,,,,expand
+,,,,,commit
+,,,,,obvious
+,,,,,jump
+,,,,,weapon
+,,,,,relatively
+,,,,,host
+,,,,,winter
+,,,,,district
+,,,,,broad
+,,,,,tire
+,,,,,spring
+,,,,,spirit
+,,,,,lunch
+,,,,,actual
+,,,,,pool
+,,,,,battle
+,,,,,tradition
+,,,,,cash
+,,,,,hardly
+,,,,,award
+,,,,,coach
+,,,,,experiment
+,,,,,consideration
+,,,,,strange
+,,,,,code
+,,,,,possibly
+,,,,,threat
+,,,,,accident
+,,,,,impossible
+,,,,,revenue
+,,,,,enable
+,,,,,afraid
+,,,,,active
+,,,,,conclude
+,,,,,religious
+,,,,,cancer
+,,,,,convince
+,,,,,vary
+,,,,,
+,,,,,sun
+,,,,,healthy
+,,,,,blow
+,,,,,volume
+,,,,,location
+,,,,,invest
+,,,,,proceed
+,,,,,wash
+,,,,,actor
+,,,,,glad
+,,,,,tape
+,,,,,whereas
+,,,,,opposite
+,,,,,stone
+,,,,,sum
+,,,,,murder
+,,,,,monitor
+,,,,,soldier
+,,,,,finance
+,,,,,hate
+,,,,,egg
+,,,,,concert
+,,,,,shock
+,,,,,comfortable
+,,,,,usual
+,,,,,carefully
+,,,,,pack
+,,,,,recall
+,,,,,wine
+,,,,,camera
+,,,,,swim
+,,,,,manufacture
+,,,,,theater
+,,,,,cycle
+,,,,,coffee
+,,,,,totally
+,,,,,museum
+,,,,, visitor
+,,,,,freedom
+,,,,,construction
+,,,,,dear
+,,,,,objective
+,,,,,moreover
+,,,,,onto
+,,,,,historical
+,,,,,oppose
+,,,,,branch
+,,,,, vehicle
+,,,,,scientist
+,,,,,route
+,,,,,bind
+,,,,,belong
+,,,,,taste
+,,,,,tonight
+,,,,,fashion
+,,,,,danger
+,,,,,bomb
+,,,,,army
+,,,,,dangerous
+,,,,,decrease
+,,,,,hurt
+,,,,,council
+,,,,,editor
+,,,,,normally
+,,,,,sight
+,,,,,generate
+,,,,,gift
+,,,,,delivery
+,,,,,deny
+,,,,,guest
+,,,,,anybody
+,,,,,bedroom
+,,,,,quote
+,,,,,climb
+,,,,,basically
+,,,,,violence
+,,,,,minister
+,,,,,mainly
+,,,,,mouth
+,,,,,noise
+,,,,,manner
+,,,,,gun
+,,,,,square
+,,,,,occasion
+,,,,,familiar
+,,,,,ignore
+,,,,,destroy
+,,,,,affair
+,,,,,civil
+,,,,,locate
+,,,,,citizen
+,,,,,temperature
+,,,,,gold
+,,,,,domestic
+,,,,,load
+,,,,,belief
+,,,,,troop
+,,,,,technical
+,,,,,remind
+,,,,,arrangement
+,,,,,skin
+,,,,,prison
+,,,,,switch
+,,,,,acquire
+,,,,,corporate
+,,,,,fairly
+,,,,,wood
+,,,,,participate
+,,,,,tough
+,,,,,tear
+,,,,,representative
+,,,,,capacity
+,,,,,border
+,,,,,shake
+,,,,,assessment
+,,,,,shoe
+,,,,,ought
+,,,,,ad
+,,,,,fee
+,,,,,hall
+,,,,,regulation
+,,,,,escape
+,,,,,studio
+,,,,,proper
+,,,,,relax
+,,,,,tourist
+,,,,,component
+,,,,,afford
+,,,,,lawyer
+,,,,,suspect
+,,,,,cup
+,,,,,description
+,,,,,confidence
+,,,,,industrial
+,,,,,complain
+,,,,,perspective
+,,,,,error
+,,,,,arrest
+,,,,,assess
+,,,,,register
+,,,,,asset
+,,,,,signal
+,,,,,finger
+,,,,,relevant
+,,,,,explore
+,,,,,leadership
+,,,,,commitment
+,,,,,wake
+,,,,,necessarily
+,,,,,bright
+,,,,,frame
+,,,,,slowly
+,,,,,bond
+,,,,,hire
+,,,,,hole
+,,,,,tie
+,,,,,internal
+,,,,,chain
+,,,,,literature
+,,,,,victim
+,,,,,threaten
+,,,,,division
+,,,,,secure
+,,,,,amaze
+,,,,,device
+,,,,,birth
+,,,,,forest
+,,,,,label
+,,,,,root
+,,,,,factory
+,,,,,expense
+,,,,, channel
+,,,,,investigate
+,,,,,recommendation
+,,,,,rank
+,,,,,typical
+,,,,,west
+,,,,,friendly
+,,,,,resident
+,,,,,provision
+,,,,,concentrate
+,,,,,plenty
+,,,,,export
+,,,,,entirely
+,,,,,strongly
+,,,,,bridge
+,,,,,consist
+,,,,,graduate
+,,,,,brand
+,,,,,moral
+,,,,,insist
+,,,,,combination
+,,,,,abuse
+,,,,,ice
+,,,,,principal
+,,,,,master
+,,,,,definitely
+,,,,,session
+,,,,,grade
+,,,,,nevertheless
+,,,,,predict
+,,,,,previously
+,,,,,protection
+,,,,,largely
+,,,,,
+,,,,,rent
+,,,,,shot
+,,,,,appearance
+,,,,,reasonable
+,,,,,guarantee
+,,,,,till
+,,,,,theme
+,,,,,judgment
+,,,,,odd
+,,,,,approve
+,,,,,loan
+,,,,,definition
+,,,,,elect
+,,,,,atmosphere
+,,,,,farmer
+,,,,,comparison
+,,,,,characteristic
+,,,,,license
+,,,,,rely
+,,,,,narrow
+,,,,,succeed
+,,,,,identity
+,,,,,desk
+,,,,,permit
+,,,,,seriously
+,,,,,wild
+,,,,,empty
+,,,,,commission
+,,,,,unique
+,,,,,association
+,,,,,instrument
+,,,,,investor
+,,,,,practical
+,,,,,tea
+,,,,,lovely
+,,,,,soft
+,,,,,row
+,,,,,youth
+,,,,,lock
+,,,,,fuel
+,,,,,expectation
+,,,,,employment
+,,,,,celebrate
+,,,,,sexual
+,,,,,shoulder
+,,,,,breath
+,,,,,increasingly
+,,,,,import
+,,,,,bottle
+,,,,,ourselves
+,,,,,sheet
+,,,,,engine
+,,,,,cast
+,,,,,notion
+,,,,,conservative
+,,,,,journey
+,,,,,opposition
+,,,,,relief
+,,,,,debt
+,,,,,honor
+,,,,,outcome
+,,,,,blame
+,,,,,explanation
+,,,,,arise
+,,,,,musical
+,,,,,recover
+,,,,,dad
+,,,,,stretch
+,,,,,declare
+,,,,,retire
+,,,,,tiny
+,,,,,careful
+,,,,,suitable
+,,,,,native
+,,,,,fruit
+,,,,,analyze
+,,,,,witness
+,,,,,mail
+,,,,,terrible
+,,,,,researcher
+,,,,,ordinary
+,,,,,selection
+,,,,,anywhere
+,,,,,mental
+,,,,,participant
+,,,,,vision
+,,,,,personality
+,,,,,specifically
+,,,,,fat
+,,,,,entry
+,,,,,fellow
+,,,,,chemical
+,,,,,capture
+,,,,,tip
+,,,,,discount
+,,,,,peak
+,,,,,chairman
+,,,,,proportion
+,,,,,ear
+,,,,,disappear
+,,,,,shout
+,,,,,yard
+,,,,,constant
+,,,,,significantly
+,,,,, hill
+,,,,,considerable
+,,,,, instruction
+,,,,,intelligence
+,,,,,ideal
+,,,,,folk
+,,,,,surely
+,,,,,guard
+,,,,,cat
+,,,,,somewhat
+,,,,,kiss
+,,,,,presentation
+,,,,,joint
+,,,,,compete
+,,,,,poll
+,,,,,weak
+,,,,,faith
+,,,,,reduction
+,,,,,reserve
+,,,,,complaint
+,,,,,bore
+,,,,,mission
+,,,,,somehow
+,,,,,tone
+,,,,,neighborhood
+,,,,,passenger
+,,,,,justice
+,,,,,phase
+,,,,,thin
+,,,,,rush
+,,,,,formal
+,,,,,religion
+,,,,,employer
+,,,,,reject
+,,,,,latter
+,,,,,plate
+,,,,,ban
+,,,,,steal
+,,,,,protest
+,,,,,index
+,,,,,sad
+,,,,,frequently
+,,,,,circle
+,,,,,helpful
+,,,,,command
+,,,,,attractive
+,,,,,sick
+,,,,,impression
+,,,,,unable
+,,,,,joke
+,,,,,sky
+,,,,,column
+,,,,,electronic
+,,,,,impose
+,,,,,criminal
+,,,,,besides
+,,,,,properly
+,,,,,ancient
+,,,,,coast
+,,,,,ill
+,,,,,kick
+,,,,,closely
+,,,,,multiple
+,,,,,yield
+,,,,,via
+,,,,,legislation
+,,,,,county
+,,,,,unlike
+,,,,,mobile
+,,,,, assistant
+,,,,,implement
+,,,,,chart
+,,,,,attach
+,,,,,
+,,,,,everywhere
+,,,,,advise
+,,,,,household
+,,,,,acknowledge
+,,,,,reward
+,,,,,east
+,,,,,hat
+,,,,,academic
+,,,,, voter
+,,,,,meanwhile
+,,,,,furthermore
+,,,,,accuse
+,,,,,scientific
+,,,,,wage
+,,,,,absence
+,,,,,construct
+,,,,,remark
+,,,,,medicine
+,,,,,professor
+,,,,,rare
+,,,,,intention
+,,,,,dozen
+,,,,,settlement
+,,,,,gap
+,,,,,widely
+,,,,,minimum
+,,,,,northern
+,,,,,estate
+,,,,,equally
+,,,,,expose
+,,,,,alive
+,,,,,shut
+,,,,,victory
+,,,,,resolve
+,,,,,critic
+,,,,,variable
+,,,,,enormous
+,,,,,sweet
+,,,,,permanent
+,,,,,emotion
+,,,,,pursue
+,,,,,tall
+,,,,,urge
+,,,,,enemy
+,,,,,appoint
+,,,,,milk
+,,,,,talent
+,,,,,smell
+,,,,,prior
+,,,,,priority
+,,,,,online
+,,,,,phrase
+,,,,,pilot
+,,,,,stable
+,,,,,merely
+,,,,,resolution
+,,,,,communicate
+,,,,,injury
+,,,,,vast
+,,,,,exhibition
+,,,,,producer
+,,,,,regional
+,,,,,immediate
+,,,,,incident
+,,,,,childhood
+,,,,,draft
+,,,,,every
+,,,,,accompany
+,,,,,politician
+,,,,,angry
+,,,,,knock
+,,,,,seed
+,,,,,salary
+,,,,,illustrate
+,,,,,imply
+,,,,,breakfast
+,,,,,temporary
+,,,,,liberal
+,,,,,lake
+,,,,,qualify
+,,,,,competitive
+,,,,,truly
+,,,,,hi
+,,,,,yellow
+,,,,,habit
+,,,,,disk
+,,,,,core
+,,,,,emotional
+,,,,,aircraft
+,,,,,self
+,,,,,metal
+,,,,,existence
+,,,,,bone
+,,,,,panel
+,,,,,prime
+,,,,,appointment
+,,,,,emphasize
+,,,,,maximum
+,,,,,effectively
+,,,,,elsewhere
+,,,,,bother
+,,,,,initiative
+,,,,,sharp
+,,,,,diet
+,,,,,motion
+,,,,,
+,,,,,plastic
+,,,,,complicate
+,,,,,discipline
+,,,,,disappoint
+,,,,,boss
+,,,,,assumption
+,,,,,freeze
+,,,,,extreme
+,,,,,passage
+,,,,,reputation
+,,,,,forth
+,,,,,negotiation
+,,,,,mechanism
+,,,,,coat
+,,,,,democracy
+,,,,,pocket
+,,,,,lucky
+,,,,,crash
+,,,,,observation
+,,,,,meat
+,,,,,concentration
+,,,,,implication
+,,,,,deserve
+,,,,,unusual
+,,,,,defend
+,,,,,classic
+,,,,,king
+,,,,,interaction
+,,,,,repair
+,,,,,collapse
+,,,,,borrow
+,,,,,fundamental
+,,,,,dish
+,,,,,abroad
+,,,,,soul
+,,,,,capable
+,,,,,defeat
+,,,,,presidential
+,,,,,perfectly
+,,,,,enhance
+,,,,,proud
+,,,,,emergency
+,,,,,educational
+,,,,,distinguish
+,,,,,substantial
+,,,,,nearby
+,,,,,manufacturer
+,,,,,slide
+,,,,,valuable
+,,,,,personally
+,,,,,breast
+,,,,,cope
+,,,,,approximately
+,,,,,accommodation
+,,,,,highlight
+,,,,,reporter
+,,,,,climate
+,,,,,pants 
+,,,,,exception
+,,,,,corporation
+,,,,,chip
+,,,,,winner
+,,,,,encounter
+,,,,,brown
+,,,,,breathe
+,,,,,excuse
+,,,,,partly
+,,,,,tennis
+,,,,,urban
+,,,,,confuse
+,,,,,southern
+,,,,,output
+,,,,,beauty
+,,,,,massive
+,,,,, install
+,,,,,calculate
+,,,,,mouse
+,,,,,maths
+,,,,,upper
+,,,,,creation
+,,,,,occupy
+,,,,,outline
+,,,,,sufficient
+,,,,,update
+,,,,,luck
+,,,,,preserve
+,,,,,split
+,,,,,swing
+,,,,,illness
+,,,,,journalist
+,,,,,sudden
+,,,,,advertisement
+,,,,,consistent
+,,,,,originally
+,,,,,aside
+,,,,,comfort
+,,,,,secondly
+,,,,,severe
+,,,,,gene
+,,,,,prospect
+,,,,,snow
+,,,,,plot
+,,,,,neck
+,,,,,criteria
+,,,,,primarily
+,,,,,integrate
+,,,,,criticism
+,,,,,convention
+,,,,,bet
+,,,,,retain
+,,,,,sequence
+,,,,,plain
+,,,,,volunteer
+,,,,,rural
+,,,,,calm
+,,,,,abandon
+,,,,,examination
+,,,,,silence
+,,,,, rapidly
+,,,,,efficient
+,,,,,revolution
+,,,,,delight
+,,,,,spell
+,,,,,premise
+,,,,,lean
+,,,,,dramatic
+,,,,,differ
+,,,,,grateful
+,,,,,protein
+,,,,,bike
+,,,,,distribute
+,,,,,intellectual
+,,,,,derive
+,,,,,crucial
+,,,,,
+,,,,,wheel
+,,,,,crop
+,,,,,minority
+,,,,,origin
+,,,,,interpretation
+,,,,,gentleman
+,,,,, drama
+,,,,,landscape
+,,,,,educate
+,,,,,toy
+,,,,,fault
+,,,,,exhibit
+,,,,,minor
+,,,,,hunt
+,,,,,storm
+,,,,,thick
+,,,,,achievement
+,,,,,negotiate
+,,,,,dominate
+,,,,,supplier
+,,,,,prize
+,,,,,typically
+,,,,,peer
+,,,,,pension
+,,,,,wing
+,,,,,acquisition
+,,,,,laughter
+,,,,,deeply
+,,,,,recognition
+,,,,,electricity
+,,,,,assistance
+,,,,,roof
+,,,,,retirement
+,,,,,respectively
+,,,,,variation
+,,,,,ultimately
+,,,,,proof
+,,,,,soil
+,,,,,smart
+,,,,,layer
+,,,,,upset
+,,,,,tooth
+,,,,,representation
+,,,,,preparation
+,,,,,dispute
+,,,,,agenda
+,,,,,emphasis
+,,,,,edition
+,,,,,silver
+,,,,,entertainment
+,,,,,honest
+,,,,,undertake
+,,,,,retail
+,,,,,wire
+,,,,,unlikely
+,,,,,gay
+,,,,,publication
+,,,,,slight
+,,,,,unknown
+,,,,,framework
+,,,,,zone
+,,,,,restrict
+,,,,,trace
+,,,,,inch
+,,,,,equivalent
+,,,,,solid
+,,,,,enterprise
+,,,,,elderly
+,,,,,owe
+,,,,,governor
+,,,,,uniform
+,,,,,port
+,,,,,pitch
+,,,,,arrival
+,,,,,
+,,,,,gate
+,,,,,ease
+,,,,,beer
+,,,,,specialist
+,,,,,assure
+,,,,,profile
+,,,,,mood
+,,,,,episode
+,,,,,crack
+,,,,,numerous
+,,,,,submit
+,,,,,symptom
+,,,,,virtually
+,,,,,era
+,,,,,coverage
+,,,,,tension
+,,,,,cable
+,,,,,sensitive
+,,,,,nervous
+,,,,,input
+,,,,,isolate
+,,,,,prisoner
+,,,,,eliminate
+,,,,,tight
+,,,,,wet
+,,,,,secondary
+,,,,,welfare
+,,,,,recruit
+,,,,,exclude
+,,,,,string
+,,,,, cloud
+,,,,,persuade
+,,,,,inspire
+,,,,,grand
+,,,,,hence
+,,,,,crew
+,,,,,phenomenon
+,,,,,pupil
+,,,,,FALSE
+,,,,,assist
+,,,,,restore
+,,,,,formula
+,,,,,alter
+,,,,,perceive
+,,,,,routine
+,,,,,sink
+,,,,,stare
+,,,,,anymore
+,,,,,hero
+,,,,,supporter
+,,,,,convert
+,,,,,steady
+,,,,,meter
+,,,,,truck
+,,,,,nose
+,,,,,beside
+,,,,,sail
+,,,,,disaster
+,,,,,pace
+,,,,,heavily
+,,,,,devote
+,,,,,terrorist
+,,,,,justify
+,,,,,vital
+,,,,,fascinate
+,,,,,external
+,,,,,spare
+,,,,,whenever
+,,,,, depression
+,,,,,guilty
+,,,,,underlie
+,,,,,
+,,,,,distinction
+,,,,,satisfaction
+,,,,,incorporate
+,,,,,pour
+,,,,,sweep
+,,,,,obligation
+,,,,,sir
+,,,,,modify
+,,,,,anger
+,,,,,pub
+,,,,,perception
+,,,,,naturally
+,,,,,currency
+,,,,,database
+,,,,,initially
+,,,,,territory
+,,,,,stream
+,,,,,rarely
+,,,,,height
+,,,,,apparent
+,,,,,western
+,,,,,expansion
+,,,,,constantly
+,,,,,muscle
+,,,,,scare
+,,,,,badly
+,,,,,everyday
+,,,,,boundary
+,,,,,ratio
+,,,,,essay
+,,,,,scream
+,,,,,withdraw
+,,,,,pollution
+,,,,,disorder
+,,,,,furniture
+,,,,,symbol
+,,,,,apartment
+,,,,,demonstration
+,,,,,analyst
+,,,,,platform
+,,,,,steel
+,,,,,cake
+,,,,,transform
+,,,,,wound
+,,,,,restriction
+,,,,,foundation
+,,,,,designer
+,,,,,strain
+,,,,,innovation
+,,,,,album
+,,,,,singer
+,,,,,trail
+,,,,,trap
+,,,,,loose
+,,,,,extension
+,,,,,wealth
+,,,,,gradually
+,,,,,tank
+,,,,,evil
+,,,,,remarkable
+,,,,,tune
+,,,,,grass
+,,,,,invitation
+,,,,,transition
+,,,,,frighten
+,,,,,bid
+,,,,,breed
+,,,,,extraordinary
+,,,,,brilliant
+,,,,,adviser
+,,,,,stem
+,,,,,reverse
+,,,,,mode
+,,,,,mirror
+,,,,,awful
+,,,,,pose
+,,,,,adjust
+,,,,,creative
+,,,,,nowadays
+,,,,,poem
+,,,,,agricultural
+,,,,,competitor
+,,,,,alcohol
+,,,,,festival
+,,,,,vegetable
+,,,,,van
+,,,,,confident
+,,,,,planet
+,,,,,curve
+,,,,,knee
+,,,,,overcome
+,,,,,web
+,,,,,depth
+,,,,,entrance
+,,,,,log
+,,,,,giant
+,,,,,god
+,,,,,portion
+,,,,,substance
+,,,,,extensive
+,,,,,interpret
+,,,,,independence
+,,,,,sugar
+,,,,,inner
+,,,,,harm
+,,,,,consult
+,,,,,pink
+,,,,,shadow
+,,,,,strip
+,,,,,smooth
+,,,,,intervention
+,,,,,impress
+,,,,,exam
+,,,,,vice
+,,,,,radical
+,,,,,similarly
+,,,,,behave
+,,,,,loud
+,,,,,dimension
+,,,,,subsequent
+,,,,,infection
+,,,,,jacket
+,,,,,efficiency
+,,,,,dirty
+,,,,,statistic
+,,,,,regularly
+,,,,,resort
+,,,,,iron
+,,,,,broadcast
+,,,,,membership
+,,,,,bread
+,,,,,blind
+,,,,,pure
+,,,,,bloody
+,,,,,ally
+,,,,,quantity
+,,,,,bend
+,,,,,mature
+,,,,,briefly
+,,,,,alarm
+,,,,,disturb
+,,,,,sustain
+,,,,,flood
+,,,,,poverty
+,,,,,crazy
+,,,,,cite
+,,,,,newly
+,,,,,parallel
+,,,,,gender
+,,,,,sponsor
+,,,,,boot
+,,,,,accurate
+,,,,,dealer
+,,,,,button
+,,,,,burden
+,,,,,desert
+,,,,,mate
+,,,,,occasionally
+,,,,,shareholder
+,,,,,bowl
+,,,,,discovery
+,,,,,resistance
+,,,,,bath
+,,,,,frequency
+,,,,,criticize
+,,,,,tap
+,,,,,philosophy
+,,,,,lip
+,,,,,attribute
+,,,,,apologize
+,,,,,approval
+,,,,,grab
+,,,,,entitle
+,,,,,lend
+,,,,,involvement
+,,,,,exposure
+,,,,,conventional
+,,,,,digital
+,,,,,translate
+,,,,,edit
+,,,,,formation
+,,,,,deposit
+,,,,,pleasant
+,,,,,overseas
+,,,,,advocate
+,,,,,establishment
+,,,,,summary
+,,,,,rough
+,,,,,pen
+,,,,,recovery
+,,,,,seal
+,,,,,tube
+,,,,,tower
+,,,,,characterise
+,,,,,specify
+,,,,,exact
+,,,,,spin
+,,,,,operator
+,,,,,infant
+,,,,,dig
+,,,,,drag
+,,,,,mount
+,,,,,wrap
+,,,,,anticipate
+,,,,,dependent
+,,,,,specialize
+,,,,,angle
+,,,,,chicken
+,,,,,anxiety
+,,,,, virus
+,,,,,precisely
+,,,,,rival
+,,,,,offense
+,,,,,detect
+,,,,,teenager
+,,,,,admire
+,,,,,moderate
+,,,,,surgery
+,,,,,musician
+,,,,,significance
+,,,,,shower
+,,,,,illegal
+,,,,,charity
+,,,,,universal
+,,,,,cigarette
+,,,,,constitute
+,,,,,adequate
+,,,,,consultant
+,,,,,historian
+,,,,,cousin
+,,,,,visual
+,,,,,stupid
+,,,,,keen
+,,,,,ethnic
+,,,,,twin
+,,,,,clinical
+,,,,,eastern
+,,,,,forecast
+,,,,,segment
+,,,,,custom
+,,,,,adapt
+,,,,,sand
+,,,,,cap
+,,,,,prompt
+,,,,,charm
+,,,,,react
+,,,,,lecture
+,,,,,venture
+,,,,,compound
+,,,,,rescue
+,,,,,mess
+,,,,,preference
+,,,,,comprehensive
+,,,,,incentive
+,,,,,league
+,,,,,dialog
+,,,,,cream
+,,,,,rapid
+,,,,,cancel
+,,,,,regret
+,,,,,dismiss
+,,,,,margin
+,,,,,beneath
+,,,,,opponent
+,,,,,resist
+,,,,,capability
+,,,,,absolute
+,,,,,correspond
+,,,,,stroke
+,,,,,dare
+,,,,,barrier
+,,,,,rid
+,,,,,divorce
+,,,,,ruin
+,,,,,bury
+,,,,,counsel
+,,,,,tendency
+,,,,,frequent
+,,,,,motor
+,,,,,survival
+,,,,,counter
+,,,,,possess
+,,,,,permission
+,,,,,valley
+,,,,,float
+,,,,,mad
+,,,,,greatly
+,,,,,visible
+,,,,,electric
+,,,,,impressive
+,,,,,evolution
+,,,,,awareness
+,,,,,violent
+,,,,,slave
+,,,,,wealthy
+,,,,,architecture
+,,,,,acceptable
+,,,,,journal
+,,,,,coal
+,,,,,measurement
+,,,,,random
+,,,,,successfully
+,,,,,depress
+,,,,,illustration
+,,,,,burst
+,,,,,privilege
+,,,,,buyer
+,,,,,mutual
+,,,,,rail
+,,,,,motivate
+,,,,,laboratory
+,,,,,mortgage
+,,,,,promotion
+,,,,,passion
+,,,,,champion
+,,,,,fulfill
+,,,,,dust
+,,,,,dedicate
+,,,,,roughly
+,,,,,skirt
+,,,,,province
+,,,,,march
+,,,,,evaluation
+,,,,,compromise
+,,,,,accomplish
+,,,,,weakness
+,,,,,announcement
+,,,,,salt
+,,,,,glance
+,,,,,opera
+,,,,,contest
+,,,,,brush
+,,,,,embarrass
+,,,,,gallery
+,,,,,genetic
+,,,,,aggressive
+,,,,,chest
+,,,,,format
+,,,,,literary
+,,,,,govern
+,,,,,embrace
+,,,,,praise
+,,,,,silent
+,,,,,pump
+,,,,,publish
+,,,,,celebration
+,,,,,golf
+,,,,,compensation
+,,,,,classical
+,,,,,weigh
+,,,,,versus
+,,,,,deficit
+,,,,,modify
+,,,,,flash
+,,,,,friendship
+,,,,,profession
+,,,,,literally
+,,,,,equation
+,,,,,gesture
+,,,,,entertain
+,,,,,fantastic
+,,,,,assign
+,,,,,inflation
+,,,,,historic
+,,,,,injure
+,,,,,remote
+,,,,,therapy
+,,,,,orange
+,,,,,twist
+,,,,,personnel
+,,,,,imagination
+,,,,, disagree
+,,,,,throat
+,,,,,insight
+,,,,,tackle
+,,,,,forever
+,,,,,exceed
+,,,,,expenditure
+,,,,,joy
+,,,,,pregnant
+,,,,,reliable
+,,,,,gear
+,,,,,click
+,,,,,poet
+,,,,,fortune
+,,,,,ceremony
+,,,,,pile
+,,,,,pig
+,,,,,
+,,,,,automatically
+,,,,,scholar
+,,,,,psychological
+,,,,,dramatically
+,,,,,stake
+,,,,,creature
+,,,,,partnership
+,,,,,participation
+,,,,,clause
+,,,,,penalty
+,,,,,chamber
+,,,,,fancy
+,,,,,poetry
+,,,,,chat
+,,,,,clothing
+,,,,,evolve
+,,,,,sake
+,,,,,shelf
+,,,,,boost
+,,,,,tail
+,,,,,possession
+,,,,,abortion
+,,,,,curious
+,,,,,wood
+,,,,,boom
+,,,,,tale
+,,,,,democratic
+,,,,,maintenance
+,,,,,consequently
+,,,,,pot
+,,,,,cow
+,,,,,strengthen
+,,,,,whilst
+,,,,,constraint
+,,,,,fold
+,,,,,bin
+,,,,,undergo
+,,,,,potentially
+,,,,,scope
+,,,,,pretend
+,,,,,diversity
+,,,,,
+,,,,,pride
+,,,,,intense
+,,,,,inquiry
+,,,,,resign
+,,,,,craft
+,,,,,strict
+,,,,,concrete
+,,,,,shell
+,,,,,damn
+,,,,,distinct
+,,,,,humor
+,,,,,limitation
+,,,,,indication
+,,,,,stability
+,,,,,wise
+,,,,,neglect
+,,,,,compose
+,,,,,jail
+,,,,,shelter
+,,,,,mere
+,,,,,carbon
+,,,,,regulate
+,,,,,cheese
+,,,,,trigger
+,,,,,pipe
+,,,,,destruction
+,,,,,guitar
+,,,,,flag
+,,,,,piano
+,,,,,magic
+,,,,,mystery
+,,,,,ski
+,,,,,whisper
+,,,,,rear
+,,,,,menu
+,,,,,species
+,,,,,moon
+,,,,,presumably
+,,,,,bless
+,,,,,airline
+,,,,,amendment
+,,,,,grandmother
+,,,,,jury
+,,,,,cooperation
+,,,,,civilian
+,,,,,composition
+,,,,,coin
+,,,,,regardless
+,,,,,scan
+,,,,,bunch
+,,,,,racial
+,,,,,greet
+,,,,,hopefully
+,,,,,sanction
+,,,,,trick
+,,,,,paragraph
+,,,,,maker
+,,,,,chocolate
+,,,,,stimulate
+,,,,,belt
+,,,,,potato
+,,,,,narrative
+,,,,,tissue
+,,,,,barely
+,,,,,invent
+,,,,,tourism
+,,,,,pro
+,,,,,stair
+,,,,,hesitate
+,,,,,shine
+,,,,,motivation
+,,,,,romantic
+,,,,,firmly
+,,,,,interior
+,,,,,stomach
+,,,,,nowhere
+,,,,,pray
+,,,,,championship
+,,,,,servant
+,,,,,immigrant
+,,,,,excess
+,,,,,complexity
+,,,,,liability
+,,,,,surprisingly
+,,,,,extract
+,,,,,implementation
+,,,,,bias
+,,,,,
+,,,,,catalog
+,,,,,continuous
+,,,,,golden
+,,,,,stamp
+,,,,,guideline
+,,,,,envelope
+,,,,,knife
+,,,,,biological
+,,,,,consume
+,,,,,luxury
+,,,,,weekly
+,,,,,wherever
+,,,,,bite
+,,,,,printer
+,,,,,firstly
+,,,,,anxious
+,,,,,adventure
+,,,,,fence
+,,,,,exhaust
+,,,,,attraction
+,,,,,ocean
+,,,,,quietly
+,,,,,castle
+,,,,,veteran
+,,,,,reflection
+,,,,,nerve
+,,,,,determination
+,,,,,altogether
+,,,,,fiction
+,,,,,carpet
+,,,,,cluster
+,,,,,confusion
+,,,,,hurry
+,,,,,logic
+,,,,,controversial
+,,,,,raw
+,,,,,grammar
+,,,,,revise
+,,,,,hint
+,,,,,hook
+,,,,,bell
+,,,,,liquid
+,,,,,panic
+,,,,,uncle
+,,,,,rice
+,,,,,slope
+,,,,,happiness
+,,,,,genuine
+,,,,,vessel
+,,,,,verb
+,,,,,reckon
+,,,,,silly
+,,,,,transportation
+,,,,,harbor
+,,,,,comedy
+,,,,,chase
+,,,,,storage
+,,,,,universe
+,,,,,horrible
+,,,,, sheep
+,,,,,lover
+,,,,,rat
+,,,,,portrait
+,,,,,innocent
+,,,,,substitute
+,,,,,supplement
+,,,,,adjustment
+,,,,,reasonably
+,,,,,filter
+,,,,,flexible
+,,,,,abstract
+,,,,,tent
+,,,,,precise
+,,,,,distant
+,,,,,stranger
+,,,,,shade
+,,,,,grain
+,,,,,situate
+,,,,,summarize
+,,,,,leap
+,,,,,snap
+,,,,,probability
+,,,,,leather
+,,,,,uncertainty
+,,,,,swear
+,,,,,refugee
+,,,,,shore
+,,,,,monthly
+,,,,,comprise
+,,,,,stir
+,,,,,excitement
+,,,,,
+,,,,,pregnancy
+,,,,,experimental
+,,,,,institutional
+,,,,,slice
+,,,,, wander
+,,,,,empire
+,,,,,subsequently
+,,,,,gentle
+,,,,,attendance
+,,,,,ownership
+,,,,,qualification
+,,,,, suspend
+,,,,,functional
+,,,,,voluntary
+,,,,,pale
+,,,,,stain
+,,,,,athlete
+,,,,,organic
+,,,,,tongue
+,,,,,server
+,,,,,structural
+,,,,,website
+,,,,,fool
+,,,,,alongside
+,,,,,unite
+,,,,,gently
+,,,,,compute
+,,,,,wipe
+,,,,,weird
+,,,,,gaze
+,,,,,fade
+,,,,,cough
+,,,,,hypothesis
+,,,,,royal
+,,,,,theoretical
+,,,,,curtain
+,,,,,mayor
+,,,,,darkness
+,,,,,aunt
+,,,,,tournament
+,,,,,registration
+,,,,,fragment
+,,,,,listener
+,,,,,immigration
+,,,,,tender
+,,,,,density
+,,,,,ugly
+,,,,,module
+,,,,,faithfully
+,,,,,autumn
+,,,,,cheek
+,,,,,attachment
+,,,,,holder
+,,,,,solar
+,,,,,grin
+,,,,,rose
+,,,,,noun
+,,,,,fortunate
+,,,,,alright
+,,,,,lazy
+,,,,,hello
+,,,,,hunger
+,,,,,insure
+,,,,,ashamed
+,,,,,found
+,,,,,blog
+,,,,,thirst
+,,,,,cinema 
+,,,,,shoes
+,,,,,colour 
+,,,,,assignment
+,,,,,boyfriend
+,,,,,girlfriend
+,,,,,sign
+,,,,,midday 
+,,,,,midnight
+,,,,,sunrise
+,,,,,sunset
+,,,,,metal
+,,,,,grey
+,,,,,purple
+,,,,,favourite
+,,,,,accent
+,,,,,lost
+,,,,,cooking
+,,,,,media
+,,,,,mum
+,,,,,pet
+,,,,,gossip
+,,,,,decorate
+,,,,,airport
+,,,,,tired
+,,,,,cure
+,,,,,dose
+,,,,,bitish
+,,,,,irish
+,,,,,american
+,,,,,indian
+,,,,,chinese
+,,,,,pakistani
+,,,,,bangladeshi
+,,,,,spanish
+,,,,,french
+,,,,,favourite
