@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Animated } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Animated, ScrollView, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { PanGestureHandler, State } from 'react-native-gesture-handler';
 
@@ -14,7 +14,7 @@ const { width, height } = Dimensions.get('window');
 // Game constants
 const COLS = 10;
 const ROWS = 20;
-const CELL_SIZE = Math.floor(Math.min(width - 40, (height - 400) / 1.5) / COLS);
+const CELL_SIZE = Math.floor(Math.min(width - 60, (height - 450) / ROWS));
 const INITIAL_DROP_SPEED = 1000; // milliseconds
 
 type TetrominoType = 'I' | 'O' | 'T' | 'S' | 'Z' | 'J' | 'L';
@@ -414,7 +414,7 @@ const TetrisGame: React.FC<TetrisGameProps> = ({ onClose, onGameComplete }) => {
   const floatInterpolate4 = bgFloat4.interpolate({ inputRange: [0, 1], outputRange: [0, -10] });
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* Animated Background */}
       <View style={styles.backgroundContainer}>
         <Animated.View style={[styles.bgElement1, { transform: [{ translateY: floatInterpolate1 }] }]} />
@@ -423,8 +423,13 @@ const TetrisGame: React.FC<TetrisGameProps> = ({ onClose, onGameComplete }) => {
         <Animated.View style={[styles.bgElement4, { transform: [{ translateY: floatInterpolate4 }] }]} />
       </View>
 
-      {/* Header */}
-      <View style={styles.header}>
+      <ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header */}
+        <View style={styles.header}>
         <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
           <Ionicons name="close-circle" size={28} color="#EF4444" />
         </TouchableOpacity>
@@ -508,22 +513,18 @@ const TetrisGame: React.FC<TetrisGameProps> = ({ onClose, onGameComplete }) => {
       <View style={styles.controls}>
         <View style={styles.controlRow}>
           <TouchableOpacity style={styles.controlButton} onPress={() => movePiece('LEFT')}>
-            <Ionicons name="arrow-back" size={28} color="#FFFFFF" />
+            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
           </TouchableOpacity>
           <TouchableOpacity style={styles.rotateButton} onPress={rotatePiece}>
-            <Ionicons name="reload" size={28} color="#FFFFFF" />
+            <Ionicons name="reload" size={24} color="#FFFFFF" />
           </TouchableOpacity>
           <TouchableOpacity style={styles.controlButton} onPress={() => movePiece('RIGHT')}>
-            <Ionicons name="arrow-forward" size={28} color="#FFFFFF" />
+            <Ionicons name="arrow-forward" size={24} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
         <View style={styles.controlRow}>
           <TouchableOpacity style={styles.downButton} onPress={() => movePiece('DOWN')}>
-            <Ionicons name="arrow-down" size={28} color="#FFFFFF" />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.dropButton} onPress={hardDrop}>
-            <Ionicons name="arrow-down-circle" size={28} color="#FFFFFF" />
-            <Text style={styles.dropText}>DROP</Text>
+            <Ionicons name="arrow-down" size={24} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
       </View>
@@ -564,7 +565,8 @@ const TetrisGame: React.FC<TetrisGameProps> = ({ onClose, onGameComplete }) => {
           </View>
         </View>
       )}
-    </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
@@ -572,8 +574,14 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#0F172A',
+  },
+  scrollView: {
+    flex: 1,
+    width: '100%',
+  },
+  scrollContent: {
     alignItems: 'center',
-    justifyContent: 'flex-start',
+    paddingBottom: 20,
   },
   backgroundContainer: {
     position: 'absolute',
@@ -624,14 +632,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     width: '100%',
     paddingHorizontal: 20,
-    paddingVertical: 10,
-    paddingTop: 50,
+    paddingVertical: 8,
   },
   closeButton: {
     padding: 5,
   },
   title: {
-    fontSize: 32,
+    fontSize: 26,
     fontWeight: '700',
     color: '#FFFFFF',
     letterSpacing: 2,
@@ -642,32 +649,32 @@ const styles = StyleSheet.create({
   scoreBoard: {
     flexDirection: 'row',
     gap: 8,
-    marginVertical: 10,
+    marginVertical: 5,
   },
   scoreBox: {
     backgroundColor: '#1E293B',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
     alignItems: 'center',
-    minWidth: 70,
+    minWidth: 60,
     borderWidth: 1,
     borderColor: '#334155',
   },
   scoreLabel: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '700',
     color: '#94A3B8',
     marginBottom: 2,
   },
   scoreValue: {
-    fontSize: 18,
+    fontSize: 15,
     fontWeight: '700',
     color: '#FFFFFF',
   },
   nextPieceContainer: {
     alignItems: 'center',
-    marginVertical: 10,
+    marginVertical: 5,
   },
   nextPieceLabel: {
     fontSize: 12,
@@ -694,7 +701,7 @@ const styles = StyleSheet.create({
   gameArea: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginVertical: 10,
+    marginVertical: 5,
   },
   grid: {
     backgroundColor: '#000000',
@@ -708,53 +715,39 @@ const styles = StyleSheet.create({
     borderWidth: 0.5,
   },
   controls: {
-    paddingVertical: 10,
+    paddingVertical: 5,
+    paddingBottom: 10,
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
   },
   controlRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 15,
+    gap: 10,
   },
   controlButton: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     backgroundColor: '#3B82F6',
     alignItems: 'center',
     justifyContent: 'center',
   },
   rotateButton: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     backgroundColor: '#A855F7',
     alignItems: 'center',
     justifyContent: 'center',
   },
   downButton: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     backgroundColor: '#3B82F6',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  dropButton: {
-    width: 100,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#EF4444',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    gap: 5,
-  },
-  dropText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '700',
   },
   overlay: {
     position: 'absolute',

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Animated, PanResponder } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import Svg, { Path, Circle, Line } from 'react-native-svg';
 
 interface FlowFreeGameProps {
   gameData?: any;
@@ -35,48 +36,261 @@ type Path = {
 
 const COLORS = ['#EF4444', '#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#14B8A6', '#F97316'];
 
-// Predefined puzzles
-const PUZZLES = [
-  // Level 1 - Easy 5x5
-  [
-    { row: 0, col: 0, color: '#EF4444', pairId: 0 },
-    { row: 0, col: 4, color: '#EF4444', pairId: 0 },
-    { row: 1, col: 1, color: '#3B82F6', pairId: 1 },
-    { row: 3, col: 3, color: '#3B82F6', pairId: 1 },
-    { row: 2, col: 0, color: '#10B981', pairId: 2 },
-    { row: 4, col: 2, color: '#10B981', pairId: 2 },
-    { row: 2, col: 4, color: '#F59E0B', pairId: 3 },
-    { row: 4, col: 4, color: '#F59E0B', pairId: 3 },
-  ],
-  // Level 2
-  [
-    { row: 0, col: 1, color: '#EF4444', pairId: 0 },
-    { row: 2, col: 3, color: '#EF4444', pairId: 0 },
-    { row: 0, col: 3, color: '#3B82F6', pairId: 1 },
-    { row: 4, col: 1, color: '#3B82F6', pairId: 1 },
-    { row: 1, col: 0, color: '#10B981', pairId: 2 },
-    { row: 3, col: 4, color: '#10B981', pairId: 2 },
-    { row: 2, col: 1, color: '#F59E0B', pairId: 3 },
-    { row: 4, col: 3, color: '#F59E0B', pairId: 3 },
-    { row: 3, col: 0, color: '#8B5CF6', pairId: 4 },
-    { row: 1, col: 4, color: '#8B5CF6', pairId: 4 },
-  ],
-  // Level 3
-  [
-    { row: 0, col: 0, color: '#EF4444', pairId: 0 },
-    { row: 4, col: 4, color: '#EF4444', pairId: 0 },
-    { row: 0, col: 2, color: '#3B82F6', pairId: 1 },
-    { row: 2, col: 4, color: '#3B82F6', pairId: 1 },
-    { row: 0, col: 4, color: '#10B981', pairId: 2 },
-    { row: 4, col: 0, color: '#10B981', pairId: 2 },
-    { row: 1, col: 1, color: '#F59E0B', pairId: 3 },
-    { row: 3, col: 3, color: '#F59E0B', pairId: 3 },
-    { row: 2, col: 0, color: '#8B5CF6', pairId: 4 },
-    { row: 2, col: 2, color: '#8B5CF6', pairId: 4 },
-    { row: 3, col: 1, color: '#EC4899', pairId: 5 },
-    { row: 4, col: 2, color: '#EC4899', pairId: 5 },
-  ],
-];
+// Puzzle solver using backtracking
+const solvePuzzle = (endpoints: Endpoint[], gridSize: number): { paths: Path[], solvable: boolean } => {
+  const grid: (number | null)[][] = Array(gridSize).fill(null).map(() => Array(gridSize).fill(null));
+  const pairs: { [key: number]: Endpoint[] } = {};
+  
+  // Group endpoints by pairId
+  endpoints.forEach(ep => {
+    if (!pairs[ep.pairId]) pairs[ep.pairId] = [];
+    pairs[ep.pairId].push(ep);
+  });
+  
+  // Mark endpoints on grid
+  endpoints.forEach(ep => {
+    grid[ep.row][ep.col] = ep.pairId;
+  });
+  
+  const pairIds = Object.keys(pairs).map(Number);
+  const foundPaths: Path[] = [];
+  
+  // Check if position is valid
+  const isValid = (row: number, col: number, pairId: number): boolean => {
+    if (row < 0 || row >= gridSize || col < 0 || col >= gridSize) return false;
+    if (grid[row][col] === null) return true;
+    if (grid[row][col] === pairId) {
+      // Check if it's the target endpoint
+      const targetEndpoint = pairs[pairId].find(ep => 
+        ep.row === row && ep.col === col && 
+        !(ep.row === pairs[pairId][0].row && ep.col === pairs[pairId][0].col)
+      );
+      return !!targetEndpoint;
+    }
+    return false;
+  };
+  
+  // Try to connect a pair using DFS
+  const connectPair = (pairId: number, row: number, col: number, path: PathSegment[]): boolean => {
+    const target = pairs[pairId][1];
+    
+    // Reached target
+    if (row === target.row && col === target.col) {
+      foundPaths.push({
+        pairId,
+        color: pairs[pairId][0].color,
+        segments: [...path, { row, col }],
+        isComplete: true,
+      });
+      return true;
+    }
+    
+    // Try all 4 directions
+    const directions = [[0, 1], [1, 0], [0, -1], [-1, 0]];
+    
+    for (const [dr, dc] of directions) {
+      const newRow = row + dr;
+      const newCol = col + dc;
+      
+      if (isValid(newRow, newCol, pairId)) {
+        const wasNull = grid[newRow][newCol] === null;
+        if (wasNull) grid[newRow][newCol] = pairId;
+        
+        path.push({ row: newRow, col: newCol });
+        
+        if (connectPair(pairId, newRow, newCol, path)) {
+          return true;
+        }
+        
+        // Backtrack
+        path.pop();
+        if (wasNull) grid[newRow][newCol] = null;
+      }
+    }
+    
+    return false;
+  };
+  
+  // Try to solve by connecting all pairs
+  const solve = (pairIndex: number): boolean => {
+    if (pairIndex >= pairIds.length) {
+      // Check if all cells are filled
+      for (let r = 0; r < gridSize; r++) {
+        for (let c = 0; c < gridSize; c++) {
+          if (grid[r][c] === null) return false;
+        }
+      }
+      return true;
+    }
+    
+    const pairId = pairIds[pairIndex];
+    const start = pairs[pairId][0];
+    
+    // Start from the first endpoint
+    if (connectPair(pairId, start.row, start.col, [{ row: start.row, col: start.col }])) {
+      if (solve(pairIndex + 1)) {
+        return true;
+      }
+      // Backtrack - remove path
+      const lastPath = foundPaths.pop();
+      if (lastPath) {
+        lastPath.segments.forEach(seg => {
+          if (!(endpoints.some(ep => ep.row === seg.row && ep.col === seg.col))) {
+            grid[seg.row][seg.col] = null;
+          }
+        });
+      }
+    }
+    
+    return false;
+  };
+  
+  const solvable = solve(0);
+  return { paths: foundPaths, solvable };
+};
+
+// Validate puzzle has a solution
+const validatePuzzle = (endpoints: Endpoint[], gridSize: number): boolean => {
+  const result = solvePuzzle(endpoints, gridSize);
+  console.log(`🌊 Puzzle validation: ${result.solvable ? 'SOLVABLE' : 'UNSOLVABLE'}`);
+  return result.solvable;
+};
+
+// Generate a valid puzzle by creating complete solution first
+const generatePuzzle = (gridSize: number, numPairs: number): Endpoint[] => {
+  const totalCells = gridSize * gridSize;
+  const grid: (number | null)[][] = Array(gridSize).fill(null).map(() => Array(gridSize).fill(null));
+  const endpoints: Endpoint[] = [];
+  const paths: [number, number][][] = [];
+  
+  // Helper to get available neighbors
+  const getNeighbors = (row: number, col: number): [number, number][] => {
+    const neighbors: [number, number][] = [];
+    const dirs = [[0, 1], [1, 0], [0, -1], [-1, 0]];
+    // Shuffle directions for randomness
+    const shuffled = dirs.sort(() => Math.random() - 0.5);
+    for (const [dr, dc] of shuffled) {
+      const newRow = row + dr;
+      const newCol = col + dc;
+      if (newRow >= 0 && newRow < gridSize && newCol >= 0 && newCol < gridSize && grid[newRow][newCol] === null) {
+        neighbors.push([newRow, newCol]);
+      }
+    }
+    return neighbors;
+  };
+  
+  // Calculate target cells per path (must fill ALL cells)
+  const cellsPerPath = Math.floor(totalCells / numPairs);
+  const extraCells = totalCells % numPairs;
+  
+  // Generate each path to fill specific number of cells
+  for (let pairId = 0; pairId < numPairs; pairId++) {
+    const targetLength = cellsPerPath + (pairId < extraCells ? 1 : 0);
+    let success = false;
+    
+    for (let attempt = 0; attempt < 50 && !success; attempt++) {
+      // Find empty starting position
+      const emptyCells: [number, number][] = [];
+      for (let r = 0; r < gridSize; r++) {
+        for (let c = 0; c < gridSize; c++) {
+          if (grid[r][c] === null) emptyCells.push([r, c]);
+        }
+      }
+      
+      if (emptyCells.length < targetLength) break;
+      
+      // Pick random start
+      const [startRow, startCol] = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+      
+      // Build path using random walk
+      const path: [number, number][] = [[startRow, startCol]];
+      grid[startRow][startCol] = pairId;
+      
+      let current: [number, number] = [startRow, startCol];
+      
+      // Random walk until we hit target length
+      while (path.length < targetLength) {
+        const neighbors = getNeighbors(current[0], current[1]);
+        if (neighbors.length === 0) break; // Stuck
+        
+        const next = neighbors[0]; // Take first (already shuffled)
+        grid[next[0]][next[1]] = pairId;
+        path.push(next);
+        current = next;
+      }
+      
+      if (path.length === targetLength) {
+        // Success!
+        const color = COLORS[pairId % COLORS.length];
+        endpoints.push({ row: path[0][0], col: path[0][1], color, pairId });
+        endpoints.push({ row: path[path.length - 1][0], col: path[path.length - 1][1], color, pairId });
+        paths.push(path);
+        success = true;
+      } else {
+        // Failed - backtrack
+        path.forEach(([r, c]) => {
+          grid[r][c] = null;
+        });
+      }
+    }
+    
+    if (!success) {
+      // Failed to generate this path - clear all and return empty
+      return [];
+    }
+  }
+  
+  // Verify all cells are filled
+  let filledCells = 0;
+  for (let r = 0; r < gridSize; r++) {
+    for (let c = 0; c < gridSize; c++) {
+      if (grid[r][c] !== null) filledCells++;
+    }
+  }
+  
+  if (filledCells !== totalCells) {
+    console.warn(`🌊 Puzzle generation incomplete: ${filledCells}/${totalCells} cells filled`);
+    return [];
+  }
+  
+  return endpoints;
+};
+
+// Generate validated puzzles that fill entire grid
+const generateValidPuzzles = (): Endpoint[][] => {
+  const puzzles: Endpoint[][] = [];
+  const difficulties = [5, 6, 7]; // pairs per level (25 cells ÷ 5 = 5 cells/path)
+  
+  console.log('🌊 Generating puzzles that fill ALL 25 cells...');
+  
+  for (let levelIdx = 0; levelIdx < difficulties.length; levelIdx++) {
+    const pairCount = difficulties[levelIdx];
+    let found = false;
+    
+    for (let attempt = 0; attempt < 200 && !found; attempt++) {
+      const puzzle = generatePuzzle(GRID_SIZE, pairCount);
+      
+      // Check if generation succeeded (returns empty array on failure)
+      if (puzzle.length === pairCount * 2) {
+        // Double-check with validator
+        if (validatePuzzle(puzzle, GRID_SIZE)) {
+          puzzles.push(puzzle);
+          console.log(`✅ Level ${levelIdx + 1}: ${pairCount} pairs, all 25 cells filled, SOLVABLE`);
+          found = true;
+        }
+      }
+    }
+    
+    if (!found) {
+      console.error(`❌ Level ${levelIdx + 1}: Failed after 200 attempts`);
+    }
+  }
+  
+  return puzzles;
+};
+
+const PUZZLES = generateValidPuzzles();
+console.log(`🌊 Loaded ${PUZZLES.length} validated puzzles`);
 
 const FlowFreeGame: React.FC<FlowFreeGameProps> = ({ onClose, onGameComplete }) => {
   // Game state
@@ -102,6 +316,10 @@ const FlowFreeGame: React.FC<FlowFreeGameProps> = ({ onClose, onGameComplete }) 
   // Initialize level
   const initializeLevel = useCallback((levelIndex: number) => {
     const puzzle = PUZZLES[levelIndex];
+    
+    // Puzzles are already validated during generation
+    console.log(`🌊 Loading level ${levelIndex + 1} (pre-validated)`);
+    
     setEndpoints(puzzle);
     setPaths([]);
     setCurrentDrawingPath(null);
@@ -148,6 +366,39 @@ const FlowFreeGame: React.FC<FlowFreeGameProps> = ({ onClose, onGameComplete }) 
     return true;
   }, []);
 
+  // Generate pipe path for a series of segments
+  const generatePipePath = useCallback((segments: PathSegment[], color: string) => {
+    if (segments.length < 2) return null;
+    
+    const paths: JSX.Element[] = [];
+    
+    // Draw line segments between consecutive cells
+    for (let i = 0; i < segments.length - 1; i++) {
+      const from = segments[i];
+      const to = segments[i + 1];
+      
+      const fromX = from.col * CELL_SIZE + CELL_SIZE / 2;
+      const fromY = from.row * CELL_SIZE + CELL_SIZE / 2;
+      const toX = to.col * CELL_SIZE + CELL_SIZE / 2;
+      const toY = to.row * CELL_SIZE + CELL_SIZE / 2;
+      
+      paths.push(
+        <Line
+          key={`${from.row}-${from.col}-${to.row}-${to.col}`}
+          x1={fromX}
+          y1={fromY}
+          x2={toX}
+          y2={toY}
+          stroke={color}
+          strokeWidth={CELL_SIZE * 0.6}
+          strokeLinecap="round"
+        />
+      );
+    }
+    
+    return paths;
+  }, []);
+
   // Check if puzzle is complete
   const checkWin = useCallback(() => {
     // All paths must be complete
@@ -173,9 +424,121 @@ const FlowFreeGame: React.FC<FlowFreeGameProps> = ({ onClose, onGameComplete }) 
     if (!gameStarted) setGameStarted(true);
 
     const content = getCellContent(row, col);
+    
+    console.log('🌊 handleCellTouch:', { row, col, content: content?.type, currentDrawing: !!currentDrawingPath });
 
-    // Start new path from endpoint
+    // If currently drawing a path
+    if (currentDrawingPath) {
+      const lastSegment = currentDrawingPath.segments[currentDrawingPath.segments.length - 1];
+      
+      // Check if trying to go back
+      if (currentDrawingPath.segments.length > 1) {
+        const prevSegment = currentDrawingPath.segments[currentDrawingPath.segments.length - 2];
+        if (prevSegment.row === row && prevSegment.col === col) {
+          // Remove last segment (undo)
+          console.log('🌊 Going back, removing last segment');
+          setCurrentDrawingPath({
+            ...currentDrawingPath,
+            segments: currentDrawingPath.segments.slice(0, -1),
+          });
+          return;
+        }
+      }
+
+      // Check if move is valid (adjacent)
+      if (!isValidMove(lastSegment.row, lastSegment.col, row, col)) {
+        console.log('🌊 Invalid move - not adjacent');
+        return;
+      }
+
+      // Check if cell is already in current path (trying to cross itself)
+      if (currentDrawingPath.segments.some(s => s.row === row && s.col === col)) {
+        console.log('🌊 Cell already in path');
+        return;
+      }
+
+      // Check if cell is occupied by another path
+      const occupiedByOther = paths.some(p => 
+        p.pairId !== currentDrawingPath.pairId && 
+        p.segments.some(s => s.row === row && s.col === col)
+      );
+      if (occupiedByOther) {
+        console.log('🌊 Cell occupied by another path');
+        return;
+      }
+
+      // Check if reached the TARGET endpoint (matching pair)
+      if (content?.type === 'endpoint' && content.pairId === currentDrawingPath.pairId) {
+        // Make sure it's NOT the starting endpoint
+        const isStartPoint = content.row === currentDrawingPath.segments[0].row && 
+                            content.col === currentDrawingPath.segments[0].col;
+        
+        if (!isStartPoint) {
+          console.log('🌊 Reached target endpoint! Completing path');
+          // Complete the path
+          const completedPath: Path = {
+            pairId: currentDrawingPath.pairId,
+            color: currentDrawingPath.color,
+            segments: [...currentDrawingPath.segments, { row, col }],
+            isComplete: true,
+          };
+          setPaths(prev => [...prev, completedPath]);
+          setCurrentDrawingPath(null);
+          setMoves(m => m + 1);
+          setScore(s => s + 50);
+
+          // Check win after a brief delay
+          setTimeout(() => {
+            const allPaths = [...paths, completedPath];
+            const pairCount = endpoints.length / 2;
+            const allComplete = allPaths.length === pairCount && allPaths.every(p => p.isComplete);
+            
+            if (allComplete) {
+              let allFilled = true;
+              for (let r = 0; r < GRID_SIZE; r++) {
+                for (let c = 0; c < GRID_SIZE; c++) {
+                  const isEndpoint = endpoints.some(e => e.row === r && e.col === c);
+                  const inPath = allPaths.some(p => p.segments.some(s => s.row === r && s.col === c));
+                  if (!isEndpoint && !inPath) {
+                    allFilled = false;
+                    break;
+                  }
+                }
+                if (!allFilled) break;
+              }
+
+              if (allFilled) {
+                const moveBonus = Math.max(0, 500 - moves * 10);
+                setScore(s => s + moveBonus + 1000);
+                setGameWon(true);
+              }
+            }
+          }, 100);
+          return;
+        } else {
+          console.log('🌊 Touched starting endpoint, ignoring');
+          return;
+        }
+      }
+
+      // Check if touched a DIFFERENT endpoint (not our pair)
+      if (content?.type === 'endpoint' && content.pairId !== currentDrawingPath.pairId) {
+        console.log('🌊 Touched different endpoint, blocking');
+        return;
+      }
+
+      // Continue path to empty cell
+      console.log('🌊 Continuing path');
+      setCurrentDrawingPath({
+        ...currentDrawingPath,
+        segments: [...currentDrawingPath.segments, { row, col }],
+      });
+      return;
+    }
+
+    // Not currently drawing - ONLY start new path from endpoint
     if (content?.type === 'endpoint') {
+      console.log('🌊 Starting path from endpoint:', { pairId: content.pairId, color: content.color });
       // Clear any existing path for this pair
       setPaths(prev => prev.filter(p => p.pairId !== content.pairId));
       
@@ -186,96 +549,19 @@ const FlowFreeGame: React.FC<FlowFreeGameProps> = ({ onClose, onGameComplete }) 
       });
       return;
     }
-
-    // Continue drawing current path
-    if (currentDrawingPath) {
-      const lastSegment = currentDrawingPath.segments[currentDrawingPath.segments.length - 1];
-      
-      // Check if trying to go back
-      if (currentDrawingPath.segments.length > 1) {
-        const prevSegment = currentDrawingPath.segments[currentDrawingPath.segments.length - 2];
-        if (prevSegment.row === row && prevSegment.col === col) {
-          // Remove last segment (undo)
-          setCurrentDrawingPath({
-            ...currentDrawingPath,
-            segments: currentDrawingPath.segments.slice(0, -1),
-          });
-          return;
-        }
-      }
-
-      // Check if move is valid
-      if (!isValidMove(lastSegment.row, lastSegment.col, row, col)) return;
-
-      // Check if cell is already in current path (trying to cross itself)
-      if (currentDrawingPath.segments.some(s => s.row === row && s.col === col)) return;
-
-      // Check if cell is occupied by another path
-      const occupiedByOther = paths.some(p => 
-        p.pairId !== currentDrawingPath.pairId && 
-        p.segments.some(s => s.row === row && s.col === col)
-      );
-      if (occupiedByOther) return;
-
-      // Check if reached the other endpoint
-      const targetEndpoint = endpoints.find(e => 
-        e.pairId === currentDrawingPath.pairId && 
-        e.row === row && 
-        e.col === col &&
-        !(e.row === currentDrawingPath.segments[0].row && e.col === currentDrawingPath.segments[0].col)
-      );
-
-      if (targetEndpoint) {
-        // Complete the path
-        const completedPath: Path = {
-          pairId: currentDrawingPath.pairId,
-          color: currentDrawingPath.color,
-          segments: [...currentDrawingPath.segments, { row, col }],
-          isComplete: true,
-        };
-        setPaths(prev => [...prev, completedPath]);
-        setCurrentDrawingPath(null);
-        setMoves(m => m + 1);
-        setScore(s => s + 50);
-
-        // Check win after a brief delay
-        setTimeout(() => {
-          const allPaths = [...paths, completedPath];
-          // Manually check win with updated paths
-          const pairCount = endpoints.length / 2;
-          const allComplete = allPaths.length === pairCount && allPaths.every(p => p.isComplete);
-          
-          if (allComplete) {
-            // Check all cells filled
-            let allFilled = true;
-            for (let r = 0; r < GRID_SIZE; r++) {
-              for (let c = 0; c < GRID_SIZE; c++) {
-                const isEndpoint = endpoints.some(e => e.row === r && e.col === c);
-                const inPath = allPaths.some(p => p.segments.some(s => s.row === r && s.col === c));
-                if (!isEndpoint && !inPath) {
-                  allFilled = false;
-                  break;
-                }
-              }
-              if (!allFilled) break;
-            }
-
-            if (allFilled) {
-              const moveBonus = Math.max(0, 500 - moves * 10);
-              setScore(s => s + moveBonus + 1000);
-              setGameWon(true);
-            }
-          }
-        }, 100);
-      } else {
-        // Continue path
-        setCurrentDrawingPath({
-          ...currentDrawingPath,
-          segments: [...currentDrawingPath.segments, { row, col }],
-        });
-      }
-    }
+    
+    // If not drawing and not touching an endpoint, do nothing
+    console.log('🌊 Not an endpoint, ignoring touch');
   }, [gameStarted, currentDrawingPath, paths, endpoints, getCellContent, isValidMove, moves]);
+
+  // Track last touched cell to avoid duplicate calls
+  const lastTouchedCell = useRef<{ row: number; col: number } | null>(null);
+  const handleCellTouchRef = useRef(handleCellTouch);
+  
+  // Keep ref updated
+  useEffect(() => {
+    handleCellTouchRef.current = handleCellTouch;
+  }, [handleCellTouch]);
 
   // Pan responder for drawing
   const panResponder = useRef(
@@ -286,29 +572,50 @@ const FlowFreeGame: React.FC<FlowFreeGameProps> = ({ onClose, onGameComplete }) 
         const { locationX, locationY } = evt.nativeEvent;
         const col = Math.floor(locationX / CELL_SIZE);
         const row = Math.floor(locationY / CELL_SIZE);
+        
+        console.log('🌊 Touch start:', { locationX, locationY, row, col, CELL_SIZE });
+        
         if (row >= 0 && row < GRID_SIZE && col >= 0 && col < GRID_SIZE) {
-          handleCellTouch(row, col);
+          lastTouchedCell.current = { row, col };
+          handleCellTouchRef.current(row, col);
         }
       },
       onPanResponderMove: (evt) => {
         const { locationX, locationY } = evt.nativeEvent;
         const col = Math.floor(locationX / CELL_SIZE);
         const row = Math.floor(locationY / CELL_SIZE);
+        
+        // Only trigger if moved to a different cell AND we're currently drawing
         if (row >= 0 && row < GRID_SIZE && col >= 0 && col < GRID_SIZE) {
-          handleCellTouch(row, col);
+          if (!lastTouchedCell.current || 
+              lastTouchedCell.current.row !== row || 
+              lastTouchedCell.current.col !== col) {
+            console.log('🌊 Touch move to new cell:', { row, col });
+            lastTouchedCell.current = { row, col };
+            handleCellTouchRef.current(row, col);
+          }
         }
       },
       onPanResponderRelease: () => {
-        // If path wasn't completed, save it as incomplete
-        if (currentDrawingPath && currentDrawingPath.segments.length > 1) {
-          setPaths(prev => [...prev, {
-            ...currentDrawingPath,
-            isComplete: false,
-          }]);
-          setCurrentDrawingPath(null);
-        } else if (currentDrawingPath) {
-          setCurrentDrawingPath(null);
-        }
+        console.log('🌊 Touch release');
+        lastTouchedCell.current = null;
+        
+        // Access current state via a callback
+        setCurrentDrawingPath(currentPath => {
+          console.log('🌊 Release with path:', currentPath?.segments.length);
+          // Only save incomplete paths if they have at least 2 segments
+          if (currentPath && currentPath.segments.length > 1) {
+            setPaths(prev => [...prev, {
+              ...currentPath,
+              isComplete: false,
+            }]);
+            return null;
+          } else if (currentPath) {
+            // Single segment path - just clear it
+            return null;
+          }
+          return currentPath;
+        });
       },
     })
   ).current;
@@ -371,10 +678,24 @@ const FlowFreeGame: React.FC<FlowFreeGameProps> = ({ onClose, onGameComplete }) 
       setGameWon(false);
       completionCalledRef.current = false;
     } else {
-      // Completed all levels
-      setLevel(0);
-      setGameWon(false);
-      completionCalledRef.current = false;
+      // Completed all levels - generate a random one
+      console.log('🌊 Generating random puzzle...');
+      const newPuzzle = generatePuzzle(GRID_SIZE, 4);
+      if (newPuzzle.length > 0 && validatePuzzle(newPuzzle, GRID_SIZE)) {
+        console.log('🌊 Random puzzle generated and validated!');
+        setEndpoints(newPuzzle);
+        setPaths([]);
+        setCurrentDrawingPath(null);
+        setGameStarted(false);
+        setMoves(0);
+        setGameWon(false);
+        completionCalledRef.current = false;
+      } else {
+        // Fallback to level 0
+        setLevel(0);
+        setGameWon(false);
+        completionCalledRef.current = false;
+      }
     }
   };
 
@@ -437,29 +758,46 @@ const FlowFreeGame: React.FC<FlowFreeGameProps> = ({ onClose, onGameComplete }) 
           style={[styles.grid, { width: CELL_SIZE * GRID_SIZE, height: CELL_SIZE * GRID_SIZE }]}
           {...panResponder.panHandlers}
         >
+          {/* Grid cells - just borders */}
           {Array.from({ length: GRID_SIZE }).map((_, row) => (
             <View key={row} style={styles.row}>
-              {Array.from({ length: GRID_SIZE }).map((_, col) => {
-                const content = getCellContent(row, col);
-                const isEndpoint = content?.type === 'endpoint';
-                
-                return (
-                  <View
-                    key={col}
-                    style={[
-                      styles.cell,
-                      { width: CELL_SIZE, height: CELL_SIZE },
-                      content && !isEndpoint && { backgroundColor: content.color },
-                    ]}
-                  >
-                    {isEndpoint && (
-                      <View style={[styles.endpoint, { backgroundColor: content.color }]} />
-                    )}
-                  </View>
-                );
-              })}
+              {Array.from({ length: GRID_SIZE }).map((_, col) => (
+                <View
+                  key={col}
+                  style={[
+                    styles.cell,
+                    { width: CELL_SIZE, height: CELL_SIZE },
+                  ]}
+                />
+              ))}
             </View>
           ))}
+          
+          {/* SVG overlay for pipes and endpoints */}
+          <Svg 
+            width={CELL_SIZE * GRID_SIZE} 
+            height={CELL_SIZE * GRID_SIZE}
+            style={styles.svgOverlay}
+          >
+            {/* Draw completed paths as pipes */}
+            {paths.map(path => generatePipePath(path.segments, path.color))}
+            
+            {/* Draw current drawing path */}
+            {currentDrawingPath && generatePipePath(currentDrawingPath.segments, currentDrawingPath.color)}
+            
+            {/* Draw endpoints on top */}
+            {endpoints.map((endpoint, idx) => (
+              <Circle
+                key={idx}
+                cx={endpoint.col * CELL_SIZE + CELL_SIZE / 2}
+                cy={endpoint.row * CELL_SIZE + CELL_SIZE / 2}
+                r={CELL_SIZE * 0.35}
+                fill={endpoint.color}
+                stroke="#FFFFFF"
+                strokeWidth={3}
+              />
+            ))}
+          </Svg>
         </View>
 
         {!gameStarted && !gameOver && !gameWon && (
@@ -625,6 +963,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 2,
     borderColor: '#334155',
+    position: 'relative',
   },
   row: {
     flexDirection: 'row',
@@ -635,12 +974,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  endpoint: {
-    width: '60%',
-    height: '60%',
-    borderRadius: 100,
-    borderWidth: 3,
-    borderColor: '#FFFFFF',
+  svgOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
   },
   startOverlay: {
     position: 'absolute',
