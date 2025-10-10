@@ -101,6 +101,20 @@ export default function GamesScreen({ route }: { route?: any }) {
     { id: 'expert', name: 'Expert', color: '#ef4444', description: 'Complex topics' },
   ]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadingStates, setLoadingStates] = useState({
+    flashcards: false,
+    topics: false,
+    gameStats: false,
+    flashcardStats: false
+  });
+
+  // Check if all loading states are complete
+  useEffect(() => {
+    const allLoaded = Object.values(loadingStates).every(state => state === true);
+    if (allLoaded) {
+      setIsLoading(false);
+    }
+  }, [loadingStates]);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   const [newFlashcard, setNewFlashcard] = useState({
@@ -167,6 +181,7 @@ export default function GamesScreen({ route }: { route?: any }) {
       
       if (!user) {
         console.log(`🎮 No user, skipping flashcard load`);
+        setLoadingStates(prev => ({ ...prev, flashcards: true }));
         return;
       }
       
@@ -196,6 +211,8 @@ export default function GamesScreen({ route }: { route?: any }) {
         } catch (error) {
           console.error('❌ Error loading flashcards without subject:', error);
           setFlashcards([]);
+        } finally {
+          setLoadingStates(prev => ({ ...prev, flashcards: true }));
         }
         return;
       }
@@ -237,6 +254,8 @@ export default function GamesScreen({ route }: { route?: any }) {
       } catch (error) {
         console.error('❌ Error fetching game data:', error);
         Alert.alert('Error', 'Failed to load game data. Please try again.');
+      } finally {
+        setLoadingStates(prev => ({ ...prev, flashcards: true }));
       }
     };
 
@@ -405,7 +424,10 @@ export default function GamesScreen({ route }: { route?: any }) {
   // Load real game statistics
   const loadGameStatistics = async () => {
     try {
-      if (!user?.id) return;
+      if (!user?.id) {
+        setLoadingStates(prev => ({ ...prev, gameStats: true }));
+        return;
+      }
       
       console.log('🎮 Loading real game statistics...');
       const stats = await GameStatisticsService.getGameStatistics(user.id);
@@ -425,6 +447,8 @@ export default function GamesScreen({ route }: { route?: any }) {
       console.log('✅ Real game statistics loaded:', stats);
     } catch (error) {
       console.error('❌ Error loading game statistics:', error);
+    } finally {
+      setLoadingStates(prev => ({ ...prev, gameStats: true }));
     }
   };
 
@@ -527,20 +551,17 @@ export default function GamesScreen({ route }: { route?: any }) {
   const loadTopics = async () => {
     if (!user || !profile?.subjects || profile.subjects.length === 0) {
       setTopics([]);
-      setIsLoading(false);
+      setLoadingStates(prev => ({ ...prev, topics: true }));
       return;
     }
 
     try {
-      setIsLoading(true);
+      const userSubject = profile.subjects[0];
       
-      // Add minimum loading time for better UX (1.5 seconds)
-      const [userFlashcards] = await Promise.all([
-        UserFlashcardService.getUserFlashcards({
-          subject: profile.subjects[0]
-        }),
-        new Promise(resolve => setTimeout(resolve, 1500))
-      ]);
+      // Get user flashcards for the subject
+      const userFlashcards = await UserFlashcardService.getUserFlashcards({
+        subject: userSubject
+      });
 
       // Group flashcards by topic
       const topicGroups: { [key: string]: any[] } = {};
@@ -567,7 +588,7 @@ export default function GamesScreen({ route }: { route?: any }) {
       console.error('❌ Error loading topics:', error);
       setTopics([]);
     } finally {
-      setIsLoading(false);
+      setLoadingStates(prev => ({ ...prev, topics: true }));
     }
   };
 
@@ -579,6 +600,7 @@ export default function GamesScreen({ route }: { route?: any }) {
         averageAccuracy: 0,
         bestTopic: ''
       });
+      setLoadingStates(prev => ({ ...prev, flashcardStats: true }));
       return;
     }
 
@@ -612,6 +634,8 @@ export default function GamesScreen({ route }: { route?: any }) {
       });
     } catch (error) {
       console.error('❌ Error fetching flashcard stats:', error);
+    } finally {
+      setLoadingStates(prev => ({ ...prev, flashcardStats: true }));
     }
   };
 
