@@ -463,11 +463,6 @@ export default function BrowseFlashcardsScreen() {
                 <View style={styles.flashcardHeader}>
                   <View style={styles.flashcardMeta}>
                     <Text style={styles.flashcardTopic}>{card.topic || 'General'}</Text>
-                    <View style={[styles.difficultyBadge, { backgroundColor: availableDifficulties.find(d => d.id === card.difficulty)?.color || '#6b7280' }]}>
-                      <Text style={styles.difficultyBadgeText}>
-                        {availableDifficulties.find(d => d.id === card.difficulty)?.name || 'Unknown'}
-                      </Text>
-                    </View>
                   </View>
                   <TouchableOpacity 
                     style={styles.deleteButton}
@@ -475,6 +470,15 @@ export default function BrowseFlashcardsScreen() {
                   >
                     <Ionicons name="trash-outline" size={18} color="#ef4444" />
                   </TouchableOpacity>
+                </View>
+                
+                {/* Move difficulty badge below the header */}
+                <View style={styles.difficultyContainer}>
+                  <View style={[styles.difficultyBadge, { backgroundColor: availableDifficulties.find(d => d.id === card.difficulty)?.color || '#6b7280' }]}>
+                    <Text style={styles.difficultyBadgeText}>
+                      {availableDifficulties.find(d => d.id === card.difficulty)?.name || 'Unknown'}
+                    </Text>
+                  </View>
                 </View>
                 
                 <View style={styles.flashcardContent}>
@@ -732,9 +736,12 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   flashcardMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+    flex: 1,
+    marginRight: 12, // Add margin to prevent overlap
+  },
+  difficultyContainer: {
+    marginBottom: 12,
+    alignItems: 'flex-start',
   },
   deleteButton: {
     padding: 8,
@@ -753,6 +760,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 4,
+    minWidth: 60,
+    alignItems: 'center',
   },
   difficultyBadgeText: {
     fontSize: 10,
