@@ -90,7 +90,14 @@ const BreakoutDeluxeGame: React.FC<BreakoutDeluxeGameProps> = ({ onClose, onGame
   const nextLaserId = useRef(0);
   const finalScoreRef = useRef<number>(0);
   const completionCalledRef = useRef<boolean>(false);
+  const paddleXRef = useRef(paddleX);
+  const paddleWidthRef = useRef(paddleWidth);
   const lastPaddleX = useRef(paddleX);
+  const ballsRef = useRef(balls);
+  const bricksRef = useRef(bricks);
+  const powerUpsRef = useRef(powerUps);
+  const lasersRef = useRef(lasers);
+  const levelRef = useRef(level);
 
   // Animated values
   const bgFloat1 = useRef(new Animated.Value(0)).current;
@@ -120,13 +127,13 @@ const BreakoutDeluxeGame: React.FC<BreakoutDeluxeGameProps> = ({ onClose, onGame
     const colors = ['#EF4444', '#F59E0B', '#10B981', '#3B82F6', '#8B5CF6', '#EC4899', '#6366F1'];
     const color = colors[row % colors.length];
     
-    // Top rows are metal (unbreakable initially), middle are strong, bottom are normal
+    // Top rows are very strong (4 hits), middle are strong (3 hits), bottom are normal (1-2 hits)
     const type: 'normal' | 'strong' | 'metal' = 
-      row === 0 ? 'metal' : 
+      row === 0 ? 'strong' : 
       row <= 2 ? 'strong' : 
       'normal';
     
-    const maxHits = type === 'metal' ? 999 : type === 'strong' ? 3 : row === BRICK_ROWS - 1 ? 1 : 2;
+    const maxHits = row === 0 ? 4 : type === 'strong' ? 3 : row === BRICK_ROWS - 1 ? 1 : 2;
     
     return { color, type, maxHits };
   };
@@ -179,21 +186,50 @@ const BreakoutDeluxeGame: React.FC<BreakoutDeluxeGameProps> = ({ onClose, onGame
     initializeGame();
   }, [initializeGame]);
 
-  // Paddle pan responder
+  // Keep refs in sync with state for smooth game loop
+  useEffect(() => {
+    paddleXRef.current = paddleX;
+  }, [paddleX]);
+
+  useEffect(() => {
+    paddleWidthRef.current = paddleWidth;
+  }, [paddleWidth]);
+
+  useEffect(() => {
+    ballsRef.current = balls;
+  }, [balls]);
+
+  useEffect(() => {
+    bricksRef.current = bricks;
+  }, [bricks]);
+
+  useEffect(() => {
+    powerUpsRef.current = powerUps;
+  }, [powerUps]);
+
+  useEffect(() => {
+    lasersRef.current = lasers;
+  }, [lasers]);
+
+  useEffect(() => {
+    levelRef.current = level;
+  }, [level]);
+
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
       onPanResponderGrant: () => {
-        lastPaddleX.current = paddleX;
+        lastPaddleX.current = paddleXRef.current;
       },
       onPanResponderMove: (_, gestureState) => {
         const newX = lastPaddleX.current + gestureState.dx;
         const clampedX = Math.max(0, Math.min(GAME_WIDTH - paddleWidth, newX));
         setPaddleX(clampedX);
+        paddleXRef.current = clampedX; // Update ref immediately for smooth tracking
       },
       onPanResponderRelease: () => {
-        lastPaddleX.current = paddleX;
+        lastPaddleX.current = paddleXRef.current;
         if (!gameStarted) {
           setGameStarted(true);
         }
@@ -285,16 +321,18 @@ const BreakoutDeluxeGame: React.FC<BreakoutDeluxeGameProps> = ({ onClose, onGame
           newBall.y = 0;
         }
 
-        // Paddle collision
+        // Paddle collision - use refs for current position
+        const currentPaddleX = paddleXRef.current;
+        const currentPaddleWidth = paddleWidthRef.current;
         if (
           newBall.y + BALL_SIZE >= GAME_HEIGHT - PADDLE_HEIGHT - 20 &&
           newBall.y + BALL_SIZE <= GAME_HEIGHT - PADDLE_HEIGHT - 10 &&
-          newBall.x + BALL_SIZE >= paddleX &&
-          newBall.x <= paddleX + paddleWidth
+          newBall.x + BALL_SIZE >= currentPaddleX &&
+          newBall.x <= currentPaddleX + currentPaddleWidth
         ) {
           newBall.dy = -Math.abs(newBall.dy);
-          const paddleCenter = paddleX + paddleWidth / 2;
-          const hitPos = (newBall.x + BALL_SIZE / 2 - paddleCenter) / (paddleWidth / 2);
+          const paddleCenter = currentPaddleX + currentPaddleWidth / 2;
+          const hitPos = (newBall.x + BALL_SIZE / 2 - paddleCenter) / (currentPaddleWidth / 2);
           newBall.dx = hitPos * BALL_SPEED * 1.5;
         }
 
@@ -302,8 +340,9 @@ const BreakoutDeluxeGame: React.FC<BreakoutDeluxeGameProps> = ({ onClose, onGame
       }).filter(ball => ball.y < GAME_HEIGHT + 50); // Remove balls that fell
     });
 
-    // Check if all balls lost
-    if (balls.length === 0 || balls.every(b => b.y >= GAME_HEIGHT)) {
+    // Check if all balls lost - use ref for current state
+    const currentBalls = ballsRef.current;
+    if (currentBalls.length === 0 || currentBalls.every(b => b.y >= GAME_HEIGHT)) {
       setLives(prev => {
         const newLives = prev - 1;
         if (newLives <= 0) {
@@ -326,14 +365,16 @@ const BreakoutDeluxeGame: React.FC<BreakoutDeluxeGameProps> = ({ onClose, onGame
     setPowerUps(prev => {
       const updated = prev.map(p => ({ ...p, y: p.y + POWER_UP_FALL_SPEED }));
       
-      // Check collection
+      // Check collection - use refs for current paddle position
+      const currentPaddleX = paddleXRef.current;
+      const currentPaddleWidth = paddleWidthRef.current;
       const collected: PowerUpType[] = [];
       const remaining = updated.filter(p => {
         if (
           p.y + POWER_UP_SIZE >= GAME_HEIGHT - PADDLE_HEIGHT - 20 &&
           p.y <= GAME_HEIGHT - PADDLE_HEIGHT + 20 &&
-          p.x + POWER_UP_SIZE >= paddleX &&
-          p.x <= paddleX + paddleWidth
+          p.x + POWER_UP_SIZE >= currentPaddleX &&
+          p.x <= currentPaddleX + currentPaddleWidth
         ) {
           collected.push(p.type);
           return false;
@@ -349,12 +390,14 @@ const BreakoutDeluxeGame: React.FC<BreakoutDeluxeGameProps> = ({ onClose, onGame
     setLasers(prev => prev.map(l => ({ ...l, y: l.y - 8 })).filter(l => l.y > -20));
 
     // Laser collisions with bricks
+    const currentLasers = lasersRef.current;
+    const currentLevel = levelRef.current;
     setBricks(prevBricks => {
       let newBricks = [...prevBricks];
       
-      lasers.forEach(laser => {
+      currentLasers.forEach(laser => {
         newBricks = newBricks.map(brick => {
-          if (brick.hits >= brick.maxHits || brick.type === 'metal') return brick;
+          if (brick.hits >= brick.maxHits) return brick;
           
           const brickX = brick.col * (BRICK_WIDTH + 4) + 2;
           const brickY = brick.row * (BRICK_HEIGHT + 4) + 50;
@@ -367,7 +410,7 @@ const BreakoutDeluxeGame: React.FC<BreakoutDeluxeGameProps> = ({ onClose, onGame
           ) {
             const newBrick = { ...brick, hits: brick.hits + 1 };
             if (newBrick.hits >= newBrick.maxHits) {
-              setScore(prev => prev + (brick.row + 1) * 15 * level);
+              setScore(prev => prev + (brick.row + 1) * 15 * currentLevel);
               
               // Drop power-up
               if (brick.hasPowerUp) {
@@ -394,11 +437,11 @@ const BreakoutDeluxeGame: React.FC<BreakoutDeluxeGameProps> = ({ onClose, onGame
     });
 
     // Ball collisions with bricks
-    balls.forEach(ball => {
+    currentBalls.forEach(ball => {
       setBricks(prevBricks => {
         let brickHit = false;
         const newBricks = prevBricks.map(brick => {
-          if (brick.hits >= brick.maxHits || brick.type === 'metal') return brick;
+          if (brick.hits >= brick.maxHits) return brick;
 
           const brickX = brick.col * (BRICK_WIDTH + 4) + 2;
           const brickY = brick.row * (BRICK_HEIGHT + 4) + 50;
@@ -418,7 +461,7 @@ const BreakoutDeluxeGame: React.FC<BreakoutDeluxeGameProps> = ({ onClose, onGame
 
             const newBrick = { ...brick, hits: brick.hits + 1 };
             if (newBrick.hits >= newBrick.maxHits) {
-              setScore(prev => prev + (brick.row + 1) * 10 * level);
+              setScore(prev => prev + (brick.row + 1) * 10 * currentLevel);
               
               // Drop power-up
               if (brick.hasPowerUp) {
@@ -441,15 +484,15 @@ const BreakoutDeluxeGame: React.FC<BreakoutDeluxeGameProps> = ({ onClose, onGame
           return brick;
         });
 
-        // Check if all breakable bricks destroyed
-        if (newBricks.filter(b => b.type !== 'metal').every(b => b.hits >= b.maxHits)) {
+        // Check if all bricks destroyed
+        if (newBricks.every(b => b.hits >= b.maxHits)) {
           setWon(true);
         }
 
         return newBricks;
       });
     });
-  }, [gameStarted, isPaused, gameOver, won, balls, paddleX, paddleWidth, level, lasers, applyPowerUp]);
+  }, [gameStarted, isPaused, gameOver, won, applyPowerUp]);
 
   // Start game loop
   useEffect(() => {
@@ -594,7 +637,7 @@ const BreakoutDeluxeGame: React.FC<BreakoutDeluxeGameProps> = ({ onClose, onGame
         {bricks.map(brick => {
           if (brick.hits >= brick.maxHits) return null;
           
-          const opacity = brick.type === 'metal' ? 1 : 1 - (brick.hits / brick.maxHits) * 0.4;
+          const opacity = 1 - (brick.hits / brick.maxHits) * 0.4;
           const brickX = brick.col * (BRICK_WIDTH + 4) + 2;
           const brickY = brick.row * (BRICK_HEIGHT + 4) + 50;
           
@@ -608,10 +651,10 @@ const BreakoutDeluxeGame: React.FC<BreakoutDeluxeGameProps> = ({ onClose, onGame
                   top: brickY,
                   width: BRICK_WIDTH,
                   height: BRICK_HEIGHT,
-                  backgroundColor: brick.type === 'metal' ? '#64748B' : brick.color,
+                  backgroundColor: brick.color,
                   opacity: opacity,
-                  borderWidth: brick.type === 'metal' ? 2 : 1,
-                  borderColor: brick.type === 'metal' ? '#94A3B8' : 'rgba(0, 0, 0, 0.3)',
+                  borderWidth: brick.maxHits >= 4 ? 2 : 1, // Thicker border for very strong bricks
+                  borderColor: brick.maxHits >= 4 ? 'rgba(0, 0, 0, 0.5)' : 'rgba(0, 0, 0, 0.3)',
                 },
               ]}
             >
@@ -704,7 +747,7 @@ const BreakoutDeluxeGame: React.FC<BreakoutDeluxeGameProps> = ({ onClose, onGame
       {/* Instructions */}
       <View style={styles.instructions}>
         <Text style={styles.instructionsText}>
-          Collect power-ups for special abilities! Metal bricks are indestructible.
+          Collect power-ups for special abilities! Top row bricks need 4 hits!
         </Text>
       </View>
 
