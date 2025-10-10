@@ -784,50 +784,10 @@ const BubbleShooterGame: React.FC<BubbleShooterGameProps> = ({ onClose, onGameCo
         )}
       </View>
 
-      {/* Controls */}
-      <View style={styles.controls}>
-        <TouchableOpacity 
-          style={styles.angleButton} 
-          onPress={() => {
-            const newAngle = Math.min(150, shooterAngleRef.current + 10);
-            setShooterAngle(newAngle);
-            shooterAngleRef.current = newAngle;
-          }}
-          disabled={!!flyingBubble}
-        >
-          <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
-        </TouchableOpacity>
-        
-        <View style={styles.angleDisplay}>
-          <Text style={styles.angleText}>{Math.round(shooterAngle)}°</Text>
-        </View>
-        
-        <TouchableOpacity 
-          style={styles.shootButton} 
-          onPress={shootBubble}
-          disabled={!!flyingBubble}
-        >
-          <Ionicons name="radio-button-on" size={32} color="#FFFFFF" />
-          <Text style={styles.shootButtonText}>SHOOT</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={styles.angleButton} 
-          onPress={() => {
-            const newAngle = Math.max(30, shooterAngleRef.current - 10);
-            setShooterAngle(newAngle);
-            shooterAngleRef.current = newAngle;
-          }}
-          disabled={!!flyingBubble}
-        >
-          <Ionicons name="arrow-forward" size={24} color="#FFFFFF" />
-        </TouchableOpacity>
-      </View>
-
       {/* Instructions */}
       <View style={styles.instructions}>
         <Text style={styles.instructionsText}>
-          Use arrows to adjust angle, or drag on grid to aim. Tap SHOOT to fire!
+          Drag on grid to aim and release to shoot!
         </Text>
       </View>
 
@@ -991,58 +951,6 @@ const styles = StyleSheet.create({
   startButtonText: {
     color: '#FFFFFF',
     fontSize: 18,
-    fontWeight: '700',
-  },
-  controls: {
-    flexDirection: 'row',
-    paddingVertical: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 15,
-  },
-  angleButton: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: '#3B82F6',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  angleDisplay: {
-    backgroundColor: '#1E293B',
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#3B82F6',
-  },
-  angleText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  shootButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#EF4444',
-    paddingHorizontal: 25,
-    paddingVertical: 12,
-    borderRadius: 25,
-    gap: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  shootButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
     fontWeight: '700',
   },
   instructions: {
