@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, SafeAreaView } from 'react-native';
+import { View, StyleSheet, StatusBar, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import ConsistentHeader from '../components/ConsistentHeader';
 import ArcadeSection from '../components/arcade/ArcadeSection';
@@ -13,26 +13,30 @@ export default function ArcadeScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#1E293B" />
       <ConsistentHeader 
         pageName="Arcade"
         pageIcon="game-controller"
         showBackButton={true}
         onBackPress={handleBackPress}
+        darkMode={true}
       />
       <View style={styles.content}>
         <ArcadeSection />
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#1E293B',
+    paddingTop: Platform.OS === 'ios' ? 44 : StatusBar.currentHeight || 0,
   },
   content: {
     flex: 1,
+    backgroundColor: '#0F172A',
   },
 });

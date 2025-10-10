@@ -7,6 +7,7 @@ interface AsteroidsGameProps {
   gameData?: any;
   onClose: () => void;
   onGameComplete: (score: number) => void;
+  onRestart?: () => Promise<boolean>;
 }
 
 const { width, height } = Dimensions.get('window');
@@ -62,7 +63,7 @@ type UFO = {
   size: 'large' | 'small';
 };
 
-const AsteroidsGame: React.FC<AsteroidsGameProps> = ({ onClose, onGameComplete }) => {
+const AsteroidsGame: React.FC<AsteroidsGameProps> = ({ onClose, onGameComplete, onRestart }) => {
   // Game state
   const [ship, setShip] = useState<Ship>({
     x: GAME_WIDTH / 2,
@@ -509,7 +510,15 @@ const AsteroidsGame: React.FC<AsteroidsGameProps> = ({ onClose, onGameComplete }
     setTimeout(() => createFloatAnimation(bgFloat3, 3200).start(), 500);
   }, []);
 
-  const handleRestart = () => {
+  const handleRestart = async () => {
+    // Check if we can afford to restart (charge XP)
+    if (onRestart) {
+      const canRestart = await onRestart();
+      if (!canRestart) {
+        return; // User doesn't have enough XP or restart failed
+      }
+    }
+
     initializeGame();
     setScore(0);
     setLives(3);

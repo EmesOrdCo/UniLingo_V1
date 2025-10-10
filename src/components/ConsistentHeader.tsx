@@ -16,6 +16,7 @@ interface ConsistentHeaderProps {
   showBackButton?: boolean;
   onBackPress?: () => void;
   pageIcon?: keyof typeof Ionicons.glyphMap;
+  darkMode?: boolean; // For dark themed pages like Arcade
 }
 
 export default function ConsistentHeader({
@@ -24,7 +25,8 @@ export default function ConsistentHeader({
   streakCount = 0,
   showBackButton = false,
   onBackPress,
-  pageIcon
+  pageIcon,
+  darkMode = false
 }: ConsistentHeaderProps) {
   const navigation = useNavigation();
   const { user, profile } = useAuth();
@@ -49,46 +51,46 @@ export default function ConsistentHeader({
   }, [user?.id, refreshTrigger]); // Add refreshTrigger dependency
 
   return (
-    <View style={styles.header}>
+    <View style={[styles.header, darkMode && styles.headerDark]}>
       <View style={styles.headerLeft}>
         {showBackButton && (
           <TouchableOpacity 
             style={styles.backButton}
             onPress={onBackPress || (() => navigation.goBack())}
           >
-            <Ionicons name="arrow-back" size={24} color="#1f2937" />
+            <Ionicons name="arrow-back" size={24} color={darkMode ? "#F1F5F9" : "#1f2937"} />
           </TouchableOpacity>
         )}
         {isOverview ? (
-          <Text style={styles.greetingText}>
+          <Text style={[styles.greetingText, darkMode && styles.greetingTextDark]}>
             Hi, {profile?.name || user?.email?.split('@')[0] || 'User'}
           </Text>
         ) : (
           <View style={styles.pageTitleContainer}>
             {pageIcon && (
-              <View style={styles.pageIconContainer}>
-                <Ionicons name={pageIcon} size={24} color="#6366f1" />
+              <View style={[styles.pageIconContainer, darkMode && styles.pageIconContainerDark]}>
+                <Ionicons name={pageIcon} size={24} color={darkMode ? "#F59E0B" : "#6366f1"} />
               </View>
             )}
-            <Text style={styles.pageNameText}>{pageName}</Text>
+            <Text style={[styles.pageNameText, darkMode && styles.pageNameTextDark]}>{pageName}</Text>
           </View>
         )}
       </View>
       
       <View style={styles.headerRight}>
         <TouchableOpacity 
-          style={styles.streakContainer}
+          style={[styles.streakContainer, darkMode && styles.streakContainerDark]}
           onPress={() => setShowStreakModal(true)}
         >
           <Ionicons name="flame" size={20} color="#f59e0b" />
-          <Text style={styles.streakText}>{currentStreak}</Text>
+          <Text style={[styles.streakText, darkMode && styles.streakTextDark]}>{currentStreak}</Text>
         </TouchableOpacity>
         
                               <TouchableOpacity 
           style={styles.profileButton}
           onPress={() => navigation.navigate('Profile' as never)}
         >
-          <ProfileAvatar size={32} color="#6366f1" refreshTrigger={profileRefreshTrigger} />
+          <ProfileAvatar size={32} color={darkMode ? "#F59E0B" : "#6366f1"} refreshTrigger={profileRefreshTrigger} />
         </TouchableOpacity>
       </View>
       
@@ -172,5 +174,28 @@ const styles = StyleSheet.create({
   },
   profileButton: {
     padding: 4,
+  },
+  // Dark mode styles
+  headerDark: {
+    backgroundColor: '#1E293B',
+    borderBottomWidth: 2,
+    borderBottomColor: '#334155',
+  },
+  greetingTextDark: {
+    color: '#F1F5F9',
+  },
+  pageNameTextDark: {
+    color: '#F1F5F9',
+  },
+  pageIconContainerDark: {
+    backgroundColor: '#334155',
+  },
+  streakContainerDark: {
+    backgroundColor: '#334155',
+    borderWidth: 1,
+    borderColor: '#F59E0B',
+  },
+  streakTextDark: {
+    color: '#F59E0B',
   },
 });

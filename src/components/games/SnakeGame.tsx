@@ -7,6 +7,7 @@ interface SnakeGameProps {
   gameData?: any;
   onClose: () => void;
   onGameComplete: (score: number) => void;
+  onRestart?: () => Promise<boolean>;
 }
 
 const { width, height } = Dimensions.get('window');
@@ -20,7 +21,7 @@ const GAME_SPEED_MIN = 80; // fastest speed
 type Direction = 'UP' | 'DOWN' | 'LEFT' | 'RIGHT';
 type Position = { x: number; y: number };
 
-const SnakeGame: React.FC<SnakeGameProps> = ({ onClose, onGameComplete }) => {
+const SnakeGame: React.FC<SnakeGameProps> = ({ onClose, onGameComplete, onRestart }) => {
   // Game state
   const [snake, setSnake] = useState<Position[]>([
     { x: 10, y: 10 },
@@ -212,7 +213,15 @@ const SnakeGame: React.FC<SnakeGameProps> = ({ onClose, onGameComplete }) => {
     }
   };
 
-  const handleRestart = () => {
+  const handleRestart = async () => {
+    // Check if we can afford to restart (charge XP)
+    if (onRestart) {
+      const canRestart = await onRestart();
+      if (!canRestart) {
+        return; // User doesn't have enough XP or restart failed
+      }
+    }
+
     setSnake([
       { x: 10, y: 10 },
       { x: 9, y: 10 },

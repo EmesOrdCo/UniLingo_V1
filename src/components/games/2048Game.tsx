@@ -7,6 +7,7 @@ interface Game2048Props {
   gameData?: any;
   onClose: () => void;
   onGameComplete: (score: number) => void;
+  onRestart?: () => Promise<boolean>;
 }
 
 const { width, height } = Dimensions.get('window');
@@ -25,7 +26,7 @@ type Tile = {
   isMerged?: boolean;
 };
 
-const Game2048: React.FC<Game2048Props> = ({ onClose, onGameComplete }) => {
+const Game2048: React.FC<Game2048Props> = ({ onClose, onGameComplete, onRestart }) => {
   // Game state
   const [tiles, setTiles] = useState<Tile[]>([]);
   const [score, setScore] = useState(0);
@@ -331,7 +332,15 @@ const Game2048: React.FC<Game2048Props> = ({ onClose, onGameComplete }) => {
     }
   };
 
-  const handleRestart = () => {
+  const handleRestart = async () => {
+    // Check if we can afford to restart (charge XP)
+    if (onRestart) {
+      const canRestart = await onRestart();
+      if (!canRestart) {
+        return; // User doesn't have enough XP or restart failed
+      }
+    }
+
     initializeGame();
   };
 

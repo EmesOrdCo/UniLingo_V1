@@ -7,6 +7,7 @@ interface PacManGameProps {
   gameData?: any;
   onClose: () => void;
   onGameComplete: (score: number) => void;
+  onRestart?: () => Promise<boolean>;
 }
 
 const { width, height } = Dimensions.get('window');
@@ -84,7 +85,7 @@ const createMaze = (): number[][] => {
   return maze;
 };
 
-const PacManGame: React.FC<PacManGameProps> = ({ onClose, onGameComplete }) => {
+const PacManGame: React.FC<PacManGameProps> = ({ onClose, onGameComplete, onRestart }) => {
   // Game state
   const [maze, setMaze] = useState<number[][]>(createMaze());
   const [pacman, setPacman] = useState<Position>({ row: 14, col: 9 });
@@ -458,7 +459,15 @@ const PacManGame: React.FC<PacManGameProps> = ({ onClose, onGameComplete }) => {
     }
   };
 
-  const handleRestart = () => {
+  const handleRestart = async () => {
+    // Check if we can afford to restart (charge XP)
+    if (onRestart) {
+      const canRestart = await onRestart();
+      if (!canRestart) {
+        return; // User doesn't have enough XP or restart failed
+      }
+    }
+
     setMaze(createMaze());
     setPacman({ row: 14, col: 9 });
     setPacmanDirection(null);

@@ -25,6 +25,7 @@ interface ArcadeGameLauncherProps {
 export default function ArcadeGameLauncher({ visible, game, onClose }: ArcadeGameLauncherProps) {
   const { user } = useAuth();
   const [gameStartTime] = useState(Date.now());
+  const [restartCount, setRestartCount] = useState(0);
 
   if (!game) return null;
 
@@ -64,6 +65,32 @@ export default function ArcadeGameLauncher({ visible, game, onClose }: ArcadeGam
     onClose();
   };
 
+  const handleGameRestart = async () => {
+    if (!user?.id || !game) return;
+
+    // Check if user can afford to restart (has enough XP for paid games)
+    if (game.xp_cost > 0) {
+      const playCheck = await ArcadeService.canPlayGame(user.id, game.id);
+      
+      if (!playCheck.canPlay) {
+        alert(playCheck.message || 'Not enough XP to restart. Complete some lessons to earn more XP!');
+        return false; // Indicate restart failed
+      }
+
+      // Purchase the restart (spend XP again)
+      const purchase = await ArcadeService.purchaseGame(user.id, game.id);
+      if (!purchase.success) {
+        alert(purchase.message || 'Failed to restart game');
+        return false; // Indicate restart failed
+      }
+
+      console.log(`💰 Charged ${game.xp_cost} XP for game restart (attempt ${restartCount + 1})`);
+      setRestartCount(prev => prev + 1);
+    }
+
+    return true; // Indicate restart succeeded
+  };
+
   // Render React Native games directly
   if (isReactNativeGame) {
     if (game.game_url === 'snake') {
@@ -74,7 +101,7 @@ export default function ArcadeGameLauncher({ visible, game, onClose }: ArcadeGam
           presentationStyle="fullScreen"
           onRequestClose={handleClose}
         >
-          <SnakeGame onClose={handleClose} onGameComplete={handleGameComplete} />
+          <SnakeGame onClose={handleClose} onGameComplete={handleGameComplete} onRestart={handleGameRestart} />
         </Modal>
       );
     }
@@ -87,7 +114,7 @@ export default function ArcadeGameLauncher({ visible, game, onClose }: ArcadeGam
           presentationStyle="fullScreen"
           onRequestClose={handleClose}
         >
-          <Game2048 onClose={handleClose} onGameComplete={handleGameComplete} />
+          <Game2048 onClose={handleClose} onGameComplete={handleGameComplete} onRestart={handleGameRestart} />
         </Modal>
       );
     }
@@ -100,7 +127,7 @@ export default function ArcadeGameLauncher({ visible, game, onClose }: ArcadeGam
           presentationStyle="fullScreen"
           onRequestClose={handleClose}
         >
-          <TetrisGame onClose={handleClose} onGameComplete={handleGameComplete} />
+          <TetrisGame onClose={handleClose} onGameComplete={handleGameComplete} onRestart={handleGameRestart} />
         </Modal>
       );
     }
@@ -113,7 +140,7 @@ export default function ArcadeGameLauncher({ visible, game, onClose }: ArcadeGam
           presentationStyle="fullScreen"
           onRequestClose={handleClose}
         >
-          <BreakoutGame onClose={handleClose} onGameComplete={handleGameComplete} />
+          <BreakoutGame onClose={handleClose} onGameComplete={handleGameComplete} onRestart={handleGameRestart} />
         </Modal>
       );
     }
@@ -126,7 +153,7 @@ export default function ArcadeGameLauncher({ visible, game, onClose }: ArcadeGam
           presentationStyle="fullScreen"
           onRequestClose={handleClose}
         >
-          <SpaceInvadersGame onClose={handleClose} onGameComplete={handleGameComplete} />
+          <SpaceInvadersGame onClose={handleClose} onGameComplete={handleGameComplete} onRestart={handleGameRestart} />
         </Modal>
       );
     }
@@ -139,7 +166,7 @@ export default function ArcadeGameLauncher({ visible, game, onClose }: ArcadeGam
           presentationStyle="fullScreen"
           onRequestClose={handleClose}
         >
-          <PongGame onClose={handleClose} onGameComplete={handleGameComplete} />
+          <PongGame onClose={handleClose} onGameComplete={handleGameComplete} onRestart={handleGameRestart} />
         </Modal>
       );
     }
@@ -152,7 +179,7 @@ export default function ArcadeGameLauncher({ visible, game, onClose }: ArcadeGam
           presentationStyle="fullScreen"
           onRequestClose={handleClose}
         >
-          <MinesweeperGame onClose={handleClose} onGameComplete={handleGameComplete} />
+          <MinesweeperGame onClose={handleClose} onGameComplete={handleGameComplete} onRestart={handleGameRestart} />
         </Modal>
       );
     }
@@ -165,7 +192,7 @@ export default function ArcadeGameLauncher({ visible, game, onClose }: ArcadeGam
           presentationStyle="fullScreen"
           onRequestClose={handleClose}
         >
-          <PacManGame onClose={handleClose} onGameComplete={handleGameComplete} />
+          <PacManGame onClose={handleClose} onGameComplete={handleGameComplete} onRestart={handleGameRestart} />
         </Modal>
       );
     }
@@ -178,7 +205,7 @@ export default function ArcadeGameLauncher({ visible, game, onClose }: ArcadeGam
           presentationStyle="fullScreen"
           onRequestClose={handleClose}
         >
-          <FlappyBirdGame onClose={handleClose} onGameComplete={handleGameComplete} />
+          <FlappyBirdGame onClose={handleClose} onGameComplete={handleGameComplete} onRestart={handleGameRestart} />
         </Modal>
       );
     }
@@ -191,7 +218,7 @@ export default function ArcadeGameLauncher({ visible, game, onClose }: ArcadeGam
           presentationStyle="fullScreen"
           onRequestClose={handleClose}
         >
-          <AsteroidsGame onClose={handleClose} onGameComplete={handleGameComplete} />
+          <AsteroidsGame onClose={handleClose} onGameComplete={handleGameComplete} onRestart={handleGameRestart} />
         </Modal>
       );
     }
@@ -204,7 +231,7 @@ export default function ArcadeGameLauncher({ visible, game, onClose }: ArcadeGam
           presentationStyle="fullScreen"
           onRequestClose={handleClose}
         >
-          <BubbleShooterGame onClose={handleClose} onGameComplete={handleGameComplete} />
+          <BubbleShooterGame onClose={handleClose} onGameComplete={handleGameComplete} onRestart={handleGameRestart} />
         </Modal>
       );
     }
@@ -217,7 +244,7 @@ export default function ArcadeGameLauncher({ visible, game, onClose }: ArcadeGam
           presentationStyle="fullScreen"
           onRequestClose={handleClose}
         >
-          <SudokuGame onClose={handleClose} onGameComplete={handleGameComplete} />
+          <SudokuGame onClose={handleClose} onGameComplete={handleGameComplete} onRestart={handleGameRestart} />
         </Modal>
       );
     }

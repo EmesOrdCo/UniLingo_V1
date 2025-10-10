@@ -6,6 +6,7 @@ interface MinesweeperGameProps {
   gameData?: any;
   onClose: () => void;
   onGameComplete: (score: number) => void;
+  onRestart?: () => Promise<boolean>;
 }
 
 const { width, height } = Dimensions.get('window');
@@ -24,7 +25,7 @@ type Cell = {
   adjacentMines: number;
 };
 
-const MinesweeperGame: React.FC<MinesweeperGameProps> = ({ onClose, onGameComplete }) => {
+const MinesweeperGame: React.FC<MinesweeperGameProps> = ({ onClose, onGameComplete, onRestart }) => {
   // Game state
   const [grid, setGrid] = useState<Cell[][]>([]);
   const [gameOver, setGameOver] = useState(false);
@@ -229,7 +230,15 @@ const MinesweeperGame: React.FC<MinesweeperGameProps> = ({ onClose, onGameComple
     setMinesRemaining(prev => newGrid[row][col].isFlagged ? prev - 1 : prev + 1);
   }, [grid, gameOver, won]);
 
-  const handleRestart = () => {
+  const handleRestart = async () => {
+    // Check if we can afford to restart (charge XP)
+    if (onRestart) {
+      const canRestart = await onRestart();
+      if (!canRestart) {
+        return; // User doesn't have enough XP or restart failed
+      }
+    }
+
     setGrid(initializeGrid());
     setGameOver(false);
     setWon(false);

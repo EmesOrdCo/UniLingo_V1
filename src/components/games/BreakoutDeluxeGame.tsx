@@ -6,6 +6,7 @@ interface BreakoutDeluxeGameProps {
   gameData?: any;
   onClose: () => void;
   onGameComplete: (score: number) => void;
+  onRestart?: () => Promise<boolean>;
 }
 
 const { width, height } = Dimensions.get('window');
@@ -60,7 +61,7 @@ type Laser = {
   y: number;
 };
 
-const BreakoutDeluxeGame: React.FC<BreakoutDeluxeGameProps> = ({ onClose, onGameComplete }) => {
+const BreakoutDeluxeGame: React.FC<BreakoutDeluxeGameProps> = ({ onClose, onGameComplete, onRestart }) => {
   // Game state
   const [paddleX, setPaddleX] = useState((GAME_WIDTH - INITIAL_PADDLE_WIDTH) / 2);
   const [paddleWidth, setPaddleWidth] = useState(INITIAL_PADDLE_WIDTH);
@@ -560,7 +561,15 @@ const BreakoutDeluxeGame: React.FC<BreakoutDeluxeGameProps> = ({ onClose, onGame
     setTimeout(() => createFloatAnimation(bgFloat3, 3200).start(), 500);
   }, []);
 
-  const handleRestart = () => {
+  const handleRestart = async () => {
+    // Check if we can afford to restart (charge XP)
+    if (onRestart) {
+      const canRestart = await onRestart();
+      if (!canRestart) {
+        return; // User doesn't have enough XP or restart failed
+      }
+    }
+
     initializeGame();
     setScore(0);
     setLives(3);

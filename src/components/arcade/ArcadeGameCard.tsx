@@ -61,9 +61,14 @@ export default function ArcadeGameCard({ game, highScore, onPress }: ArcadeGameC
           <Text style={styles.gameName} numberOfLines={1}>
             {game.name}
           </Text>
-          {game.xp_cost === 0 && (
+          {game.xp_cost === 0 ? (
             <View style={styles.freeBadge}>
               <Text style={styles.freeText}>FREE</Text>
+            </View>
+          ) : (
+            <View style={styles.costBadge}>
+              <Ionicons name="star" size={12} color="#F59E0B" />
+              <Text style={styles.costText}>{game.xp_cost}</Text>
             </View>
           )}
         </View>
@@ -94,16 +99,17 @@ export default function ArcadeGameCard({ game, highScore, onPress }: ArcadeGameC
 const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#1E293B',
     borderRadius: 20,
     padding: 18,
-    marginBottom: 14,
     borderLeftWidth: 5,
+    borderWidth: 2,
+    borderColor: '#334155',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.4,
     shadowRadius: 12,
-    elevation: 4,
+    elevation: 6,
   },
   iconContainer: {
     width: 68,
@@ -126,7 +132,7 @@ const styles = StyleSheet.create({
   gameName: {
     fontSize: 19,
     fontWeight: '700',
-    color: '#111827',
+    color: '#F1F5F9',
     flex: 1,
     letterSpacing: -0.3,
   },
@@ -143,9 +149,27 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     letterSpacing: 0.5,
   },
+  costBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#334155',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+    marginLeft: 8,
+    borderWidth: 1,
+    borderColor: '#F59E0B',
+  },
+  costText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#F59E0B',
+    letterSpacing: 0.3,
+  },
   description: {
     fontSize: 14,
-    color: '#6B7280',
+    color: '#94A3B8',
     marginBottom: 10,
     lineHeight: 20,
     minHeight: 40,
@@ -160,15 +184,17 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   categoryBadge: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#334155',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#475569',
   },
   categoryText: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#6B7280',
+    color: '#94A3B8',
     textTransform: 'capitalize',
     letterSpacing: 0.3,
   },

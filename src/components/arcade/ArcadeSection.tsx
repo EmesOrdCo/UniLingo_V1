@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import ArcadeGameCard from './ArcadeGameCard';
 import ArcadeGameLauncher from './ArcadeGameLauncher';
 import { ArcadeGame, ArcadeService } from '../../lib/arcadeService';
+import { XPService } from '../../lib/xpService';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface ArcadeSectionProps {
@@ -27,6 +28,7 @@ export default function ArcadeSection({ onGamePlayed }: ArcadeSectionProps) {
   const [selectedGame, setSelectedGame] = useState<ArcadeGame | null>(null);
   const [showGameModal, setShowGameModal] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [availableXP, setAvailableXP] = useState(0);
 
   useEffect(() => {
     loadGames();
@@ -35,8 +37,19 @@ export default function ArcadeSection({ onGamePlayed }: ArcadeSectionProps) {
   useEffect(() => {
     if (user?.id) {
       loadHighScores();
+      loadAvailableXP();
     }
   }, [user?.id]);
+
+  const loadAvailableXP = async () => {
+    if (!user?.id) return;
+    try {
+      const xp = await XPService.getAvailableXP(user.id);
+      setAvailableXP(xp);
+    } catch (error) {
+      console.error('Error loading available XP:', error);
+    }
+  };
 
   const loadGames = async () => {
     try {
@@ -61,11 +74,33 @@ export default function ArcadeSection({ onGamePlayed }: ArcadeSectionProps) {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await Promise.all([loadGames(), loadHighScores()]);
+    await Promise.all([loadGames(), loadHighScores(), loadAvailableXP()]);
     setRefreshing(false);
   };
 
-  const handleGamePress = (game: ArcadeGame) => {
+  const handleGamePress = async (game: ArcadeGame) => {
+    if (!user?.id) return;
+
+    // Check if user can play (has enough XP for paid games)
+    if (game.xp_cost > 0) {
+      const playCheck = await ArcadeService.canPlayGame(user.id, game.id);
+      
+      if (!playCheck.canPlay) {
+        alert(playCheck.message || 'Cannot play this game');
+        return;
+      }
+
+      // Purchase the game (spend XP)
+      const purchase = await ArcadeService.purchaseGame(user.id, game.id);
+      if (!purchase.success) {
+        alert(purchase.message || 'Failed to purchase game');
+        return;
+      }
+
+      // Reload available XP after purchase
+      await loadAvailableXP();
+    }
+
     setSelectedGame(game);
     setShowGameModal(true);
   };
@@ -102,6 +137,18 @@ export default function ArcadeSection({ onGamePlayed }: ArcadeSectionProps) {
 
   return (
     <View style={styles.container}>
+      {/* Available XP Banner */}
+      <View style={styles.xpBanner}>
+        <View style={styles.xpBannerContent}>
+          <Ionicons name="star" size={24} color="#F59E0B" />
+          <View style={styles.xpTextContainer}>
+            <Text style={styles.xpLabel}>Available XP</Text>
+            <Text style={styles.xpAmount}>{availableXP.toLocaleString()}</Text>
+          </View>
+        </View>
+        <Text style={styles.xpSubtext}>Spend XP to unlock games</Text>
+      </View>
+
       {/* Category Filter */}
       <View style={styles.categoryContainer}>
         <ScrollView
@@ -139,9 +186,10 @@ export default function ArcadeSection({ onGamePlayed }: ArcadeSectionProps) {
       {/* Games List */}
       <ScrollView
         style={styles.gamesList}
+        contentContainerStyle={styles.gamesListContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#6366F1" />
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#F59E0B" />
         }
       >
         {filteredGames.length === 0 ? (
@@ -156,36 +204,21 @@ export default function ArcadeSection({ onGamePlayed }: ArcadeSectionProps) {
           </View>
         ) : (
           <>
-            {filteredGames.map((game) => (
-              <ArcadeGameCard
+            {filteredGames.map((game, index) => (
+              <View 
                 key={game.id}
-                game={game}
-                highScore={highScores.get(game.id)}
-                onPress={() => handleGamePress(game)}
-              />
+                style={[
+                  index === 0 && { marginTop: 16 },
+                  index === filteredGames.length - 1 && { marginBottom: 40 }
+                ]}
+              >
+                <ArcadeGameCard
+                  game={game}
+                  highScore={highScores.get(game.id)}
+                  onPress={() => handleGamePress(game)}
+                />
+              </View>
             ))}
-
-            {/* Stats Footer */}
-            <View style={styles.statsFooter}>
-              <View style={styles.statCard}>
-                <View style={styles.statIconContainer}>
-                  <Ionicons name="trophy" size={24} color="#F59E0B" />
-                </View>
-                <View>
-                  <Text style={styles.statValue}>{highScores.size}</Text>
-                  <Text style={styles.statLabel}>High Score{highScores.size !== 1 ? 's' : ''}</Text>
-                </View>
-              </View>
-              <View style={styles.statCard}>
-                <View style={styles.statIconContainer}>
-                  <Ionicons name="game-controller" size={24} color="#6366F1" />
-                </View>
-                <View>
-                  <Text style={styles.statValue}>{filteredGames.length}</Text>
-                  <Text style={styles.statLabel}>Game{filteredGames.length !== 1 ? 's' : ''}</Text>
-                </View>
-              </View>
-            </View>
           </>
         )}
       </ScrollView>
@@ -203,25 +236,60 @@ export default function ArcadeSection({ onGamePlayed }: ArcadeSectionProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#0F172A',
   },
   loadingContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#0F172A',
   },
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#6B7280',
+    color: '#94A3B8',
     fontWeight: '500',
   },
+  xpBanner: {
+    backgroundColor: '#1E293B',
+    paddingVertical: 20,
+    paddingHorizontal: 20,
+    borderBottomWidth: 3,
+    borderBottomColor: '#F59E0B',
+  },
+  xpBannerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 6,
+  },
+  xpTextContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  xpLabel: {
+    fontSize: 14,
+    color: '#94A3B8',
+    fontWeight: '600',
+  },
+  xpAmount: {
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#F59E0B',
+    letterSpacing: -0.5,
+  },
+  xpSubtext: {
+    fontSize: 12,
+    color: '#64748B',
+    marginLeft: 36,
+  },
   categoryContainer: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#1E293B',
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: '#334155',
   },
   categoryScrollContent: {
     paddingHorizontal: 20,
@@ -234,32 +302,34 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 16,
-    backgroundColor: '#F3F4F6',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
+    backgroundColor: '#334155',
+    borderWidth: 2,
+    borderColor: '#475569',
     marginRight: 8,
   },
   categoryButtonActive: {
-    backgroundColor: '#6366F1',
-    borderColor: '#6366F1',
-    shadowColor: '#6366F1',
+    backgroundColor: '#F59E0B',
+    borderColor: '#F59E0B',
+    shadowColor: '#F59E0B',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 4,
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    elevation: 6,
   },
   categoryButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6B7280',
+    color: '#94A3B8',
   },
   categoryButtonTextActive: {
-    color: '#FFFFFF',
+    color: '#1E293B',
   },
   gamesList: {
     flex: 1,
+    backgroundColor: '#0F172A',
+  },
+  gamesListContent: {
     paddingHorizontal: 20,
-    paddingTop: 16,
   },
   emptyContainer: {
     alignItems: 'center',
@@ -270,14 +340,14 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#111827',
+    color: '#F1F5F9',
     marginTop: 20,
     marginBottom: 10,
     letterSpacing: -0.5,
   },
   emptyText: {
     fontSize: 15,
-    color: '#6B7280',
+    color: '#94A3B8',
     textAlign: 'center',
     lineHeight: 22,
   },
@@ -293,34 +363,36 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#1E293B',
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderRadius: 16,
+    borderWidth: 2,
+    borderColor: '#334155',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.3,
     shadowRadius: 8,
-    elevation: 2,
+    elevation: 4,
   },
   statIconContainer: {
     width: 48,
     height: 48,
     borderRadius: 12,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#334155',
     alignItems: 'center',
     justifyContent: 'center',
   },
   statValue: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#111827',
+    color: '#F1F5F9',
     letterSpacing: -0.5,
   },
   statLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#6B7280',
+    color: '#94A3B8',
     marginTop: 2,
   },
 });

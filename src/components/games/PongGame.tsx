@@ -6,6 +6,7 @@ interface PongGameProps {
   gameData?: any;
   onClose: () => void;
   onGameComplete: (score: number) => void;
+  onRestart?: () => Promise<boolean>;
 }
 
 const { width, height } = Dimensions.get('window');
@@ -28,7 +29,7 @@ type Ball = {
   dy: number;
 };
 
-const PongGame: React.FC<PongGameProps> = ({ onClose, onGameComplete }) => {
+const PongGame: React.FC<PongGameProps> = ({ onClose, onGameComplete, onRestart }) => {
   // Game state
   const [playerPaddleY, setPlayerPaddleY] = useState(GAME_HEIGHT / 2 - PADDLE_HEIGHT / 2);
   const [aiPaddleY, setAiPaddleY] = useState(GAME_HEIGHT / 2 - PADDLE_HEIGHT / 2);
@@ -350,7 +351,15 @@ const PongGame: React.FC<PongGameProps> = ({ onClose, onGameComplete }) => {
     })
   ).current;
 
-  const handleRestart = () => {
+  const handleRestart = async () => {
+    // Check if we can afford to restart (charge XP)
+    if (onRestart) {
+      const canRestart = await onRestart();
+      if (!canRestart) {
+        return; // User doesn't have enough XP or restart failed
+      }
+    }
+
     setPlayerScore(0);
     setAiScore(0);
     setGameOver(false);

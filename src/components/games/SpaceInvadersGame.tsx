@@ -6,6 +6,7 @@ interface SpaceInvadersGameProps {
   gameData?: any;
   onClose: () => void;
   onGameComplete: (score: number) => void;
+  onRestart?: () => Promise<boolean>;
 }
 
 const { width, height } = Dimensions.get('window');
@@ -27,7 +28,7 @@ type Position = { x: number; y: number };
 type Enemy = { id: number; row: number; col: number; type: number; alive: boolean };
 type Bullet = { id: number; x: number; y: number; friendly: boolean };
 
-const SpaceInvadersGame: React.FC<SpaceInvadersGameProps> = ({ onClose, onGameComplete }) => {
+const SpaceInvadersGame: React.FC<SpaceInvadersGameProps> = ({ onClose, onGameComplete, onRestart }) => {
   // Game state
   const [playerX, setPlayerX] = useState(GAME_WIDTH / 2 - PLAYER_WIDTH / 2);
   const [enemies, setEnemies] = useState<Enemy[]>([]);
@@ -439,7 +440,15 @@ const SpaceInvadersGame: React.FC<SpaceInvadersGameProps> = ({ onClose, onGameCo
     setTimeout(() => createTwinkleAnimation(starTwinkle).start(), 200);
   }, []);
 
-  const handleRestart = () => {
+  const handleRestart = async () => {
+    // Check if we can afford to restart (charge XP)
+    if (onRestart) {
+      const canRestart = await onRestart();
+      if (!canRestart) {
+        return; // User doesn't have enough XP or restart failed
+      }
+    }
+
     initializeGame();
     setScore(0);
     setLives(3);

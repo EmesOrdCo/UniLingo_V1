@@ -6,6 +6,7 @@ interface SudokuGameProps {
   gameData?: any;
   onClose: () => void;
   onGameComplete: (score: number) => void;
+  onRestart?: () => Promise<boolean>;
 }
 
 const { width, height } = Dimensions.get('window');
@@ -21,7 +22,7 @@ type Cell = {
   notes: number[];
 };
 
-const SudokuGame: React.FC<SudokuGameProps> = ({ onClose, onGameComplete }) => {
+const SudokuGame: React.FC<SudokuGameProps> = ({ onClose, onGameComplete, onRestart }) => {
   // Game state
   const [grid, setGrid] = useState<Cell[][]>([]);
   const [selectedCell, setSelectedCell] = useState<{ row: number; col: number } | null>(null);
@@ -355,7 +356,15 @@ const SudokuGame: React.FC<SudokuGameProps> = ({ onClose, onGameComplete }) => {
     setTimeout(() => createFloatAnimation(bgFloat2, 4000).start(), 300);
   }, []);
 
-  const handleRestart = () => {
+  const handleRestart = async () => {
+    // Check if we can afford to restart (charge XP)
+    if (onRestart) {
+      const canRestart = await onRestart();
+      if (!canRestart) {
+        return; // User doesn't have enough XP or restart failed
+      }
+    }
+
     setShowDifficultySelect(true);
     setGameStarted(false);
     completionCalledRef.current = false;

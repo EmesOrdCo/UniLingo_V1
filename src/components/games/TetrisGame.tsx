@@ -7,6 +7,7 @@ interface TetrisGameProps {
   gameData?: any;
   onClose: () => void;
   onGameComplete: (score: number) => void;
+  onRestart?: () => Promise<boolean>;
 }
 
 const { width, height } = Dimensions.get('window');
@@ -78,7 +79,7 @@ const COLORS: Record<TetrominoType, string> = {
   L: '#F0A000',
 };
 
-const TetrisGame: React.FC<TetrisGameProps> = ({ onClose, onGameComplete }) => {
+const TetrisGame: React.FC<TetrisGameProps> = ({ onClose, onGameComplete, onRestart }) => {
   // Game state
   const [grid, setGrid] = useState<Cell[][]>([]);
   const [currentPiece, setCurrentPiece] = useState<{
@@ -361,7 +362,15 @@ const TetrisGame: React.FC<TetrisGameProps> = ({ onClose, onGameComplete }) => {
     }
   };
 
-  const handleRestart = () => {
+  const handleRestart = async () => {
+    // Check if we can afford to restart (charge XP)
+    if (onRestart) {
+      const canRestart = await onRestart();
+      if (!canRestart) {
+        return; // User doesn't have enough XP or restart failed
+      }
+    }
+
     setGrid(initializeGrid());
     setScore(0);
     setLines(0);

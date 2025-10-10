@@ -6,6 +6,7 @@ interface FlappyBirdGameProps {
   gameData?: any;
   onClose: () => void;
   onGameComplete: (score: number) => void;
+  onRestart?: () => Promise<boolean>;
 }
 
 const { width, height } = Dimensions.get('window');
@@ -27,7 +28,7 @@ type Pipe = {
   passed: boolean;
 };
 
-const FlappyBirdGame: React.FC<FlappyBirdGameProps> = ({ onClose, onGameComplete }) => {
+const FlappyBirdGame: React.FC<FlappyBirdGameProps> = ({ onClose, onGameComplete, onRestart }) => {
   // Game state
   const [birdY, setBirdY] = useState(GAME_HEIGHT / 2);
   const [birdVelocity, setBirdVelocity] = useState(0);
@@ -280,7 +281,15 @@ const FlappyBirdGame: React.FC<FlappyBirdGameProps> = ({ onClose, onGameComplete
 
   // Ground scroll is now synced directly with pipe movement in updatePipes
 
-  const handleRestart = () => {
+  const handleRestart = async () => {
+    // Check if we can afford to restart (charge XP)
+    if (onRestart) {
+      const canRestart = await onRestart();
+      if (!canRestart) {
+        return; // User doesn't have enough XP or restart failed
+      }
+    }
+
     setBirdY(GAME_HEIGHT / 2);
     setBirdVelocity(0);
     setPipes([]);

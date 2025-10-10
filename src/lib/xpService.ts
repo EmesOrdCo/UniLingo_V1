@@ -143,10 +143,12 @@ export class XPService {
 
       // Calculate new stats
       const newExperiencePoints = (currentStats?.experience_points || 0) + xpCalculation.totalXP;
+      const newAvailableXP = (currentStats?.available_xp || 0) + xpCalculation.totalXP;
 
       // Update activity-specific counters
       const updateData: any = {
-        experience_points: newExperiencePoints,
+        experience_points: newExperiencePoints, // Cumulative XP (never decreases)
+        available_xp: newAvailableXP, // Spendable XP (can be spent on arcade games)
         updated_at: new Date().toISOString(),
       };
 
@@ -501,6 +503,80 @@ export class XPService {
       
     } catch (error) {
       console.error('❌ Error debugging user XP:', error);
+    }
+  }
+
+  /**
+   * Spend XP on arcade games
+   */
+  static async spendXP(userId: string, amount: number, reason: string = 'Arcade Game'): Promise<boolean> {
+    try {
+      console.log('💰 Spending XP:', { userId, amount, reason });
+
+      // Get current stats
+      const { data: currentStats, error: statsError } = await supabase
+        .from('user_learning_stats')
+        .select('available_xp')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (statsError) {
+        console.error('❌ Error fetching stats for XP spend:', statsError);
+        return false;
+      }
+
+      const currentAvailableXP = currentStats?.available_xp || 0;
+
+      // Check if user has enough XP
+      if (currentAvailableXP < amount) {
+        console.log('❌ Insufficient XP:', { current: currentAvailableXP, needed: amount });
+        return false;
+      }
+
+      // Deduct XP from available_xp only (experience_points remains unchanged)
+      const newAvailableXP = currentAvailableXP - amount;
+
+      const { error: updateError } = await supabase
+        .from('user_learning_stats')
+        .update({ 
+          available_xp: newAvailableXP,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', userId);
+
+      if (updateError) {
+        console.error('❌ Error updating available XP:', updateError);
+        return false;
+      }
+
+      console.log('✅ XP spent successfully:', { spent: amount, remaining: newAvailableXP });
+      return true;
+    } catch (error) {
+      console.error('❌ Error spending XP:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Get available XP for a user
+   */
+  static async getAvailableXP(userId: string): Promise<number> {
+    try {
+      const { data, error } = await supabase
+        .from('user_learning_stats')
+        .select('available_xp')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (error) {
+        console.error('❌ Error fetching available XP:', error);
+        return 0;
+      }
+
+      return data?.available_xp || 0;
+    } catch (error) {
+      console.error('❌ Error getting available XP:', error);
+      return 0;
     }
   }
 }

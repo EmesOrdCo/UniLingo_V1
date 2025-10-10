@@ -14,6 +14,7 @@ export default function LevelProgressWidget({ onRefresh }: LevelProgressWidgetPr
   const { user } = useAuth();
   const navigation = useNavigation();
   const [levelInfo, setLevelInfo] = useState<LevelInfo | null>(null);
+  const [availableXP, setAvailableXP] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -23,9 +24,13 @@ export default function LevelProgressWidget({ onRefresh }: LevelProgressWidgetPr
     try {
       setLoading(true);
       logger.debug('Loading level info for user:', user.id);
-      const info = await XPService.getLevelInfo(user.id);
+      const [info, xp] = await Promise.all([
+        XPService.getLevelInfo(user.id),
+        XPService.getAvailableXP(user.id)
+      ]);
       logger.debug('Level info loaded:', info);
       setLevelInfo(info);
+      setAvailableXP(xp);
     } catch (error) {
       console.error('❌ Error loading level info:', error);
     } finally {
@@ -154,8 +159,17 @@ export default function LevelProgressWidget({ onRefresh }: LevelProgressWidgetPr
         </View>
 
         <View style={styles.xpContainer}>
-          <Text style={styles.xpLabel}>Experience Points</Text>
-          <Text style={styles.xpValue}>{levelInfo.experiencePoints} XP</Text>
+          <View style={styles.xpRow}>
+            <Text style={styles.xpLabel}>Total Earned</Text>
+            <Text style={styles.xpValue}>{levelInfo.experiencePoints.toLocaleString()}</Text>
+          </View>
+          <View style={styles.xpRow}>
+            <Text style={styles.xpLabel}>Available</Text>
+            <View style={styles.availableXPContainer}>
+              <Ionicons name="star" size={14} color="#F59E0B" />
+              <Text style={styles.availableXPValue}>{availableXP.toLocaleString()}</Text>
+            </View>
+          </View>
         </View>
       </View>
 
@@ -286,16 +300,36 @@ const styles = StyleSheet.create({
   xpContainer: {
     flex: 1,
     alignItems: 'flex-end',
+    gap: 6,
+  },
+  xpRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   xpLabel: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#64748b',
-    marginBottom: 4,
+    fontWeight: '500',
   },
   xpValue: {
-    fontSize: 20,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '700',
     color: '#1e293b',
+  },
+  availableXPContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#1E293B',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  availableXPValue: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#F59E0B',
   },
   progressContainer: {
     marginBottom: 16,

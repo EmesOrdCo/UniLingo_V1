@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { XPService } from './xpService';
 
 export interface ArcadeGame {
   id: string;
@@ -309,6 +310,67 @@ export class ArcadeService {
     } catch (error) {
       console.error('Error fetching games by category:', error);
       return [];
+    }
+  }
+
+  /**
+   * Check if user can play a game (has enough available XP)
+   */
+  static async canPlayGame(userId: string, gameId: string): Promise<{ canPlay: boolean; availableXP: number; gameCost: number; message?: string }> {
+    try {
+      // Get game cost
+      const game = await this.getGameById(gameId);
+      if (!game) {
+        return { canPlay: false, availableXP: 0, gameCost: 0, message: 'Game not found' };
+      }
+
+      // If game is free, always allow
+      if (game.xp_cost === 0) {
+        return { canPlay: true, availableXP: 0, gameCost: 0 };
+      }
+
+      // Get user's available XP
+      const availableXP = await XPService.getAvailableXP(userId);
+
+      // Check if user has enough XP
+      const canPlay = availableXP >= game.xp_cost;
+      const message = canPlay ? undefined : `Need ${game.xp_cost} XP (You have ${availableXP} XP)`;
+
+      return { canPlay, availableXP, gameCost: game.xp_cost, message };
+    } catch (error) {
+      console.error('Error checking if user can play game:', error);
+      return { canPlay: false, availableXP: 0, gameCost: 0, message: 'Error checking XP' };
+    }
+  }
+
+  /**
+   * Purchase and start playing a game (spends XP if needed)
+   */
+  static async purchaseGame(userId: string, gameId: string): Promise<{ success: boolean; message?: string }> {
+    try {
+      // Check if can play
+      const playCheck = await this.canPlayGame(userId, gameId);
+      
+      if (!playCheck.canPlay) {
+        return { success: false, message: playCheck.message };
+      }
+
+      // If game has a cost, spend the XP
+      if (playCheck.gameCost > 0) {
+        const game = await this.getGameById(gameId);
+        const spent = await XPService.spendXP(userId, playCheck.gameCost, `Arcade: ${game?.name}`);
+        
+        if (!spent) {
+          return { success: false, message: 'Failed to spend XP' };
+        }
+
+        console.log(`💰 Spent ${playCheck.gameCost} XP to play game`);
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error('Error purchasing game:', error);
+      return { success: false, message: 'Error processing purchase' };
     }
   }
 }

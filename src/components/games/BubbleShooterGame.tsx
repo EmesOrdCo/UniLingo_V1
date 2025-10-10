@@ -10,6 +10,7 @@ interface BubbleShooterGameProps {
   gameData?: any;
   onClose: () => void;
   onGameComplete: (score: number) => void;
+  onRestart?: () => Promise<boolean>;
 }
 
 const { width, height } = Dimensions.get('window');
@@ -46,7 +47,7 @@ type FlyingBubble = {
   color: string;
 };
 
-const BubbleShooterGame: React.FC<BubbleShooterGameProps> = ({ onClose, onGameComplete }) => {
+const BubbleShooterGame: React.FC<BubbleShooterGameProps> = ({ onClose, onGameComplete, onRestart }) => {
   // Game state
   const [bubbles, setBubbles] = useState<Bubble[]>([]);
   const [poppingBubbles, setPoppingBubbles] = useState<PoppingBubble[]>([]); // Bubbles being animated
@@ -606,7 +607,15 @@ const BubbleShooterGame: React.FC<BubbleShooterGameProps> = ({ onClose, onGameCo
     setTimeout(() => createFloatAnimation(bgFloat2, 4000).start(), 300);
   }, []);
 
-  const handleRestart = () => {
+  const handleRestart = async () => {
+    // Check if we can afford to restart (charge XP)
+    if (onRestart) {
+      const canRestart = await onRestart();
+      if (!canRestart) {
+        return; // User doesn't have enough XP or restart failed
+      }
+    }
+
     initializeGame();
     setScore(0);
     setGameOver(false);
