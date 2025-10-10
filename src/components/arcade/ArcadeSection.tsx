@@ -7,6 +7,7 @@ import {
   RefreshControl,
   ActivityIndicator,
   TouchableOpacity,
+  Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import ArcadeGameCard from './ArcadeGameCard';
@@ -29,6 +30,7 @@ export default function ArcadeSection({ onGamePlayed }: ArcadeSectionProps) {
   const [showGameModal, setShowGameModal] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [availableXP, setAvailableXP] = useState(0);
+  const [showXPInfoModal, setShowXPInfoModal] = useState(false);
 
   useEffect(() => {
     loadGames();
@@ -145,6 +147,12 @@ export default function ArcadeSection({ onGamePlayed }: ArcadeSectionProps) {
             <Text style={styles.xpLabel}>Available XP</Text>
             <Text style={styles.xpAmount}>{availableXP.toLocaleString()}</Text>
           </View>
+          <TouchableOpacity 
+            style={styles.xpInfoButton}
+            onPress={() => setShowXPInfoModal(true)}
+          >
+            <Ionicons name="information-circle-outline" size={20} color="#8B5CF6" />
+          </TouchableOpacity>
         </View>
         <Text style={styles.xpSubtext}>Spend XP to unlock games</Text>
       </View>
@@ -229,6 +237,56 @@ export default function ArcadeSection({ onGamePlayed }: ArcadeSectionProps) {
         game={selectedGame}
         onClose={handleGameClose}
       />
+
+      {/* XP Information Modal */}
+      <Modal
+        visible={showXPInfoModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowXPInfoModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>XP System Explained</Text>
+              <TouchableOpacity 
+                onPress={() => setShowXPInfoModal(false)}
+                style={styles.closeButton}
+              >
+                <Ionicons name="close" size={24} color="#64748b" />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.modalBody}>
+              <View style={styles.explanationItem}>
+                <View style={styles.explanationHeader}>
+                  <Ionicons name="trending-up" size={20} color="#10b981" />
+                  <Text style={styles.explanationTitle}>Total Earned XP</Text>
+                </View>
+                <Text style={styles.explanationText}>
+                  This is your lifetime XP - all the experience points you've earned from lessons, games, flashcards, and exercises since you started using UniLingo.
+                </Text>
+              </View>
+
+              <View style={styles.explanationItem}>
+                <View style={styles.explanationHeader}>
+                  <Ionicons name="star" size={20} color="#F59E0B" />
+                  <Text style={styles.explanationTitle}>Available XP</Text>
+                </View>
+                <Text style={styles.explanationText}>
+                  This is your current "currency" - XP that you can spend on arcade games, power-ups, or special features. Available XP is earned from completing activities and can be used immediately.
+                </Text>
+              </View>
+
+              <View style={styles.divider} />
+
+              <Text style={styles.summaryText}>
+                💡 <Text style={styles.summaryBold}>Quick tip:</Text> Complete lessons and games to earn both Total XP (for leveling up) and Available XP (for spending on fun features)!
+              </Text>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -268,6 +326,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+  },
+  xpInfoButton: {
+    padding: 8,
+    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(139, 92, 246, 0.3)',
   },
   xpLabel: {
     fontSize: 14,
@@ -394,5 +459,79 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#94A3B8',
     marginTop: 2,
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#1E293B',
+    borderRadius: 16,
+    padding: 0,
+    width: '100%',
+    maxWidth: 400,
+    borderWidth: 1,
+    borderColor: '#334155',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#334155',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#F1F5F9',
+  },
+  closeButton: {
+    padding: 4,
+  },
+  modalBody: {
+    padding: 20,
+  },
+  explanationItem: {
+    marginBottom: 20,
+  },
+  explanationHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  explanationTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#F1F5F9',
+    marginLeft: 8,
+  },
+  explanationText: {
+    fontSize: 14,
+    color: '#94A3B8',
+    lineHeight: 20,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#334155',
+    marginVertical: 16,
+  },
+  summaryText: {
+    fontSize: 14,
+    color: '#94A3B8',
+    lineHeight: 20,
+  },
+  summaryBold: {
+    fontWeight: '600',
+    color: '#F1F5F9',
   },
 });

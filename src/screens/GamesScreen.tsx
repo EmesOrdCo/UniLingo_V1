@@ -533,12 +533,14 @@ export default function GamesScreen({ route }: { route?: any }) {
 
     try {
       setIsLoading(true);
-      const userSubject = profile.subjects[0];
       
-      // Get user flashcards for the subject
-      const userFlashcards = await UserFlashcardService.getUserFlashcards({
-        subject: userSubject
-      });
+      // Add minimum loading time for better UX (1.5 seconds)
+      const [userFlashcards] = await Promise.all([
+        UserFlashcardService.getUserFlashcards({
+          subject: profile.subjects[0]
+        }),
+        new Promise(resolve => setTimeout(resolve, 1500))
+      ]);
 
       // Group flashcards by topic
       const topicGroups: { [key: string]: any[] } = {};
@@ -1639,6 +1641,11 @@ export default function GamesScreen({ route }: { route?: any }) {
             </View>
             <Text style={styles.loadingTitle}>Loading Games</Text>
             <Text style={styles.loadingSubtitle}>Preparing your gaming experience...</Text>
+            <View style={styles.loadingProgress}>
+              <View style={styles.loadingProgressBar}>
+                <View style={styles.loadingProgressFill} />
+              </View>
+            </View>
           </View>
         </View>
       </SafeAreaView>
@@ -2900,6 +2907,28 @@ const styles = StyleSheet.create({
     color: '#64748b',
     textAlign: 'center',
     lineHeight: 24,
+    marginBottom: 32,
+  },
+  loadingProgress: {
+    width: '100%',
+    maxWidth: 200,
+  },
+  loadingProgressBar: {
+    height: 4,
+    backgroundColor: '#e2e8f0',
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  loadingProgressFill: {
+    height: '100%',
+    width: '100%',
+    backgroundColor: '#6366f1',
+    borderRadius: 2,
+    shadowColor: '#6366f1',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 4,
+    elevation: 2,
   },
   emptyContainer: {
     padding: 40,

@@ -22,6 +22,7 @@ import StudyCalendar from '../components/StudyCalendar';
 import ConsistentHeader from '../components/ConsistentHeader';
 import DailyGoalsWidget from '../components/DailyGoalsWidget';
 import { LessonService } from '../lib/lessonService';
+import { XPService } from '../lib/xpService';
 
 const { width } = Dimensions.get('window');
 
@@ -34,6 +35,7 @@ export default function ProgressPageScreen() {
   const [progressData, setProgressData] = useState<ProgressInsights | null>(null);
   const [studyDates, setStudyDates] = useState<string[]>([]);
   const [lessonsCount, setLessonsCount] = useState<number>(0);
+  const [availableXP, setAvailableXP] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
 
   // Animated sheen effect
@@ -100,12 +102,13 @@ export default function ProgressPageScreen() {
       }
       
       // Parallelize data loading for faster performance
-      const [data, dates, userLessons] = await Promise.allSettled([
+      const [data, dates, userLessons, availableXPData] = await Promise.allSettled([
         forceRefresh 
           ? OptimizedProgressService.getProgressInsights(user!.id, true)
           : OptimizedProgressService.getProgressInsightsFast(user!.id),
         OptimizedProgressService.getStudyDates(user!.id, forceRefresh),
-        LessonService.getUserLessonsWithProgress(user!.id)
+        LessonService.getUserLessonsWithProgress(user!.id),
+        XPService.getAvailableXP(user!.id)
       ]);
       
       // Handle progress insights
@@ -142,6 +145,14 @@ export default function ProgressPageScreen() {
       } else {
         console.error('Error loading lessons:', userLessons.reason);
         setLessonsCount(0);
+      }
+      
+      // Handle available XP
+      if (availableXPData.status === 'fulfilled') {
+        setAvailableXP(availableXPData.value);
+      } else {
+        console.error('Error loading available XP:', availableXPData.reason);
+        setAvailableXP(0);
       }
       
       // Ensure we always have some data structure
@@ -323,7 +334,7 @@ export default function ProgressPageScreen() {
                   <Ionicons name="game-controller" size={28} color="#FFFFFF" />
                   <View style={styles.arcadeButtonText}>
                     <Text style={styles.arcadeButtonTitle}>Arcade Games</Text>
-                    <Text style={styles.arcadeButtonSubtitle}>Take a break and play classic arcade games - All FREE!</Text>
+                    <Text style={styles.arcadeButtonSubtitle}>Take a break and play classic arcade games - Spend your {availableXP.toLocaleString()} XP!</Text>
                   </View>
                 </View>
                 <Ionicons name="chevron-forward" size={24} color="#FFFFFF" />

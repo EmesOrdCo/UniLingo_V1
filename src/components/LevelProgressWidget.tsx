@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { logger } from '../lib/logger';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { XPService, LevelInfo } from '../lib/xpService';
@@ -17,6 +17,7 @@ export default function LevelProgressWidget({ onRefresh }: LevelProgressWidgetPr
   const [availableXP, setAvailableXP] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [showXPInfoModal, setShowXPInfoModal] = useState(false);
 
   const loadLevelInfo = async () => {
     if (!user?.id) return;
@@ -168,6 +169,12 @@ export default function LevelProgressWidget({ onRefresh }: LevelProgressWidgetPr
             <View style={styles.availableXPContainer}>
               <Ionicons name="star" size={14} color="#F59E0B" />
               <Text style={styles.availableXPValue}>{availableXP.toLocaleString()}</Text>
+              <TouchableOpacity 
+                style={styles.infoButton}
+                onPress={() => setShowXPInfoModal(true)}
+              >
+                <Ionicons name="information-circle-outline" size={16} color="#8b5cf6" />
+              </TouchableOpacity>
             </View>
           </View>
         </View>
@@ -212,6 +219,56 @@ export default function LevelProgressWidget({ onRefresh }: LevelProgressWidgetPr
           <Text style={styles.statValue}>{levelInfo.nextLevelThreshold}</Text>
         </View>
       </View>
+
+      {/* XP Information Modal */}
+      <Modal
+        visible={showXPInfoModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowXPInfoModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>XP System Explained</Text>
+              <TouchableOpacity 
+                onPress={() => setShowXPInfoModal(false)}
+                style={styles.closeButton}
+              >
+                <Ionicons name="close" size={24} color="#64748b" />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.modalBody}>
+              <View style={styles.explanationItem}>
+                <View style={styles.explanationHeader}>
+                  <Ionicons name="trending-up" size={20} color="#10b981" />
+                  <Text style={styles.explanationTitle}>Total Earned XP</Text>
+                </View>
+                <Text style={styles.explanationText}>
+                  This is your lifetime XP - all the experience points you've earned from lessons, games, flashcards, and exercises since you started using UniLingo.
+                </Text>
+              </View>
+
+              <View style={styles.explanationItem}>
+                <View style={styles.explanationHeader}>
+                  <Ionicons name="star" size={20} color="#F59E0B" />
+                  <Text style={styles.explanationTitle}>Available XP</Text>
+                </View>
+                <Text style={styles.explanationText}>
+                  This is your current "currency" - XP that you can spend on arcade games, power-ups, or special features. Available XP is earned from completing activities and can be used immediately.
+                </Text>
+              </View>
+
+              <View style={styles.divider} />
+
+              <Text style={styles.summaryText}>
+                💡 <Text style={styles.summaryBold}>Quick tip:</Text> Complete lessons and games to earn both Total XP (for leveling up) and Available XP (for spending on fun features)!
+              </Text>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -331,6 +388,10 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#F59E0B',
   },
+  infoButton: {
+    padding: 2,
+    marginLeft: 4,
+  },
   progressContainer: {
     marginBottom: 16,
   },
@@ -384,5 +445,77 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#1e293b',
     marginTop: 2,
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 0,
+    width: '100%',
+    maxWidth: 400,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#1e293b',
+  },
+  closeButton: {
+    padding: 4,
+  },
+  modalBody: {
+    padding: 20,
+  },
+  explanationItem: {
+    marginBottom: 20,
+  },
+  explanationHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  explanationTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1e293b',
+    marginLeft: 8,
+  },
+  explanationText: {
+    fontSize: 14,
+    color: '#64748b',
+    lineHeight: 20,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: '#f1f5f9',
+    marginVertical: 16,
+  },
+  summaryText: {
+    fontSize: 14,
+    color: '#64748b',
+    lineHeight: 20,
+  },
+  summaryBold: {
+    fontWeight: '600',
+    color: '#1e293b',
   },
 });
