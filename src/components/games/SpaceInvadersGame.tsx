@@ -48,6 +48,7 @@ const SpaceInvadersGame: React.FC<SpaceInvadersGameProps> = ({ onClose, onGameCo
   const nextBulletId = useRef(0);
   const lastEnemyMoveTime = useRef(Date.now());
   const lastEnemyShootTime = useRef(Date.now());
+  const lastPlayerShootTime = useRef(0);
   const finalScoreRef = useRef<number>(0);
   const completionCalledRef = useRef<boolean>(false);
   const lastPlayerX = useRef(playerX);
@@ -58,31 +59,57 @@ const SpaceInvadersGame: React.FC<SpaceInvadersGameProps> = ({ onClose, onGameCo
   const bgFloat3 = useRef(new Animated.Value(0)).current;
   const starTwinkle = useRef(new Animated.Value(0)).current;
 
+  // Get number of enemy rows based on wave (progressive difficulty)
+  const getEnemyRows = useCallback((waveNum: number) => {
+    // Wave 1-2: 2 rows, Wave 3-4: 3 rows, Wave 5-6: 4 rows, Wave 7+: 5 rows
+    if (waveNum <= 2) return 2;
+    if (waveNum <= 4) return 3;
+    if (waveNum <= 6) return 4;
+    return 5;
+  }, []);
+
   // Get enemy speed (faster as enemies decrease and wave increases)
   const getEnemySpeed = useCallback(() => {
     const aliveCount = enemies.filter(e => e.alive).length;
-    const baseSpeed = 1000 - wave * 50;
-    const speedMultiplier = 1 - (aliveCount / (ENEMY_ROWS * ENEMY_COLS)) * 0.5;
-    return Math.max(200, baseSpeed * speedMultiplier);
-  }, [enemies, wave]);
+    const totalEnemies = getEnemyRows(wave) * ENEMY_COLS;
+    // Slower base speed for easier start: 1500ms for wave 1, decreases by 75ms per wave
+    const baseSpeed = 1500 - (wave - 1) * 75;
+    const speedMultiplier = 1 - (aliveCount / totalEnemies) * 0.5;
+    return Math.max(300, baseSpeed * speedMultiplier);
+  }, [enemies, wave, getEnemyRows]);
 
   // Initialize enemies
   const initializeEnemies = useCallback(() => {
     const newEnemies: Enemy[] = [];
     let id = 0;
-    for (let row = 0; row < ENEMY_ROWS; row++) {
+    const numRows = getEnemyRows(wave);
+    
+    for (let row = 0; row < numRows; row++) {
       for (let col = 0; col < ENEMY_COLS; col++) {
+        // Assign types based on row position (top rows worth more)
+        let type = 1; // Default: bottom tier
+        if (numRows === 2) {
+          // 2 rows: top = type 2, bottom = type 1
+          type = row === 0 ? 2 : 1;
+        } else if (numRows === 3) {
+          // 3 rows: top = type 3, middle = type 2, bottom = type 1
+          type = row === 0 ? 3 : row === 1 ? 2 : 1;
+        } else {
+          // 4-5 rows: top = type 3, next 1-2 = type 2, rest = type 1
+          type = row === 0 ? 3 : row < Math.ceil(numRows / 2) ? 2 : 1;
+        }
+        
         newEnemies.push({
           id: id++,
           row,
           col,
-          type: row < 1 ? 3 : row < 3 ? 2 : 1, // Top row worth more
+          type,
           alive: true,
         });
       }
     }
     return newEnemies;
-  }, []);
+  }, [wave, getEnemyRows]);
 
   // Initialize game
   const initializeGame = useCallback(() => {
@@ -122,10 +149,17 @@ const SpaceInvadersGame: React.FC<SpaceInvadersGameProps> = ({ onClose, onGameCo
   const shoot = useCallback(() => {
     if (gameOver || won || isPaused) return;
     
+    // Add fire rate cooldown (300ms between shots)
+    const now = Date.now();
+    if (now - lastPlayerShootTime.current < 300) return;
+    
     setBullets(prev => {
       // Limit to 3 bullets on screen
       const playerBullets = prev.filter(b => b.friendly);
       if (playerBullets.length >= 3) return prev;
+
+      // Update last shoot time
+      lastPlayerShootTime.current = now;
 
       // Player is at bottom: 20, so calculate top position
       const playerTopY = GAME_HEIGHT - 20 - PLAYER_HEIGHT;
@@ -183,10 +217,17 @@ const SpaceInvadersGame: React.FC<SpaceInvadersGameProps> = ({ onClose, onGameCo
     if (gameOver || won || isPaused) return;
     
     const now = Date.now();
-    if (now - lastEnemyShootTime.current < 1000) return;
+    // Slower enemy shooting for easier start: 2000ms for wave 1, decreases by 100ms per wave
+    const shootInterval = Math.max(800, 2000 - (wave - 1) * 100);
+    if (now - lastEnemyShootTime.current < shootInterval) return;
     
     const aliveEnemies = enemies.filter(e => e.alive);
     if (aliveEnemies.length === 0) return;
+
+    // Random chance to shoot (easier on early waves)
+    // Wave 1: 40% chance, increases by 5% per wave, max 80%
+    const shootChance = Math.min(0.8, 0.4 + (wave - 1) * 0.05);
+    if (Math.random() > shootChance) return;
 
     // Random enemy shoots
     const shooter = aliveEnemies[Math.floor(Math.random() * aliveEnemies.length)];
@@ -202,7 +243,7 @@ const SpaceInvadersGame: React.FC<SpaceInvadersGameProps> = ({ onClose, onGameCo
 
     setBullets(prev => [...prev, newBullet]);
     lastEnemyShootTime.current = now;
-  }, [enemies, enemyOffsetX, enemyOffsetY, gameOver, won, isPaused]);
+  }, [enemies, enemyOffsetX, enemyOffsetY, wave, gameOver, won, isPaused]);
 
   // Check collisions - using refs to avoid nested setState issues
   const checkCollisions = useCallback(() => {
@@ -431,9 +472,156 @@ const SpaceInvadersGame: React.FC<SpaceInvadersGameProps> = ({ onClose, onGameCo
     return type === 3 ? '#EF4444' : type === 2 ? '#F59E0B' : '#10B981';
   };
 
-  // Get enemy icon by type
-  const getEnemyIcon = (type: number): string => {
-    return type === 3 ? 'bug' : type === 2 ? 'alien' : 'flask';
+  // Render 8-bit style alien
+  const renderAlien = (type: number) => {
+    const color = getEnemyColor(type);
+    const pixelSize = 3;
+    
+    if (type === 3) {
+      // Top tier alien - octopus style
+      return (
+        <View style={styles.alienContainer}>
+          {/* Row 1 */}
+          <View style={styles.alienRow}>
+            <View style={[styles.pixel, { backgroundColor: color, width: pixelSize * 2, height: pixelSize }]} />
+            <View style={[styles.pixelGap, { width: pixelSize * 2 }]} />
+            <View style={[styles.pixel, { backgroundColor: color, width: pixelSize * 2, height: pixelSize }]} />
+          </View>
+          {/* Row 2 */}
+          <View style={styles.alienRow}>
+            <View style={[styles.pixel, { backgroundColor: color, width: pixelSize, height: pixelSize }]} />
+            <View style={[styles.pixel, { backgroundColor: color, width: pixelSize * 4, height: pixelSize }]} />
+            <View style={[styles.pixel, { backgroundColor: color, width: pixelSize, height: pixelSize }]} />
+          </View>
+          {/* Row 3 */}
+          <View style={styles.alienRow}>
+            <View style={[styles.pixel, { backgroundColor: color, width: pixelSize * 6, height: pixelSize }]} />
+          </View>
+          {/* Row 4 */}
+          <View style={styles.alienRow}>
+            <View style={[styles.pixel, { backgroundColor: color, width: pixelSize * 2, height: pixelSize }]} />
+            <View style={[styles.pixelGap, { width: pixelSize }]} />
+            <View style={[styles.pixel, { backgroundColor: color, width: pixelSize, height: pixelSize }]} />
+            <View style={[styles.pixelGap, { width: pixelSize }]} />
+            <View style={[styles.pixel, { backgroundColor: color, width: pixelSize * 2, height: pixelSize }]} />
+          </View>
+          {/* Row 5 */}
+          <View style={styles.alienRow}>
+            <View style={[styles.pixel, { backgroundColor: color, width: pixelSize, height: pixelSize }]} />
+            <View style={[styles.pixelGap, { width: pixelSize * 4 }]} />
+            <View style={[styles.pixel, { backgroundColor: color, width: pixelSize, height: pixelSize }]} />
+          </View>
+        </View>
+      );
+    } else if (type === 2) {
+      // Mid tier alien - crab style
+      return (
+        <View style={styles.alienContainer}>
+          {/* Row 1 */}
+          <View style={styles.alienRow}>
+            <View style={[styles.pixel, { backgroundColor: color, width: pixelSize, height: pixelSize }]} />
+            <View style={[styles.pixelGap, { width: pixelSize * 4 }]} />
+            <View style={[styles.pixel, { backgroundColor: color, width: pixelSize, height: pixelSize }]} />
+          </View>
+          {/* Row 2 */}
+          <View style={styles.alienRow}>
+            <View style={[styles.pixelGap, { width: pixelSize }]} />
+            <View style={[styles.pixel, { backgroundColor: color, width: pixelSize, height: pixelSize }]} />
+            <View style={[styles.pixelGap, { width: pixelSize * 2 }]} />
+            <View style={[styles.pixel, { backgroundColor: color, width: pixelSize, height: pixelSize }]} />
+          </View>
+          {/* Row 3 */}
+          <View style={styles.alienRow}>
+            <View style={[styles.pixel, { backgroundColor: color, width: pixelSize * 6, height: pixelSize }]} />
+          </View>
+          {/* Row 4 */}
+          <View style={styles.alienRow}>
+            <View style={[styles.pixel, { backgroundColor: color, width: pixelSize * 2, height: pixelSize }]} />
+            <View style={[styles.pixelGap, { width: pixelSize * 2 }]} />
+            <View style={[styles.pixel, { backgroundColor: color, width: pixelSize * 2, height: pixelSize }]} />
+          </View>
+          {/* Row 5 */}
+          <View style={styles.alienRow}>
+            <View style={[styles.pixel, { backgroundColor: color, width: pixelSize, height: pixelSize }]} />
+            <View style={[styles.pixelGap, { width: pixelSize }]} />
+            <View style={[styles.pixel, { backgroundColor: color, width: pixelSize * 2, height: pixelSize }]} />
+            <View style={[styles.pixelGap, { width: pixelSize }]} />
+            <View style={[styles.pixel, { backgroundColor: color, width: pixelSize, height: pixelSize }]} />
+          </View>
+        </View>
+      );
+    } else {
+      // Bottom tier alien - squid style
+      return (
+        <View style={styles.alienContainer}>
+          {/* Row 1 */}
+          <View style={styles.alienRow}>
+            <View style={[styles.pixelGap, { width: pixelSize }]} />
+            <View style={[styles.pixel, { backgroundColor: color, width: pixelSize * 4, height: pixelSize }]} />
+          </View>
+          {/* Row 2 */}
+          <View style={styles.alienRow}>
+            <View style={[styles.pixel, { backgroundColor: color, width: pixelSize * 6, height: pixelSize }]} />
+          </View>
+          {/* Row 3 */}
+          <View style={styles.alienRow}>
+            <View style={[styles.pixel, { backgroundColor: color, width: pixelSize * 2, height: pixelSize }]} />
+            <View style={[styles.pixelGap, { width: pixelSize * 2 }]} />
+            <View style={[styles.pixel, { backgroundColor: color, width: pixelSize * 2, height: pixelSize }]} />
+          </View>
+          {/* Row 4 */}
+          <View style={styles.alienRow}>
+            <View style={[styles.pixel, { backgroundColor: color, width: pixelSize, height: pixelSize }]} />
+            <View style={[styles.pixelGap, { width: pixelSize }]} />
+            <View style={[styles.pixel, { backgroundColor: color, width: pixelSize * 2, height: pixelSize }]} />
+            <View style={[styles.pixelGap, { width: pixelSize }]} />
+            <View style={[styles.pixel, { backgroundColor: color, width: pixelSize, height: pixelSize }]} />
+          </View>
+          {/* Row 5 */}
+          <View style={styles.alienRow}>
+            <View style={[styles.pixel, { backgroundColor: color, width: pixelSize * 2, height: pixelSize }]} />
+            <View style={[styles.pixelGap, { width: pixelSize * 2 }]} />
+            <View style={[styles.pixel, { backgroundColor: color, width: pixelSize * 2, height: pixelSize }]} />
+          </View>
+        </View>
+      );
+    }
+  };
+
+  // Render 8-bit style player ship
+  const renderPlayerShip = () => {
+    const color = '#00F0F0';
+    const pixelSize = 3;
+    
+    return (
+      <View style={styles.alienContainer}>
+        {/* Row 1 - tip */}
+        <View style={styles.alienRow}>
+          <View style={[styles.pixelGap, { width: pixelSize * 2.5 }]} />
+          <View style={[styles.pixel, { backgroundColor: color, width: pixelSize, height: pixelSize }]} />
+        </View>
+        {/* Row 2 */}
+        <View style={styles.alienRow}>
+          <View style={[styles.pixelGap, { width: pixelSize * 2 }]} />
+          <View style={[styles.pixel, { backgroundColor: color, width: pixelSize * 2, height: pixelSize }]} />
+        </View>
+        {/* Row 3 */}
+        <View style={styles.alienRow}>
+          <View style={[styles.pixelGap, { width: pixelSize * 2 }]} />
+          <View style={[styles.pixel, { backgroundColor: color, width: pixelSize * 2, height: pixelSize }]} />
+        </View>
+        {/* Row 4 - body */}
+        <View style={styles.alienRow}>
+          <View style={[styles.pixel, { backgroundColor: color, width: pixelSize * 6, height: pixelSize }]} />
+        </View>
+        {/* Row 5 - wings */}
+        <View style={styles.alienRow}>
+          <View style={[styles.pixel, { backgroundColor: color, width: pixelSize * 2, height: pixelSize }]} />
+          <View style={[styles.pixelGap, { width: pixelSize * 2 }]} />
+          <View style={[styles.pixel, { backgroundColor: color, width: pixelSize * 2, height: pixelSize }]} />
+        </View>
+      </View>
+    );
   };
 
   // Background interpolations
@@ -515,11 +703,7 @@ const SpaceInvadersGame: React.FC<SpaceInvadersGameProps> = ({ onClose, onGameCo
                 },
               ]}
             >
-              <Ionicons 
-                name={getEnemyIcon(enemy.type) as any} 
-                size={ENEMY_SIZE} 
-                color={getEnemyColor(enemy.type)} 
-              />
+              {renderAlien(enemy.type)}
             </View>
           );
         })}
@@ -536,6 +720,8 @@ const SpaceInvadersGame: React.FC<SpaceInvadersGameProps> = ({ onClose, onGameCo
                 width: BULLET_WIDTH,
                 height: BULLET_HEIGHT,
                 backgroundColor: bullet.friendly ? '#00F0F0' : '#EF4444',
+                borderRadius: 0, // Sharp edges for retro look
+                shadowColor: bullet.friendly ? '#00F0F0' : '#EF4444',
               },
             ]}
           />
@@ -554,7 +740,7 @@ const SpaceInvadersGame: React.FC<SpaceInvadersGameProps> = ({ onClose, onGameCo
             },
           ]}
         >
-          <Ionicons name="rocket-sharp" size={30} color="#00F0F0" style={styles.playerIcon} />
+          {renderPlayerShip()}
         </View>
       </View>
 
@@ -753,26 +939,34 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  alienContainer: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  alienRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pixel: {
+    // Pixel block for 8-bit graphics
+  },
+  pixelGap: {
+    // Transparent gap between pixels
+  },
   bullet: {
     position: 'absolute',
-    borderRadius: 2,
-    shadowColor: '#00F0F0',
+    borderRadius: 0, // Sharp edges for retro look
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 4,
-    elevation: 5,
+    shadowOpacity: 0.6,
+    shadowRadius: 3,
+    elevation: 3,
   },
   player: {
     position: 'absolute',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  playerIcon: {
-    transform: [{ rotate: '-90deg' }],
-    shadowColor: '#00F0F0',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 8,
   },
   controls: {
     flexDirection: 'row',
