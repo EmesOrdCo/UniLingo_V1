@@ -22,7 +22,8 @@ import { UserFlashcardService } from '../lib/userFlashcardService';
 import { ProgressTrackingService } from '../lib/progressTrackingService';
 import { XPService } from '../lib/xpService';
 import { VideoBackground } from '../components/VideoBackground';
-import { VideoControls, VideoCategory } from '../components/VideoControls';
+import { VideoCategory } from '../components/VideoControls';
+import { FlashcardSettingsModal } from '../components/FlashcardSettingsModal';
 
 const { width } = Dimensions.get('window');
 
@@ -69,6 +70,9 @@ export default function FlashcardStudyScreen() {
   // Video background state
   const [videoCategory, setVideoCategory] = useState<VideoCategory>(null);
   const [isVideoMuted, setIsVideoMuted] = useState(true);
+  
+  // Settings modal state
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
 
   // Start background animations on component mount
   useEffect(() => {
@@ -523,65 +527,16 @@ export default function FlashcardStudyScreen() {
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
       >
+        {/* Header Overlay - Always present for solid white header */}
+        <View style={styles.headerOverlay} />
+        
         {/* Video Background */}
         <VideoBackground 
           category={videoCategory} 
           isMuted={isVideoMuted} 
         />
         
-        <SafeAreaView style={styles.safeArea} edges={['top']}>
-          <View style={styles.studyHeader}>
-          <View style={styles.studyHeaderTop}>
-            <TouchableOpacity 
-              style={styles.backButton}
-              onPress={() => navigation.goBack()}
-            >
-              <Ionicons name="arrow-back" size={24} color="#6366f1" />
-            </TouchableOpacity>
-            <Text style={styles.studyTitle}>Study Session</Text>
-            <View style={styles.progressContainer}>
-              <Text style={styles.progressText}>
-                {studySession.currentIndex + 1} / {studySession.flashcards.length}
-              </Text>
-              <TouchableOpacity style={styles.languageToggle} onPress={toggleLanguage}>
-                <Ionicons name="language" size={20} color="#6366f1" />
-                <Text style={styles.languageToggleText}>
-                  {studySession.showNativeLanguage 
-                    ? profile?.native_language || 'Native'
-                    : 'EN'
-                  }
-                </Text>
-              </TouchableOpacity>
-              <VideoControls
-                selectedCategory={videoCategory}
-                onCategoryChange={setVideoCategory}
-                isMuted={isVideoMuted}
-                onMuteToggle={() => setIsVideoMuted(!isVideoMuted)}
-              />
-            </View>
-          </View>
-          <View style={styles.progressBar}>
-            <View style={[styles.progressFill, { width: `${progress}%` }]} />
-          </View>
-          
-          {/* Gesture Hints */}
-            <View style={styles.gestureHintsContainer}>
-              <View style={styles.gestureHintItem}>
-                <Ionicons name="refresh" size={16} color="#6366f1" />
-                <Text style={styles.gestureHintText}>Tap to flip</Text>
-              </View>
-              <View style={styles.gestureHintItem}>
-                <Ionicons name="swap-vertical" size={16} color="#6366f1" />
-                <Text style={styles.gestureHintText}>Swipe</Text>
-              </View>
-              <View style={styles.gestureHintItem}>
-                <Ionicons name="checkmark-circle" size={16} color="#10b981" />
-                <Text style={styles.gestureHintText}>2x = ✓</Text>
-              </View>
-            </View>
-        </View>
-        
-        {/* Animated Background Elements */}
+        {/* Animated Background Elements - behind video */}
         <View style={styles.backgroundPattern}>
           <Animated.View 
             style={[
@@ -686,6 +641,49 @@ export default function FlashcardStudyScreen() {
             ]} 
           />
         </View>
+        
+        <SafeAreaView style={styles.safeArea} edges={['top']}>
+          <View style={styles.studyHeader}>
+          <View style={styles.studyHeaderTop}>
+            <TouchableOpacity 
+              style={styles.backButton}
+              onPress={() => navigation.goBack()}
+            >
+              <Ionicons name="arrow-back" size={24} color="#6366f1" />
+            </TouchableOpacity>
+            <Text style={styles.studyTitle}>Study Session</Text>
+            <View style={styles.progressContainer}>
+              <Text style={styles.progressText}>
+                {studySession.currentIndex + 1} / {studySession.flashcards.length}
+              </Text>
+              <TouchableOpacity 
+                style={styles.settingsButton}
+                onPress={() => setShowSettingsModal(true)}
+              >
+                <Ionicons name="settings" size={24} color="#6366f1" />
+              </TouchableOpacity>
+            </View>
+          </View>
+          <View style={styles.progressBar}>
+            <View style={[styles.progressFill, { width: `${progress}%` }]} />
+          </View>
+          
+          {/* Gesture Hints */}
+            <View style={styles.gestureHintsContainer}>
+              <View style={styles.gestureHintItem}>
+                <Ionicons name="refresh" size={16} color="#6366f1" />
+                <Text style={styles.gestureHintText}>Tap to flip</Text>
+              </View>
+              <View style={styles.gestureHintItem}>
+                <Ionicons name="swap-vertical" size={16} color="#6366f1" />
+                <Text style={styles.gestureHintText}>Swipe</Text>
+              </View>
+              <View style={styles.gestureHintItem}>
+                <Ionicons name="checkmark-circle" size={16} color="#10b981" />
+                <Text style={styles.gestureHintText}>2x = ✓</Text>
+              </View>
+            </View>
+        </View>
 
         <Animated.View 
           style={[
@@ -776,6 +774,19 @@ export default function FlashcardStudyScreen() {
             </View>
           )}
         </Animated.View>
+        
+        {/* Settings Modal */}
+        <FlashcardSettingsModal
+          visible={showSettingsModal}
+          onClose={() => setShowSettingsModal(false)}
+          showNativeLanguage={studySession.showNativeLanguage}
+          onToggleLanguage={toggleLanguage}
+          nativeLanguage={profile?.native_language}
+          videoCategory={videoCategory}
+          onCategoryChange={setVideoCategory}
+          isVideoMuted={isVideoMuted}
+          onMuteToggle={() => setIsVideoMuted(!isVideoMuted)}
+        />
         </SafeAreaView>
       </LinearGradient>
     );
@@ -1038,6 +1049,15 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
   },
+  headerOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 60, // Just cover the header area
+    backgroundColor: '#ffffff', // Solid white
+    zIndex: 999,
+  },
   backgroundPattern: {
     position: 'absolute',
     top: 0,
@@ -1045,7 +1065,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     overflow: 'hidden',
-    zIndex: 0,
+    zIndex: -2,
   },
   // Large decorative circles for visual interest
   decorativeCircle1: {
@@ -1149,14 +1169,14 @@ const styles = StyleSheet.create({
   },
   // Flashcard Study Session Styles
   studyHeader: {
-    backgroundColor: 'rgba(255, 255, 255, 0.98)',
+    backgroundColor: '#ffffff',
     paddingHorizontal: 20,
     paddingTop: 20,
     paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(226, 232, 240, 0.3)',
-    zIndex: 100,
-    elevation: 10,
+    zIndex: 1000,
+    elevation: 20,
     shadowColor: '#6366f1',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
@@ -1179,27 +1199,17 @@ const styles = StyleSheet.create({
   progressContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    flexWrap: 'wrap',
+    gap: 12,
   },
   progressText: {
     fontSize: 16,
     fontWeight: '600',
     color: '#6366f1',
   },
-  languageToggle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+  settingsButton: {
+    padding: 8,
     backgroundColor: '#f0f4ff',
     borderRadius: 8,
-  },
-  languageToggleText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#6366f1',
   },
   progressBar: {
     height: 4,

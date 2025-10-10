@@ -53,11 +53,17 @@ export const VideoBackground: React.FC<VideoBackgroundProps> = ({ category, isMu
           'GTA/GTA_12.mp4'
         ],
         'subway_surfers': [
-          'Subway_Surfers/Subway_1.mp4',
-          'Subway_Surfers/Subway_2.mp4',
-          'Subway_Surfers/Subway_3.mp4',
-          'Subway_Surfers/Subway_4.mp4',
-          'Subway_Surfers/Subway_5.mp4'
+          'Subway_Surfers/SubwaySurfer_1.mp4',
+          'Subway_Surfers/SubwaySurfer_2.mp4',
+          'Subway_Surfers/SubwaySurfer_3.mp4',
+          'Subway_Surfers/SubwaySurfer_4.mp4',
+          'Subway_Surfers/SubwaySurfer_5.mp4',
+          'Subway_Surfers/SubwaySurfer_6.mp4',
+          'Subway_Surfers/SubwaySurfer_7.mp4',
+          'Subway_Surfers/SubwaySurfer_8.mp4',
+          'Subway_Surfers/SubwaySurfer_9.mp4',
+          'Subway_Surfers/SubwaySurfer_10.mp4',
+          'Subway_Surfers/SubwaySurfer_11.mp4'
         ]
       };
       
@@ -119,9 +125,9 @@ export const VideoBackground: React.FC<VideoBackgroundProps> = ({ category, isMu
     console.log(`🎲 Selected random video: ${newVideo.split('/').pop()}`);
   };
 
-  // Select initial video when videos are loaded
+  // Select initial video when videos are loaded OR switch immediately when category changes
   useEffect(() => {
-    if (videos.length > 0 && !currentVideo) {
+    if (videos.length > 0) {
       selectRandomVideo();
     }
   }, [videos]);
@@ -134,17 +140,17 @@ export const VideoBackground: React.FC<VideoBackgroundProps> = ({ category, isMu
     }
   };
 
-  // Fade transition to next video
+  // Fade transition to next video - smoother and more subtle
   const fadeToNextVideo = () => {
     Animated.sequence([
       Animated.timing(fadeAnim, {
-        toValue: 0,
-        duration: 500,
+        toValue: 0.3, // Don't fade completely to black, more subtle
+        duration: 800, // Slower fade out
         useNativeDriver: true,
       }),
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 500,
+        duration: 800, // Slower fade in
         useNativeDriver: true,
       }),
     ]).start(() => {
