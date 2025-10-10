@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,15 +8,21 @@ import {
   Dimensions,
   Alert,
   Platform,
+  Animated,
+  PanResponder,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import * as Speech from 'expo-speech';
+import * as Haptics from 'expo-haptics';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../contexts/AuthContext';
 import { UserFlashcardService } from '../lib/userFlashcardService';
 import { ProgressTrackingService } from '../lib/progressTrackingService';
 import { XPService } from '../lib/xpService';
+import { VideoBackground } from '../components/VideoBackground';
+import { VideoControls, VideoCategory } from '../components/VideoControls';
 
 const { width } = Dimensions.get('window');
 
@@ -59,11 +65,273 @@ export default function FlashcardStudyScreen() {
   
   const [isAudioPlaying, setIsAudioPlaying] = useState(false);
   const [filterType, setFilterType] = useState<'all' | 'correct' | 'incorrect'>('all');
+  
+  // Video background state
+  const [videoCategory, setVideoCategory] = useState<VideoCategory>(null);
+  const [isVideoMuted, setIsVideoMuted] = useState(true);
+
+  // Start background animations on component mount
+  useEffect(() => {
+    startBackgroundAnimations();
+  }, []);
+  
+  // Animation and gesture refs
+  const slideAnim = useRef(new Animated.Value(0)).current;
+  const lastTap = useRef<number | null>(null);
+  const isAnimating = useRef(false);
+  const [showThumbsUp, setShowThumbsUp] = useState(false);
+  
+  // Create multiple animated values for thumbs up (with scale for bubble effect)
+  const thumbsUpAnims = useRef([
+    { opacity: new Animated.Value(0), translateY: new Animated.Value(0), translateX: new Animated.Value(0), scale: new Animated.Value(0.5) },
+    { opacity: new Animated.Value(0), translateY: new Animated.Value(0), translateX: new Animated.Value(0), scale: new Animated.Value(0.5) },
+    { opacity: new Animated.Value(0), translateY: new Animated.Value(0), translateX: new Animated.Value(0), scale: new Animated.Value(0.5) },
+    { opacity: new Animated.Value(0), translateY: new Animated.Value(0), translateX: new Animated.Value(0), scale: new Animated.Value(0.5) },
+    { opacity: new Animated.Value(0), translateY: new Animated.Value(0), translateX: new Animated.Value(0), scale: new Animated.Value(0.5) },
+    { opacity: new Animated.Value(0), translateY: new Animated.Value(0), translateX: new Animated.Value(0), scale: new Animated.Value(0.5) },
+  ]).current;
+
+  // Animated values for floating background elements
+  const animatedValue1 = useRef(new Animated.Value(0)).current;
+  const animatedValue2 = useRef(new Animated.Value(0)).current;
+  const animatedValue3 = useRef(new Animated.Value(0)).current;
+  const animatedValue4 = useRef(new Animated.Value(0)).current;
+  const animatedValue5 = useRef(new Animated.Value(0)).current;
+  const animatedValue6 = useRef(new Animated.Value(0)).current;
+
+  // Start background animations
+  const startBackgroundAnimations = () => {
+    // Create floating animations for different elements
+    const createFloatingAnimation = (animatedValue: Animated.Value, duration: number, delay: number = 0) => {
+      return Animated.loop(
+        Animated.sequence([
+          Animated.timing(animatedValue, {
+            toValue: 1,
+            duration: duration,
+            delay: delay,
+            useNativeDriver: true,
+          }),
+          Animated.timing(animatedValue, {
+            toValue: 0,
+            duration: duration,
+            delay: 0,
+            useNativeDriver: true,
+          }),
+        ]),
+        { iterations: -1 } // Infinite loop
+      );
+    };
+
+    // Start all animations with different timings
+    setTimeout(() => {
+      createFloatingAnimation(animatedValue1, 3000, 0).start();
+    }, 100);
+    
+    setTimeout(() => {
+      createFloatingAnimation(animatedValue2, 4000, 0).start();
+    }, 600);
+    
+    setTimeout(() => {
+      createFloatingAnimation(animatedValue3, 3500, 0).start();
+    }, 1100);
+    
+    setTimeout(() => {
+      createFloatingAnimation(animatedValue4, 4500, 0).start();
+    }, 1600);
+    
+    setTimeout(() => {
+      createFloatingAnimation(animatedValue5, 3200, 0).start();
+    }, 2100);
+    
+    setTimeout(() => {
+      createFloatingAnimation(animatedValue6, 3800, 0).start();
+    }, 2600);
+  };
+
+  // Trigger thumbs up animation
+  const triggerThumbsUpAnimation = () => {
+    setShowThumbsUp(true);
+    
+    // Reset all animations
+    thumbsUpAnims.forEach(anim => {
+      anim.opacity.setValue(0);
+      anim.translateY.setValue(0);
+      anim.translateX.setValue(0);
+      anim.scale.setValue(0.5);
+    });
+    
+    // Create bubble effect animations - start together, spread out as they rise
+    const animations = thumbsUpAnims.map((anim, index) => {
+      // Calculate horizontal spread that increases as bubbles rise
+      const horizontalSpread = (index - 2.5) * 60; // More spread than before
+      // Vary the height for each bubble
+      const maxHeight = -300 - (Math.random() * 100); // Random heights between -300 and -400
+      
+      return Animated.sequence([
+        Animated.delay(index * 50), // Quick stagger for bubble effect
+        Animated.parallel([
+          // Fade in quickly
+          Animated.timing(anim.opacity, {
+            toValue: 1,
+            duration: 150,
+            useNativeDriver: true,
+          }),
+          // Scale up as bubble rises (starts small, grows)
+          Animated.timing(anim.scale, {
+            toValue: 1 + (Math.random() * 0.3), // Vary sizes between 1.0 and 1.3
+            duration: 800,
+            useNativeDriver: true,
+          }),
+          // Float up
+          Animated.timing(anim.translateY, {
+            toValue: maxHeight,
+            duration: 1200 + (index * 100), // Varying speeds for organic feel
+            useNativeDriver: true,
+          }),
+          // Spread out horizontally as they rise (easing creates bubble spread effect)
+          Animated.timing(anim.translateX, {
+            toValue: horizontalSpread,
+            duration: 1200 + (index * 100),
+            useNativeDriver: true,
+          }),
+        ]),
+        // Fade out at the top
+        Animated.timing(anim.opacity, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]);
+    });
+    
+    Animated.parallel(animations).start(() => {
+      setShowThumbsUp(false);
+    });
+  };
+
+  // Handle tap (single or double)
+  const handleTap = () => {
+    const now = Date.now();
+    const DOUBLE_TAP_DELAY = 300; // milliseconds
+    
+    if (lastTap.current && (now - lastTap.current) < DOUBLE_TAP_DELAY) {
+      // Double tap detected - mark as correct and move to next
+      lastTap.current = null;
+      handleAnswer('correct');
+    } else {
+      // Single tap - just flip the card
+      lastTap.current = now;
+      setTimeout(() => {
+        if (lastTap.current === now) {
+          // It was just a single tap - flip card with light haptic
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          setStudySession(prev => ({ ...prev, showAnswer: !prev.showAnswer }));
+        }
+      }, DOUBLE_TAP_DELAY);
+    }
+  };
+
+  // Animate card transition
+  const animateCard = (direction: 'up' | 'down', callback: () => void) => {
+    if (isAnimating.current) return;
+    isAnimating.current = true;
+    
+    // Light haptic feedback for card transition
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    
+    const toValue = direction === 'up' ? -50 : 50;
+    
+    Animated.sequence([
+      Animated.timing(slideAnim, {
+        toValue,
+        duration: 200,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 0,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      callback();
+      isAnimating.current = false;
+    });
+  };
+
+  // Navigate to next card
+  const goToNextCard = () => {
+    if (studySession.currentIndex < studySession.flashcards.length - 1) {
+      animateCard('up', () => {
+        setStudySession(prev => ({
+          ...prev,
+          currentIndex: prev.currentIndex + 1,
+          showAnswer: false,
+        }));
+      });
+    } else {
+      // Last card - go to review
+      const newAnswers = [...studySession.answers];
+      // If user hasn't answered the last card, mark as incorrect by default
+      if (!newAnswers[studySession.currentIndex]) {
+        newAnswers[studySession.currentIndex] = 'incorrect';
+      }
+      completeStudySession(newAnswers);
+    }
+  };
+
+  // Navigate to previous card
+  const goToPreviousCard = () => {
+    if (studySession.currentIndex > 0) {
+      animateCard('down', () => {
+        setStudySession(prev => ({
+          ...prev,
+          currentIndex: prev.currentIndex - 1,
+          showAnswer: false,
+        }));
+      });
+    }
+    // If on first card, do nothing
+  };
+
+  // Create PanResponder for swipe gestures and taps
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onStartShouldSetPanResponderCapture: () => false, // Allow child components to handle touches first
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        // Respond to any movement (for both swipes and taps)
+        return true;
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        const swipeThreshold = 50;
+        const tapThreshold = 10; // Max movement for a tap
+        
+        // Check if it was a tap (minimal movement)
+        if (Math.abs(gestureState.dx) < tapThreshold && Math.abs(gestureState.dy) < tapThreshold) {
+          handleTap();
+        } else if (gestureState.dy < -swipeThreshold) {
+          // Swipe up - next card
+          goToNextCard();
+        } else if (gestureState.dy > swipeThreshold) {
+          // Swipe down - previous card
+          goToPreviousCard();
+        }
+      },
+    })
+  ).current;
 
   // Handle flashcard answer selection
   const handleAnswer = async (answer: 'correct' | 'incorrect') => {
     const newAnswers = [...studySession.answers];
     newAnswers[studySession.currentIndex] = answer;
+    
+    // Haptic feedback based on answer
+    if (answer === 'correct') {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      triggerThumbsUpAnimation();
+    } else {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    }
     
     // Track individual flashcard progress
     if (user) {
@@ -80,14 +348,21 @@ export default function FlashcardStudyScreen() {
       }
     }
     
+    // Update answers in state
+    setStudySession(prev => ({
+      ...prev,
+      answers: newAnswers
+    }));
+    
     if (studySession.currentIndex < studySession.flashcards.length - 1) {
-      // Move to next card
-      setStudySession(prev => ({
-        ...prev,
-        currentIndex: prev.currentIndex + 1,
-        showAnswer: false,
-        answers: newAnswers
-      }));
+      // Move to next card with animation
+      animateCard('up', () => {
+        setStudySession(prev => ({
+          ...prev,
+          currentIndex: prev.currentIndex + 1,
+          showAnswer: false,
+        }));
+      });
     } else {
       // Session complete
       await completeStudySession(newAnswers);
@@ -242,8 +517,20 @@ export default function FlashcardStudyScreen() {
     const progress = ((studySession.currentIndex + 1) / studySession.flashcards.length) * 100;
 
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.studyHeader}>
+      <LinearGradient
+        colors={['#f0f4ff', '#e0e7ff', '#ddd6fe']}
+        style={styles.container}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        {/* Video Background */}
+        <VideoBackground 
+          category={videoCategory} 
+          isMuted={isVideoMuted} 
+        />
+        
+        <SafeAreaView style={styles.safeArea} edges={['top']}>
+          <View style={styles.studyHeader}>
           <View style={styles.studyHeaderTop}>
             <TouchableOpacity 
               style={styles.backButton}
@@ -265,14 +552,174 @@ export default function FlashcardStudyScreen() {
                   }
                 </Text>
               </TouchableOpacity>
+              <VideoControls
+                selectedCategory={videoCategory}
+                onCategoryChange={setVideoCategory}
+                isMuted={isVideoMuted}
+                onMuteToggle={() => setIsVideoMuted(!isVideoMuted)}
+              />
             </View>
           </View>
           <View style={styles.progressBar}>
             <View style={[styles.progressFill, { width: `${progress}%` }]} />
           </View>
+          
+          {/* Gesture Hints */}
+            <View style={styles.gestureHintsContainer}>
+              <View style={styles.gestureHintItem}>
+                <Ionicons name="refresh" size={16} color="#6366f1" />
+                <Text style={styles.gestureHintText}>Tap to flip</Text>
+              </View>
+              <View style={styles.gestureHintItem}>
+                <Ionicons name="swap-vertical" size={16} color="#6366f1" />
+                <Text style={styles.gestureHintText}>Swipe</Text>
+              </View>
+              <View style={styles.gestureHintItem}>
+                <Ionicons name="checkmark-circle" size={16} color="#10b981" />
+                <Text style={styles.gestureHintText}>2x = ✓</Text>
+              </View>
+            </View>
         </View>
         
-        <View style={styles.studyContent}>
+        {/* Animated Background Elements */}
+        <View style={styles.backgroundPattern}>
+          <Animated.View 
+            style={[
+              styles.decorativeCircle1,
+              {
+                transform: [
+                  { translateY: animatedValue1.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, -20],
+                  })},
+                  { translateX: animatedValue1.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, 10],
+                  })}
+                ]
+              }
+            ]} 
+          />
+          <Animated.View 
+            style={[
+              styles.decorativeCircle2,
+              {
+                transform: [
+                  { translateY: animatedValue2.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, 15],
+                  })},
+                  { translateX: animatedValue2.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, -8],
+                  })}
+                ]
+              }
+            ]} 
+          />
+          <Animated.View 
+            style={[
+              styles.decorativeCircle3,
+              {
+                transform: [
+                  { translateY: animatedValue3.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, -12],
+                  })},
+                  { translateX: animatedValue3.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, 6],
+                  })}
+                ]
+              }
+            ]} 
+          />
+          <Animated.View 
+            style={[
+              styles.decorativeCircle4,
+              {
+                transform: [
+                  { translateY: animatedValue4.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, 18],
+                  })},
+                  { translateX: animatedValue4.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, -5],
+                  })}
+                ]
+              }
+            ]} 
+          />
+          <Animated.View 
+            style={[
+              styles.floatingDiamond1,
+              {
+                transform: [
+                  { translateY: animatedValue5.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, -10],
+                  })},
+                  { translateX: animatedValue5.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, 7],
+                  })}
+                ]
+              }
+            ]} 
+          />
+          <Animated.View 
+            style={[
+              styles.floatingDiamond2,
+              {
+                transform: [
+                  { translateY: animatedValue6.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, 14],
+                  })},
+                  { translateX: animatedValue6.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, -9],
+                  })}
+                ]
+              }
+            ]} 
+          />
+        </View>
+
+        <Animated.View 
+          style={[
+            styles.studyContent,
+            {
+              transform: [{ translateY: slideAnim }]
+            }
+          ]}
+          {...panResponder.panHandlers}
+        >
+          {/* Thumbs Up Animation - Bubble Effect Behind Card */}
+          {showThumbsUp && (
+            <View style={styles.thumbsUpContainer}>
+              {thumbsUpAnims.map((anim, index) => (
+                <Animated.View
+                  key={index}
+                  style={[
+                    styles.thumbsUpIcon,
+                    {
+                      opacity: anim.opacity,
+                      transform: [
+                        { translateY: anim.translateY },
+                        { translateX: anim.translateX },
+                        { scale: anim.scale },
+                      ],
+                    },
+                  ]}
+                >
+                  <Ionicons name="thumbs-up" size={48} color="#10b981" />
+                </Animated.View>
+              ))}
+            </View>
+          )}
+          
           <View style={styles.flashcard}>
             <View style={styles.flashcardContent}>
               <Text style={styles.flashcardText}>
@@ -281,39 +728,32 @@ export default function FlashcardStudyScreen() {
                   : (studySession.showNativeLanguage ? currentCard.back : currentCard.front)
                 }
               </Text>
-              {currentCard.pronunciation && (
-                <View style={styles.pronunciationContainer}>
+              <View style={styles.pronunciationContainer}>
+                {currentCard.pronunciation && (
                   <Text style={styles.pronunciation}>{currentCard.pronunciation}</Text>
-                  <TouchableOpacity 
-                    style={[styles.audioButton, isAudioPlaying && styles.audioButtonPlaying]} 
-                    onPress={() => playPronunciation(currentCard.front)}
-                  >
-                    <Ionicons 
-                      name="volume-high" 
-                      size={20} 
-                      color={isAudioPlaying ? "#64748b" : "#6366f1"} 
-                    />
-                  </TouchableOpacity>
-                </View>
-              )}
+                )}
+                <TouchableOpacity 
+                  style={[styles.audioButton, isAudioPlaying && styles.audioButtonPlaying]} 
+                  onPress={() => {
+                    // Play the word that's currently being shown
+                    const textToSpeak = studySession.showAnswer 
+                      ? (studySession.showNativeLanguage ? currentCard.front : currentCard.back)
+                      : (studySession.showNativeLanguage ? currentCard.back : currentCard.front);
+                    playPronunciation(textToSpeak);
+                  }}
+                >
+                  <Ionicons 
+                    name="volume-high" 
+                    size={20} 
+                    color={isAudioPlaying ? "#64748b" : "#6366f1"} 
+                  />
+                </TouchableOpacity>
+              </View>
               {currentCard.example && studySession.showAnswer && (
                 <Text style={styles.example}>Example: {currentCard.example}</Text>
               )}
             </View>
             
-            <TouchableOpacity 
-              style={styles.flipButton}
-              onPress={() => setStudySession(prev => ({ ...prev, showAnswer: !prev.showAnswer }))}
-            >
-              <Ionicons 
-                name={studySession.showAnswer ? "eye-off" : "eye"} 
-                size={24} 
-                color="#6366f1" 
-              />
-              <Text style={styles.flipButtonText}>
-                {studySession.showAnswer ? 'Show Question' : 'Show Answer'}
-              </Text>
-            </TouchableOpacity>
           </View>
           
           {studySession.showAnswer && (
@@ -335,8 +775,9 @@ export default function FlashcardStudyScreen() {
               </TouchableOpacity>
             </View>
           )}
-        </View>
-      </SafeAreaView>
+        </Animated.View>
+        </SafeAreaView>
+      </LinearGradient>
     );
   }
 
@@ -360,8 +801,14 @@ export default function FlashcardStudyScreen() {
     const filteredCount = filteredFlashcards.length;
     
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.reviewHeader}>
+      <LinearGradient
+        colors={['#f0f4ff', '#e0e7ff', '#ddd6fe']}
+        style={styles.container}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        <SafeAreaView style={styles.safeArea} edges={['top']}>
+          <View style={styles.reviewHeader}>
           <Text style={styles.reviewTitle}>Session Complete!</Text>
           <Text style={styles.reviewSubtitle}>Review your performance</Text>
           
@@ -556,39 +1003,164 @@ export default function FlashcardStudyScreen() {
             <Text style={styles.backToSetupButtonText}>Back to Games</Text>
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
+        </SafeAreaView>
+      </LinearGradient>
     );
   }
 
   // Fallback - should not reach here
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>No flashcards available</Text>
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.backButtonText}>Go Back</Text>
-        </TouchableOpacity>
-      </View>
-    </SafeAreaView>
+    <LinearGradient
+      colors={['#f0f4ff', '#e0e7ff', '#ddd6fe']}
+      style={styles.container}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+    >
+      <SafeAreaView style={styles.safeArea} edges={['top']}>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>No flashcards available</Text>
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Text style={styles.backButtonText}>Go Back</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+  },
+  safeArea: {
+    flex: 1,
+  },
+  backgroundPattern: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    overflow: 'hidden',
+    zIndex: 0,
+  },
+  // Large decorative circles for visual interest
+  decorativeCircle1: {
+    position: 'absolute',
+    top: -100,
+    right: -50,
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: 'rgba(99, 102, 241, 0.08)',
+    shadowColor: '#6366f1',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 0,
+  },
+  decorativeCircle2: {
+    position: 'absolute',
+    bottom: -80,
+    left: -60,
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    backgroundColor: 'rgba(139, 92, 246, 0.06)',
+    shadowColor: '#8b5cf6',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.2,
+    shadowRadius: 15,
+    elevation: 0,
+  },
+  decorativeCircle3: {
+    position: 'absolute',
+    top: '30%',
+    left: -40,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    shadowColor: '#ffffff',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    elevation: 0,
+  },
+  decorativeCircle4: {
+    position: 'absolute',
+    bottom: '20%',
+    right: -30,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+    shadowColor: '#6366f1',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 0,
+  },
+  // Floating diamond shapes
+  floatingDiamond1: {
+    position: 'absolute',
+    top: '35%',
+    right: '30%',
+    width: 0,
+    height: 0,
+    backgroundColor: 'transparent',
+    borderStyle: 'solid',
+    borderLeftWidth: 20,
+    borderRightWidth: 20,
+    borderBottomWidth: 35,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderBottomColor: 'rgba(99, 102, 241, 0.15)',
+    transform: [{ rotate: '45deg' }],
+    shadowColor: '#6366f1',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 0,
+  },
+  floatingDiamond2: {
+    position: 'absolute',
+    bottom: '35%',
+    left: '30%',
+    width: 0,
+    height: 0,
+    backgroundColor: 'transparent',
+    borderStyle: 'solid',
+    borderLeftWidth: 15,
+    borderRightWidth: 15,
+    borderBottomWidth: 25,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderBottomColor: 'rgba(255, 255, 255, 0.2)',
+    transform: [{ rotate: '45deg' }],
+    shadowColor: '#ffffff',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 0,
   },
   // Flashcard Study Session Styles
   studyHeader: {
-    backgroundColor: '#ffffff',
+    backgroundColor: 'rgba(255, 255, 255, 0.98)',
     paddingHorizontal: 20,
     paddingTop: 20,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
+    borderBottomColor: 'rgba(226, 232, 240, 0.3)',
+    zIndex: 100,
+    elevation: 10,
+    shadowColor: '#6366f1',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
   },
   studyHeaderTop: {
     flexDirection: 'row',
@@ -607,7 +1179,8 @@ const styles = StyleSheet.create({
   progressContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 8,
+    flexWrap: 'wrap',
   },
   progressText: {
     fontSize: 16,
@@ -639,22 +1212,62 @@ const styles = StyleSheet.create({
     backgroundColor: '#6366f1',
     borderRadius: 2,
   },
+  gestureHintsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-evenly',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+  },
+  gestureHintItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(99, 102, 241, 0.15)',
+    minWidth: 75,
+    justifyContent: 'center',
+  },
   studyContent: {
     flex: 1,
     padding: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  thumbsUpContainer: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    zIndex: 1,
+    pointerEvents: 'none',
+  },
+  thumbsUpIcon: {
+    position: 'absolute',
+    shadowColor: '#10b981',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 2,
   },
   flashcard: {
-    backgroundColor: '#ffffff',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
     borderRadius: 16,
     padding: 24,
     marginBottom: 24,
     borderWidth: 1,
     borderColor: '#e2e8f0',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 5,
+    width: '100%',
+    maxWidth: 500,
+    zIndex: 10,
   },
   flashcardContent: {
     alignItems: 'center',
@@ -694,24 +1307,19 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 22,
   },
-  flipButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    backgroundColor: '#f0f4ff',
-    borderRadius: 12,
-  },
-  flipButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
+  gestureHintText: {
+    fontSize: 10,
     color: '#6366f1',
+    fontWeight: '600',
+    textAlign: 'center',
+    letterSpacing: 0.1,
   },
   answerButtons: {
     flexDirection: 'row',
     gap: 16,
+    width: '100%',
+    maxWidth: 500,
+    zIndex: 10,
   },
   answerButton: {
     flex: 1,
@@ -741,13 +1349,17 @@ const styles = StyleSheet.create({
   },
   // Flashcard Review Session Styles
   reviewHeader: {
-    backgroundColor: '#ffffff',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
     paddingHorizontal: 20,
     paddingTop: 20,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
+    borderBottomColor: 'rgba(226, 232, 240, 0.3)',
     alignItems: 'center',
+    shadowColor: '#6366f1',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
   },
   reviewTitle: {
     fontSize: 24,
@@ -802,11 +1414,15 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   filterContainer: {
-    backgroundColor: '#ffffff',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
+    borderBottomColor: 'rgba(226, 232, 240, 0.3)',
+    shadowColor: '#6366f1',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
   },
   filterTitle: {
     fontSize: 16,
@@ -936,10 +1552,14 @@ const styles = StyleSheet.create({
   },
   reviewActions: {
     padding: 20,
-    backgroundColor: '#ffffff',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
     borderTopWidth: 1,
-    borderTopColor: '#e2e8f0',
+    borderTopColor: 'rgba(226, 232, 240, 0.3)',
     gap: 12,
+    shadowColor: '#6366f1',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
   },
   buttonRow: {
     flexDirection: 'row',
