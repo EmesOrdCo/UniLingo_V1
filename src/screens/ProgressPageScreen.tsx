@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,9 @@ import {
   Dimensions,
   ActivityIndicator,
   RefreshControl,
+  Animated,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
@@ -33,6 +35,35 @@ export default function ProgressPageScreen() {
   const [studyDates, setStudyDates] = useState<string[]>([]);
   const [lessonsCount, setLessonsCount] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
+
+  // Animated sheen effect
+  const sheenAnimation = useRef(new Animated.Value(-1)).current;
+
+  // Setup sheen animation - runs periodically
+  useEffect(() => {
+    const runSheenAnimation = () => {
+      Animated.sequence([
+        Animated.timing(sheenAnimation, {
+          toValue: 1,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+        Animated.delay(3500), // Wait 3.5 seconds before next sheen
+      ]).start(() => {
+        sheenAnimation.setValue(-1);
+        runSheenAnimation(); // Repeat
+      });
+    };
+
+    const timer = setTimeout(() => {
+      runSheenAnimation();
+    }, 2000); // Initial delay of 2 seconds
+
+    return () => {
+      clearTimeout(timer);
+      sheenAnimation.setValue(-1);
+    };
+  }, []);
 
   useEffect(() => {
     if (user?.id) {
@@ -249,28 +280,61 @@ export default function ProgressPageScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        {/* Daily Goals Widget */}
-        <View style={styles.dailyGoalsContainer}>
-          <DailyGoalsWidget refreshTrigger={refreshTrigger} />
-        </View>
-
         {/* Arcade Button */}
         <View style={styles.arcadeButtonContainer}>
+          <View style={styles.backlightEffect} />
           <TouchableOpacity 
             style={styles.arcadeButton}
             onPress={() => navigation.navigate('Arcade' as never)}
+            activeOpacity={0.9}
           >
-            <View style={styles.arcadeButtonContent}>
-              <View style={styles.arcadeButtonLeft}>
-                <Ionicons name="game-controller" size={28} color="#6366F1" />
-                <View style={styles.arcadeButtonText}>
-                  <Text style={styles.arcadeButtonTitle}>🎮 Arcade Games</Text>
-                  <Text style={styles.arcadeButtonSubtitle}>Play fun games - All FREE!</Text>
+            <LinearGradient
+              colors={['#6366F1', '#8B5CF6', '#A855F7']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.arcadeButtonGradient}
+            >
+              {/* Animated Sheen Effect */}
+              <Animated.View
+                style={[
+                  styles.sheenEffect,
+                  {
+                    transform: [
+                      {
+                        translateX: sheenAnimation.interpolate({
+                          inputRange: [-1, 1],
+                          outputRange: [-width, width * 1.5],
+                        }),
+                      },
+                    ],
+                  },
+                ]}
+              >
+                <LinearGradient
+                  colors={['transparent', 'rgba(255, 255, 255, 0.3)', 'transparent']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.sheenGradient}
+                />
+              </Animated.View>
+
+              <View style={styles.arcadeButtonContent}>
+                <View style={styles.arcadeButtonLeft}>
+                  <Ionicons name="game-controller" size={28} color="#FFFFFF" />
+                  <View style={styles.arcadeButtonText}>
+                    <Text style={styles.arcadeButtonTitle}>Arcade Games</Text>
+                    <Text style={styles.arcadeButtonSubtitle}>Take a break and play classic arcade games - All FREE!</Text>
+                  </View>
                 </View>
+                <Ionicons name="chevron-forward" size={24} color="#FFFFFF" />
               </View>
-              <Ionicons name="chevron-forward" size={24} color="#9CA3AF" />
-            </View>
+            </LinearGradient>
           </TouchableOpacity>
+        </View>
+
+        {/* Daily Goals Widget */}
+        <View style={styles.dailyGoalsContainer}>
+          <DailyGoalsWidget refreshTrigger={refreshTrigger} />
         </View>
 
         {/* Level Progress */}
@@ -924,23 +988,53 @@ const styles = StyleSheet.create({
   arcadeButtonContainer: {
     paddingHorizontal: 20,
     paddingVertical: 12,
+    position: 'relative',
+  },
+  backlightEffect: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#8B5CF6',
+    opacity: 0.15,
+    borderRadius: 24,
+    transform: [{ scale: 0.95 }],
   },
   arcadeButton: {
-    backgroundColor: '#FFFFFF',
     borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#8B5CF6',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  arcadeButtonGradient: {
     padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-    borderWidth: 2,
-    borderColor: '#6366F1',
+    borderRadius: 16,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  sheenEffect: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: width * 0.3,
+    zIndex: 1,
+  },
+  sheenGradient: {
+    flex: 1,
+    transform: [{ skewX: '-20deg' }],
   },
   arcadeButtonContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    position: 'relative',
+    zIndex: 2,
   },
   arcadeButtonLeft: {
     flexDirection: 'row',
@@ -954,12 +1048,12 @@ const styles = StyleSheet.create({
   arcadeButtonTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#111827',
+    color: '#FFFFFF',
     marginBottom: 4,
   },
   arcadeButtonSubtitle: {
     fontSize: 14,
-    color: '#6B7280',
+    color: 'rgba(255, 255, 255, 0.9)',
   },
 });
 

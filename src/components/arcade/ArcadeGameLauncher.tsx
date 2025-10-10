@@ -15,7 +15,6 @@ import FlappyBirdGame from '../games/FlappyBirdGame';
 import AsteroidsGame from '../games/AsteroidsGame';
 import BubbleShooterGame from '../games/BubbleShooterGame';
 import SudokuGame from '../games/SudokuGame';
-import FlowFreeGame from '../games/FlowFreeGame';
 
 interface ArcadeGameLauncherProps {
   visible: boolean;
@@ -30,12 +29,26 @@ export default function ArcadeGameLauncher({ visible, game, onClose }: ArcadeGam
   if (!game) return null;
 
   // Determine if this is a React Native game or WebView game
-  const isReactNativeGame = ['snake', '2048', 'tetris', 'breakout', 'space-invaders', 'pong', 'minesweeper', 'pacman', 'flappy-bird', 'asteroids', 'bubble-shooter', 'sudoku', 'flow-free'].includes(game.game_url) || game.game_url.startsWith('native://');
+  const isReactNativeGame = ['snake', '2048', 'tetris', 'breakout', 'space-invaders', 'pong', 'minesweeper', 'pacman', 'flappy-bird', 'asteroids', 'bubble-shooter', 'sudoku'].includes(game.game_url) || game.game_url.startsWith('native://');
 
   const handleGameComplete = async (score: number) => {
     const durationSeconds = Math.floor((Date.now() - gameStartTime) / 1000);
 
-    // Record the game play
+    // Record the game play (for React Native games)
+    if (user?.id) {
+      await ArcadeService.recordGamePlay(user.id, game.id, score, durationSeconds);
+      
+      // Update high score if applicable
+      if (score > 0) {
+        await ArcadeService.updateHighScore(user.id, game.id, score);
+      }
+    }
+  };
+
+  const handleWebViewGameEnd = async (score: number) => {
+    const durationSeconds = Math.floor((Date.now() - gameStartTime) / 1000);
+
+    // Record the game play (for WebView games)
     if (user?.id) {
       await ArcadeService.recordGamePlay(user.id, game.id, score, durationSeconds);
       
@@ -47,13 +60,7 @@ export default function ArcadeGameLauncher({ visible, game, onClose }: ArcadeGam
   };
 
   const handleClose = async () => {
-    const durationSeconds = Math.floor((Date.now() - gameStartTime) / 1000);
-
-    // Record the game play (even if they didn't finish)
-    if (user?.id) {
-      await ArcadeService.recordGamePlay(user.id, game.id, undefined, durationSeconds);
-    }
-
+    // Don't record game play on close - only record when games actually complete
     onClose();
   };
 
@@ -214,19 +221,6 @@ export default function ArcadeGameLauncher({ visible, game, onClose }: ArcadeGam
         </Modal>
       );
     }
-    
-    if (game.game_url === 'flow-free') {
-      return (
-        <Modal
-          visible={visible}
-          animationType="slide"
-          presentationStyle="fullScreen"
-          onRequestClose={handleClose}
-        >
-          <FlowFreeGame onClose={handleClose} onGameComplete={handleGameComplete} />
-        </Modal>
-      );
-    }
   }
 
   // Render HTML5 games via WebView
@@ -235,7 +229,7 @@ export default function ArcadeGameLauncher({ visible, game, onClose }: ArcadeGam
       visible={visible}
       game={game}
       onClose={handleClose}
-      onGameEnd={handleGameComplete}
+      onGameEnd={handleWebViewGameEnd}
     />
   );
 }

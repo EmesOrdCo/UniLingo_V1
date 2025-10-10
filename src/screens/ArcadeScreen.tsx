@@ -7,12 +7,18 @@ import ArcadeSection from '../components/arcade/ArcadeSection';
 export default function ArcadeScreen() {
   const navigation = useNavigation();
 
+  const handleBackPress = () => {
+    // Navigate to Progress tab
+    navigation.navigate('Dashboard' as never, { screen: 'Progress' } as never);
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ConsistentHeader 
         pageName="Arcade"
+        pageIcon="game-controller"
         showBackButton={true}
-        onBackPress={() => navigation.goBack()}
+        onBackPress={handleBackPress}
       />
       <View style={styles.content}>
         <ArcadeSection />

@@ -102,49 +102,39 @@ export default function ArcadeSection({ onGamePlayed }: ArcadeSectionProps) {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <Ionicons name="game-controller" size={24} color="#6366F1" />
-          <Text style={styles.headerTitle}>Arcade</Text>
-        </View>
-        <View style={styles.freeBadge}>
-          <Text style={styles.freeText}>ALL FREE</Text>
-        </View>
-      </View>
-
       {/* Category Filter */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.categoryScroll}
-        contentContainerStyle={styles.categoryScrollContent}
-      >
-        {categories.map((category) => (
-          <TouchableOpacity
-            key={category.id}
-            style={[
-              styles.categoryButton,
-              selectedCategory === category.id && styles.categoryButtonActive,
-            ]}
-            onPress={() => setSelectedCategory(category.id)}
-          >
-            <Ionicons
-              name={category.icon as any}
-              size={13}
-              color={selectedCategory === category.id ? '#FFFFFF' : '#6B7280'}
-            />
-            <Text
+      <View style={styles.categoryContainer}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.categoryScrollContent}
+        >
+          {categories.map((category) => (
+            <TouchableOpacity
+              key={category.id}
               style={[
-                styles.categoryButtonText,
-                selectedCategory === category.id && styles.categoryButtonTextActive,
+                styles.categoryButton,
+                selectedCategory === category.id && styles.categoryButtonActive,
               ]}
+              onPress={() => setSelectedCategory(category.id)}
             >
-              {category.name}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+              <Ionicons
+                name={category.icon as any}
+                size={16}
+                color={selectedCategory === category.id ? '#FFFFFF' : '#6B7280'}
+              />
+              <Text
+                style={[
+                  styles.categoryButtonText,
+                  selectedCategory === category.id && styles.categoryButtonTextActive,
+                ]}
+              >
+                {category.name}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
 
       {/* Games List */}
       <ScrollView
@@ -177,17 +167,23 @@ export default function ArcadeSection({ onGamePlayed }: ArcadeSectionProps) {
 
             {/* Stats Footer */}
             <View style={styles.statsFooter}>
-              <View style={styles.statItem}>
-                <Ionicons name="trophy" size={20} color="#F59E0B" />
-                <Text style={styles.statText}>
-                  {highScores.size} High Score{highScores.size !== 1 ? 's' : ''}
-                </Text>
+              <View style={styles.statCard}>
+                <View style={styles.statIconContainer}>
+                  <Ionicons name="trophy" size={24} color="#F59E0B" />
+                </View>
+                <View>
+                  <Text style={styles.statValue}>{highScores.size}</Text>
+                  <Text style={styles.statLabel}>High Score{highScores.size !== 1 ? 's' : ''}</Text>
+                </View>
               </View>
-              <View style={styles.statItem}>
-                <Ionicons name="game-controller" size={20} color="#6366F1" />
-                <Text style={styles.statText}>
-                  {filteredGames.length} Game{filteredGames.length !== 1 ? 's' : ''}
-                </Text>
+              <View style={styles.statCard}>
+                <View style={styles.statIconContainer}>
+                  <Ionicons name="game-controller" size={24} color="#6366F1" />
+                </View>
+                <View>
+                  <Text style={styles.statValue}>{filteredGames.length}</Text>
+                  <Text style={styles.statLabel}>Game{filteredGames.length !== 1 ? 's' : ''}</Text>
+                </View>
               </View>
             </View>
           </>
@@ -221,65 +217,39 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     fontWeight: '500',
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 10,
+  categoryContainer: {
     backgroundColor: '#FFFFFF',
+    paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  freeBadge: {
-    backgroundColor: '#10B981',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  freeText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  categoryScroll: {
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-    maxHeight: 40,
   },
   categoryScrollContent: {
-    paddingHorizontal: 16,
-    paddingVertical: 4,
-    gap: 6,
+    paddingHorizontal: 20,
+    gap: 10,
   },
   categoryButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 12,
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 16,
     backgroundColor: '#F3F4F6',
-    marginRight: 6,
-    height: 28,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    marginRight: 8,
   },
   categoryButtonActive: {
     backgroundColor: '#6366F1',
+    borderColor: '#6366F1',
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 4,
   },
   categoryButtonText: {
-    fontSize: 11,
+    fontSize: 14,
     fontWeight: '600',
     color: '#6B7280',
   },
@@ -289,42 +259,68 @@ const styles = StyleSheet.create({
   gamesList: {
     flex: 1,
     paddingHorizontal: 20,
-    paddingTop: 8,
+    paddingTop: 16,
   },
   emptyContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 64,
+    paddingVertical: 80,
+    paddingHorizontal: 32,
   },
   emptyTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '700',
     color: '#111827',
-    marginTop: 16,
-    marginBottom: 8,
+    marginTop: 20,
+    marginBottom: 10,
+    letterSpacing: -0.5,
   },
   emptyText: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#6B7280',
     textAlign: 'center',
-    paddingHorizontal: 32,
+    lineHeight: 22,
   },
   statsFooter: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 24,
-    paddingVertical: 24,
-    marginTop: 8,
+    gap: 16,
+    paddingVertical: 28,
+    marginTop: 12,
   },
-  statItem: {
+  statCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 12,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  statText: {
-    fontSize: 14,
+  statIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: '#F9FAFB',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statValue: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#111827',
+    letterSpacing: -0.5,
+  },
+  statLabel: {
+    fontSize: 12,
     fontWeight: '600',
     color: '#6B7280',
+    marginTop: 2,
   },
 });

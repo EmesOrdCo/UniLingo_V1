@@ -33,6 +33,10 @@ export interface HighScore {
 }
 
 export class ArcadeService {
+  // Track recent game plays to prevent duplicates
+  private static recentGamePlays = new Map<string, number>();
+  private static readonly DUPLICATE_THRESHOLD_MS = 5000; // 5 seconds
+
   /**
    * Get all active arcade games
    */
@@ -87,6 +91,19 @@ export class ArcadeService {
     durationSeconds?: number
   ): Promise<boolean> {
     try {
+      // Create a unique key for this game play to prevent duplicates
+      const now = Date.now();
+      const playKey = `${userId}-${gameId}-${score || 'no-score'}-${Math.floor(durationSeconds || 0)}`;
+      
+      // Check if we've recorded this exact game play recently
+      const lastRecorded = this.recentGamePlays.get(playKey);
+      if (lastRecorded && (now - lastRecorded) < this.DUPLICATE_THRESHOLD_MS) {
+        console.log('🚫 Preventing duplicate game play record:', playKey);
+        return true; // Return true but don't record
+      }
+
+      console.log('📝 Recording game play:', { userId, gameId, score, durationSeconds });
+
       const { error } = await supabase
         .from('user_game_plays')
         .insert({
@@ -99,12 +116,23 @@ export class ArcadeService {
 
       if (error) throw error;
 
+      // Record this play to prevent duplicates
+      this.recentGamePlays.set(playKey, now);
+
+      // Clean up old entries (keep only last 100 entries)
+      if (this.recentGamePlays.size > 100) {
+        const entries = Array.from(this.recentGamePlays.entries());
+        entries.sort((a, b) => b[1] - a[1]); // Sort by timestamp descending
+        this.recentGamePlays = new Map(entries.slice(0, 50)); // Keep only recent 50
+      }
+
       // Increment play count
       await this.incrementPlayCount(gameId);
 
+      console.log('✅ Game play recorded successfully');
       return true;
     } catch (error) {
-      console.error('Error recording game play:', error);
+      console.error('❌ Error recording game play:', error);
       return false;
     }
   }

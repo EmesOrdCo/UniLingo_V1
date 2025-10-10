@@ -14,7 +14,7 @@ const { width, height } = Dimensions.get('window');
 // Game constants
 const COLS = 10;
 const ROWS = 20;
-const CELL_SIZE = Math.floor(Math.min(width - 60, (height - 450) / ROWS));
+const CELL_SIZE = Math.floor(Math.min(width - 40, (height - 380) / ROWS));
 const INITIAL_DROP_SPEED = 1000; // milliseconds
 
 type TetrominoType = 'I' | 'O' | 'T' | 'S' | 'Z' | 'J' | 'L';
@@ -465,8 +465,8 @@ const TetrisGame: React.FC<TetrisGameProps> = ({ onClose, onGameComplete }) => {
               style={[
                 styles.nextPieceCell,
                 {
-                  top: block.row * 12 + 10,
-                  left: block.col * 12 + 10,
+                  top: block.row * 14 + 12,
+                  left: block.col * 14 + 12,
                   backgroundColor: COLORS[nextPiece],
                 },
               ]}
@@ -683,8 +683,8 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   nextPieceBox: {
-    width: 70,
-    height: 70,
+    width: 80,
+    height: 80,
     backgroundColor: '#1E293B',
     borderRadius: 8,
     borderWidth: 1,
@@ -693,8 +693,8 @@ const styles = StyleSheet.create({
   },
   nextPieceCell: {
     position: 'absolute',
-    width: 10,
-    height: 10,
+    width: 12,
+    height: 12,
     borderWidth: 1,
     borderColor: '#000000',
   },

@@ -42,14 +42,7 @@ export default function GameWebView({ visible, game, onClose, onGameEnd }: GameW
   const gameUrl = getBackendUrl(`/${game.game_url}`);
 
   const handleClose = async () => {
-    // Calculate duration
-    const durationSeconds = Math.floor((Date.now() - gameStartTime) / 1000);
-
-    // Record the game play
-    if (user?.id) {
-      await ArcadeService.recordGamePlay(user.id, game.id, undefined, durationSeconds);
-    }
-
+    // Don't record game play on close - let the launcher handle it
     setLoading(true);
     setError(false);
     onClose();
@@ -62,23 +55,8 @@ export default function GameWebView({ visible, game, onClose, onGameEnd }: GameW
       if (data.type === 'GAME_OVER' && data.score !== undefined) {
         const score = parseInt(data.score, 10);
 
-        if (user?.id) {
-          // Record game play with score
-          const durationSeconds = Math.floor((Date.now() - gameStartTime) / 1000);
-          await ArcadeService.recordGamePlay(user.id, game.id, score, durationSeconds);
-
-          // Update high score if applicable
-          const isNewHighScore = await ArcadeService.updateHighScore(user.id, game.id, score);
-
-          if (isNewHighScore) {
-            Alert.alert(
-              '🎉 New High Score!',
-              `Congratulations! You scored ${score.toLocaleString()} points!`,
-              [{ text: 'Awesome!', style: 'default' }]
-            );
-          }
-        }
-
+        // Don't record game play here - let the launcher handle it
+        // Just trigger the callback to notify the launcher
         if (onGameEnd) {
           onGameEnd(score);
         }

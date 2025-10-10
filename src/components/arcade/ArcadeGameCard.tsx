@@ -25,19 +25,6 @@ export default function ArcadeGameCard({ game, highScore, onPress }: ArcadeGameC
     }
   };
 
-  const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty) {
-      case 'easy':
-        return '#10B981'; // Green
-      case 'medium':
-        return '#F59E0B'; // Orange
-      case 'hard':
-        return '#EF4444'; // Red
-      default:
-        return '#6B7280'; // Gray
-    }
-  };
-
   const getCategoryColor = (category: string) => {
     switch (category) {
       case 'puzzle':
@@ -87,11 +74,6 @@ export default function ArcadeGameCard({ game, highScore, onPress }: ArcadeGameC
 
         <View style={styles.footer}>
           <View style={styles.tags}>
-            <View style={[styles.difficultyBadge, { backgroundColor: getDifficultyColor(game.difficulty) + '20' }]}>
-              <Text style={[styles.difficultyText, { color: getDifficultyColor(game.difficulty) }]}>
-                {game.difficulty.toUpperCase()}
-              </Text>
-            </View>
             <View style={styles.categoryBadge}>
               <Text style={styles.categoryText}>{game.category}</Text>
             </View>
@@ -105,11 +87,6 @@ export default function ArcadeGameCard({ game, highScore, onPress }: ArcadeGameC
           )}
         </View>
       </View>
-
-      {/* Play Button */}
-      <View style={styles.playButton}>
-        <Ionicons name="play" size={24} color="#FFFFFF" />
-      </View>
     </TouchableOpacity>
   );
 }
@@ -118,23 +95,23 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    borderLeftWidth: 4,
+    borderRadius: 20,
+    padding: 18,
+    marginBottom: 14,
+    borderLeftWidth: 5,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
   },
   iconContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 12,
+    width: 68,
+    height: 68,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginRight: 14,
   },
   content: {
     flex: 1,
@@ -144,31 +121,34 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 4,
+    marginBottom: 6,
   },
   gameName: {
-    fontSize: 18,
+    fontSize: 19,
     fontWeight: '700',
     color: '#111827',
     flex: 1,
+    letterSpacing: -0.3,
   },
   freeBadge: {
     backgroundColor: '#10B981',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
     marginLeft: 8,
   },
   freeText: {
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#FFFFFF',
+    letterSpacing: 0.5,
   },
   description: {
     fontSize: 14,
     color: '#6B7280',
-    marginBottom: 8,
-    lineHeight: 18,
+    marginBottom: 10,
+    lineHeight: 20,
+    minHeight: 40,
   },
   footer: {
     flexDirection: 'row',
@@ -177,51 +157,33 @@ const styles = StyleSheet.create({
   },
   tags: {
     flexDirection: 'row',
-    gap: 6,
-  },
-  difficultyBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  difficultyText: {
-    fontSize: 10,
-    fontWeight: '600',
+    gap: 8,
   },
   categoryBadge: {
     backgroundColor: '#F3F4F6',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
   },
   categoryText: {
     fontSize: 10,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#6B7280',
     textTransform: 'capitalize',
+    letterSpacing: 0.3,
   },
   highScoreContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 5,
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
   },
   highScoreText: {
     fontSize: 12,
-    fontWeight: '600',
-    color: '#F59E0B',
-  },
-  playButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#6366F1',
-    alignItems: 'center',
-    justifyContent: 'center',
-    alignSelf: 'center',
-    shadowColor: '#6366F1',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
+    fontWeight: '700',
+    color: '#D97706',
   },
 });

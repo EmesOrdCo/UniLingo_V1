@@ -13,12 +13,18 @@ interface ConsistentHeaderProps {
   pageName: string;
   isOverview?: boolean;
   streakCount?: number; // Optional, will be fetched automatically if not provided
+  showBackButton?: boolean;
+  onBackPress?: () => void;
+  pageIcon?: keyof typeof Ionicons.glyphMap;
 }
 
 export default function ConsistentHeader({
   pageName,
   isOverview = false,
-  streakCount = 0 
+  streakCount = 0,
+  showBackButton = false,
+  onBackPress,
+  pageIcon
 }: ConsistentHeaderProps) {
   const navigation = useNavigation();
   const { user, profile } = useAuth();
@@ -45,12 +51,27 @@ export default function ConsistentHeader({
   return (
     <View style={styles.header}>
       <View style={styles.headerLeft}>
+        {showBackButton && (
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={onBackPress || (() => navigation.goBack())}
+          >
+            <Ionicons name="arrow-back" size={24} color="#1f2937" />
+          </TouchableOpacity>
+        )}
         {isOverview ? (
           <Text style={styles.greetingText}>
             Hi, {profile?.name || user?.email?.split('@')[0] || 'User'}
           </Text>
         ) : (
-          <Text style={styles.pageNameText}>{pageName}</Text>
+          <View style={styles.pageTitleContainer}>
+            {pageIcon && (
+              <View style={styles.pageIconContainer}>
+                <Ionicons name={pageIcon} size={24} color="#6366f1" />
+              </View>
+            )}
+            <Text style={styles.pageNameText}>{pageName}</Text>
+          </View>
         )}
       </View>
       
@@ -91,6 +112,26 @@ const styles = StyleSheet.create({
   },
   headerLeft: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  backButton: {
+    padding: 4,
+    marginRight: 4,
+  },
+  pageTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  pageIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#EEF2FF',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerRight: {
     flexDirection: 'row',
