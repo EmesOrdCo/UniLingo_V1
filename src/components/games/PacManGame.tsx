@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { GestureHandlerRootView, PanGestureHandler, State } from 'react-native-gesture-handler';
 
 interface PacManGameProps {
   gameData?: any;
@@ -12,10 +13,10 @@ const { width, height } = Dimensions.get('window');
 
 // Game constants
 const GRID_SIZE = 19;
-const CELL_SIZE = Math.floor(Math.min(width - 40, height - 380) / GRID_SIZE);
-const MOVE_SPEED = 150; // milliseconds per move
-const GHOST_SPEED_NORMAL = 180;
-const GHOST_SPEED_SCARED = 250;
+const CELL_SIZE = Math.floor(Math.min(width - 40, height - 350) / GRID_SIZE); // Increased from 380
+const MOVE_SPEED = 200; // Slower for better control
+const GHOST_SPEED_NORMAL = 250; // Slower ghosts
+const GHOST_SPEED_SCARED = 350; // Much slower when scared
 const POWER_PELLET_DURATION = 8000;
 
 type Position = { row: number; col: number };
@@ -101,6 +102,7 @@ const PacManGame: React.FC<PacManGameProps> = ({ onClose, onGameComplete }) => {
   const [gameOver, setGameOver] = useState(false);
   const [won, setWon] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
+  const [gameStarted, setGameStarted] = useState(false);
   const [powerMode, setPowerMode] = useState(false);
 
   // Refs
@@ -109,10 +111,33 @@ const PacManGame: React.FC<PacManGameProps> = ({ onClose, onGameComplete }) => {
   const powerModeTimeout = useRef<NodeJS.Timeout | null>(null);
   const finalScoreRef = useRef<number>(0);
   const completionCalledRef = useRef<boolean>(false);
+  const lastPacmanMove = useRef(Date.now());
+  const lastGhostMove = useRef(Date.now());
+  const pacmanRef = useRef(pacman);
+  const ghostsRef = useRef(ghosts);
+  const mazeRef = useRef(maze);
+  const powerModeRef = useRef(powerMode);
 
   // Animated values
   const bgFloat1 = useRef(new Animated.Value(0)).current;
   const bgFloat2 = useRef(new Animated.Value(0)).current;
+
+  // Keep refs in sync
+  useEffect(() => {
+    pacmanRef.current = pacman;
+  }, [pacman]);
+
+  useEffect(() => {
+    ghostsRef.current = ghosts;
+  }, [ghosts]);
+
+  useEffect(() => {
+    mazeRef.current = maze;
+  }, [maze]);
+
+  useEffect(() => {
+    powerModeRef.current = powerMode;
+  }, [powerMode]);
 
   // Check if move is valid
   const isValidMove = useCallback((pos: Position): boolean => {
@@ -139,9 +164,30 @@ const PacManGame: React.FC<PacManGameProps> = ({ onClose, onGameComplete }) => {
     }
   };
 
+  // Handle swipe gesture
+  const handleSwipe = (event: any) => {
+    if (event.nativeEvent.state === State.END) {
+      const { velocityX, velocityY } = event.nativeEvent;
+      
+      // Determine swipe direction based on velocity
+      if (Math.abs(velocityX) > Math.abs(velocityY)) {
+        // Horizontal swipe
+        setNextDirection(velocityX > 0 ? 'RIGHT' : 'LEFT');
+      } else {
+        // Vertical swipe
+        setNextDirection(velocityY > 0 ? 'DOWN' : 'UP');
+      }
+      
+      // Start game on first swipe
+      if (!gameStarted) {
+        setGameStarted(true);
+      }
+    }
+  };
+
   // Move Pac-Man
   const movePacMan = useCallback(() => {
-    if (gameOver || won || isPaused) return;
+    if (!gameStarted || gameOver || won || isPaused) return;
 
     setPacman(prevPos => {
       // Try to change direction if nextDirection is set
@@ -196,15 +242,39 @@ const PacManGame: React.FC<PacManGameProps> = ({ onClose, onGameComplete }) => {
     });
   }, [pacmanDirection, nextDirection, maze, isValidMove, gameOver, won, isPaused]);
 
-  // Simple ghost AI - move toward or away from Pac-Man
+  // Improved ghost AI - different behavior per ghost like classic Pac-Man
   const moveGhosts = useCallback(() => {
-    if (gameOver || won || isPaused) return;
+    if (!gameStarted || gameOver || won || isPaused) return;
 
     setGhosts(prevGhosts =>
       prevGhosts.map(ghost => {
         if (ghost.state === 'eaten') return ghost;
 
-        const target = ghost.state === 'scared' ? ghost.targetCorner : pacman;
+        // Determine target based on ghost personality and state
+        let target: Position;
+        if (ghost.state === 'scared') {
+          target = ghost.targetCorner; // Run to corner
+        } else {
+          switch (ghost.name) {
+            case 'Blinky': // Red - aggressive chaser
+              target = pacman;
+              break;
+            case 'Pinky': // Pink - tries to ambush (targets ahead of Pac-Man)
+              target = pacman; // Simplified - just chase
+              break;
+            case 'Inky': // Cyan - random/erratic
+              // 50% chance to chase, 50% to wander
+              target = Math.random() > 0.5 ? pacman : { row: Math.floor(Math.random() * GRID_SIZE), col: Math.floor(Math.random() * GRID_SIZE) };
+              break;
+            case 'Clyde': // Orange - coward (chases when far, retreats when close)
+              const distance = Math.abs(ghost.position.row - pacman.row) + Math.abs(ghost.position.col - pacman.col);
+              target = distance > 8 ? pacman : ghost.targetCorner;
+              break;
+            default:
+              target = pacman;
+          }
+        }
+
         const directions: Direction[] = ['UP', 'DOWN', 'LEFT', 'RIGHT'];
         
         // Calculate distance for each direction
@@ -213,7 +283,7 @@ const PacManGame: React.FC<PacManGameProps> = ({ onClose, onGameComplete }) => {
             const nextPos = getNextPosition(ghost.position, dir);
             if (!isValidMove(nextPos)) return null;
             
-            // Don't reverse direction unless necessary
+            // Don't reverse direction unless stuck
             const isReverse =
               (dir === 'UP' && ghost.direction === 'DOWN') ||
               (dir === 'DOWN' && ghost.direction === 'UP') ||
@@ -228,16 +298,16 @@ const PacManGame: React.FC<PacManGameProps> = ({ onClose, onGameComplete }) => {
 
         if (moves.length === 0) return ghost;
 
-        // Sort by distance (shortest first for chase, longest for scared)
+        // Sort by distance and preference for non-reverse
         moves.sort((a, b) => {
           if (ghost.state === 'scared') {
             return b!.distance - a!.distance; // Go away from Pac-Man
           }
-          // Prefer non-reverse moves
+          // Strongly prefer non-reverse moves
           if (a!.isReverse !== b!.isReverse) {
             return a!.isReverse ? 1 : -1;
           }
-          return a!.distance - b!.distance; // Go toward Pac-Man
+          return a!.distance - b!.distance; // Go toward target
         });
 
         const bestMove = moves[0]!;
@@ -249,7 +319,7 @@ const PacManGame: React.FC<PacManGameProps> = ({ onClose, onGameComplete }) => {
         };
       })
     );
-  }, [pacman, maze, isValidMove, gameOver, won, isPaused]);
+  }, [gameStarted, pacman, maze, isValidMove, gameOver, won, isPaused]);
 
   // Check ghost collisions
   const checkGhostCollisions = useCallback(() => {
@@ -300,29 +370,39 @@ const PacManGame: React.FC<PacManGameProps> = ({ onClose, onGameComplete }) => {
     });
   }, [ghosts, pacman, gameOver, won]);
 
-  // Pac-Man move loop
-  useEffect(() => {
-    if (!gameOver && !won && !isPaused) {
-      pacmanMoveInterval.current = setInterval(movePacMan, MOVE_SPEED);
+  // Unified smooth game loop
+  const gameLoopRef = useRef<() => void>();
+  
+  gameLoopRef.current = () => {
+    if (!gameStarted || gameOver || won || isPaused) return;
+    
+    const now = Date.now();
+    
+    // Move Pac-Man at his speed
+    if (now - lastPacmanMove.current >= MOVE_SPEED) {
+      lastPacmanMove.current = now;
+      movePacMan();
     }
-    return () => {
-      if (pacmanMoveInterval.current) clearInterval(pacmanMoveInterval.current);
-    };
-  }, [movePacMan, gameOver, won, isPaused]);
+    
+    // Move ghosts at their speed
+    const ghostSpeed = powerModeRef.current ? GHOST_SPEED_SCARED : GHOST_SPEED_NORMAL;
+    if (now - lastGhostMove.current >= ghostSpeed) {
+      lastGhostMove.current = now;
+      moveGhosts();
+      checkGhostCollisions();
+    }
+  };
 
-  // Ghost move loop
+  // Game loop - runs every 50ms for smooth but not too fast updates
   useEffect(() => {
-    if (!gameOver && !won && !isPaused) {
-      const speed = powerMode ? GHOST_SPEED_SCARED : GHOST_SPEED_NORMAL;
-      ghostMoveInterval.current = setInterval(() => {
-        moveGhosts();
-        checkGhostCollisions();
-      }, speed);
+    if (gameStarted && !gameOver && !won && !isPaused) {
+      const interval = setInterval(() => {
+        gameLoopRef.current?.();
+      }, 50); // Run at 20fps - smooth but controlled
+      
+      return () => clearInterval(interval);
     }
-    return () => {
-      if (ghostMoveInterval.current) clearInterval(ghostMoveInterval.current);
-    };
-  }, [moveGhosts, checkGhostCollisions, gameOver, won, isPaused, powerMode]);
+  }, [gameStarted, gameOver, won, isPaused]);
 
   // Handle game over
   useEffect(() => {
@@ -372,6 +452,10 @@ const PacManGame: React.FC<PacManGameProps> = ({ onClose, onGameComplete }) => {
     if (!pacmanDirection) {
       setPacmanDirection(dir);
     }
+    // Start game on first direction input
+    if (!gameStarted) {
+      setGameStarted(true);
+    }
   };
 
   const handleRestart = () => {
@@ -390,6 +474,7 @@ const PacManGame: React.FC<PacManGameProps> = ({ onClose, onGameComplete }) => {
     setLevel(1);
     setGameOver(false);
     setWon(false);
+    setGameStarted(false);
     setPowerMode(false);
     completionCalledRef.current = false;
     finalScoreRef.current = 0;
@@ -426,6 +511,7 @@ const PacManGame: React.FC<PacManGameProps> = ({ onClose, onGameComplete }) => {
   const floatInterpolate2 = bgFloat2.interpolate({ inputRange: [0, 1], outputRange: [0, -12] });
 
   return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
     <View style={styles.container}>
       {/* Animated Background */}
       <View style={styles.backgroundContainer}>
@@ -472,6 +558,7 @@ const PacManGame: React.FC<PacManGameProps> = ({ onClose, onGameComplete }) => {
       )}
 
       {/* Game Grid */}
+      <PanGestureHandler onHandlerStateChange={handleSwipe} minDist={20}>
       <View style={[styles.gameArea, { width: GRID_SIZE * CELL_SIZE, height: GRID_SIZE * CELL_SIZE }]}>
         {/* Maze */}
         {maze.map((row, rowIndex) =>
@@ -504,10 +591,26 @@ const PacManGame: React.FC<PacManGameProps> = ({ onClose, onGameComplete }) => {
               left: pacman.col * CELL_SIZE,
               width: CELL_SIZE,
               height: CELL_SIZE,
+              transform: [
+                { 
+                  rotate: pacmanDirection === 'RIGHT' ? '0deg' : 
+                          pacmanDirection === 'DOWN' ? '90deg' : 
+                          pacmanDirection === 'LEFT' ? '180deg' : 
+                          '270deg' 
+                }
+              ]
             },
           ]}
         >
-          <View style={styles.pacmanBody} />
+          {/* Pac-Man body - circular with mouth wedge */}
+          <View style={styles.pacmanBody}>
+            {/* Top lip of mouth */}
+            <View style={styles.pacmanMouthTop} />
+            {/* Bottom lip of mouth */}
+            <View style={styles.pacmanMouthBottom} />
+          </View>
+          {/* Pac-Man eye */}
+          <View style={styles.pacmanEye} />
         </View>
 
         {/* Ghosts */}
@@ -521,17 +624,49 @@ const PacManGame: React.FC<PacManGameProps> = ({ onClose, onGameComplete }) => {
                 left: ghost.position.col * CELL_SIZE,
                 width: CELL_SIZE,
                 height: CELL_SIZE,
-                backgroundColor: ghost.state === 'scared' ? '#0000FF' : ghost.state === 'eaten' ? '#1F2937' : ghost.color,
-                opacity: ghost.state === 'eaten' ? 0.3 : 1,
               },
             ]}
           >
-            {ghost.state === 'scared' && (
-              <Text style={styles.scaredFace}>👻</Text>
-            )}
+            <View style={[
+              styles.ghostBody,
+              { backgroundColor: ghost.state === 'scared' ? '#2563EB' : ghost.state === 'eaten' ? '#1F2937' : ghost.color }
+            ]}>
+              {ghost.state === 'scared' ? (
+                <View style={styles.scaredGhostFace}>
+                  <View style={styles.scaredMouth} />
+                </View>
+              ) : ghost.state !== 'eaten' && (
+                <View style={styles.ghostFace}>
+                  {/* Left eye */}
+                  <View style={styles.ghostEyeContainer}>
+                    <View style={styles.ghostEyeWhite}>
+                      <View style={styles.ghostEyePupil} />
+                    </View>
+                  </View>
+                  {/* Right eye */}
+                  <View style={styles.ghostEyeContainer}>
+                    <View style={styles.ghostEyeWhite}>
+                      <View style={styles.ghostEyePupil} />
+                    </View>
+                  </View>
+                </View>
+              )}
+            </View>
           </View>
         ))}
+        
+        {/* Tap/Swipe to Start Overlay */}
+        {!gameStarted && !gameOver && !won && (
+          <View style={styles.tapToStartOverlay}>
+            <View style={styles.startMessage}>
+              <Text style={styles.startText}>SWIPE TO START</Text>
+              <Ionicons name="hand-left" size={48} color="#FFFF00" />
+              <Text style={styles.startSubtext}>Swipe to move Pac-Man</Text>
+            </View>
+          </View>
+        )}
       </View>
+      </PanGestureHandler>
 
       {/* Controls */}
       <View style={styles.controls}>
@@ -614,6 +749,7 @@ const PacManGame: React.FC<PacManGameProps> = ({ onClose, onGameComplete }) => {
         </View>
       )}
     </View>
+    </GestureHandlerRootView>
   );
 };
 
@@ -751,20 +887,104 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   pacmanBody: {
-    width: '80%',
-    height: '80%',
-    borderRadius: 100,
+    width: '90%',
+    height: '90%',
+    borderRadius: 1000,
     backgroundColor: '#FFFF00',
+    position: 'relative',
+    overflow: 'hidden',
+    shadowColor: '#FFFF00',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  pacmanMouthTop: {
+    position: 'absolute',
+    right: -5,
+    top: '30%',
+    width: '50%',
+    height: '20%',
+    backgroundColor: '#000000',
+    transform: [{ rotate: '-25deg' }],
+  },
+  pacmanMouthBottom: {
+    position: 'absolute',
+    right: -5,
+    bottom: '30%',
+    width: '50%',
+    height: '20%',
+    backgroundColor: '#000000',
+    transform: [{ rotate: '25deg' }],
+  },
+  pacmanEye: {
+    position: 'absolute',
+    width: CELL_SIZE * 0.12,
+    height: CELL_SIZE * 0.12,
+    borderRadius: 100,
+    backgroundColor: '#000000',
+    top: '28%',
+    right: '38%',
   },
   ghost: {
     position: 'absolute',
-    borderRadius: 100,
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     zIndex: 5,
   },
+  ghostBody: {
+    width: '88%',
+    height: '88%',
+    borderTopLeftRadius: 1000,
+    borderTopRightRadius: 1000,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    paddingTop: '18%',
+    overflow: 'visible',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  ghostFace: {
+    flexDirection: 'row',
+    gap: CELL_SIZE * 0.15,
+    alignItems: 'center',
+  },
+  ghostEyeContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ghostEyeWhite: {
+    width: CELL_SIZE * 0.22,
+    height: CELL_SIZE * 0.28,
+    borderRadius: CELL_SIZE * 0.11,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ghostEyePupil: {
+    width: CELL_SIZE * 0.11,
+    height: CELL_SIZE * 0.11,
+    borderRadius: 100,
+    backgroundColor: '#000000',
+  },
+  scaredGhostFace: {
+    alignItems: 'center',
+    gap: 2,
+  },
+  scaredMouth: {
+    width: CELL_SIZE * 0.4,
+    height: CELL_SIZE * 0.15,
+    borderRadius: CELL_SIZE * 0.075,
+    backgroundColor: '#FFFFFF',
+  },
   scaredFace: {
-    fontSize: 12,
+    fontSize: 14,
+    marginTop: -2,
   },
   controls: {
     paddingVertical: 10,
@@ -926,6 +1146,38 @@ const styles = StyleSheet.create({
     color: '#000000',
     fontSize: 16,
     fontWeight: '600',
+  },
+  tapToStartOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 100,
+  },
+  startMessage: {
+    alignItems: 'center',
+    gap: 15,
+    backgroundColor: 'rgba(0, 0, 255, 0.8)',
+    paddingHorizontal: 40,
+    paddingVertical: 30,
+    borderRadius: 20,
+    borderWidth: 3,
+    borderColor: '#FFFF00',
+  },
+  startText: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#FFFF00',
+    letterSpacing: 1,
+  },
+  startSubtext: {
+    fontSize: 14,
+    color: '#FFFF00',
+    opacity: 0.9,
   },
 });
 
