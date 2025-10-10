@@ -98,6 +98,9 @@ const BreakoutDeluxeGame: React.FC<BreakoutDeluxeGameProps> = ({ onClose, onGame
   const powerUpsRef = useRef(powerUps);
   const lasersRef = useRef(lasers);
   const levelRef = useRef(level);
+  const hasLaserRef = useRef(hasLaser);
+  const lastFrameTime = useRef(Date.now());
+  const lastLaserShot = useRef(0);
 
   // Animated values
   const bgFloat1 = useRef(new Animated.Value(0)).current;
@@ -215,6 +218,10 @@ const BreakoutDeluxeGame: React.FC<BreakoutDeluxeGameProps> = ({ onClose, onGame
     levelRef.current = level;
   }, [level]);
 
+  useEffect(() => {
+    hasLaserRef.current = hasLaser;
+  }, [hasLaser]);
+
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
@@ -230,22 +237,10 @@ const BreakoutDeluxeGame: React.FC<BreakoutDeluxeGameProps> = ({ onClose, onGame
       },
       onPanResponderRelease: () => {
         lastPaddleX.current = paddleXRef.current;
-        if (!gameStarted) {
-          setGameStarted(true);
-        }
       },
     })
   ).current;
 
-  // Shoot laser
-  const shootLaser = useCallback(() => {
-    if (!hasLaser || !gameStarted) return;
-    
-    setLasers(prev => [
-      ...prev,
-      { id: nextLaserId.current++, x: paddleX + paddleWidth / 2 - 2, y: GAME_HEIGHT - PADDLE_HEIGHT - 30 },
-    ]);
-  }, [hasLaser, paddleX, paddleWidth, gameStarted]);
 
   // Apply power-up
   const applyPowerUp = useCallback((type: PowerUpType) => {
@@ -298,16 +293,35 @@ const BreakoutDeluxeGame: React.FC<BreakoutDeluxeGameProps> = ({ onClose, onGame
     }
   }, [paddleWidth]);
 
-  // Game loop
-  const updateGame = useCallback(() => {
+  // Game loop - NOT using useCallback for maximum performance
+  const updateGameRef = useRef<() => void>();
+  
+  updateGameRef.current = () => {
     if (!gameStarted || isPaused || gameOver || won) return;
 
-    // Update balls
+    // Calculate delta time for smooth movement
+    const now = Date.now();
+    const deltaTime = Math.min((now - lastFrameTime.current) / 16.67, 2); // Cap at 2x for lag spikes
+    lastFrameTime.current = now;
+
+    const currentPaddleX = paddleXRef.current;
+    const currentPaddleWidth = paddleWidthRef.current;
+
+    // Auto-shoot laser if power-up active
+    if (hasLaserRef.current && now - lastLaserShot.current > 500) { // Every 500ms
+      lastLaserShot.current = now;
+      setLasers(prev => [
+        ...prev,
+        { id: nextLaserId.current++, x: currentPaddleX + currentPaddleWidth / 2 - 2, y: GAME_HEIGHT - PADDLE_HEIGHT - 30 },
+      ]);
+    }
+
+    // Update balls with delta time for smooth movement
     setBalls(prevBalls => {
       return prevBalls.map(ball => {
         let newBall = { ...ball };
-        newBall.x += newBall.dx;
-        newBall.y += newBall.dy;
+        newBall.x += newBall.dx * deltaTime;
+        newBall.y += newBall.dy * deltaTime;
 
         // Wall collisions
         if (newBall.x <= 0 || newBall.x >= GAME_WIDTH - BALL_SIZE) {
@@ -361,9 +375,9 @@ const BreakoutDeluxeGame: React.FC<BreakoutDeluxeGameProps> = ({ onClose, onGame
       });
     }
 
-    // Update power-ups
+    // Update power-ups with delta time
     setPowerUps(prev => {
-      const updated = prev.map(p => ({ ...p, y: p.y + POWER_UP_FALL_SPEED }));
+      const updated = prev.map(p => ({ ...p, y: p.y + POWER_UP_FALL_SPEED * deltaTime }));
       
       // Check collection - use refs for current paddle position
       const currentPaddleX = paddleXRef.current;
@@ -386,8 +400,8 @@ const BreakoutDeluxeGame: React.FC<BreakoutDeluxeGameProps> = ({ onClose, onGame
       return remaining;
     });
 
-    // Update lasers
-    setLasers(prev => prev.map(l => ({ ...l, y: l.y - 8 })).filter(l => l.y > -20));
+    // Update lasers with delta time
+    setLasers(prev => prev.map(l => ({ ...l, y: l.y - 8 * deltaTime })).filter(l => l.y > -20));
 
     // Laser collisions with bricks
     const currentLasers = lasersRef.current;
@@ -492,20 +506,22 @@ const BreakoutDeluxeGame: React.FC<BreakoutDeluxeGameProps> = ({ onClose, onGame
         return newBricks;
       });
     });
-  }, [gameStarted, isPaused, gameOver, won, applyPowerUp]);
+  };
 
-  // Start game loop
+  // Start game loop - using setInterval for smoother, more consistent timing
   useEffect(() => {
     if (gameStarted && !isPaused && !gameOver && !won) {
-      gameLoop.current = requestAnimationFrame(function animate() {
-        updateGame();
-        gameLoop.current = requestAnimationFrame(animate);
-      });
+      // Run at higher frequency (10ms = ~100fps) for ultra-smooth movement
+      const interval = setInterval(() => {
+        updateGameRef.current?.();
+      }, 10);
+      
+      gameLoop.current = interval as any;
     }
     return () => {
-      if (gameLoop.current) cancelAnimationFrame(gameLoop.current);
+      if (gameLoop.current) clearInterval(gameLoop.current as any);
     };
-  }, [gameStarted, isPaused, gameOver, won, updateGame]);
+  }, [gameStarted, isPaused, gameOver, won]);
 
   // Handle game over
   useEffect(() => {
@@ -727,22 +743,20 @@ const BreakoutDeluxeGame: React.FC<BreakoutDeluxeGameProps> = ({ onClose, onGame
           ]}
         />
 
-        {/* Start Message */}
+        {/* Tap to Start Overlay */}
         {!gameStarted && !gameOver && !won && (
-          <View style={styles.startMessage}>
-            <Text style={styles.startText}>Drag paddle to start!</Text>
-            <Ionicons name="hand-left" size={32} color="#FFFFFF" />
-          </View>
+          <TouchableOpacity 
+            style={styles.tapToStartOverlay}
+            onPress={() => setGameStarted(true)}
+            activeOpacity={0.9}
+          >
+            <View style={styles.startMessage}>
+              <Text style={styles.startText}>TAP TO START</Text>
+              <Ionicons name="play-circle" size={48} color="#FFFFFF" />
+            </View>
+          </TouchableOpacity>
         )}
       </View>
-
-      {/* Laser Shoot Button */}
-      {hasLaser && gameStarted && (
-        <TouchableOpacity style={styles.laserButton} onPress={shootLaser}>
-          <Ionicons name="flash" size={24} color="#FFFFFF" />
-          <Text style={styles.laserButtonText}>FIRE</Text>
-        </TouchableOpacity>
-      )}
 
       {/* Instructions */}
       <View style={styles.instructions}>
@@ -972,35 +986,31 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 5,
   },
-  startMessage: {
+  tapToStartOverlay: {
     position: 'absolute',
-    top: '50%',
+    top: 0,
     left: 0,
     right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     alignItems: 'center',
-    gap: 10,
+    justifyContent: 'center',
   },
-  startText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  laserButton: {
-    flexDirection: 'row',
+  startMessage: {
     alignItems: 'center',
-    backgroundColor: '#F59E0B',
-    paddingHorizontal: 24,
-    paddingVertical: 10,
+    gap: 15,
+    backgroundColor: 'rgba(59, 130, 246, 0.9)',
+    paddingHorizontal: 40,
+    paddingVertical: 30,
     borderRadius: 20,
-    gap: 6,
-    marginTop: 8,
     borderWidth: 2,
     borderColor: '#FFFFFF',
   },
-  laserButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
+  startText: {
+    fontSize: 24,
     fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: 1,
   },
   instructions: {
     paddingHorizontal: 20,
