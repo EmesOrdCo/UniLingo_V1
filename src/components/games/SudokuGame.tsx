@@ -32,6 +32,8 @@ const SudokuGame: React.FC<SudokuGameProps> = ({ onClose, onGameComplete }) => {
   const [gameOver, setGameOver] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [gameStarted, setGameStarted] = useState(false);
+  const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard' | 'expert'>('easy');
+  const [showDifficultySelect, setShowDifficultySelect] = useState(true);
   const [seconds, setSeconds] = useState(0);
 
   // Refs
@@ -94,13 +96,17 @@ const SudokuGame: React.FC<SudokuGameProps> = ({ onClose, onGameComplete }) => {
   }, []);
 
   // Create puzzle from solution
-  const createPuzzle = useCallback((solution: number[][], difficulty: 'easy' | 'medium' | 'hard' = 'medium') => {
+  const createPuzzle = useCallback((solution: number[][], difficulty: 'easy' | 'medium' | 'hard' | 'expert') => {
     const puzzle: Cell[][] = solution.map(row => 
       row.map(value => ({ value, isFixed: false, notes: [] }))
     );
 
     // Remove numbers based on difficulty
-    const cellsToRemove = difficulty === 'easy' ? 35 : difficulty === 'medium' ? 45 : 55;
+    const cellsToRemove = 
+      difficulty === 'easy' ? 30 : 
+      difficulty === 'medium' ? 40 : 
+      difficulty === 'hard' ? 50 : 
+      60; // expert
     let removed = 0;
 
     while (removed < cellsToRemove) {
@@ -125,9 +131,9 @@ const SudokuGame: React.FC<SudokuGameProps> = ({ onClose, onGameComplete }) => {
   }, []);
 
   // Initialize game
-  const initializeGame = useCallback(() => {
+  const initializeGame = useCallback((selectedDifficulty: 'easy' | 'medium' | 'hard' | 'expert') => {
     const solution = generateSolution();
-    const puzzle = createPuzzle(solution, 'medium');
+    const puzzle = createPuzzle(solution, selectedDifficulty);
     setGrid(puzzle);
     setSelectedCell(null);
     setNotesMode(false);
@@ -139,10 +145,19 @@ const SudokuGame: React.FC<SudokuGameProps> = ({ onClose, onGameComplete }) => {
     setSeconds(0);
   }, [generateSolution, createPuzzle]);
 
-  // Start game
-  useEffect(() => {
-    initializeGame();
-  }, [initializeGame]);
+  // Start game with selected difficulty
+  const startGameWithDifficulty = (selectedDifficulty: 'easy' | 'medium' | 'hard' | 'expert') => {
+    setDifficulty(selectedDifficulty);
+    setShowDifficultySelect(false);
+    initializeGame(selectedDifficulty);
+    // Set gameStarted after a brief delay to ensure grid is initialized
+    setTimeout(() => setGameStarted(true), 100);
+  };
+
+  // Don't auto-initialize - wait for difficulty selection
+  // useEffect(() => {
+  //   initializeGame('easy');
+  // }, []);
 
   // Timer
   useEffect(() => {
@@ -243,6 +258,11 @@ const SudokuGame: React.FC<SudokuGameProps> = ({ onClose, onGameComplete }) => {
 
     setGrid(newGrid);
 
+    // Clear selection after placing a number (not in notes mode)
+    if (!notesMode) {
+      setSelectedCell(null);
+    }
+
     // Check win
     if (checkWin(newGrid)) {
       const timeBonus = Math.max(0, 1000 - seconds * 2);
@@ -269,23 +289,32 @@ const SudokuGame: React.FC<SudokuGameProps> = ({ onClose, onGameComplete }) => {
   const getHint = useCallback(() => {
     if (!gameStarted || gameOver || gameWon) return;
     
-    // Find an empty cell and fill it correctly
+    // Find all empty cells
+    const emptyCells: { row: number; col: number }[] = [];
     for (let row = 0; row < GRID_SIZE; row++) {
       for (let col = 0; col < GRID_SIZE; col++) {
         if (grid[row][col].value === 0 && !grid[row][col].isFixed) {
-          // Try each number
-          for (let num = 1; num <= 9; num++) {
-            if (isValidMove(row, col, num)) {
-              const newGrid = grid.map(r => r.map(c => ({ ...c, notes: [...c.notes] })));
-              newGrid[row][col].value = num;
-              newGrid[row][col].notes = [];
-              setGrid(newGrid);
-              setSelectedCell({ row, col });
-              setScore(prev => Math.max(0, prev - 20)); // Penalty for hint
-              return;
-            }
-          }
+          emptyCells.push({ row, col });
         }
+      }
+    }
+    
+    if (emptyCells.length === 0) return;
+    
+    // Pick a random empty cell
+    const randomCell = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+    const { row, col } = randomCell;
+    
+    // Find the correct number for this cell
+    for (let num = 1; num <= 9; num++) {
+      if (isValidMove(row, col, num)) {
+        const newGrid = grid.map(r => r.map(c => ({ ...c, notes: [...c.notes] })));
+        newGrid[row][col].value = num;
+        newGrid[row][col].notes = [];
+        setGrid(newGrid);
+        // Don't highlight the cell - just fill it
+        setScore(prev => Math.max(0, prev - 20)); // Penalty for hint
+        return;
       }
     }
   }, [gameStarted, gameOver, gameWon, grid, isValidMove]);
@@ -327,7 +356,8 @@ const SudokuGame: React.FC<SudokuGameProps> = ({ onClose, onGameComplete }) => {
   }, []);
 
   const handleRestart = () => {
-    initializeGame();
+    setShowDifficultySelect(true);
+    setGameStarted(false);
     completionCalledRef.current = false;
     finalScoreRef.current = 0;
   };
@@ -389,6 +419,51 @@ const SudokuGame: React.FC<SudokuGameProps> = ({ onClose, onGameComplete }) => {
         </View>
       </View>
 
+      {/* Difficulty Selector */}
+      {showDifficultySelect && (
+        <View style={styles.difficultyOverlay}>
+          <View style={styles.difficultyCard}>
+            <Ionicons name="grid" size={64} color="#6366F1" />
+            <Text style={styles.difficultyTitle}>Choose Difficulty</Text>
+            <Text style={styles.difficultySubtitle}>Select your challenge level</Text>
+            
+            <View style={styles.difficultyButtons}>
+              <TouchableOpacity 
+                style={[styles.difficultyButton, styles.easyButton]}
+                onPress={() => startGameWithDifficulty('easy')}
+              >
+                <Ionicons name="happy" size={32} color="#FFFFFF" />
+                <Text style={styles.difficultyButtonText}>Easy</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[styles.difficultyButton, styles.mediumButton]}
+                onPress={() => startGameWithDifficulty('medium')}
+              >
+                <Ionicons name="flame" size={32} color="#FFFFFF" />
+                <Text style={styles.difficultyButtonText}>Medium</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[styles.difficultyButton, styles.hardButton]}
+                onPress={() => startGameWithDifficulty('hard')}
+              >
+                <Ionicons name="flash" size={32} color="#FFFFFF" />
+                <Text style={styles.difficultyButtonText}>Hard</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[styles.difficultyButton, styles.expertButton]}
+                onPress={() => startGameWithDifficulty('expert')}
+              >
+                <Ionicons name="skull" size={32} color="#FFFFFF" />
+                <Text style={styles.difficultyButtonText}>Expert</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
+
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Grid */}
         <View style={[styles.gridContainer, { width: CELL_SIZE * GRID_SIZE + 20 }]}>
@@ -418,7 +493,12 @@ const SudokuGame: React.FC<SudokuGameProps> = ({ onClose, onGameComplete }) => {
                     ]}
                     onPress={() => {
                       if (!gameStarted) handleStart();
-                      setSelectedCell({ row: rowIndex, col: colIndex });
+                      // Toggle selection - if clicking same cell, deselect it
+                      if (selectedCell?.row === rowIndex && selectedCell?.col === colIndex) {
+                        setSelectedCell(null);
+                      } else {
+                        setSelectedCell({ row: rowIndex, col: colIndex });
+                      }
                     }}
                   >
                     {cell.value !== 0 ? (
@@ -690,25 +770,32 @@ const styles = StyleSheet.create({
   },
   numberPad: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     justifyContent: 'center',
-    gap: 8,
+    gap: 6,
     marginBottom: 15,
+    paddingHorizontal: 10,
   },
   numberButton: {
-    width: 55,
+    flex: 1,
     height: 55,
-    backgroundColor: '#3B82F6',
-    borderRadius: 8,
+    backgroundColor: '#1E293B',
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: '#2563EB',
+    borderWidth: 3,
+    borderColor: '#6366F1',
+    maxWidth: 50,
+    minWidth: 35,
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 6,
   },
   numberButtonText: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    fontSize: 26,
+    fontWeight: '800',
+    color: '#6366F1',
   },
   actionButtons: {
     flexDirection: 'row',
@@ -865,6 +952,77 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 12,
     gap: 8,
+  },
+  difficultyOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1000,
+  },
+  difficultyCard: {
+    backgroundColor: '#1E293B',
+    borderRadius: 20,
+    padding: 30,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#6366F1',
+    maxWidth: 350,
+  },
+  difficultyTitle: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginTop: 15,
+    marginBottom: 8,
+  },
+  difficultySubtitle: {
+    fontSize: 14,
+    color: '#94A3B8',
+    marginBottom: 25,
+  },
+  difficultyButtons: {
+    flexDirection: 'column',
+    gap: 12,
+    width: '100%',
+  },
+  difficultyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 18,
+    borderRadius: 14,
+    gap: 12,
+    width: '100%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  easyButton: {
+    backgroundColor: '#10B981',
+  },
+  mediumButton: {
+    backgroundColor: '#F59E0B',
+  },
+  hardButton: {
+    backgroundColor: '#EF4444',
+  },
+  expertButton: {
+    backgroundColor: '#7C3AED',
+  },
+  difficultyButtonText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    textAlign: 'center',
+    flex: 1,
   },
 });
 

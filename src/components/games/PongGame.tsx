@@ -16,7 +16,8 @@ const GAME_HEIGHT = height - 280;
 const PADDLE_WIDTH = 12;
 const PADDLE_HEIGHT = 80;
 const BALL_SIZE = 12;
-const INITIAL_BALL_SPEED = 4;
+const STANDARD_BALL_SPEED = 4;
+const INITIAL_BALL_SPEED = STANDARD_BALL_SPEED * 0.5; // Start at half speed (2)
 const PADDLE_SPEED = 8;
 const WIN_SCORE = 11;
 
@@ -42,36 +43,118 @@ const PongGame: React.FC<PongGameProps> = ({ onClose, onGameComplete }) => {
   const [gameOver, setGameOver] = useState(false);
   const [playerWon, setPlayerWon] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
+  const [gameStarted, setGameStarted] = useState(false);
+  const [countdown, setCountdown] = useState(3);
+  const [showCountdown, setShowCountdown] = useState(false);
   const [rallyCount, setRallyCount] = useState(0);
 
   // Refs
   const gameLoop = useRef<number | null>(null);
   const finalScoreRef = useRef<number>(0);
   const completionCalledRef = useRef<boolean>(false);
+  const playerPaddleYRef = useRef(playerPaddleY);
+  const aiPaddleYRef = useRef(aiPaddleY);
+  const ballRef = useRef(ball);
+  const rallyCountRef = useRef(rallyCount);
+  const playerScoreRef = useRef(playerScore);
   const lastPaddleY = useRef(playerPaddleY);
+  const lastFrameTime = useRef(Date.now());
 
   // Animated values
   const bgFloat1 = useRef(new Animated.Value(0)).current;
   const bgFloat2 = useRef(new Animated.Value(0)).current;
-  const centerLine = useRef(new Animated.Value(0)).current;
+
+  // Keep refs in sync with state for smooth game loop
+  useEffect(() => {
+    playerPaddleYRef.current = playerPaddleY;
+  }, [playerPaddleY]);
+
+  useEffect(() => {
+    aiPaddleYRef.current = aiPaddleY;
+  }, [aiPaddleY]);
+
+  useEffect(() => {
+    ballRef.current = ball;
+  }, [ball]);
+
+  useEffect(() => {
+    rallyCountRef.current = rallyCount;
+  }, [rallyCount]);
+
+  useEffect(() => {
+    playerScoreRef.current = playerScore;
+  }, [playerScore]);
+
+  // Countdown logic
+  useEffect(() => {
+    if (showCountdown && countdown > 0) {
+      const timer = setTimeout(() => {
+        setCountdown(prev => prev - 1);
+      }, 1000);
+      return () => clearTimeout(timer);
+    } else if (showCountdown && countdown === 0) {
+      setShowCountdown(false);
+      setGameStarted(true);
+      setCountdown(3); // Reset for next time
+    }
+  }, [showCountdown, countdown]);
 
   // AI difficulty - increases with rally count
   const getAiSpeed = useCallback(() => {
     return Math.min(PADDLE_SPEED * 0.7 + rallyCount * 0.1, PADDLE_SPEED * 0.95);
   }, [rallyCount]);
 
-  // Move AI paddle
-  const moveAiPaddle = useCallback(() => {
-    const ballCenterY = ball.y + BALL_SIZE / 2;
-    const paddleCenterY = aiPaddleY + PADDLE_HEIGHT / 2;
-    const diff = ballCenterY - paddleCenterY;
-    const aiSpeed = getAiSpeed();
-
-    if (Math.abs(diff) > 5) {
-      const move = Math.sign(diff) * aiSpeed;
-      setAiPaddleY(prev => Math.max(0, Math.min(GAME_HEIGHT - PADDLE_HEIGHT, prev + move)));
+  // Move AI paddle - using refs for smooth movement with skill scaling
+  const moveAiPaddle = (deltaTime: number) => {
+    const currentBall = ballRef.current;
+    const currentAiPaddleY = aiPaddleYRef.current;
+    const currentRallyCount = rallyCountRef.current;
+    
+    // AI skill increases with player score (starts very weak, gets stronger)
+    // Score 0-2: 35% skill, Score 3-5: 45%, Score 6-8: 60%, Score 9+: 75%
+    const currentPlayerScore = playerScoreRef.current;
+    const baseSkill = 0.35 + (currentPlayerScore * 0.04); // +4% per point scored
+    const maxSkill = Math.min(0.75, baseSkill);
+    
+    // Speed calculation with rally modifier
+    const rallyBonus = Math.min(currentRallyCount * 0.05, 0.2); // Max +20% from rallies
+    const aiSpeed = PADDLE_SPEED * maxSkill + (PADDLE_SPEED * rallyBonus);
+    
+    // Add reaction delay based on skill (lower skill = slower reaction)
+    const reactionThreshold = 5 + (10 * (1 - maxSkill)); // Higher threshold when weak
+    
+    // Random chance to "miss" the ball (happens more when AI is weak)
+    const missChance = (1 - maxSkill) * 0.2; // 20% miss chance at lowest skill, 5% at highest
+    if (Math.random() < missChance && currentBall.dx < 0) {
+      // Intentionally move wrong direction occasionally
+      const ballCenterY = currentBall.y + BALL_SIZE / 2;
+      const paddleCenterY = currentAiPaddleY + PADDLE_HEIGHT / 2;
+      const diff = ballCenterY - paddleCenterY;
+      
+      if (Math.abs(diff) > reactionThreshold) {
+        const move = -Math.sign(diff) * aiSpeed * deltaTime * 0.5; // Move wrong way slowly
+        setAiPaddleY(prev => {
+          const newY = Math.max(0, Math.min(GAME_HEIGHT - PADDLE_HEIGHT, prev + move));
+          aiPaddleYRef.current = newY;
+          return newY;
+        });
+        return;
+      }
     }
-  }, [ball.y, aiPaddleY, getAiSpeed]);
+    
+    const ballCenterY = currentBall.y + BALL_SIZE / 2;
+    const paddleCenterY = currentAiPaddleY + PADDLE_HEIGHT / 2;
+    const diff = ballCenterY - paddleCenterY;
+
+    if (Math.abs(diff) > reactionThreshold) {
+      const move = Math.sign(diff) * aiSpeed * deltaTime;
+      setAiPaddleY(prev => {
+        const newY = Math.max(0, Math.min(GAME_HEIGHT - PADDLE_HEIGHT, prev + move));
+        aiPaddleYRef.current = newY;
+        return newY;
+      });
+    }
+  };
 
   // Reset ball
   const resetBall = useCallback((toRight: boolean) => {
@@ -84,12 +167,12 @@ const PongGame: React.FC<PongGameProps> = ({ onClose, onGameComplete }) => {
     setRallyCount(0);
   }, []);
 
-  // Update ball position
-  const updateBall = useCallback(() => {
+  // Update ball position - using refs and delta time for smooth movement
+  const updateBall = (deltaTime: number) => {
     setBall(prevBall => {
       let newBall = { ...prevBall };
-      newBall.x += newBall.dx;
-      newBall.y += newBall.dy;
+      newBall.x += newBall.dx * deltaTime;
+      newBall.y += newBall.dy * deltaTime;
 
       // Top and bottom walls
       if (newBall.y <= 0 || newBall.y >= GAME_HEIGHT - BALL_SIZE) {
@@ -97,44 +180,54 @@ const PongGame: React.FC<PongGameProps> = ({ onClose, onGameComplete }) => {
         newBall.y = newBall.y <= 0 ? 0 : GAME_HEIGHT - BALL_SIZE;
       }
 
-      // Player paddle (right side)
+      // Player paddle (right side) - use ref for current position
+      const currentPlayerPaddleY = playerPaddleYRef.current;
       const playerPaddleX = GAME_WIDTH - PADDLE_WIDTH - 10;
       if (
         newBall.x + BALL_SIZE >= playerPaddleX &&
         newBall.x + BALL_SIZE <= playerPaddleX + PADDLE_WIDTH + 5 &&
-        newBall.y + BALL_SIZE >= playerPaddleY &&
-        newBall.y <= playerPaddleY + PADDLE_HEIGHT &&
+        newBall.y + BALL_SIZE >= currentPlayerPaddleY &&
+        newBall.y <= currentPlayerPaddleY + PADDLE_HEIGHT &&
         newBall.dx > 0
       ) {
         // Calculate bounce angle based on where ball hits paddle
-        const paddleCenter = playerPaddleY + PADDLE_HEIGHT / 2;
+        const paddleCenter = currentPlayerPaddleY + PADDLE_HEIGHT / 2;
         const hitPos = (newBall.y + BALL_SIZE / 2 - paddleCenter) / (PADDLE_HEIGHT / 2);
         
-        newBall.dx = -Math.abs(newBall.dx) * 1.05; // Speed up slightly and reverse
+        newBall.dx = -Math.abs(newBall.dx) * 1.02; // Speed up slightly and reverse (reduced from 1.05)
         newBall.dy = hitPos * Math.abs(newBall.dx) * 0.8;
         newBall.x = playerPaddleX - BALL_SIZE;
         
-        setRallyCount(prev => prev + 1);
+        setRallyCount(prev => {
+          const newCount = prev + 1;
+          rallyCountRef.current = newCount;
+          return newCount;
+        });
       }
 
-      // AI paddle (left side)
+      // AI paddle (left side) - use ref for current position
+      const currentAiPaddleY = aiPaddleYRef.current;
       const aiPaddleX = 10;
       if (
         newBall.x <= aiPaddleX + PADDLE_WIDTH &&
         newBall.x >= aiPaddleX - 5 &&
-        newBall.y + BALL_SIZE >= aiPaddleY &&
-        newBall.y <= aiPaddleY + PADDLE_HEIGHT &&
+        newBall.y + BALL_SIZE >= currentAiPaddleY &&
+        newBall.y <= currentAiPaddleY + PADDLE_HEIGHT &&
         newBall.dx < 0
       ) {
         // Calculate bounce angle
-        const paddleCenter = aiPaddleY + PADDLE_HEIGHT / 2;
+        const paddleCenter = currentAiPaddleY + PADDLE_HEIGHT / 2;
         const hitPos = (newBall.y + BALL_SIZE / 2 - paddleCenter) / (PADDLE_HEIGHT / 2);
         
-        newBall.dx = Math.abs(newBall.dx) * 1.05; // Speed up slightly and reverse
+        newBall.dx = Math.abs(newBall.dx) * 1.02; // Speed up slightly and reverse (reduced from 1.05)
         newBall.dy = hitPos * Math.abs(newBall.dx) * 0.8;
         newBall.x = aiPaddleX + PADDLE_WIDTH;
         
-        setRallyCount(prev => prev + 1);
+        setRallyCount(prev => {
+          const newCount = prev + 1;
+          rallyCountRef.current = newCount;
+          return newCount;
+        });
       }
 
       // Score points
@@ -166,31 +259,40 @@ const PongGame: React.FC<PongGameProps> = ({ onClose, onGameComplete }) => {
         return prevBall;
       }
 
+      ballRef.current = newBall;
       return newBall;
     });
-  }, [playerPaddleY, aiPaddleY, resetBall]);
+  };
 
-  // Main game loop
-  const updateGame = useCallback(() => {
-    if (isPaused || gameOver) return;
+  // Main game loop - NOT using useCallback for maximum performance
+  const updateGameRef = useRef<() => void>();
+  
+  updateGameRef.current = () => {
+    if (!gameStarted || isPaused || gameOver) return;
     
-    updateBall();
-    moveAiPaddle();
-  }, [updateBall, moveAiPaddle, isPaused, gameOver]);
+    // Calculate delta time for smooth movement
+    const now = Date.now();
+    const deltaTime = Math.min((now - lastFrameTime.current) / 16.67, 2);
+    lastFrameTime.current = now;
+    
+    updateBall(deltaTime);
+    moveAiPaddle(deltaTime);
+  };
 
-  // Game loop using requestAnimationFrame
+  // Game loop - using setInterval for smoother, more consistent timing
   useEffect(() => {
-    if (!isPaused && !gameOver) {
-      const animate = () => {
-        updateGame();
-        gameLoop.current = requestAnimationFrame(animate);
-      };
-      gameLoop.current = requestAnimationFrame(animate);
+    if (gameStarted && !isPaused && !gameOver) {
+      // Run at higher frequency (8ms = ~120fps) for ultra-smooth movement
+      const interval = setInterval(() => {
+        updateGameRef.current?.();
+      }, 8);
+      
+      gameLoop.current = interval as any;
     }
     return () => {
-      if (gameLoop.current) cancelAnimationFrame(gameLoop.current);
+      if (gameLoop.current) clearInterval(gameLoop.current as any);
     };
-  }, [updateGame, isPaused, gameOver]);
+  }, [gameStarted, isPaused, gameOver]);
 
   // Handle game over
   useEffect(() => {
@@ -224,27 +326,8 @@ const PongGame: React.FC<PongGameProps> = ({ onClose, onGameComplete }) => {
       );
     };
 
-    const createPulseAnimation = (animatedValue: Animated.Value) => {
-      return Animated.loop(
-        Animated.sequence([
-          Animated.timing(animatedValue, {
-            toValue: 1,
-            duration: 2000,
-            useNativeDriver: true,
-          }),
-          Animated.timing(animatedValue, {
-            toValue: 0,
-            duration: 2000,
-            useNativeDriver: true,
-          }),
-        ]),
-        { iterations: -1 }
-      );
-    };
-
     setTimeout(() => createFloatAnimation(bgFloat1, 4000).start(), 100);
     setTimeout(() => createFloatAnimation(bgFloat2, 3500).start(), 300);
-    setTimeout(() => createPulseAnimation(centerLine).start(), 500);
   }, []);
 
   // Player paddle pan responder
@@ -253,15 +336,16 @@ const PongGame: React.FC<PongGameProps> = ({ onClose, onGameComplete }) => {
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
       onPanResponderGrant: () => {
-        lastPaddleY.current = playerPaddleY;
+        lastPaddleY.current = playerPaddleYRef.current;
       },
       onPanResponderMove: (_, gestureState) => {
         const newY = lastPaddleY.current + gestureState.dy;
         const clampedY = Math.max(0, Math.min(GAME_HEIGHT - PADDLE_HEIGHT, newY));
         setPlayerPaddleY(clampedY);
+        playerPaddleYRef.current = clampedY; // Update ref immediately for smooth tracking
       },
       onPanResponderRelease: () => {
-        lastPaddleY.current = playerPaddleY;
+        lastPaddleY.current = playerPaddleYRef.current;
       },
     })
   ).current;
@@ -272,6 +356,9 @@ const PongGame: React.FC<PongGameProps> = ({ onClose, onGameComplete }) => {
     setGameOver(false);
     setPlayerWon(false);
     setIsPaused(false);
+    setGameStarted(false);
+    setShowCountdown(false);
+    setCountdown(3);
     setRallyCount(0);
     resetBall(Math.random() > 0.5);
     setPlayerPaddleY(GAME_HEIGHT / 2 - PADDLE_HEIGHT / 2);
@@ -291,7 +378,6 @@ const PongGame: React.FC<PongGameProps> = ({ onClose, onGameComplete }) => {
 
   const floatInterpolate1 = bgFloat1.interpolate({ inputRange: [0, 1], outputRange: [0, 15] });
   const floatInterpolate2 = bgFloat2.interpolate({ inputRange: [0, 1], outputRange: [0, -12] });
-  const lineOpacity = centerLine.interpolate({ inputRange: [0, 1], outputRange: [0.3, 0.6] });
 
   return (
     <View style={styles.container}>
@@ -300,12 +386,6 @@ const PongGame: React.FC<PongGameProps> = ({ onClose, onGameComplete }) => {
         <Animated.View style={[styles.bgElement1, { transform: [{ translateY: floatInterpolate1 }] }]} />
         <Animated.View style={[styles.bgElement2, { transform: [{ translateY: floatInterpolate2 }] }]} />
         
-        {/* Center dashed line */}
-        <Animated.View style={[styles.centerLineContainer, { opacity: lineOpacity }]}>
-          {[...Array(20)].map((_, i) => (
-            <View key={i} style={styles.centerDash} />
-          ))}
-        </Animated.View>
       </View>
 
       {/* Header */}
@@ -320,24 +400,27 @@ const PongGame: React.FC<PongGameProps> = ({ onClose, onGameComplete }) => {
       </View>
 
       {/* Score Display */}
-      <View style={styles.scoreDisplay}>
-        <View style={styles.scoreSection}>
-          <Text style={styles.scoreLabel}>AI</Text>
-          <Text style={styles.scoreValue}>{aiScore}</Text>
+      <View style={styles.scoreContainer}>
+        <View style={styles.scoreDisplay}>
+          <View style={styles.scoreSection}>
+            <Text style={styles.scoreLabel}>AI</Text>
+            <Text style={styles.scoreValue}>{aiScore}</Text>
+          </View>
+          <View style={styles.scoreDivider} />
+          <View style={styles.scoreSection}>
+            <Text style={styles.scoreLabel}>YOU</Text>
+            <Text style={styles.scoreValue}>{playerScore}</Text>
+          </View>
         </View>
-        <View style={styles.scoreDivider} />
-        <View style={styles.scoreSection}>
-          <Text style={styles.scoreLabel}>YOU</Text>
-          <Text style={styles.scoreValue}>{playerScore}</Text>
-        </View>
+        
+        {/* Rally Counter - absolutely positioned to not shift score */}
+        {rallyCount > 5 && (
+          <View style={styles.rallyBadgeSide}>
+            <Text style={styles.rallyTextSide}>🔥</Text>
+            <Text style={styles.rallyCountText}>{rallyCount}</Text>
+          </View>
+        )}
       </View>
-
-      {/* Rally Counter */}
-      {rallyCount > 5 && (
-        <View style={styles.rallyBadge}>
-          <Text style={styles.rallyText}>Rally: {rallyCount}</Text>
-        </View>
-      )}
 
       {/* Game Area */}
       <View style={[styles.gameArea, { width: GAME_WIDTH, height: GAME_HEIGHT }]}>
@@ -382,28 +465,27 @@ const PongGame: React.FC<PongGameProps> = ({ onClose, onGameComplete }) => {
             },
           ]}
         />
-      </View>
 
-      {/* Controls */}
-      <View style={styles.controls}>
-        <View style={styles.controlLabel}>
-          <Ionicons name="hand-left" size={20} color="#94A3B8" />
-          <Text style={styles.controlText}>Drag right paddle or use buttons</Text>
-        </View>
-        <View style={styles.buttonRow}>
-          <TouchableOpacity
-            style={styles.controlButton}
-            onPress={() => setPlayerPaddleY(prev => Math.max(0, prev - 40))}
+        {/* Tap to Start Overlay */}
+        {!gameStarted && !showCountdown && !gameOver && (
+          <TouchableOpacity 
+            style={styles.tapToStartOverlay}
+            onPress={() => setShowCountdown(true)}
+            activeOpacity={0.9}
           >
-            <Ionicons name="arrow-up" size={24} color="#FFFFFF" />
+            <View style={styles.startMessage}>
+              <Text style={styles.startText}>TAP TO START</Text>
+              <Ionicons name="play-circle" size={48} color="#FFFFFF" />
+            </View>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.controlButton}
-            onPress={() => setPlayerPaddleY(prev => Math.min(GAME_HEIGHT - PADDLE_HEIGHT, prev + 40))}
-          >
-            <Ionicons name="arrow-down" size={24} color="#FFFFFF" />
-          </TouchableOpacity>
-        </View>
+        )}
+
+        {/* Countdown Overlay */}
+        {showCountdown && countdown > 0 && (
+          <View style={styles.countdownOverlay}>
+            <Text style={styles.countdownText}>{countdown}</Text>
+          </View>
+        )}
       </View>
 
       {/* Game Over Overlay */}
@@ -489,22 +571,6 @@ const styles = StyleSheet.create({
     bottom: 150,
     right: 50,
   },
-  centerLineContainer: {
-    position: 'absolute',
-    left: '50%',
-    top: 0,
-    bottom: 0,
-    width: 4,
-    marginLeft: -2,
-    justifyContent: 'space-around',
-    alignItems: 'center',
-  },
-  centerDash: {
-    width: 4,
-    height: 12,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 2,
-  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -526,11 +592,18 @@ const styles = StyleSheet.create({
   pauseButton: {
     padding: 5,
   },
+  scoreContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 15,
+    position: 'relative',
+    width: '100%',
+  },
   scoreDisplay: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 20,
-    marginVertical: 15,
   },
   scoreSection: {
     alignItems: 'center',
@@ -552,17 +625,40 @@ const styles = StyleSheet.create({
     height: 60,
     backgroundColor: '#374151',
   },
-  rallyBadge: {
-    backgroundColor: '#F59E0B',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginBottom: 5,
+  rallyBadgeSide: {
+    position: 'absolute',
+    right: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 50,
   },
-  rallyText: {
-    fontSize: 12,
+  rallyTextSide: {
+    fontSize: 24,
+    lineHeight: 28,
+  },
+  rallyCountText: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#F59E0B',
+    marginTop: -4,
+  },
+  countdownOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  countdownText: {
+    fontSize: 120,
     fontWeight: '700',
     color: '#FFFFFF',
+    textShadowColor: '#3B82F6',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 20,
   },
   gameArea: {
     backgroundColor: '#000000',
@@ -599,33 +695,31 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.8,
     shadowRadius: 8,
   },
-  controls: {
-    alignItems: 'center',
-    paddingVertical: 10,
-    gap: 8,
-  },
-  controlLabel: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  controlText: {
-    fontSize: 12,
-    color: '#94A3B8',
-  },
-  buttonRow: {
-    flexDirection: 'row',
-    gap: 15,
-  },
-  controlButton: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#1E293B',
+  tapToStartOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  startMessage: {
+    alignItems: 'center',
+    gap: 15,
+    backgroundColor: 'rgba(59, 130, 246, 0.9)',
+    paddingHorizontal: 40,
+    paddingVertical: 30,
+    borderRadius: 20,
     borderWidth: 2,
-    borderColor: '#3B82F6',
+    borderColor: '#FFFFFF',
+  },
+  startText: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: 1,
   },
   overlay: {
     position: 'absolute',
