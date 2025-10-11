@@ -5,6 +5,7 @@
 
 const SimplePollyService = require('./simplePollyService');
 const { supabase } = require('./supabaseClient');
+const { OpenAI } = require('openai');
 
 /**
  * Setup simple audio routes
@@ -532,33 +533,46 @@ FORMAT: Return ONLY the script text, no explanations or formatting.`;
   ];
 
   try {
-    // Use the existing AI service for consistency
-    const response = await AIService.executeRequest(async () => {
-      const { OpenAI } = require('openai');
-      const openai = new OpenAI({
-        apiKey: process.env.OPENAI_API_KEY,
-      });
+    console.log(`🤖 Generating AI script for ${keywords.length} keywords...`);
+    
+    // Initialize OpenAI client
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY || process.env.EXPO_PUBLIC_OPENAI_API_KEY,
+    });
 
-      return await openai.chat.completions.create({
-        model: 'gpt-4o-mini',
-        messages: messages,
-        temperature: 0.7,
-        max_tokens: Math.min(4000, 500 + (keywords.length * 50)), // Scale tokens with keywords
-      });
-    }, 1, Math.min(4000, 500 + (keywords.length * 50)));
+    // Calculate appropriate token limit based on keywords
+    const maxTokens = Math.min(4000, 500 + (keywords.length * 50));
+    
+    console.log(`📊 Request details: ${keywords.length} keywords, max tokens: ${maxTokens}`);
+
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: messages,
+      temperature: 0.7,
+      max_tokens: maxTokens,
+    });
 
     const script = response.choices[0].message.content.trim();
     
     if (!script) {
-      throw new Error('No script generated');
+      throw new Error('No script generated from OpenAI');
     }
 
+    console.log(`✅ Generated script: ${script.length} characters`);
     return script;
   } catch (error) {
     console.error('❌ Error generating audio script:', error);
+    console.error('❌ Error details:', error.message);
+    
     // Enhanced fallback script that includes more keywords
     const fallbackKeywords = keywords.slice(0, Math.min(10, keywords.length));
-    return `Welcome to your comprehensive audio lesson based on ${fileName}. This lesson covers ${keywords.length} important ${targetLanguage} terms and concepts. Let's begin with our key vocabulary: ${fallbackKeywords.join(', ')}. Each term will be clearly pronounced, defined, and used in practical examples. Pay attention to pronunciation and practice along with me. These terms are essential for understanding this subject matter thoroughly.`;
+    console.log(`⚠️ Using fallback script with ${fallbackKeywords.length} keywords`);
+    
+    // Create a basic fallback script - use English for now as fallback
+    // TODO: Make this dynamic based on native language
+    const fallbackScript = `Welcome to your comprehensive audio lesson based on ${fileName}. This lesson covers ${keywords.length} important ${targetLanguage} terms and concepts. Let's begin with our key vocabulary: ${fallbackKeywords.join(', ')}. Each term will be clearly pronounced, defined, and used in practical examples. Pay attention to pronunciation and practice along with me. These terms are essential for understanding this subject matter thoroughly.`;
+    
+    return fallbackScript;
   }
 }
 
