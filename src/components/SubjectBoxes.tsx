@@ -115,9 +115,10 @@ const SubjectBox: React.FC<SubjectBoxProps> = ({ subject, onPress, isExpanded = 
 interface SubjectBoxesProps {
   onSubjectSelect?: (subject: SubjectData) => void;
   maxSubjects?: number;
+  onCefrLevelChange?: (level: string) => void;
 }
 
-export default function SubjectBoxes({ onSubjectSelect, maxSubjects = 6 }: SubjectBoxesProps) {
+export default function SubjectBoxes({ onSubjectSelect, maxSubjects = 6, onCefrLevelChange }: SubjectBoxesProps) {
   const navigation = useNavigation();
   const [allSubjects, setAllSubjects] = useState<SubjectData[]>([]);
   const [subjects, setSubjects] = useState<SubjectData[]>([]);
@@ -143,6 +144,13 @@ export default function SubjectBoxes({ onSubjectSelect, maxSubjects = 6 }: Subje
   useEffect(() => {
     filterSubjectsByLevel();
   }, [selectedCefrLevel, allSubjects]);
+
+  useEffect(() => {
+    // Notify parent component when CEFR level changes
+    if (onCefrLevelChange) {
+      onCefrLevelChange(selectedCefrLevel);
+    }
+  }, [selectedCefrLevel]);
 
   const loadSubjects = async () => {
     try {

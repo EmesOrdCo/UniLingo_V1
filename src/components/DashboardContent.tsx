@@ -21,6 +21,7 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
   const { user, profile } = useAuth();
   const { selectedUnit, setSelectedUnit } = useSelectedUnit();
   const { refreshTrigger } = useRefresh();
+  const [selectedCefrLevel, setSelectedCefrLevel] = useState<string>('A1');
   
   console.log('📊 DashboardContent - selectedUnit from context:', selectedUnit);
   
@@ -206,6 +207,30 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
     return null;
   };
 
+  const getCefrLevelTitle = (level: string): string => {
+    const titles: { [key: string]: string } = {
+      'A1': 'Beginner Level',
+      'A2': 'Elementary Level',
+      'B1': 'Intermediate Level',
+      'B2': 'Upper Intermediate Level',
+      'C1': 'Advanced Level',
+      'C2': 'Proficient Level',
+    };
+    return titles[level] || 'General Subjects';
+  };
+
+  const getCefrLevelDescription = (level: string): string => {
+    const descriptions: { [key: string]: string } = {
+      'A1': 'Start your journey with basic vocabulary and simple expressions for everyday situations.',
+      'A2': 'Build on the basics with more vocabulary and common phrases for familiar topics.',
+      'B1': 'Develop intermediate skills to handle most situations and express opinions clearly.',
+      'B2': 'Master complex topics and communicate fluently with detailed explanations.',
+      'C1': 'Achieve advanced proficiency with sophisticated vocabulary and nuanced expressions.',
+      'C2': 'Perfect your mastery with native-level comprehension and expression.',
+    };
+    return descriptions[level] || 'Learn essential vocabulary and practice with interactive exercises across various subjects.';
+  };
+
   return (
     <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
       {/* Loading Overlay */}
@@ -222,12 +247,12 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
       <>
         {/* Course Overview Section */}
           <View style={styles.courseOverview}>
-            <Text style={styles.courseLevel}>{selectedUnit?.unit_code || 'A1.1'}</Text>
+            <Text style={styles.courseLevel}>{selectedCefrLevel}</Text>
             <View style={styles.courseTitleRow}>
-              <Text style={styles.courseTitle}>Saying Hello</Text>
+              <Text style={styles.courseTitle}>{getCefrLevelTitle(selectedCefrLevel)}</Text>
             </View>
             <Text style={styles.courseDescription}>
-              Learn essential greetings and polite expressions: hi, hello, good morning, good afternoon, good evening, goodbye, please.
+              {getCefrLevelDescription(selectedCefrLevel)}
             </Text>
             
             {/* Progress Bar */}
@@ -242,6 +267,7 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
           {/* Subject Boxes Section */}
           <SubjectBoxes 
             maxSubjects={6}
+            onCefrLevelChange={(level) => setSelectedCefrLevel(level)}
           />
       </>
 
