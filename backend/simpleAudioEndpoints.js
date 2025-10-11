@@ -388,13 +388,13 @@ function setupSimpleAudioRoutes(app, limiters) {
     const startTime = Date.now();
     
     try {
-      const { pdfText, fileName, nativeLanguage, userId } = req.body;
+      const { pdfText, fileName, nativeLanguage, targetLanguage, userId } = req.body;
       
       // Validation
-      if (!pdfText || !fileName || !nativeLanguage || !userId) {
+      if (!pdfText || !fileName || !nativeLanguage || !targetLanguage || !userId) {
         return res.status(400).json({ 
           success: false,
-          error: 'Missing required fields: pdfText, fileName, nativeLanguage, userId' 
+          error: 'Missing required fields: pdfText, fileName, nativeLanguage, targetLanguage, userId' 
         });
       }
 
@@ -418,6 +418,7 @@ function setupSimpleAudioRoutes(app, limiters) {
       console.log(`📄 File: ${fileName}`);
       console.log(`👤 User ID: ${userId}`);
       console.log(`🌍 Native Language: ${nativeLanguage}`);
+      console.log(`🎯 Target Language: ${targetLanguage}`);
       console.log(`📄 PDF Text length: ${pdfText.length} characters`);
       console.log(`🌐 IP: ${req.ip}`);
       console.log('🎵'.repeat(40) + '\n');
@@ -428,9 +429,9 @@ function setupSimpleAudioRoutes(app, limiters) {
       const keywords = await AIService.extractKeywordsFromContent(pdfText, 'General', userId);
       console.log(`✅ Extracted ${keywords.length} keywords`);
 
-      // Step 2: Generate audio script based on keywords and native language
-      console.log('\n📝 Step 2: Generating audio script...');
-      const audioScript = await generateAudioScript(keywords, nativeLanguage, fileName);
+      // Step 2: Generate audio script based on keywords, native language, and target language
+      console.log('\n📝 Step 2: Generating comprehensive audio script...');
+      const audioScript = await generateAudioScript(keywords, nativeLanguage, targetLanguage, fileName);
       console.log(`✅ Generated script: ${audioScript.length} characters`);
 
       // Step 3: Create audio lesson with the generated script
@@ -484,34 +485,45 @@ function setupSimpleAudioRoutes(app, limiters) {
 }
 
 /**
- * Generate audio script based on keywords and native language
+ * Generate audio script based on keywords, native language, and target language
  */
-async function generateAudioScript(keywords, nativeLanguage, fileName) {
+async function generateAudioScript(keywords, nativeLanguage, targetLanguage, fileName) {
   const AIService = require('./aiService');
   
-  const prompt = `Create an engaging audio lesson script based on the extracted keywords from "${fileName}".
+  const prompt = `Create an engaging and comprehensive audio lesson script based on the extracted keywords from "${fileName}".
 
 User's Native Language: ${nativeLanguage}
-Target Language: English
+Target Language: ${targetLanguage}
 
-Keywords to include: ${keywords.slice(0, 20).join(', ')}${keywords.length > 20 ? ` (and ${keywords.length - 20} more)` : ''}
+Keywords to include: ${keywords.join(', ')}
 
 REQUIREMENTS:
-1. Create a script that is approximately 2-3 minutes when read aloud (300-500 words)
-2. Write the script in ${nativeLanguage} for explanations and context
-3. Include English terms and example sentences naturally in the script
-4. Structure it as a lesson with introduction, key concepts, and examples
-5. Make it engaging and educational
-6. Use the extracted keywords throughout the script
-7. Include pronunciation tips for English terms
-8. End with a summary of key points
+1. Script length should be PROPORTIONAL to the number of keywords (${keywords.length} keywords found)
+2. Write explanations, definitions, and context in ${nativeLanguage}
+3. Include ${targetLanguage} terms, definitions, and example sentences naturally in the script
+4. For EACH keyword, provide:
+   - Clear pronunciation in ${targetLanguage}
+   - Definition/explanation in ${nativeLanguage}
+   - Practical example sentence in ${targetLanguage}
+   - Brief translation of the example in ${nativeLanguage}
+5. Structure should flow naturally - not rigid format, but engaging and educational
+6. Include pronunciation tips for ${targetLanguage} terms
+7. Create smooth transitions between concepts
+8. End with a comprehensive summary of all key points
+
+CONTENT GUIDELINES:
+- Make it sound conversational and engaging
+- Vary sentence structure to avoid repetition
+- Include practical, real-world examples
+- Ensure all ${keywords.length} keywords are thoroughly covered
+- Aim for comprehensive learning experience
 
 FORMAT: Return ONLY the script text, no explanations or formatting.`;
 
   const messages = [
     {
       role: 'system',
-      content: 'You are an expert language learning content creator. Create engaging, educational audio lesson scripts that blend native language explanations with target language examples. Return ONLY the script text with no explanations, markdown, or additional formatting.'
+      content: `You are an expert language learning content creator specializing in creating comprehensive audio lesson scripts. Your scripts blend native language explanations with target language examples in a natural, engaging flow. You create content that is proportional to the number of keywords provided - more keywords means longer, more detailed lessons. Return ONLY the script text with no explanations, markdown, or additional formatting.`
     },
     {
       role: 'user',
@@ -531,9 +543,9 @@ FORMAT: Return ONLY the script text, no explanations or formatting.`;
         model: 'gpt-4o-mini',
         messages: messages,
         temperature: 0.7,
-        max_tokens: 1000,
+        max_tokens: Math.min(4000, 500 + (keywords.length * 50)), // Scale tokens with keywords
       });
-    }, 1, 1000);
+    }, 1, Math.min(4000, 500 + (keywords.length * 50)));
 
     const script = response.choices[0].message.content.trim();
     
@@ -544,8 +556,9 @@ FORMAT: Return ONLY the script text, no explanations or formatting.`;
     return script;
   } catch (error) {
     console.error('❌ Error generating audio script:', error);
-    // Fallback to simple script if AI fails
-    return `Welcome to your audio lesson based on ${fileName}. This lesson covers important terminology and concepts. Let's begin with the key terms: ${keywords.slice(0, 5).join(', ')}. These terms are essential for understanding the subject matter. Practice saying each term clearly and pay attention to pronunciation.`;
+    // Enhanced fallback script that includes more keywords
+    const fallbackKeywords = keywords.slice(0, Math.min(10, keywords.length));
+    return `Welcome to your comprehensive audio lesson based on ${fileName}. This lesson covers ${keywords.length} important ${targetLanguage} terms and concepts. Let's begin with our key vocabulary: ${fallbackKeywords.join(', ')}. Each term will be clearly pronounced, defined, and used in practical examples. Pay attention to pronunciation and practice along with me. These terms are essential for understanding this subject matter thoroughly.`;
   }
 }
 

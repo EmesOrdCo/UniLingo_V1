@@ -17,25 +17,229 @@ class SimplePollyService {
       }
     });
 
-    this.bucketName = 'audio-lessons'; // Supabase Storage bucket name
+    this.bucketName = 'Audio_Lessons'; // Supabase Storage bucket name
+    
+    // Voice mapping for consistent voice selection by language
+    this.voiceMap = {
+      // English voices
+      'English': 'Joanna', // Female, natural
+      'english': 'Joanna',
+      'en': 'Joanna',
+      'en-US': 'Joanna',
+      'en-GB': 'Emma', // British English
+      
+      // Spanish voices
+      'Spanish': 'Lupe', // Female, natural
+      'spanish': 'Lupe',
+      'es': 'Lupe',
+      'es-ES': 'Lucia', // European Spanish
+      'es-MX': 'Lupe', // Mexican Spanish
+      
+      // Chinese voices
+      'Chinese': 'Zhiyu', // Female, Mandarin
+      'chinese': 'Zhiyu',
+      'zh': 'Zhiyu',
+      'zh-CN': 'Zhiyu',
+      
+      // French voices
+      'French': 'Lea', // Female, natural
+      'french': 'Lea',
+      'fr': 'Lea',
+      'fr-FR': 'Lea',
+      
+      // German voices
+      'German': 'Vicki', // Female, natural
+      'german': 'Vicki',
+      'de': 'Vicki',
+      'de-DE': 'Vicki',
+      
+      // Italian voices
+      'Italian': 'Bianca', // Female, natural
+      'italian': 'Bianca',
+      'it': 'Bianca',
+      'it-IT': 'Bianca',
+      
+      // Portuguese voices
+      'Portuguese': 'Camila', // Female, natural
+      'portuguese': 'Camila',
+      'pt': 'Camila',
+      'pt-BR': 'Camila',
+      
+      // Japanese voices
+      'Japanese': 'Mizuki', // Female, natural
+      'japanese': 'Mizuki',
+      'ja': 'Mizuki',
+      'ja-JP': 'Mizuki',
+      
+      // Korean voices
+      'Korean': 'Seoyeon', // Female, natural
+      'korean': 'Seoyeon',
+      'ko': 'ko',
+      'ko-KR': 'Seoyeon',
+      
+      // Russian voices
+      'Russian': 'Tatyana', // Female, natural
+      'russian': 'Tatyana',
+      'ru': 'Tatyana',
+      'ru-RU': 'Tatyana',
+      
+      // Arabic voices
+      'Arabic': 'Zeina', // Female, natural
+      'arabic': 'Zeina',
+      'ar': 'Zeina',
+      'ar-SA': 'Zeina',
+      
+      // Hindi voices
+      'Hindi': 'Aditi', // Female, natural
+      'hindi': 'Aditi',
+      'hi': 'Aditi',
+      'hi-IN': 'Aditi',
+      
+      // Latin (use Italian as closest)
+      'Latin': 'Bianca',
+      'latin': 'Bianca',
+      'la': 'Bianca'
+    };
     
     console.log('🎙️ SimplePollyService initialized:', {
       region: process.env.AWS_REGION,
       bucket: this.bucketName,
-      hasCredentials: !!(process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY)
+      hasCredentials: !!(process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY),
+      supportedLanguages: Object.keys(this.voiceMap).length
     });
   }
 
   /**
-   * Generate audio from text using AWS Polly
+   * Get appropriate voice ID for a language
+   * @param {string} language - Language name or code
+   * @returns {string} - Voice ID for Polly
+   */
+  getVoiceForLanguage(language) {
+    const normalizedLanguage = language?.toString().trim();
+    
+    // Try exact match first
+    if (this.voiceMap[normalizedLanguage]) {
+      return this.voiceMap[normalizedLanguage];
+    }
+    
+    // Try case-insensitive match
+    const lowerLanguage = normalizedLanguage?.toLowerCase();
+    if (this.voiceMap[lowerLanguage]) {
+      return this.voiceMap[lowerLanguage];
+    }
+    
+    // Default to English if no match found
+    console.log(`⚠️ No voice found for language "${language}", defaulting to English`);
+    return 'Joanna';
+  }
+
+  /**
+   * Get language code for Polly
+   * @param {string} language - Language name or code
+   * @returns {string} - Language code for Polly
+   */
+  getLanguageCode(language) {
+    const languageCodeMap = {
+      'English': 'en-US',
+      'english': 'en-US',
+      'en': 'en-US',
+      'en-US': 'en-US',
+      'en-GB': 'en-GB',
+      
+      'Spanish': 'es-US',
+      'spanish': 'es-US',
+      'es': 'es-US',
+      'es-ES': 'es-ES',
+      'es-MX': 'es-MX',
+      
+      'Chinese': 'zh-CN',
+      'chinese': 'zh-CN',
+      'zh': 'zh-CN',
+      'zh-CN': 'zh-CN',
+      
+      'French': 'fr-FR',
+      'french': 'fr-FR',
+      'fr': 'fr-FR',
+      'fr-FR': 'fr-FR',
+      
+      'German': 'de-DE',
+      'german': 'de-DE',
+      'de': 'de-DE',
+      'de-DE': 'de-DE',
+      
+      'Italian': 'it-IT',
+      'italian': 'it-IT',
+      'it': 'it-IT',
+      'it-IT': 'it-IT',
+      
+      'Portuguese': 'pt-BR',
+      'portuguese': 'pt-BR',
+      'pt': 'pt-BR',
+      'pt-BR': 'pt-BR',
+      
+      'Japanese': 'ja-JP',
+      'japanese': 'ja-JP',
+      'ja': 'ja-JP',
+      'ja-JP': 'ja-JP',
+      
+      'Korean': 'ko-KR',
+      'korean': 'ko-KR',
+      'ko': 'ko-KR',
+      'ko-KR': 'ko-KR',
+      
+      'Russian': 'ru-RU',
+      'russian': 'ru-RU',
+      'ru': 'ru-RU',
+      'ru-RU': 'ru-RU',
+      
+      'Arabic': 'ar-SA',
+      'arabic': 'ar-SA',
+      'ar': 'ar-SA',
+      'ar-SA': 'ar-SA',
+      
+      'Hindi': 'hi-IN',
+      'hindi': 'hi-IN',
+      'hi': 'hi-IN',
+      'hi-IN': 'hi-IN',
+      
+      'Latin': 'it-IT', // Use Italian as closest
+      'latin': 'it-IT',
+      'la': 'it-IT'
+    };
+    
+    const normalizedLanguage = language?.toString().trim();
+    
+    // Try exact match first
+    if (languageCodeMap[normalizedLanguage]) {
+      return languageCodeMap[normalizedLanguage];
+    }
+    
+    // Try case-insensitive match
+    const lowerLanguage = normalizedLanguage?.toLowerCase();
+    if (languageCodeMap[lowerLanguage]) {
+      return languageCodeMap[lowerLanguage];
+    }
+    
+    // Default to English if no match found
+    console.log(`⚠️ No language code found for language "${language}", defaulting to en-US`);
+    return 'en-US';
+  }
+
+  /**
+   * Generate audio from text using AWS Polly with language support
    * @param {string} text - The text to convert to speech
-   * @param {string} voiceId - Polly voice (default: Joanna)
+   * @param {string} language - Language for voice selection (default: English)
    * @returns {Promise<Buffer>} - Audio data as buffer
    */
-  async generateAudio(text, voiceId = 'Joanna') {
+  async generateAudio(text, language = 'English') {
     try {
+      const voiceId = this.getVoiceForLanguage(language);
+      const languageCode = this.getLanguageCode(language);
+      
       console.log('🔊 Generating audio with AWS Polly...');
+      console.log(`   Language: ${language}`);
       console.log(`   Voice: ${voiceId}`);
+      console.log(`   Language Code: ${languageCode}`);
       console.log(`   Text length: ${text.length} characters`);
 
       const params = {
@@ -43,7 +247,7 @@ class SimplePollyService {
         OutputFormat: 'mp3',
         VoiceId: voiceId,
         Engine: 'neural',
-        LanguageCode: 'en-US',
+        LanguageCode: languageCode,
         SampleRate: '24000'
       };
 
@@ -201,7 +405,7 @@ class SimplePollyService {
 
       // 3. Generate audio with Polly
       console.log('\n🎙️ Generating audio with AWS Polly...');
-      const audioBuffer = await this.generateAudio(scriptText, 'Joanna');
+      const audioBuffer = await this.generateAudio(scriptText, 'English'); // Use English voice for mixed content
 
       // 4. Upload to Supabase Storage
       console.log('\n☁️ Uploading to Supabase Storage...');

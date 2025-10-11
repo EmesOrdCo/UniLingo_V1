@@ -25,23 +25,28 @@ export default function AudioRecapScreen() {
   const [audioLessons, setAudioLessons] = useState<SimpleAudioLesson[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [nativeLanguage, setNativeLanguage] = useState<string>('English');
+  const [targetLanguage, setTargetLanguage] = useState<string>('English');
 
-  // Get current user and native language
+  // Get current user and language preferences
   useEffect(() => {
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setCurrentUser(user);
       
       if (user) {
-        // Get user's native language from profile
+        // Get user's language preferences from profile
         const { data: profile } = await supabase
           .from('profiles')
-          .select('native_language')
+          .select('native_language, target_language')
           .eq('id', user.id)
           .single();
         
         if (profile?.native_language) {
           setNativeLanguage(profile.native_language);
+        }
+        
+        if (profile?.target_language) {
+          setTargetLanguage(profile.target_language);
         }
         
         // Load user's audio lessons
@@ -122,14 +127,15 @@ export default function AudioRecapScreen() {
 
       console.log(`✅ Extracted ${extractedText.length} characters from PDF`);
 
-      // Step 2: Create audio lesson with full pipeline
-      console.log('🎵 Creating audio lesson...');
-      const audioResult = await SimpleAudioLessonService.createAudioLessonFromPDF(
-        extractedText,
-        file.name,
-        nativeLanguage,
-        currentUser.id
-      );
+          // Step 2: Create audio lesson with full pipeline
+          console.log('🎵 Creating audio lesson...');
+          const audioResult = await SimpleAudioLessonService.createAudioLessonFromPDF(
+            extractedText,
+            file.name,
+            nativeLanguage,
+            targetLanguage,
+            currentUser.id
+          );
 
       if (audioResult.success && audioResult.audioLesson) {
         // Refresh the lessons list

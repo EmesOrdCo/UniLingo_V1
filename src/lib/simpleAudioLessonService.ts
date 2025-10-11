@@ -36,12 +36,14 @@ export class SimpleAudioLessonService {
    * @param pdfText - Extracted text from PDF
    * @param fileName - Original PDF filename
    * @param nativeLanguage - User's native language
+   * @param targetLanguage - Language user is learning
    * @param userId - User ID
    */
   static async createAudioLessonFromPDF(
     pdfText: string,
     fileName: string,
     nativeLanguage: string,
+    targetLanguage: string,
     userId: string
   ): Promise<{
     success: boolean;
@@ -63,6 +65,7 @@ export class SimpleAudioLessonService {
             pdfText,
             fileName,
             nativeLanguage,
+            targetLanguage,
             userId,
           }),
         }
