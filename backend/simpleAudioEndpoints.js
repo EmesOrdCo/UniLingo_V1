@@ -432,6 +432,11 @@ function setupSimpleAudioRoutes(app, limiters) {
 
       // Step 2: Generate audio script based on keywords, native language, and target language
       console.log('\n📝 Step 2: Generating comprehensive audio script...');
+      console.log(`🔍 SCRIPT GENERATION PARAMETERS:`);
+      console.log(`   Native Language: "${nativeLanguage}"`);
+      console.log(`   Target Language: "${targetLanguage}"`);
+      console.log(`   Keywords count: ${keywords.length}`);
+      
       let audioScript;
       try {
         audioScript = await generateAudioScript(keywords, nativeLanguage, targetLanguage, fileName);
@@ -634,27 +639,38 @@ OUTPUT FORMAT: Return ONLY the script text with no explanations, markdown, or ad
     }
 
     // VALIDATION CHECK: Ensure script is in native language, not target language
-    console.log(`🔍 Validating script language usage...`);
-    console.log(`   Native language: ${nativeLanguage}`);
-    console.log(`   Target language: ${targetLanguage}`);
+    console.log(`🔍 VALIDATING SCRIPT LANGUAGE USAGE...`);
+    console.log(`   Native language: "${nativeLanguage}"`);
+    console.log(`   Target language: "${targetLanguage}"`);
     
-    // Check if script is written in the wrong language
-    if (nativeLanguage !== 'English' && nativeLanguage !== 'english') {
-      // Sample first 200 characters to check language
-      const scriptSample = script.substring(0, 200).toLowerCase();
+    // CRITICAL VALIDATION: Check if script is written in the wrong language
+    if (nativeLanguage !== 'English' && nativeLanguage !== 'english' && nativeLanguage !== 'ENGLISH') {
+      console.log(`🚨 VALIDATION CHECK: Native language is "${nativeLanguage}" - script MUST be in this language`);
+      
+      // Sample first 300 characters to check language
+      const scriptSample = script.substring(0, 300).toLowerCase();
+      console.log(`📝 Script sample for validation: "${scriptSample.substring(0, 100)}..."`);
       
       // Common English words that shouldn't appear in non-English explanations
-      const englishIndicators = ['welcome to', 'today\'s lesson', 'in this session', 'we will explore', 'let\'s dive into', 'first we have', 'next is', 'now let\'s talk', 'moving on to', 'now let\'s discuss'];
+      const englishIndicators = [
+        'welcome to', 'today\'s lesson', 'in this lesson', 'in this session', 
+        'we will explore', 'let\'s dive into', 'first we have', 'next is', 
+        'now let\'s talk', 'moving on to', 'now let\'s discuss', 'let\'s begin',
+        'for example', 'an example', 'this can be translated', 'in conclusion'
+      ];
       
       const hasEnglishExplanations = englishIndicators.some(phrase => scriptSample.includes(phrase));
       
       if (hasEnglishExplanations) {
-        console.error(`❌ VALIDATION FAILED: Script appears to be in English instead of ${nativeLanguage}`);
-        console.error(`   Script sample: ${scriptSample.substring(0, 100)}...`);
-        throw new Error(`Script validation failed: Generated script is in English instead of ${nativeLanguage}. Please regenerate with proper language usage.`);
+        console.error(`❌ VALIDATION FAILED: Script is in English instead of ${nativeLanguage}`);
+        console.error(`   Script starts with: "${script.substring(0, 150)}..."`);
+        console.error(`   This is WRONG - explanations should be in ${nativeLanguage}`);
+        throw new Error(`CRITICAL VALIDATION FAILED: Script is in English but user's native language is ${nativeLanguage}. The AI must write explanations in ${nativeLanguage}, not English.`);
       }
       
       console.log(`✅ Language validation passed: Script appears to be in ${nativeLanguage}`);
+    } else {
+      console.log(`ℹ️ Native language is English - no validation needed`);
     }
 
     console.log(`✅ Generated script: ${script.length} characters`);
