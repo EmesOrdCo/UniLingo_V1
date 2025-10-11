@@ -12,15 +12,62 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import * as DocumentPicker from 'expo-document-picker';
+import { supabase } from '../lib/supabase';
+import { SimpleAudioLessonService, SimpleAudioLesson } from '../lib/simpleAudioLessonService';
+import { UploadService } from '../lib/uploadService';
+import { getBackendUrl } from '../lib/backendConfig';
 
 const { width: screenWidth } = Dimensions.get('window');
 
 export default function AudioRecapScreen() {
   const navigation = useNavigation();
   const [isUploading, setIsUploading] = useState(false);
-  const [audioLessons, setAudioLessons] = useState<any[]>([]); // TODO: Replace with proper type
+  const [audioLessons, setAudioLessons] = useState<SimpleAudioLesson[]>([]);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [nativeLanguage, setNativeLanguage] = useState<string>('English');
+
+  // Get current user and native language
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setCurrentUser(user);
+      
+      if (user) {
+        // Get user's native language from profile
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('native_language')
+          .eq('id', user.id)
+          .single();
+        
+        if (profile?.native_language) {
+          setNativeLanguage(profile.native_language);
+        }
+        
+        // Load user's audio lessons
+        loadAudioLessons(user.id);
+      }
+    };
+    
+    getUser();
+  }, []);
+
+  // Load user's audio lessons
+  const loadAudioLessons = async (userId: string) => {
+    try {
+      const lessons = await SimpleAudioLessonService.getUserAudioLessons(userId);
+      setAudioLessons(lessons);
+    } catch (error) {
+      console.error('Error loading audio lessons:', error);
+    }
+  };
 
   const handleCreateAudioLesson = async () => {
+    if (!currentUser) {
+      Alert.alert('Error', 'Please log in to create audio lessons');
+      return;
+    }
+
     try {
       setIsUploading(true);
       
@@ -38,27 +85,79 @@ export default function AudioRecapScreen() {
         const file = result.assets[0];
         console.log('Selected PDF for Audio Lesson:', file.name, file.size, file.uri);
         
-        // TODO: Add AI processing functionality here
-        Alert.alert(
-          'PDF Selected',
-          `File: ${file.name}\nSize: ${((file.size || 0) / 1024 / 1024).toFixed(2)} MB\n\nAI processing functionality will be added next.`,
-          [{ text: 'OK' }]
+        // Create form data for PDF upload
+        const formData = new FormData();
+        formData.append('pdf', {
+          uri: file.uri,
+          type: 'application/pdf',
+          name: file.name,
+        } as any);
+
+        // Step 1: Extract text from PDF
+        console.log('📄 Extracting text from PDF...');
+        const pdfResponse = await fetch(getBackendUrl('/api/process-pdf'), {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+
+        if (!pdfResponse.ok) {
+          throw new Error('Failed to process PDF');
+        }
+
+        const pdfResult = await pdfResponse.json();
+        const extractedText = pdfResult.result?.text;
+
+        if (!extractedText) {
+          throw new Error('No text extracted from PDF');
+        }
+
+        console.log(`✅ Extracted ${extractedText.length} characters from PDF`);
+
+        // Step 2: Create audio lesson with full pipeline
+        console.log('🎵 Creating audio lesson...');
+        const result = await SimpleAudioLessonService.createAudioLessonFromPDF(
+          extractedText,
+          file.name,
+          nativeLanguage,
+          currentUser.id
         );
+
+        if (result.success && result.audioLesson) {
+          // Refresh the lessons list
+          await loadAudioLessons(currentUser.id);
+          
+          Alert.alert(
+            'Success!',
+            `Audio lesson "${result.audioLesson.title}" created successfully!`,
+            [{ text: 'OK' }]
+          );
+        } else {
+          throw new Error(result.error || 'Failed to create audio lesson');
+        }
       }
-    } catch (error) {
-      console.error('Error selecting PDF:', error);
-      Alert.alert('Error', 'Failed to select PDF file');
+    } catch (error: any) {
+      console.error('Error creating audio lesson:', error);
+      Alert.alert('Error', error.message || 'Failed to create audio lesson');
     } finally {
       setIsUploading(false);
     }
   };
 
-  const handlePlayAudioLesson = (lesson: any) => {
-    // TODO: Implement audio playback
-    Alert.alert('Coming Soon', 'Audio playback functionality will be added next.');
+  const handlePlayAudioLesson = (lesson: SimpleAudioLesson) => {
+    // TODO: Implement audio playback with proper audio player
+    Alert.alert(
+      'Audio Lesson', 
+      `Title: ${lesson.title}\nDuration: ${SimpleAudioLessonService.formatDuration(lesson.audio_duration)}\nStatus: ${SimpleAudioLessonService.getStatusText(lesson.status)}`,
+      [{ text: 'OK' }]
+    );
   };
 
   const handleDeleteAudioLesson = (lessonId: string) => {
+    if (!currentUser) return;
+
     Alert.alert(
       'Delete Audio Lesson',
       'Are you sure you want to delete this audio lesson?',
@@ -67,9 +166,19 @@ export default function AudioRecapScreen() {
         { 
           text: 'Delete', 
           style: 'destructive',
-          onPress: () => {
-            // TODO: Implement deletion
-            console.log('Delete lesson:', lessonId);
+          onPress: async () => {
+            try {
+              const success = await SimpleAudioLessonService.deleteAudioLesson(lessonId, currentUser.id);
+              if (success) {
+                await loadAudioLessons(currentUser.id);
+                Alert.alert('Success', 'Audio lesson deleted successfully');
+              } else {
+                Alert.alert('Error', 'Failed to delete audio lesson');
+              }
+            } catch (error) {
+              console.error('Error deleting audio lesson:', error);
+              Alert.alert('Error', 'Failed to delete audio lesson');
+            }
           }
         }
       ]
@@ -157,7 +266,7 @@ export default function AudioRecapScreen() {
                     <View style={styles.lessonInfo}>
                       <Text style={styles.lessonTitle}>{lesson?.title || 'Unknown'}</Text>
                       <Text style={styles.lessonSubtitle}>
-                        Duration: {lesson.duration} • Created: {lesson.createdAt}
+                        Duration: {SimpleAudioLessonService.formatDuration(lesson.audio_duration)} • Status: {SimpleAudioLessonService.getStatusText(lesson.status)}
                       </Text>
                     </View>
                   </View>

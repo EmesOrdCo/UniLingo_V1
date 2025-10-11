@@ -380,7 +380,173 @@ function setupSimpleAudioRoutes(app, limiters) {
     }
   });
 
+  // ============================================
+  // POST /api/audio/create-from-pdf
+  // Create audio lesson from PDF text (full pipeline)
+  // ============================================
+  app.post('/api/audio/create-from-pdf', aiLimiter, async (req, res) => {
+    const startTime = Date.now();
+    
+    try {
+      const { pdfText, fileName, nativeLanguage, userId } = req.body;
+      
+      // Validation
+      if (!pdfText || !fileName || !nativeLanguage || !userId) {
+        return res.status(400).json({ 
+          success: false,
+          error: 'Missing required fields: pdfText, fileName, nativeLanguage, userId' 
+        });
+      }
+
+      if (pdfText.length < 10) {
+        return res.status(400).json({
+          success: false,
+          error: 'PDF text too short (minimum 10 characters)'
+        });
+      }
+
+      if (pdfText.length > 100000) {
+        return res.status(400).json({
+          success: false,
+          error: 'PDF text too long (maximum 100,000 characters)'
+        });
+      }
+
+      console.log('\n' + '🎵'.repeat(40));
+      console.log('🎵 PDF → AUDIO PIPELINE STARTED');
+      console.log('🎵'.repeat(40));
+      console.log(`📄 File: ${fileName}`);
+      console.log(`👤 User ID: ${userId}`);
+      console.log(`🌍 Native Language: ${nativeLanguage}`);
+      console.log(`📄 PDF Text length: ${pdfText.length} characters`);
+      console.log(`🌐 IP: ${req.ip}`);
+      console.log('🎵'.repeat(40) + '\n');
+
+      // Step 1: Extract keywords from PDF text
+      console.log('\n🔍 Step 1: Extracting keywords from PDF...');
+      const AIService = require('./aiService');
+      const keywords = await AIService.extractKeywordsFromContent(pdfText, 'General', userId);
+      console.log(`✅ Extracted ${keywords.length} keywords`);
+
+      // Step 2: Generate audio script based on keywords and native language
+      console.log('\n📝 Step 2: Generating audio script...');
+      const audioScript = await generateAudioScript(keywords, nativeLanguage, fileName);
+      console.log(`✅ Generated script: ${audioScript.length} characters`);
+
+      // Step 3: Create audio lesson with the generated script
+      console.log('\n🎙️ Step 3: Creating audio lesson...');
+      const audioLesson = await SimplePollyService.createAudioLesson(
+        `Audio Lesson: ${fileName.replace('.pdf', '')}`,
+        audioScript,
+        userId
+      );
+      
+      const duration = Math.floor((Date.now() - startTime) / 1000);
+
+      console.log('\n' + '✅'.repeat(40));
+      console.log('✅ PDF → AUDIO PIPELINE COMPLETED');
+      console.log('✅'.repeat(40));
+      console.log(`⏱️ Total Duration: ${duration} seconds`);
+      console.log(`🔍 Keywords Extracted: ${keywords.length}`);
+      console.log(`📝 Script Generated: ${audioScript.length} chars`);
+      console.log(`🎵 Audio Lesson ID: ${audioLesson.id}`);
+      console.log(`🔗 Audio URL: ${audioLesson.audio_url}`);
+      console.log('✅'.repeat(40) + '\n');
+
+      res.json({
+        success: true,
+        audioLesson,
+        keywords,
+        scriptLength: audioScript.length,
+        generationTime: duration
+      });
+
+    } catch (error) {
+      const duration = Math.floor((Date.now() - startTime) / 1000);
+      
+      console.error('\n' + '❌'.repeat(40));
+      console.error('❌ PDF → AUDIO PIPELINE FAILED');
+      console.error('❌'.repeat(40));
+      console.error(`⏱️ Failed after: ${duration} seconds`);
+      console.error(`Error: ${error.message}`);
+      console.error('❌'.repeat(40) + '\n');
+      
+      res.status(500).json({
+        success: false,
+        error: 'Failed to create audio lesson from PDF',
+        details: error.message,
+        generationTime: duration
+      });
+    }
+  });
+
   console.log('✅ Simple audio endpoints registered');
+}
+
+/**
+ * Generate audio script based on keywords and native language
+ */
+async function generateAudioScript(keywords, nativeLanguage, fileName) {
+  const AIService = require('./aiService');
+  
+  const prompt = `Create an engaging audio lesson script based on the extracted keywords from "${fileName}".
+
+User's Native Language: ${nativeLanguage}
+Target Language: English
+
+Keywords to include: ${keywords.slice(0, 20).join(', ')}${keywords.length > 20 ? ` (and ${keywords.length - 20} more)` : ''}
+
+REQUIREMENTS:
+1. Create a script that is approximately 2-3 minutes when read aloud (300-500 words)
+2. Write the script in ${nativeLanguage} for explanations and context
+3. Include English terms and example sentences naturally in the script
+4. Structure it as a lesson with introduction, key concepts, and examples
+5. Make it engaging and educational
+6. Use the extracted keywords throughout the script
+7. Include pronunciation tips for English terms
+8. End with a summary of key points
+
+FORMAT: Return ONLY the script text, no explanations or formatting.`;
+
+  const messages = [
+    {
+      role: 'system',
+      content: 'You are an expert language learning content creator. Create engaging, educational audio lesson scripts that blend native language explanations with target language examples. Return ONLY the script text with no explanations, markdown, or additional formatting.'
+    },
+    {
+      role: 'user',
+      content: prompt
+    }
+  ];
+
+  try {
+    // Use the existing AI service for consistency
+    const response = await AIService.executeRequest(async () => {
+      const { OpenAI } = require('openai');
+      const openai = new OpenAI({
+        apiKey: process.env.OPENAI_API_KEY,
+      });
+
+      return await openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: messages,
+        temperature: 0.7,
+        max_tokens: 1000,
+      });
+    }, 1, 1000);
+
+    const script = response.choices[0].message.content.trim();
+    
+    if (!script) {
+      throw new Error('No script generated');
+    }
+
+    return script;
+  } catch (error) {
+    console.error('❌ Error generating audio script:', error);
+    // Fallback to simple script if AI fails
+    return `Welcome to your audio lesson based on ${fileName}. This lesson covers important terminology and concepts. Let's begin with the key terms: ${keywords.slice(0, 5).join(', ')}. These terms are essential for understanding the subject matter. Practice saying each term clearly and pay attention to pronunciation.`;
+  }
 }
 
 module.exports = setupSimpleAudioRoutes;

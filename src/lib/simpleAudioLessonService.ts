@@ -32,6 +32,65 @@ export interface AudioStats {
 export class SimpleAudioLessonService {
   
   /**
+   * Create audio lesson from PDF text (full pipeline)
+   * @param pdfText - Extracted text from PDF
+   * @param fileName - Original PDF filename
+   * @param nativeLanguage - User's native language
+   * @param userId - User ID
+   */
+  static async createAudioLessonFromPDF(
+    pdfText: string,
+    fileName: string,
+    nativeLanguage: string,
+    userId: string
+  ): Promise<{
+    success: boolean;
+    audioLesson?: SimpleAudioLesson;
+    error?: string;
+    generationTime?: number;
+  }> {
+    try {
+      console.log(`🎵 Creating audio lesson from PDF: ${fileName}`);
+
+      const response = await fetch(
+        `${BACKEND_CONFIG.BASE_URL}/api/audio/create-from-pdf`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            pdfText,
+            fileName,
+            nativeLanguage,
+            userId,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.details || errorData.error || 'Failed to create audio from PDF');
+      }
+
+      const result = await response.json();
+      console.log(`✅ Audio lesson created from PDF:`, result);
+
+      return {
+        success: true,
+        audioLesson: result.audioLesson,
+        generationTime: result.generationTime,
+      };
+    } catch (error: any) {
+      console.error('❌ Audio creation from PDF failed:', error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  /**
    * Create audio lesson from text
    * @param title - Lesson title
    * @param scriptText - Text to convert to audio
