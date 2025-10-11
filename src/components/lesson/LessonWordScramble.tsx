@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, TextInput, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 
 interface LessonWordScrambleProps {
   vocabulary: any[];
@@ -49,7 +50,7 @@ export default function LessonWordScramble({ vocabulary, onComplete, onClose, on
     
     vocabulary.forEach((vocab) => {
       // Safety check to ensure vocab exists and has required properties
-      if (!vocab || !vocab.keywords || !vocab.definition) {
+      if (!vocab || !vocab.keywords) {
         console.warn('Skipping invalid vocabulary item:', vocab);
         return;
       }
@@ -60,7 +61,7 @@ export default function LessonWordScramble({ vocabulary, onComplete, onClose, on
       scrambleQuestions.push({
         word: word,
         scrambledWord: scrambled,
-        hint: vocab.definition
+        hint: vocab.definition || `Translation: ${vocab.native_translation || 'N/A'}`
       });
     });
 
@@ -88,13 +89,20 @@ export default function LessonWordScramble({ vocabulary, onComplete, onClose, on
     const correctAnswer = userInput === correct;
     setIsCorrect(correctAnswer);
     
+    // Haptic feedback based on answer
     if (correctAnswer) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setScore(score + 1);
+    } else {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
     
     setShowResult(true);
     
     setTimeout(() => {
+      // Light haptic for moving to next question
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      
       if (currentQuestionIndex < questions.length - 1) {
         setCurrentQuestionIndex(currentQuestionIndex + 1);
       } else {

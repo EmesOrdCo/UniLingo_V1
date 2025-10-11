@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import PronunciationCheck from '../PronunciationCheck';
 
 interface SpeakingGameProps {
@@ -59,6 +60,9 @@ const SpeakingGame: React.FC<SpeakingGameProps> = ({
     const passed = score >= 60; // 60% threshold for passing
     
     if (passed) {
+      // Haptic feedback for passing pronunciation
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      
       setCurrentWordPassed(true);
       setTotalScore(prev => prev + score);
       
@@ -74,6 +78,9 @@ const SpeakingGame: React.FC<SpeakingGameProps> = ({
       
       // Don't auto-advance, wait for user to click "Next Question"
     } else {
+      // Haptic feedback for failing pronunciation
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      
       // Failed attempt - show result and wait for user to click Next Question
       setCurrentWordPassed(true); // Allow user to proceed
       setTotalScore(prev => prev + score);
@@ -92,6 +99,9 @@ const SpeakingGame: React.FC<SpeakingGameProps> = ({
   };
 
   const moveToNextWord = () => {
+    // Light haptic for moving to next question
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    
     const nextIndex = currentWordIndex + 1;
     
     if (nextIndex >= gameData.questions.length) {

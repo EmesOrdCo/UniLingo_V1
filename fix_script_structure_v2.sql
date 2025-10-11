@@ -68,3 +68,4 @@ FROM information_schema.columns
 WHERE table_name = 'lesson_scripts' 
 ORDER BY ordinal_position;
 
+

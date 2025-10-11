@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Animated, PanResponder } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 
 interface SpaceInvadersGameProps {
   gameData?: any;
@@ -154,6 +155,9 @@ const SpaceInvadersGame: React.FC<SpaceInvadersGameProps> = ({ onClose, onGameCo
     const now = Date.now();
     if (now - lastPlayerShootTime.current < 300) return;
     
+    // Haptic feedback for shooting
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    
     setBullets(prev => {
       // Limit to 3 bullets on screen
       const playerBullets = prev.filter(b => b.friendly);
@@ -300,6 +304,8 @@ const SpaceInvadersGame: React.FC<SpaceInvadersGameProps> = ({ onClose, onGameCo
 
         // Update score
         if (scoreGain > 0) {
+          // Haptic feedback for hitting enemy
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           setScore(prev => prev + scoreGain);
         }
 
@@ -321,6 +327,8 @@ const SpaceInvadersGame: React.FC<SpaceInvadersGameProps> = ({ onClose, onGameCo
           .reduce((lowest, e) => Math.max(lowest, e.row), 0);
         
         if (enemyOffsetY + lowestAliveEnemy * ENEMY_SPACING_Y + ENEMY_SIZE >= GAME_HEIGHT - 60) {
+          // Haptic feedback for game over
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
           setGameOver(true);
         }
 

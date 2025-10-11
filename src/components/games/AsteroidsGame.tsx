@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Svg, { Polygon, Circle, Line } from 'react-native-svg';
+import * as Haptics from 'expo-haptics';
 
 interface AsteroidsGameProps {
   gameData?: any;
@@ -202,6 +203,9 @@ const AsteroidsGame: React.FC<AsteroidsGameProps> = ({ onClose, onGameComplete, 
     const now = Date.now();
     if (now - lastShotTime.current < 200 || bullets.length >= MAX_BULLETS) return;
     
+    // Haptic feedback for shooting
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    
     lastShotTime.current = now;
     const angle = (ship.rotation - 90) * (Math.PI / 180);
     const bulletVx = Math.cos(angle) * BULLET_SPEED;
@@ -358,12 +362,18 @@ const AsteroidsGame: React.FC<AsteroidsGameProps> = ({ onClose, onGameComplete, 
             if (asteroid.size === 'large') {
               newAsteroids.push(generateAsteroid('medium', asteroid.x, asteroid.y));
               newAsteroids.push(generateAsteroid('medium', asteroid.x, asteroid.y));
+              // Haptic feedback for hitting large asteroid
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               setScore(s => s + 20);
             } else if (asteroid.size === 'medium') {
               newAsteroids.push(generateAsteroid('small', asteroid.x, asteroid.y));
               newAsteroids.push(generateAsteroid('small', asteroid.x, asteroid.y));
+              // Haptic feedback for hitting medium asteroid
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
               setScore(s => s + 50);
             } else {
+              // Haptic feedback for destroying small asteroid completely
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
               setScore(s => s + 100);
             }
 
@@ -390,6 +400,8 @@ const AsteroidsGame: React.FC<AsteroidsGameProps> = ({ onClose, onGameComplete, 
       asteroids.forEach(asteroid => {
         const radius = getAsteroidRadius(asteroid.size);
         if (checkCollision(ship.x, ship.y, 10, asteroid.x, asteroid.y, radius)) {
+          // Haptic feedback for collision
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
           setLives(prev => {
             const newLives = prev - 1;
             if (newLives <= 0) {

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Svg, { Path, Circle, Line } from 'react-native-svg';
+import * as Haptics from 'expo-haptics';
 
 interface HangmanGameProps {
   gameData: any;
@@ -51,12 +52,18 @@ const HangmanGame: React.FC<HangmanGameProps> = ({ gameData, onClose, onGameComp
     setGuessedLetters(newGuessedLetters);
 
     if (!currentWord.includes(letter)) {
+      // Incorrect letter - haptic feedback
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      
       const newWrongGuesses = wrongGuesses + 1;
       setWrongGuesses(newWrongGuesses);
 
       if (newWrongGuesses >= maxWrongGuesses) {
         // Game over - word not guessed
         setTimeout(() => {
+          // Light haptic for moving to next question
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          
           if (currentQuestionIndex < gameData.questions.length - 1) {
             setCurrentQuestionIndex(currentQuestionIndex + 1);
           } else {
@@ -67,6 +74,9 @@ const HangmanGame: React.FC<HangmanGameProps> = ({ gameData, onClose, onGameComp
         }, 2000);
       }
     } else {
+      // Correct letter - haptic feedback
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      
       // Check if word is completely guessed
       const isWordComplete = currentWord.split('').every(char => 
         newGuessedLetters.includes(char)
@@ -75,6 +85,9 @@ const HangmanGame: React.FC<HangmanGameProps> = ({ gameData, onClose, onGameComp
       if (isWordComplete) {
         setScore(score + 1);
         setTimeout(() => {
+          // Light haptic for moving to next question
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          
           if (currentQuestionIndex < gameData.questions.length - 1) {
             setCurrentQuestionIndex(currentQuestionIndex + 1);
           } else {

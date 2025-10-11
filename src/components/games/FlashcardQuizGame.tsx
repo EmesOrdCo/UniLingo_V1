@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 
 interface FlashcardQuizGameProps {
   gameData: any;
@@ -48,11 +49,21 @@ const FlashcardQuizGame: React.FC<FlashcardQuizGameProps> = ({
     // Don't update score immediately to prevent percentage flashing
     const isCorrect = answer === question.correctAnswer;
     
+    // Haptic feedback based on answer
+    if (isCorrect) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } else {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    }
+    
     setTimeout(() => {
       // Update score after showing result
       if (isCorrect) {
         setScore(score + 1);
       }
+      
+      // Light haptic for moving to next question
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       
       if (currentQuestion < gameData.questions.length - 1) {
         setCurrentQuestion(currentQuestion + 1);

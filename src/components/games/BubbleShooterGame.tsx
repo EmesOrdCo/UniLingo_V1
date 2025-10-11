@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Animated, PanResponder } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Svg, { Circle, Line, Defs, RadialGradient, Stop } from 'react-native-svg';
+import * as Haptics from 'expo-haptics';
 
 // Create animated SVG components
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
@@ -314,6 +315,9 @@ const BubbleShooterGame: React.FC<BubbleShooterGameProps> = ({ onClose, onGameCo
       return;
     }
     
+    // Haptic feedback for launching bubble
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    
     // Start game on first shot
     if (!gameStarted) {
       console.log('🫧 Starting game');
@@ -505,6 +509,9 @@ const BubbleShooterGame: React.FC<BubbleShooterGameProps> = ({ onClose, onGameCo
               const connected = findConnectedBubbles(bestRow, bestCol, newBubble.color, updatedBubbles);
               
               if (connected.length >= 3) {
+                // Haptic feedback for bubble match
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                
                 // Trigger pop animation for matched bubbles
                 popBubbles(connected, false);
                 
@@ -538,6 +545,8 @@ const BubbleShooterGame: React.FC<BubbleShooterGameProps> = ({ onClose, onGameCo
               // Check game over (bubbles too low)
               const maxRow = Math.max(...updatedBubbles.map(b => b.row), -1);
               if (maxRow >= 12) {
+                // Haptic feedback for game over
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
                 setGameOver(true);
               }
 

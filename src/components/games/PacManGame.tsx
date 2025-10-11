@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { GestureHandlerRootView, PanGestureHandler, State } from 'react-native-gesture-handler';
+import * as Haptics from 'expo-haptics';
 
 interface PacManGameProps {
   gameData?: any;
@@ -208,11 +209,15 @@ const PacManGame: React.FC<PacManGameProps> = ({ onClose, onGameComplete, onRest
       if (isValidMove(newPos)) {
         // Collect pellet or power pellet
         if (maze[newPos.row][newPos.col] === 0) {
+          // Haptic feedback for eating pellet
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           setScore(prev => prev + 10);
           const newMaze = maze.map(r => [...r]);
           newMaze[newPos.row][newPos.col] = 3;
           setMaze(newMaze);
         } else if (maze[newPos.row][newPos.col] === 2) {
+          // Haptic feedback for eating power pellet
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           setScore(prev => prev + 50);
           const newMaze = maze.map(r => [...r]);
           newMaze[newPos.row][newPos.col] = 3;
@@ -329,7 +334,8 @@ const PacManGame: React.FC<PacManGameProps> = ({ onClose, onGameComplete, onRest
     ghosts.forEach(ghost => {
       if (ghost.position.row === pacman.row && ghost.position.col === pacman.col) {
         if (ghost.state === 'scared') {
-          // Eat ghost
+          // Eat ghost - haptic success
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           setScore(prev => prev + 200);
           setGhosts(prev =>
             prev.map(g =>
@@ -345,7 +351,8 @@ const PacManGame: React.FC<PacManGameProps> = ({ onClose, onGameComplete, onRest
             );
           }, 3000);
         } else if (ghost.state === 'chase') {
-          // Pac-Man dies
+          // Pac-Man dies - haptic error
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
           setLives(prev => {
             const newLives = prev - 1;
             if (newLives <= 0) {

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Animated, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 
 interface SudokuGameProps {
   gameData?: any;
@@ -244,6 +245,8 @@ const SudokuGame: React.FC<SudokuGameProps> = ({ onClose, onGameComplete, onRest
 
         // Check if valid
         if (!isValidMove(row, col, num)) {
+          // Haptic feedback for invalid move
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
           setMistakes(prev => {
             const newMistakes = prev + 1;
             if (newMistakes >= 3) {
@@ -252,6 +255,8 @@ const SudokuGame: React.FC<SudokuGameProps> = ({ onClose, onGameComplete, onRest
             return newMistakes;
           });
         } else {
+          // Haptic feedback for valid move
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           setScore(prev => prev + 10);
         }
       }
@@ -266,6 +271,8 @@ const SudokuGame: React.FC<SudokuGameProps> = ({ onClose, onGameComplete, onRest
 
     // Check win
     if (checkWin(newGrid)) {
+      // Haptic feedback for winning
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       const timeBonus = Math.max(0, 1000 - seconds * 2);
       const finalScore = score + timeBonus;
       setScore(finalScore);

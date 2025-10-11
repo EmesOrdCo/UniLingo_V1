@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Animated, PanResponder } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 
 interface PongGameProps {
   gameData?: any;
@@ -191,6 +192,9 @@ const PongGame: React.FC<PongGameProps> = ({ onClose, onGameComplete, onRestart 
         newBall.y <= currentPlayerPaddleY + PADDLE_HEIGHT &&
         newBall.dx > 0
       ) {
+        // Haptic feedback for paddle hit
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        
         // Calculate bounce angle based on where ball hits paddle
         const paddleCenter = currentPlayerPaddleY + PADDLE_HEIGHT / 2;
         const hitPos = (newBall.y + BALL_SIZE / 2 - paddleCenter) / (PADDLE_HEIGHT / 2);
@@ -216,6 +220,9 @@ const PongGame: React.FC<PongGameProps> = ({ onClose, onGameComplete, onRestart 
         newBall.y <= currentAiPaddleY + PADDLE_HEIGHT &&
         newBall.dx < 0
       ) {
+        // Haptic feedback for paddle hit
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        
         // Calculate bounce angle
         const paddleCenter = currentAiPaddleY + PADDLE_HEIGHT / 2;
         const hitPos = (newBall.y + BALL_SIZE / 2 - paddleCenter) / (PADDLE_HEIGHT / 2);
@@ -233,7 +240,8 @@ const PongGame: React.FC<PongGameProps> = ({ onClose, onGameComplete, onRestart 
 
       // Score points
       if (newBall.x <= -BALL_SIZE) {
-        // Player scores
+        // Player scores - haptic success
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         setPlayerScore(prev => {
           const newScore = prev + 1;
           if (newScore >= WIN_SCORE) {
@@ -247,7 +255,8 @@ const PongGame: React.FC<PongGameProps> = ({ onClose, onGameComplete, onRestart 
       }
 
       if (newBall.x >= GAME_WIDTH + BALL_SIZE) {
-        // AI scores
+        // AI scores - haptic error
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         setAiScore(prev => {
           const newScore = prev + 1;
           if (newScore >= WIN_SCORE) {

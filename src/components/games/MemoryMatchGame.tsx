@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 
 interface MemoryMatchGameProps {
   gameData: any;
@@ -128,6 +129,9 @@ const MemoryMatchGame: React.FC<MemoryMatchGameProps> = ({ gameData, onClose, on
       return;
     }
 
+    // Light haptic for card flip
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
     const newFlippedCards = [...flippedCards, cardId];
     setFlippedCards(newFlippedCards);
 
@@ -143,6 +147,9 @@ const MemoryMatchGame: React.FC<MemoryMatchGameProps> = ({ gameData, onClose, on
     const secondCard = cards.find(card => card.id === secondId);
 
     if (firstCard && secondCard && firstCard.originalCardId === secondCard.originalCardId) {
+      // Match found - haptic success feedback
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      
       // Match found - cards belong to the same original flashcard
       setMatchedPairs([...matchedPairs, firstId, secondId]);
       setFlippedCards([]);
@@ -152,6 +159,9 @@ const MemoryMatchGame: React.FC<MemoryMatchGameProps> = ({ gameData, onClose, on
         setIsGameComplete(true);
       }
     } else {
+      // No match - haptic error feedback
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      
       // No match, flip cards back after delay
       setTimeout(() => {
         setFlippedCards([]);

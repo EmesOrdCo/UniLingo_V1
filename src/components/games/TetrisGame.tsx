@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Animated, ScrollView, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { PanGestureHandler, State } from 'react-native-gesture-handler';
+import * as Haptics from 'expo-haptics';
 
 interface TetrisGameProps {
   gameData?: any;
@@ -185,6 +186,9 @@ const TetrisGame: React.FC<TetrisGameProps> = ({ onClose, onGameComplete, onRest
     });
 
     if (completedLines.length > 0) {
+      // Haptic feedback for clearing lines
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      
       // Clear lines
       const clearedGrid = newGrid.filter((_, index) => !completedLines.includes(index));
       const emptyRows = Array(completedLines.length)
@@ -200,11 +204,16 @@ const TetrisGame: React.FC<TetrisGameProps> = ({ onClose, onGameComplete, onRest
       const lineScore = [0, 100, 300, 500, 800][completedLines.length] * level;
       setScore(prev => prev + lineScore);
       setLines(prev => prev + completedLines.length);
+    } else {
+      // Light haptic for piece placement (no lines cleared)
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
 
     // Spawn next piece
     const newPiece = createNewPiece(nextPiece);
     if (checkCollision(newPiece)) {
+      // Haptic feedback for game over
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       setGameOver(true);
     } else {
       setCurrentPiece(newPiece);

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { PanGestureHandler, State } from 'react-native-gesture-handler';
+import * as Haptics from 'expo-haptics';
 
 interface Game2048Props {
   gameData?: any;
@@ -211,6 +212,15 @@ const Game2048: React.FC<Game2048Props> = ({ onClose, onGameComplete, onRestart 
     });
 
     if (moved) {
+      // Haptic feedback for tile movement
+      if (scoreGain > 0) {
+        // Tiles merged - success haptic
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } else {
+        // Just moved - light haptic
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
+      
       setScore(prev => prev + scoreGain);
       const tilesWithNew = addNewTile(newTiles);
       setTiles(tilesWithNew);
@@ -218,11 +228,15 @@ const Game2048: React.FC<Game2048Props> = ({ onClose, onGameComplete, onRestart 
       // Check for 2048 tile
       if (!won && tilesWithNew.some(t => t.value === 2048)) {
         setWon(true);
+        // Haptic feedback for winning!
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
 
       // Check for game over
       setTimeout(() => {
         if (!canMove(tilesWithNew)) {
+          // Haptic feedback for game over
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
           setGameOver(true);
         }
       }, 300);

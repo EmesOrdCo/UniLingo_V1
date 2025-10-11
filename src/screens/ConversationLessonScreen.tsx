@@ -15,6 +15,7 @@ import {
   Platform
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { LessonService, Lesson, LessonVocabulary } from '../lib/lessonService';
@@ -565,6 +566,13 @@ export default function ConversationLessonScreen() {
     
     console.log('🎯 Exercise completed:', { isCorrect, score: newScore });
     
+    // Haptic feedback based on answer
+    if (isCorrect) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } else {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    }
+    
     if (isCorrect) {
       // Correct answer - complete immediately
       setExerciseState(prev => ({
@@ -660,6 +668,8 @@ export default function ConversationLessonScreen() {
     
     // If incorrect, don't complete yet - let user try again
     if (!isCorrect) {
+      // Haptic feedback for incorrect answer
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       Alert.alert('Try Again', 'The sentence order is not correct. Keep trying!');
       return;
     }
@@ -770,7 +780,7 @@ export default function ConversationLessonScreen() {
         const isCorrect = score >= 70;
         console.log('🎯 Pronunciation assessment complete. Score:', score, 'Passed:', isCorrect);
         
-        // Show result for 2 seconds then complete exercise
+        // Show result for 2 seconds then complete exercise (haptic will be triggered in handleExerciseComplete)
         setTimeout(() => {
           handleExerciseComplete(isCorrect);
         }, 2000);

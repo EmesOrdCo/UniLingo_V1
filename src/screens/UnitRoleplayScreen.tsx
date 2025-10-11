@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,10 @@ import {
   ScrollView,
   Modal,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Dimensions,
+  Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -16,6 +20,33 @@ import PronunciationCheck from '../components/PronunciationCheck';
 import { PronunciationResult } from '../lib/pronunciationService';
 import { UnitDataAdapter, UnitConversationExchange } from '../lib/unitDataAdapter';
 import { logger } from '../lib/logger';
+import * as Haptics from 'expo-haptics';
+
+const { width } = Dimensions.get('window');
+
+// Conversation interfaces
+interface ConversationMessage {
+  speaker: string;  // "User" or "Assistant" 
+  message: string;
+}
+
+interface ConversationData {
+  conversation: ConversationMessage[];
+}
+
+interface RoleplayExercise {
+  type: 'speak';
+  keyword: string;
+  sentence: string;
+  vocabulary: any;
+}
+
+interface ExerciseState {
+  isActive: boolean;
+  exercise: RoleplayExercise | null;
+  isCompleted: boolean;
+  score: number;
+}
 
 // Hardcoded conversation dialogue (same as Write)
 const CONVERSATION = [
@@ -78,6 +109,33 @@ export default function UnitRoleplayScreen() {
   const [conversationExchanges, setConversationExchanges] = useState<UnitConversationExchange[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // New conversation system state
+  const [conversationData, setConversationData] = useState<ConversationData | null>(null);
+  const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
+  const [isTyping, setIsTyping] = useState(false);
+  const [isTypingAnimation, setIsTypingAnimation] = useState(false);
+  const [typingText, setTypingText] = useState('');
+  const [userMessageCompleted, setUserMessageCompleted] = useState(false);
+  const [exerciseState, setExerciseState] = useState<ExerciseState>({
+    isActive: false,
+    exercise: null,
+    isCompleted: false,
+    score: 0
+  });
+  
+  // Track if exercise has been created for current message
+  const [exerciseCreatedForMessage, setExerciseCreatedForMessage] = useState<number>(-1);
+  
+  // Vocabulary for exercise creation
+  const [vocabulary, setVocabulary] = useState<any[]>([]);
+  
+  // Use refs to prevent stale closures
+  const currentMessageIndexRef = useRef(0);
+  const conversationDataRef = useRef<ConversationData | null>(null);
+  const isTypingRef = useRef(false);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isAnimationRunningRef = useRef(false);
+
   // Load conversation from lesson scripts
   useEffect(() => {
     loadConversation();
@@ -86,9 +144,15 @@ export default function UnitRoleplayScreen() {
   const loadConversation = async () => {
     try {
       setLoading(true);
-      logger.info(`🎭 Loading conversation for subject: ${subjectName} (${cefrLevel})`);
+      logger.info(`🎭 Loading conversation and vocabulary for subject: ${subjectName} (${cefrLevel})`);
       
       const nativeLanguage = profile?.native_language || 'French';
+      
+      // Load vocabulary for exercise creation
+      const vocabData = await UnitDataAdapter.getUnitVocabulary(subjectName, nativeLanguage);
+      setVocabulary(vocabData);
+      
+      // Load conversation exchanges
       const exchanges = await UnitDataAdapter.getUnitConversationFromScript(subjectName, cefrLevel, nativeLanguage);
       
       if (exchanges.length === 0) {
@@ -101,9 +165,28 @@ export default function UnitRoleplayScreen() {
           translation: item.userMessage.english,
           type: index === 0 ? 'greeting' : index === CONVERSATION.length - 1 ? 'farewell' : 'response'
         })));
+        
+        // Create conversation data from hardcoded conversation
+        const fallbackConversation: ConversationData = {
+          conversation: CONVERSATION.map((item, index) => [
+            { speaker: 'Assistant', message: item.appMessage.english },
+            { speaker: 'User', message: item.userMessage.english }
+          ]).flat()
+        };
+        setConversationData(fallbackConversation);
       } else {
         setConversationExchanges(exchanges);
         logger.info(`✅ Loaded ${exchanges.length} conversation exchanges from lesson scripts`);
+        
+        // Create conversation data from lesson script exchanges
+        const conversation: ConversationData = {
+          conversation: exchanges.map((exchange, index) => ({
+            speaker: exchange.speaker === 'user' ? 'User' : 'Assistant',
+            message: exchange.text
+          }))
+        };
+        setConversationData(conversation);
+        logger.info(`✅ Loaded conversation with ${conversation.conversation.length} messages`);
       }
     } catch (error) {
       logger.error('Error loading conversation:', error);
@@ -115,6 +198,15 @@ export default function UnitRoleplayScreen() {
         translation: item.userMessage.english,
         type: index === 0 ? 'greeting' : index === CONVERSATION.length - 1 ? 'farewell' : 'response'
       })));
+      
+      // Create fallback conversation
+      const fallbackConversation: ConversationData = {
+        conversation: CONVERSATION.map((item, index) => [
+          { speaker: 'Assistant', message: item.appMessage.english },
+          { speaker: 'User', message: item.userMessage.english }
+        ]).flat()
+      };
+      setConversationData(fallbackConversation);
     } finally {
       setLoading(false);
     }
@@ -153,6 +245,36 @@ export default function UnitRoleplayScreen() {
   }, [conversationHistory]);
 
   const handlePronunciationComplete = async (result: PronunciationResult) => {
+    // Handle conversation system exercises
+    if (exerciseState.isActive && exerciseState.exercise) {
+      console.log('🎤 Pronunciation result (conversation system):', result);
+      setLastResult(result);
+      
+      const pronunciationScore = result.assessment?.pronunciationScore || 0;
+      const passed = pronunciationScore >= 60;
+      
+      if (passed) {
+        setIsCorrect(true);
+        setScore(prev => prev + 1);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } else {
+        setIsCorrect(false);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      }
+      
+      setShowResult(true);
+      
+      // Auto-advance after showing result
+      setTimeout(() => {
+        setExerciseState({ isActive: false, exercise: null, isCompleted: false, score: 0 });
+        setShowResult(false);
+        handleNextMessage();
+      }, 2000);
+      
+      return;
+    }
+
+    // Original logic for non-conversation system
     if (!result.success || !result.assessment) return;
 
     const pronunciationScore = result.assessment.pronunciationScore;
@@ -243,6 +365,13 @@ export default function UnitRoleplayScreen() {
   };
 
   const handleBackPress = () => {
+    // Clean up conversation system state
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = null;
+    }
+    isAnimationRunningRef.current = false;
+    
     if (completed) {
       navigation.goBack();
     } else {
@@ -258,6 +387,261 @@ export default function UnitRoleplayScreen() {
   const handleCancelExit = () => {
     setShowExitModal(false);
   };
+
+  // Conversation system functions
+  const detectKeywordsAndCreateExercise = useCallback((message: string): RoleplayExercise | null => {
+    if (!vocabulary.length || !message) return null;
+
+    const words = message.toLowerCase().split(/\s+/);
+    const foundKeywords: any[] = [];
+
+    // Check each word against vocabulary
+    for (const word of words) {
+      const cleanWord = word.replace(/[^\w]/g, ''); // Remove punctuation
+      const vocabMatch = vocabulary.find(v => {
+        // Check if this vocabulary item matches the word
+        return v.english && v.english.toLowerCase().includes(cleanWord);
+      });
+      if (vocabMatch) {
+        foundKeywords.push(vocabMatch);
+      }
+    }
+
+    if (foundKeywords.length === 0) {
+      console.log('❌ No keywords found in message');
+      return null;
+    }
+
+    // Pick one random keyword
+    const selectedKeyword = foundKeywords[Math.floor(Math.random() * foundKeywords.length)];
+
+    // Find the actual word from the message that matches this vocabulary
+    let matchedWord = '';
+    const messageWords = message.toLowerCase().split(/\s+/);
+    
+    for (const word of messageWords) {
+      const cleanWord = word.replace(/[^\w]/g, '');
+      if (selectedKeyword.english && selectedKeyword.english.toLowerCase().includes(cleanWord)) {
+        matchedWord = cleanWord;
+        break;
+      }
+    }
+    
+    if (!matchedWord) {
+      console.log('❌ Could not find matching word in sentence');
+      return null;
+    }
+
+    console.log('🎯 Final roleplay exercise:', { matchedWord, selectedKeyword: selectedKeyword.english });
+
+    return {
+      type: 'speak',
+      keyword: matchedWord,
+      sentence: message,
+      vocabulary: selectedKeyword
+    };
+  }, [vocabulary]);
+
+  const startTypingAnimation = (fullText: string) => {
+    // Clear any existing timeout to prevent overlapping animations
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = null;
+    }
+    
+    // Mark animation as running
+    isAnimationRunningRef.current = true;
+    setTypingText('');
+    let currentIndex = 0;
+    
+    const typeNextChar = () => {
+      if (currentIndex < fullText.length) {
+        setTypingText(fullText.substring(0, currentIndex + 1));
+        currentIndex++;
+        typingTimeoutRef.current = setTimeout(typeNextChar, 50); // 50ms per character
+      } else {
+        // Animation complete
+        requestAnimationFrame(() => {
+          isAnimationRunningRef.current = false;
+          setIsTypingAnimation(false);
+          
+          // Handle message advancement based on who just finished typing
+          if (conversationDataRef.current && conversationDataRef.current.conversation[currentMessageIndexRef.current]) {
+            const currentMessage = conversationDataRef.current.conversation[currentMessageIndexRef.current];
+            
+            if (currentMessage.speaker === 'Assistant') {
+              // Assistant finished typing, advance to next message
+              setTimeout(() => {
+                handleNextMessage();
+              }, 1000); // Wait 1 second after typing completes
+            } else if (currentMessage.speaker === 'User') {
+              // User finished typing, mark as completed and advance to Assistant message
+              setUserMessageCompleted(true);
+              setTimeout(() => {
+                const nextIndex = currentMessageIndexRef.current + 1;
+                if (nextIndex < conversationDataRef.current!.conversation.length) {
+                  const nextMessage = conversationDataRef.current!.conversation[nextIndex];
+                  
+                  if (nextMessage.speaker === 'Assistant') {
+                    // Update all states together
+                    setCurrentMessageIndex(nextIndex);
+                    currentMessageIndexRef.current = nextIndex;
+                    setIsTyping(true);
+                    isTypingRef.current = true;
+                    setIsTypingAnimation(true);
+                    setUserMessageCompleted(false); // Reset flag
+                  } else {
+                    setCurrentMessageIndex(nextIndex);
+                    currentMessageIndexRef.current = nextIndex;
+                    setIsTyping(false);
+                    isTypingRef.current = false;
+                    setIsTypingAnimation(false);
+                    setUserMessageCompleted(false); // Reset flag
+                  }
+                } else {
+                  handleConversationComplete();
+                }
+              }, 1000); // Wait 1 second after user typing completes
+            }
+          }
+        });
+      }
+    };
+    
+    typeNextChar();
+  };
+
+  const handleNextMessage = useCallback(() => {
+    if (!conversationDataRef.current) return;
+    
+    const currentIndex = currentMessageIndexRef.current;
+    const nextIndex = currentIndex + 1;
+    
+    console.log(`🔄 Advancing from message ${currentIndex} to ${nextIndex}`);
+    
+    if (nextIndex >= conversationDataRef.current.conversation.length) {
+      // Conversation completed
+      handleConversationComplete();
+      return;
+    }
+
+    const nextMessage = conversationDataRef.current.conversation[nextIndex];
+    console.log(`📝 Next message: ${nextMessage.speaker} - ${nextMessage.message}`);
+    
+    setCurrentMessageIndex(nextIndex);
+    currentMessageIndexRef.current = nextIndex;
+    
+    if (nextMessage.speaker === 'Assistant') {
+      // Start typing animation for Assistant
+      setIsTyping(true);
+      isTypingRef.current = true;
+      setIsTypingAnimation(true);
+    } else {
+      // User message - no typing animation needed
+      setIsTyping(false);
+      isTypingRef.current = false;
+      setIsTypingAnimation(false);
+    }
+  }, []);
+
+  const handleConversationComplete = () => {
+    console.log('🎉 Conversation completed!');
+    setCompleted(true);
+  };
+
+  // Update refs when state changes
+  useEffect(() => {
+    currentMessageIndexRef.current = currentMessageIndex;
+  }, [currentMessageIndex]);
+  
+  useEffect(() => {
+    conversationDataRef.current = conversationData;
+  }, [conversationData]);
+  
+  useEffect(() => {
+    isTypingRef.current = isTyping;
+  }, [isTyping]);
+
+  // Auto-detect keywords when user message is displayed
+  useEffect(() => {
+    if (conversationData && currentMessageIndex < conversationData.conversation.length) {
+      const currentMessage = conversationData.conversation[currentMessageIndex];
+      
+      // Only create exercise if:
+      // 1. It's a User message
+      // 2. No exercise is currently active
+      // 3. No exercise has been created for this message yet
+      // 4. No typing animation is active
+      if (currentMessage && 
+          currentMessage.speaker === 'User' && 
+          !exerciseState.isActive && 
+          exerciseCreatedForMessage !== currentMessageIndex &&
+          !isTypingAnimation && 
+          !isTyping) {
+        
+        console.log('🔍 Exercise creation check for message:', currentMessage.message);
+        
+        // Check for keywords and create exercise automatically
+        const exercise = detectKeywordsAndCreateExercise(currentMessage.message);
+        
+        if (exercise) {
+          console.log('🎯 Exercise created automatically for message', currentMessageIndex, ':', exercise);
+          setExerciseCreatedForMessage(currentMessageIndex);
+          
+          setExerciseState({
+            isActive: true,
+            exercise,
+            isCompleted: false,
+            score: 0
+          });
+        }
+      }
+    }
+  }, [currentMessageIndex, conversationData, exerciseState.isActive, exerciseCreatedForMessage, isTypingAnimation, isTyping, detectKeywordsAndCreateExercise]);
+
+  // Typing animation effect
+  useEffect(() => {
+    if (isTypingAnimation && conversationDataRef.current && !isAnimationRunningRef.current) {
+      const currentMessage = conversationDataRef.current.conversation[currentMessageIndexRef.current];
+      console.log('🎬 Starting typing animation for:', currentMessage?.speaker, currentMessage?.message);
+      if (currentMessage) {
+        requestAnimationFrame(() => {
+          startTypingAnimation(currentMessage.message);
+        });
+      }
+    }
+  }, [isTypingAnimation]);
+
+  // Initialize conversation when data is loaded
+  useEffect(() => {
+    if (conversationData && conversationData.conversation.length > 0) {
+      setCurrentMessageIndex(0);
+      currentMessageIndexRef.current = 0;
+      conversationDataRef.current = conversationData;
+      
+      // Start with Assistant message (index 0)
+      const firstMessage = conversationData.conversation[0];
+      console.log('🎬 Starting conversation with:', firstMessage.speaker, firstMessage.message);
+      if (firstMessage.speaker === 'Assistant') {
+        console.log('🎬 Starting Assistant typing animation');
+        setIsTyping(true);
+        isTypingRef.current = true;
+        setIsTypingAnimation(true);
+      }
+    }
+  }, [conversationData]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      // Clean up any pending timeouts when component unmounts
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = null;
+      }
+      isAnimationRunningRef.current = false;
+    };
+  }, []);
 
   if (completed) {
     const accuracyPercentage = Math.round((score / CONVERSATION.length) * 100);
@@ -323,6 +707,110 @@ export default function UnitRoleplayScreen() {
     );
   }
 
+  // Show conversation interface if we have conversation data
+  if (conversationData && conversationData.conversation.length > 0) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color="#000000" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>{unitTitle} - Roleplay</Text>
+          <View style={styles.headerSpacer} />
+        </View>
+
+        {/* Conversation Interface */}
+        <KeyboardAvoidingView 
+          style={styles.conversationContainer} 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          <ScrollView 
+            style={styles.conversationScrollView}
+            contentContainerStyle={styles.conversationContent}
+            ref={scrollViewRef}
+          >
+            {/* Conversation Messages */}
+            {conversationData.conversation.slice(0, currentMessageIndex + (isTypingAnimation ? 0 : 1)).map((message, index) => (
+              <View key={index} style={[
+                styles.messageContainer,
+                message.speaker === 'Assistant' ? styles.assistantMessage : styles.userMessage
+              ]}>
+                <Text style={[
+                  styles.messageText,
+                  message.speaker === 'Assistant' ? styles.assistantText : styles.userText
+                ]}>
+                  {message.speaker === 'Assistant' && index === currentMessageIndex && isTypingAnimation 
+                    ? typingText 
+                    : message.message}
+                </Text>
+              </View>
+            ))}
+            
+            {/* Show current message with typing animation */}
+            {isTypingAnimation && currentMessageIndex < conversationData.conversation.length && (
+              <View style={[
+                styles.messageContainer,
+                styles.assistantMessage
+              ]}>
+                <Text style={[styles.messageText, styles.assistantText]}>
+                  {typingText}
+                </Text>
+              </View>
+            )}
+
+            {/* Exercise Section */}
+            {exerciseState.isActive && exerciseState.exercise && (
+              <View style={styles.exerciseContainer}>
+                <Text style={styles.exerciseTitle}>
+                  Practice: Say the sentence
+                </Text>
+                <Text style={styles.exerciseSentence}>
+                  "{exerciseState.exercise.sentence}"
+                </Text>
+                
+                <PronunciationCheck
+                  key={`${currentMessageIndex}-${Date.now()}`}
+                  word={exerciseState.exercise.sentence}
+                  onComplete={handlePronunciationComplete}
+                  maxRecordingDuration={8000}
+                  showAlerts={false}
+                  translation={exerciseState.exercise.sentence}
+                  hideScoreRing={true}
+                />
+              </View>
+            )}
+          </ScrollView>
+        </KeyboardAvoidingView>
+
+        {/* Exit Confirmation Modal */}
+        <Modal
+          visible={showExitModal}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={handleCancelExit}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Are you sure you want to leave?</Text>
+              <Text style={styles.modalSubtitle}>
+                Your progress won't be saved for this lesson, and you'll have to start again when you return.
+              </Text>
+              
+              <TouchableOpacity style={styles.modalConfirmButton} onPress={handleConfirmExit}>
+                <Text style={styles.modalConfirmButtonText}>Yes, I want to leave</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity style={styles.modalCancelButton} onPress={handleCancelExit}>
+                <Text style={styles.modalCancelButtonText}>Not Now</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+      </SafeAreaView>
+    );
+  }
+
+  // Fallback to original interface
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -558,6 +1046,85 @@ const styles = StyleSheet.create({
   conversationContent: {
     padding: 20,
     paddingBottom: 10,
+  },
+  // New conversation styles
+  conversationContainer: {
+    flex: 1,
+    backgroundColor: '#f8fafc',
+  },
+  conversationScrollView: {
+    flex: 1,
+  },
+  conversationContent: {
+    padding: 20,
+    paddingBottom: 100,
+  },
+  messageContainer: {
+    marginBottom: 16,
+    maxWidth: '80%',
+  },
+  assistantMessage: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    borderBottomLeftRadius: 4,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  userMessage: {
+    alignSelf: 'flex-end',
+    backgroundColor: '#6366f1',
+    borderRadius: 16,
+    borderBottomRightRadius: 4,
+    padding: 16,
+    shadowColor: '#6366f1',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  messageText: {
+    fontSize: 16,
+    lineHeight: 22,
+  },
+  assistantText: {
+    color: '#1e293b',
+  },
+  userText: {
+    color: '#ffffff',
+  },
+  exerciseContainer: {
+    marginTop: 24,
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  exerciseTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1e293b',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  exerciseSentence: {
+    fontSize: 16,
+    color: '#6b7280',
+    marginBottom: 20,
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
   messageWrapper: {
     marginBottom: 16,

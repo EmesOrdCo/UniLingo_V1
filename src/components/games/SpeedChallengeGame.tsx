@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, TextInput, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 
 interface SpeedChallengeGameProps {
   gameData: any;
@@ -68,14 +69,21 @@ const SpeedChallengeGame: React.FC<SpeedChallengeGameProps> = ({ gameData, onClo
     const correctAnswer = userInput === correct;
     setIsCorrect(correctAnswer);
     
+    // Haptic feedback based on answer
     if (correctAnswer) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setScore(score + 1);
+    } else {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
     
     setTotalAnswered(totalAnswered + 1); // Increment total answered
     setShowResult(true);
     
     setTimeout(() => {
+      // Light haptic for moving to next question
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      
       // For speed challenge, we cycle through questions indefinitely
       // Move to next question (cycling back to 0 if we reach the end)
       const nextIndex = (currentQuestionIndex + 1) % gameData.questions.length;

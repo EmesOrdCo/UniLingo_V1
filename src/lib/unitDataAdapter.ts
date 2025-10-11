@@ -447,22 +447,39 @@ export class UnitDataAdapter {
    * Helper method to split script into conversation exchanges for roleplay
    */
   private static splitScriptIntoConversation(englishScript: string): UnitConversationExchange[] {
-    // Split English script by lines or paragraphs
+    // Split English script by '/' separators (common format in lesson scripts)
     const englishLines = englishScript
-      .split(/\n+/)
+      .split(/\s*\/\s*/)
       .map(s => s.trim())
       .filter(s => s.length > 0);
 
-    // Create conversation exchanges - user practices English conversations
+    console.log('🔍 Split script into lines:', englishLines);
+
+    // Create conversation exchanges - A is Assistant, B is User
     const exchanges: UnitConversationExchange[] = [];
     
     for (let i = 0; i < englishLines.length; i++) {
       if (englishLines[i]) {
+        // Determine speaker based on the line content (A: or B:)
+        let speaker = 'assistant'; // Default
+        let text = englishLines[i];
+        
+        if (text.startsWith('A:')) {
+          speaker = 'assistant';
+          text = text.substring(2).trim(); // Remove "A:" prefix
+        } else if (text.startsWith('B:')) {
+          speaker = 'user';
+          text = text.substring(2).trim(); // Remove "B:" prefix
+        } else {
+          // If no prefix, alternate based on position
+          speaker = i % 2 === 0 ? 'assistant' : 'user';
+        }
+        
         exchanges.push({
           id: `exchange_${i + 1}`,
-          speaker: i % 2 === 0 ? 'user' : 'assistant',
-          text: englishLines[i], // User speaks English
-          translation: englishLines[i], // Same text since it's English practice
+          speaker: speaker as 'user' | 'assistant',
+          text: text,
+          translation: text, // Same text since it's English practice
           type: i === 0 ? 'greeting' : i === englishLines.length - 1 ? 'farewell' : 'response'
         });
       }

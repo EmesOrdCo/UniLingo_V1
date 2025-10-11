@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Animated, PanResponder } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 
 interface BreakoutDeluxeGameProps {
   gameData?: any;
@@ -345,6 +346,8 @@ const BreakoutDeluxeGame: React.FC<BreakoutDeluxeGameProps> = ({ onClose, onGame
           newBall.x + BALL_SIZE >= currentPaddleX &&
           newBall.x <= currentPaddleX + currentPaddleWidth
         ) {
+          // Haptic feedback for paddle hit
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           newBall.dy = -Math.abs(newBall.dy);
           const paddleCenter = currentPaddleX + currentPaddleWidth / 2;
           const hitPos = (newBall.x + BALL_SIZE / 2 - paddleCenter) / (currentPaddleWidth / 2);
@@ -361,8 +364,12 @@ const BreakoutDeluxeGame: React.FC<BreakoutDeluxeGameProps> = ({ onClose, onGame
       setLives(prev => {
         const newLives = prev - 1;
         if (newLives <= 0) {
+          // Haptic feedback for game over
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
           setGameOver(true);
         } else {
+          // Haptic feedback for losing a life
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
           setBalls([{
             id: nextBallId.current++,
             x: GAME_WIDTH / 2,
@@ -391,6 +398,8 @@ const BreakoutDeluxeGame: React.FC<BreakoutDeluxeGameProps> = ({ onClose, onGame
           p.x + POWER_UP_SIZE >= currentPaddleX &&
           p.x <= currentPaddleX + currentPaddleWidth
         ) {
+          // Haptic feedback for collecting power-up
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
           collected.push(p.type);
           return false;
         }
@@ -476,6 +485,8 @@ const BreakoutDeluxeGame: React.FC<BreakoutDeluxeGameProps> = ({ onClose, onGame
 
             const newBrick = { ...brick, hits: brick.hits + 1 };
             if (newBrick.hits >= newBrick.maxHits) {
+              // Haptic feedback for destroying brick
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
               setScore(prev => prev + (brick.row + 1) * 10 * currentLevel);
               
               // Drop power-up
@@ -492,6 +503,9 @@ const BreakoutDeluxeGame: React.FC<BreakoutDeluxeGameProps> = ({ onClose, onGame
                   },
                 ]);
               }
+            } else {
+              // Light haptic for hitting brick (not destroyed yet)
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             }
             return newBrick;
           }

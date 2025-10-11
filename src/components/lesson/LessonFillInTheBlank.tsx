@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, TextInput, Dimensions, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 
 interface LessonFillInTheBlankProps {
   vocabulary: any[];
@@ -31,12 +32,12 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
   // Generate questions from vocabulary
   React.useEffect(() => {
     const generatedQuestions: FillInTheBlankQuestion[] = vocabulary
-      .filter(item => item && item.example_sentence_en && item.keywords && item.definition)
+      .filter(item => item && item.example_sentence_en && item.keywords)
       .map(item => ({
         id: item.id,
         sentence: item.example_sentence_en,
         blankWord: item.keywords,
-        hint: item.definition
+        hint: item.definition || `Translation: ${item.native_translation || 'N/A'}`
       }))
       .slice(0, Math.min(10, vocabulary.length)); // Limit to 10 questions
 
@@ -64,14 +65,21 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
     
     setIsCorrect(isAnswerCorrect);
     
+    // Haptic feedback based on answer
     if (isAnswerCorrect) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setScore(score + 1);
+    } else {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
     
     setShowResult(true);
   };
 
   const handleNextQuestion = () => {
+    // Light haptic for moving to next question
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
       setUserAnswer('');

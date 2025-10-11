@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Animated, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 
 interface MinesweeperGameProps {
   gameData?: any;
@@ -172,6 +173,9 @@ const MinesweeperGame: React.FC<MinesweeperGameProps> = ({ onClose, onGameComple
 
     // Hit a mine
     if (newGrid[row][col].isMine) {
+      // Haptic feedback for hitting a mine
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      
       // Reveal all mines
       newGrid.forEach(r => r.forEach(c => {
         if (c.isMine) c.isRevealed = true;
@@ -180,6 +184,9 @@ const MinesweeperGame: React.FC<MinesweeperGameProps> = ({ onClose, onGameComple
       setGameOver(true);
       return;
     }
+
+    // Haptic feedback for revealing safe cell
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
     // Reveal cell and cascade if empty
     const toReveal: [number, number][] = [[row, col]];
@@ -215,6 +222,8 @@ const MinesweeperGame: React.FC<MinesweeperGameProps> = ({ onClose, onGameComple
       r.every(c => c.isMine || c.isRevealed)
     );
     if (allNonMinesRevealed) {
+      // Haptic feedback for winning
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setWon(true);
     }
   }, [grid, gameOver, won, gameStarted]);

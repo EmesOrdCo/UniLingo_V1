@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Animated, TouchableWithoutFeedback } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 
 interface FlappyBirdGameProps {
   gameData?: any;
@@ -61,6 +62,9 @@ const FlappyBirdGame: React.FC<FlappyBirdGameProps> = ({ onClose, onGameComplete
   const flap = useCallback(() => {
     if (gameOver) return;
     
+    // Haptic feedback for flapping
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    
     if (!gameStarted) {
       setGameStarted(true);
     }
@@ -94,6 +98,8 @@ const FlappyBirdGame: React.FC<FlappyBirdGameProps> = ({ onClose, onGameComplete
       
       // Check bounds
       if (newY <= 0 || newY >= GAME_HEIGHT - BIRD_SIZE) {
+        // Haptic feedback for collision/game over
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         setGameOver(true);
         return prev;
       }
@@ -187,6 +193,8 @@ const FlappyBirdGame: React.FC<FlappyBirdGameProps> = ({ onClose, onGameComplete
       if (birdRight > pipeLeft && birdLeft < pipeRight) {
         // Check if bird hits top or bottom pipe
         if (birdTop < pipe.topHeight || birdBottom > pipe.topHeight + PIPE_GAP) {
+          // Haptic feedback for pipe collision
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
           setGameOver(true);
         }
       }
@@ -194,6 +202,8 @@ const FlappyBirdGame: React.FC<FlappyBirdGameProps> = ({ onClose, onGameComplete
       // Check if passed pipe
       if (!pipe.passed && pipeRight < birdLeft) {
         pipe.passed = true;
+        // Haptic feedback for passing through pipe (scoring)
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         setScore(prev => prev + 1);
       }
     });

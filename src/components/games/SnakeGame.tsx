@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Animated, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { PanGestureHandler, State } from 'react-native-gesture-handler';
+import * as Haptics from 'expo-haptics';
 
 interface SnakeGameProps {
   gameData?: any;
@@ -102,6 +103,8 @@ const SnakeGame: React.FC<SnakeGameProps> = ({ onClose, onGameComplete, onRestar
 
       // Check collision
       if (checkCollision(newHead, prevSnake)) {
+        // Haptic feedback for collision/game over
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
         setGameOver(true);
         return prevSnake;
       }
@@ -110,6 +113,8 @@ const SnakeGame: React.FC<SnakeGameProps> = ({ onClose, onGameComplete, onRestar
 
       // Check if food is eaten
       if (newHead.x === food.x && newHead.y === food.y) {
+        // Haptic feedback for eating food
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         setScore((prev) => prev + 10);
         setFood(generateFood(newSnake));
         

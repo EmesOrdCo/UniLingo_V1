@@ -142,7 +142,9 @@ export default function LessonFlashcards({ vocabulary, onComplete, onClose, onPr
             <View style={styles.cardContent}>
               <Text style={styles.cardTitle}>Translation</Text>
               <Text style={styles.cardText}>{currentCard?.native_translation || 'No translation available'}</Text>
-              <Text style={styles.definitionText}>Definition: {currentCard?.definition || 'No definition available'}</Text>
+              {currentCard?.definition && (
+                <Text style={styles.definitionText}>Definition: {currentCard.definition}</Text>
+              )}
               {currentCard?.example_sentence_en && (
                 <Text style={styles.exampleText}>Example: {currentCard.example_sentence_en}</Text>
               )}

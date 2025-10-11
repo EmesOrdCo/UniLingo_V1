@@ -11,6 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
+import * as Haptics from 'expo-haptics';
 
 interface LessonListenProps {
   vocabulary: any[];
@@ -104,11 +105,18 @@ export default function LessonListen({
     setIsCorrect(correct);
     setShowResult(true);
     
+    // Haptic feedback based on answer
     if (correct) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setScore(score + 1);
+    } else {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
     
     setTimeout(() => {
+      // Light haptic for moving to next question
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      
       if (currentIndex < vocabulary.length - 1) {
         setCurrentIndex(currentIndex + 1);
         setUserInput('');

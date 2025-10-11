@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, TextInput, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
+import * as Haptics from 'expo-haptics';
 import GameCompletionTracker from '../../lib/gameCompletionTracker';
 
 interface TypeWhatYouHearGameProps {
@@ -73,8 +74,12 @@ const TypeWhatYouHearGame: React.FC<TypeWhatYouHearGameProps> = ({ gameData, onC
     const correctAnswer = userInput === correct;
     setIsCorrect(correctAnswer);
     
+    // Haptic feedback based on answer
     if (correctAnswer) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setScore(score + 1);
+    } else {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
     
     setShowResult(true);
@@ -85,6 +90,9 @@ const TypeWhatYouHearGame: React.FC<TypeWhatYouHearGameProps> = ({ gameData, onC
     }
     
     timeoutRef.current = setTimeout(() => {
+      // Light haptic for moving to next question
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      
       if (currentQuestionIndex < gameData.questions.length - 1) {
         setCurrentQuestionIndex(currentQuestionIndex + 1);
         setUserAnswer('');

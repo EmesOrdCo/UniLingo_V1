@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import PronunciationCheck from '../PronunciationCheck';
 
 interface LessonSpeakProps {
@@ -59,12 +60,22 @@ export default function LessonSpeak({
       accuracyScore: result.assessment?.accuracyScore
     });
     
+    // Haptic feedback based on pronunciation result
+    if (binaryScore === 1) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } else {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    }
+    
     setScores(prev => [...prev, binaryScore]);
     setTotalScore(prev => prev + binaryScore);
     setCurrentWordPassed(true);
   };
 
   const moveToNextWord = () => {
+    // Light haptic for moving to next question
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    
     if (currentIndex < vocabulary.length - 1) {
       setCurrentIndex(currentIndex + 1);
       setCurrentWordPassed(false);

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 
 interface LessonSentenceScrambleProps {
   vocabulary: any[];
@@ -101,13 +102,20 @@ export default function LessonSentenceScramble({ vocabulary, onComplete, onClose
     const correctAnswer = userSentence === correctSentence;
     setIsCorrect(correctAnswer);
     
+    // Haptic feedback based on answer
     if (correctAnswer) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setScore(score + 1);
+    } else {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
     
     setShowResult(true);
     
     setTimeout(() => {
+      // Light haptic for moving to next question
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      
       if (currentQuestionIndex < questions.length - 1) {
         setCurrentQuestionIndex(currentQuestionIndex + 1);
       } else {

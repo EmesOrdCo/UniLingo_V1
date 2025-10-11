@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 
 interface LessonFlashcardQuizProps {
   vocabulary: any[];
@@ -83,10 +84,20 @@ export default function LessonFlashcardQuiz({ vocabulary, onComplete, onClose, o
     
     const isCorrect = answer === questions[currentQuestion].correctAnswer;
     
+    // Haptic feedback based on answer
+    if (isCorrect) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } else {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    }
+    
     setTimeout(() => {
       if (isCorrect) {
         setScore(score + 1);
       }
+      
+      // Light haptic for moving to next question
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       
       if (currentQuestion < questions.length - 1) {
         setCurrentQuestion(currentQuestion + 1);

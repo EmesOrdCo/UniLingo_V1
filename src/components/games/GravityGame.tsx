@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions, TextInput, Animated, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Svg, { Circle, Path, Polygon, Defs, RadialGradient, Stop } from 'react-native-svg';
+import * as Haptics from 'expo-haptics';
 
 interface GravityGameProps {
   gameData: any;
@@ -241,6 +242,9 @@ const GravityGame: React.FC<GravityGameProps> = ({ gameData, onClose, onGameComp
       const hitMeteors = updatedMeteors.filter(meteor => meteor.y >= height - 160 && !meteor.destroyed);
       
       if (hitMeteors.length > 0) {
+        // Haptic feedback for losing lives
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        
         // Fix: Use functional state update to get current lives value
         setLives(currentLives => {
           const newLives = currentLives - hitMeteors.length;
@@ -271,6 +275,10 @@ const GravityGame: React.FC<GravityGameProps> = ({ gameData, onClose, onGameComp
       return prev.map(meteor => {
         if (!meteor.destroyed && meteor.correctAnswer.toLowerCase().trim() === input) {
           meteorDestroyed = true;
+          
+          // Haptic feedback for destroying meteor
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          
           setScore(score + 1);
           
           // Increase difficulty every 8 meteors destroyed (less frequent)

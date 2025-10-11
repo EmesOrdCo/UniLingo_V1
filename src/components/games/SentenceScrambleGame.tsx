@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 
 interface SentenceScrambleGameProps {
   gameData: any;
@@ -67,13 +68,20 @@ const SentenceScrambleGame: React.FC<SentenceScrambleGameProps> = ({ gameData, o
     const correctAnswer = userSentence === correctSentence;
     setIsCorrect(correctAnswer);
     
+    // Haptic feedback based on answer
     if (correctAnswer) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setScore(score + 1);
+    } else {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
     
     setShowResult(true);
     
     setTimeout(() => {
+      // Light haptic for moving to next question
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      
       if (currentQuestionIndex < gameData.questions.length - 1) {
         setCurrentQuestionIndex(currentQuestionIndex + 1);
       } else {
