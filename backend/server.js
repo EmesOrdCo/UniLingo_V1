@@ -13,6 +13,7 @@ const ResilientPronunciationService = require('./resilientPronunciationService')
 const FileCleanupManager = require('./fileCleanupManager');
 const errorLogger = require('./errorLogger');
 const ipWhitelistManager = require('./ipWhitelistManager');
+const setupSimpleAudioRoutes = require('./simpleAudioEndpoints');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 console.log('🔍 Debug - Current directory:', __dirname);
@@ -1793,6 +1794,11 @@ app.get('/health', (req, res) => {
     client_ip: clientIP
   });
 });
+
+// ============================================
+// Setup Simple Audio Routes
+// ============================================
+setupSimpleAudioRoutes(app, { aiLimiter, generalLimiter });
 
 // Error handling middleware
 app.use((error, req, res, next) => {

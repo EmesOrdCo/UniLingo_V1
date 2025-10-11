@@ -59,6 +59,7 @@ import UnitSpeakScreen from './src/screens/UnitSpeakScreen';
 import UnitRoleplayScreen from './src/screens/UnitRoleplayScreen';
 import ConversationLessonScreen from './src/screens/ConversationLessonScreen';
 import ArcadeScreen from './src/screens/ArcadeScreen';
+import AudioRecapScreen from './src/screens/AudioRecapScreen';
 
 const Stack = createStackNavigator();
 
@@ -109,6 +110,7 @@ function MainNavigator() {
       <Stack.Screen name="UnitRoleplay" component={UnitRoleplayScreen} />
       <Stack.Screen name="ConversationLessonScreen" component={ConversationLessonScreen} />
       <Stack.Screen name="Arcade" component={ArcadeScreen} />
+      <Stack.Screen name="AudioRecap" component={AudioRecapScreen} />
     </Stack.Navigator>
   );
 }

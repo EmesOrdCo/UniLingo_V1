@@ -62,7 +62,11 @@ export default function LessonsContent() {
   };
 
   const handleActivityPress = (activityName: string) => {
-    Alert.alert('Coming Soon', `${activityName} feature is coming soon!`);
+    if (activityName === 'Audio Recap') {
+      navigation.navigate('AudioRecap' as never);
+    } else {
+      Alert.alert('Coming Soon', `${activityName} feature is coming soon!`);
+    }
   };
 
   if (loadingLessons) {
@@ -133,9 +137,6 @@ export default function LessonsContent() {
         <View style={styles.sectionHeader}>
           <Ionicons name="headset-outline" size={20} color="#8b5cf6" />
           <Text style={styles.sectionTitle}>Listen</Text>
-          <View style={[styles.comingSoonIndicator, styles.listenBadge]}>
-            <Text style={styles.comingSoonText}>Coming Soon</Text>
-          </View>
         </View>
         
         <TouchableOpacity 

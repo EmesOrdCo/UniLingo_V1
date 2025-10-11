@@ -44,6 +44,7 @@ export type RootStackParamList = {
   UnitWrite: { unitId: number; unitTitle: string; topicGroup: string; unitCode: string };
   Games: { launchGame?: string; isDailyChallenge?: boolean; challengeId?: string; gameOptions?: any };
   Flashcards: undefined;
+  AudioRecap: undefined;
 };
 
 // Export screen props types for use in components
