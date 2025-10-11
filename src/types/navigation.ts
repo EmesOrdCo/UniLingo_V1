@@ -1,5 +1,6 @@
 import { NavigatorScreenParams } from '@react-navigation/native';
 import { StackScreenProps } from '@react-navigation/stack';
+import { SimpleAudioLesson } from '../lib/simpleAudioLessonService';
 
 // Define parameter types for each screen
 export type RootStackParamList = {
@@ -45,6 +46,7 @@ export type RootStackParamList = {
   Games: { launchGame?: string; isDailyChallenge?: boolean; challengeId?: string; gameOptions?: any };
   Flashcards: undefined;
   AudioRecap: undefined;
+  AudioPlayer: { lesson: SimpleAudioLesson; userId: string };
 };
 
 // Export screen props types for use in components

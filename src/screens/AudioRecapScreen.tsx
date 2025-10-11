@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,7 +12,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import * as DocumentPicker from 'expo-document-picker';
-import { Audio } from 'expo-av';
 import { supabase } from '../lib/supabase';
 import { SimpleAudioLessonService, SimpleAudioLesson } from '../lib/simpleAudioLessonService';
 import { UploadService } from '../lib/uploadService';
@@ -26,8 +25,6 @@ export default function AudioRecapScreen() {
   const [audioLessons, setAudioLessons] = useState<SimpleAudioLesson[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [nativeLanguage, setNativeLanguage] = useState<string>('English');
-  const [playingLessonId, setPlayingLessonId] = useState<string | null>(null);
-  const soundRef = useRef<Audio.Sound | null>(null);
 
   // Get current user and native language
   useEffect(() => {
@@ -53,13 +50,6 @@ export default function AudioRecapScreen() {
     };
     
     getUser();
-
-    // Cleanup audio on unmount
-    return () => {
-      if (soundRef.current) {
-        soundRef.current.unloadAsync();
-      }
-    };
   }, []);
 
   // Load user's audio lessons
@@ -161,72 +151,17 @@ export default function AudioRecapScreen() {
     }
   };
 
-  const handlePlayAudioLesson = async (lesson: SimpleAudioLesson) => {
-    try {
-      // If already playing this lesson, stop it
-      if (playingLessonId === lesson.id) {
-        if (soundRef.current) {
-          await soundRef.current.stopAsync();
-          await soundRef.current.unloadAsync();
-          soundRef.current = null;
-        }
-        setPlayingLessonId(null);
-        return;
-      }
-
-      // Stop any currently playing audio
-      if (soundRef.current) {
-        await soundRef.current.stopAsync();
-        await soundRef.current.unloadAsync();
-        soundRef.current = null;
-      }
-
-      // Set audio mode for playback
-      await Audio.setAudioModeAsync({
-        playsInSilentModeIOS: true,
-        staysActiveInBackground: false,
-        shouldDuckAndroid: true,
-      });
-
-      // Load and play the audio
-      console.log('Loading audio from:', lesson.audio_url);
-      const { sound } = await Audio.Sound.createAsync(
-        { uri: lesson.audio_url },
-        { shouldPlay: true },
-        (status) => {
-          if (status.isLoaded && status.didJustFinish) {
-            setPlayingLessonId(null);
-            // Track playback completion
-            SimpleAudioLessonService.trackPlayback(lesson.id, currentUser?.id || '');
-          }
-        }
-      );
-
-      soundRef.current = sound;
-      setPlayingLessonId(lesson.id);
-      
-      Alert.alert(
-        'Playing Audio Lesson',
-        `${lesson.title}\nDuration: ${SimpleAudioLessonService.formatDuration(lesson.audio_duration)}`,
-        [
-          { 
-            text: 'Stop', 
-            onPress: async () => {
-              if (soundRef.current) {
-                await soundRef.current.stopAsync();
-                await soundRef.current.unloadAsync();
-                soundRef.current = null;
-              }
-              setPlayingLessonId(null);
-            }
-          }
-        ]
-      );
-    } catch (error) {
-      console.error('Error playing audio:', error);
-      Alert.alert('Error', 'Failed to play audio lesson');
-      setPlayingLessonId(null);
+  const handlePlayAudioLesson = (lesson: SimpleAudioLesson) => {
+    if (!currentUser) {
+      Alert.alert('Error', 'Please log in to play audio lessons');
+      return;
     }
+
+    // Navigate to dedicated audio player screen
+    (navigation as any).navigate('AudioPlayer', {
+      lesson,
+      userId: currentUser.id,
+    });
   };
 
   const handleDeleteAudioLesson = (lessonId: string) => {
@@ -327,41 +262,38 @@ export default function AudioRecapScreen() {
             </View>
           ) : (
             <View style={styles.lessonsList}>
-              {audioLessons.map((lesson) => {
-                const isPlaying = playingLessonId === lesson.id;
-                return (
-                  <TouchableOpacity
-                    key={lesson.id}
-                    style={[styles.lessonCard, isPlaying && styles.lessonCardPlaying]}
-                    onPress={() => handlePlayAudioLesson(lesson)}
-                  >
-                    <View style={styles.lessonContent}>
-                      <View style={styles.lessonIcon}>
-                        <Ionicons 
-                          name={isPlaying ? "stop-circle" : "play-circle"} 
-                          size={24} 
-                          color={isPlaying ? "#ef4444" : "#3b82f6"} 
-                        />
-                      </View>
-                      <View style={styles.lessonInfo}>
-                        <Text style={styles.lessonTitle}>{lesson?.title || 'Unknown'}</Text>
-                        <Text style={styles.lessonSubtitle}>
-                          Duration: {SimpleAudioLessonService.formatDuration(lesson.audio_duration)} • Status: {SimpleAudioLessonService.getStatusText(lesson.status)}
-                        </Text>
-                      </View>
+              {audioLessons.map((lesson) => (
+                <TouchableOpacity
+                  key={lesson.id}
+                  style={styles.lessonCard}
+                  onPress={() => handlePlayAudioLesson(lesson)}
+                >
+                  <View style={styles.lessonContent}>
+                    <View style={styles.lessonIcon}>
+                      <Ionicons 
+                        name="play-circle" 
+                        size={24} 
+                        color="#3b82f6" 
+                      />
                     </View>
-                    <TouchableOpacity
-                      style={styles.deleteButton}
-                      onPress={(e) => {
-                        e.stopPropagation();
-                        handleDeleteAudioLesson(lesson.id);
-                      }}
-                    >
-                      <Ionicons name="trash-outline" size={20} color="#ef4444" />
-                    </TouchableOpacity>
+                    <View style={styles.lessonInfo}>
+                      <Text style={styles.lessonTitle}>{lesson?.title || 'Unknown'}</Text>
+                      <Text style={styles.lessonSubtitle}>
+                        Duration: {SimpleAudioLessonService.formatDuration(lesson.audio_duration)} • Status: {SimpleAudioLessonService.getStatusText(lesson.status)}
+                      </Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.deleteButton}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      handleDeleteAudioLesson(lesson.id);
+                    }}
+                  >
+                    <Ionicons name="trash-outline" size={20} color="#ef4444" />
                   </TouchableOpacity>
-                );
-              })}
+                </TouchableOpacity>
+              ))}
             </View>
           )}
         </View>
@@ -539,10 +471,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-  },
-  lessonCardPlaying: {
-    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-    borderColor: 'rgba(239, 68, 68, 0.3)',
   },
   lessonContent: {
     flexDirection: 'row',
