@@ -432,16 +432,29 @@ function setupSimpleAudioRoutes(app, limiters) {
 
       // Step 2: Generate audio script based on keywords, native language, and target language
       console.log('\n📝 Step 2: Generating comprehensive audio script...');
-      const audioScript = await generateAudioScript(keywords, nativeLanguage, targetLanguage, fileName);
-      console.log(`✅ Generated script: ${audioScript.length} characters`);
+      let audioScript;
+      try {
+        audioScript = await generateAudioScript(keywords, nativeLanguage, targetLanguage, fileName);
+        console.log(`✅ Generated script: ${audioScript.length} characters`);
+      } catch (scriptError) {
+        console.error('❌ Script generation failed:', scriptError);
+        throw new Error(`Script generation failed: ${scriptError.message}`);
+      }
 
       // Step 3: Create audio lesson with the generated script
       console.log('\n🎙️ Step 3: Creating audio lesson...');
-      const audioLesson = await SimplePollyService.createAudioLesson(
-        `Audio Lesson: ${fileName.replace('.pdf', '')}`,
-        audioScript,
-        userId
-      );
+      let audioLesson;
+      try {
+        audioLesson = await SimplePollyService.createAudioLesson(
+          `Audio Lesson: ${fileName.replace('.pdf', '')}`,
+          audioScript,
+          userId
+        );
+        console.log(`✅ Audio lesson created: ${audioLesson.id}`);
+      } catch (pollyError) {
+        console.error('❌ Audio lesson creation failed:', pollyError);
+        throw new Error(`Audio lesson creation failed: ${pollyError.message}`);
+      }
       
       const duration = Math.floor((Date.now() - startTime) / 1000);
 
