@@ -25,6 +25,8 @@ class SimplePollyService {
     this.voiceMap = {
       // English voices
       'English': 'Joanna', // Female, natural
+      'English (US)': 'Joanna', // Supabase format
+      'English (UK)': 'Emma', // Supabase format
       'english': 'Joanna',
       'en': 'Joanna',
       'en-US': 'Joanna',
@@ -32,6 +34,8 @@ class SimplePollyService {
       
       // Spanish voices
       'Spanish': 'Lupe', // Female, natural
+      'Spanish (Spain)': 'Lucia', // Supabase format
+      'Spanish (Mexico)': 'Lupe', // Supabase format
       'spanish': 'Lupe',
       'es': 'Lupe',
       'es-ES': 'Lucia', // European Spanish
@@ -39,6 +43,8 @@ class SimplePollyService {
       
       // Chinese voices
       'Chinese': 'Zhiyu', // Female, Mandarin
+      'Chinese (Simplified)': 'Zhiyu', // Supabase format
+      'Chinese (Traditional)': 'Zhiyu', // Supabase format
       'chinese': 'Zhiyu',
       'zh': 'Zhiyu',
       'zh-CN': 'Zhiyu',
@@ -118,20 +124,24 @@ class SimplePollyService {
    */
   getVoiceForLanguage(language) {
     const normalizedLanguage = language?.toString().trim();
+    console.log(`🔍 Looking for voice for language: "${normalizedLanguage}"`);
     
     // Try exact match first
     if (this.voiceMap[normalizedLanguage]) {
+      console.log(`✅ Found exact voice match: ${this.voiceMap[normalizedLanguage]}`);
       return this.voiceMap[normalizedLanguage];
     }
     
     // Try case-insensitive match
     const lowerLanguage = normalizedLanguage?.toLowerCase();
     if (this.voiceMap[lowerLanguage]) {
+      console.log(`✅ Found case-insensitive voice match: ${this.voiceMap[lowerLanguage]}`);
       return this.voiceMap[lowerLanguage];
     }
     
     // Default to English if no match found
     console.log(`⚠️ No voice found for language "${language}", defaulting to English`);
+    console.log(`📋 Available voice mappings:`, Object.keys(this.voiceMap).slice(0, 10), '...');
     return 'Joanna';
   }
 
@@ -143,18 +153,24 @@ class SimplePollyService {
   getLanguageCode(language) {
     const languageCodeMap = {
       'English': 'en-US',
+      'English (US)': 'en-US', // Supabase format
+      'English (UK)': 'en-GB', // Supabase format
       'english': 'en-US',
       'en': 'en-US',
       'en-US': 'en-US',
       'en-GB': 'en-GB',
       
       'Spanish': 'es-US',
+      'Spanish (Spain)': 'es-ES', // Supabase format
+      'Spanish (Mexico)': 'es-MX', // Supabase format
       'spanish': 'es-US',
       'es': 'es-US',
       'es-ES': 'es-ES',
       'es-MX': 'es-MX',
       
       'Chinese': 'zh-CN',
+      'Chinese (Simplified)': 'zh-CN', // Supabase format
+      'Chinese (Traditional)': 'zh-CN', // Supabase format
       'chinese': 'zh-CN',
       'zh': 'zh-CN',
       'zh-CN': 'zh-CN',
@@ -210,20 +226,24 @@ class SimplePollyService {
     };
     
     const normalizedLanguage = language?.toString().trim();
+    console.log(`🔍 Looking for language code for: "${normalizedLanguage}"`);
     
     // Try exact match first
     if (languageCodeMap[normalizedLanguage]) {
+      console.log(`✅ Found exact language code match: ${languageCodeMap[normalizedLanguage]}`);
       return languageCodeMap[normalizedLanguage];
     }
     
     // Try case-insensitive match
     const lowerLanguage = normalizedLanguage?.toLowerCase();
     if (languageCodeMap[lowerLanguage]) {
+      console.log(`✅ Found case-insensitive language code match: ${languageCodeMap[lowerLanguage]}`);
       return languageCodeMap[lowerLanguage];
     }
     
     // Default to English if no match found
     console.log(`⚠️ No language code found for language "${language}", defaulting to en-US`);
+    console.log(`📋 Available language code mappings:`, Object.keys(languageCodeMap).slice(0, 10), '...');
     return 'en-US';
   }
 
