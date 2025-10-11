@@ -7,6 +7,8 @@ import { useSelectedUnit } from '../contexts/SelectedUnitContext';
 import { useRefresh } from '../contexts/RefreshContext';
 import { GeneralVocabService } from '../lib/generalVocabService';
 import { UnitDataService, UnitData } from '../lib/unitDataService';
+import SubjectBoxes from './SubjectBoxes';
+import { SubjectData } from '../lib/subjectDataService';
 
 interface DashboardContentProps {
   progressData: any;
@@ -14,9 +16,7 @@ interface DashboardContentProps {
 }
 
 export default function DashboardContent({ progressData, loadingProgress }: DashboardContentProps) {
-  const [expandedUnit, setExpandedUnit] = useState<number | null>(null);
   const [isNavigating, setIsNavigating] = useState(false);
-  const [loadingUnits, setLoadingUnits] = useState(true);
   const navigation = useNavigation();
   const { user, profile } = useAuth();
   const { selectedUnit, setSelectedUnit } = useSelectedUnit();
@@ -24,23 +24,20 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
   
   console.log('📊 DashboardContent - selectedUnit from context:', selectedUnit);
   
-  // Load default A1.1 unit on component mount if no selectedUnit
+  // Load default unit for the course overview section
   useEffect(() => {
     if (!selectedUnit) {
-      console.log('📊 Loading default unit');
+      console.log('📊 Loading default unit for course overview');
       loadDefaultUnit();
     } else {
       console.log('📊 Using selectedUnit from context:', selectedUnit);
-      setLoadingUnits(false);
     }
   }, [selectedUnit]);
 
   const loadDefaultUnit = async () => {
     try {
-      setLoadingUnits(true);
-      
-      // Focus only on Unit 1 (A1.1) - fetch data specifically for A1.1
-      console.log('📊 Loading Unit 1 (A1.1) only');
+      // Load default A1.1 unit for the course overview section only
+      console.log('📊 Loading Unit 1 (A1.1) for course overview');
       const unitData = await UnitDataService.getUnitDataByCode('A1.1');
       
       let defaultUnit = null;
@@ -55,7 +52,7 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
           lessons_completed: 0,
           status: 'not_started' as const
         };
-        console.log('✅ Created Unit 1 with', unitData.topic_groups.length, 'topic groups:', unitData.topic_groups);
+        console.log('✅ Created Unit 1 for course overview');
       } else {
         // Fallback: create a basic Unit 1 structure
         defaultUnit = {
@@ -70,22 +67,10 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
         console.log('⚠️ Using fallback Unit 1 structure');
       }
       
-      if (defaultUnit) {
-        console.log('📊 Setting Unit 1:', defaultUnit.unit_code, 'with topic groups:', defaultUnit.topic_groups);
-      } else {
-        console.warn('⚠️ No Unit 1 could be loaded!');
-      }
-      
       setSelectedUnit(defaultUnit);
     } catch (error) {
       console.error('Error loading Unit 1:', error);
-    } finally {
-      setLoadingUnits(false);
     }
-  };
-
-  const handleUnitPress = (unitId: string | number) => {
-    setExpandedUnit(expandedUnit === unitId ? null : (typeof unitId === 'string' ? parseInt(unitId) : unitId));
   };
 
   const handleLessonPress = async (unitCode: string, lessonTitle: string, topicGroup?: string) => {
@@ -254,66 +239,10 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
             </View>
           </View>
 
-          {/* Course Units Section */}
-          <View style={styles.unitsSection}>
-            {/* Unit 1 Lessons */}
-            {loadingUnits ? (
-              <View style={styles.loadingContainer}>
-                <Text style={styles.loadingText}>Loading lessons...</Text>
-              </View>
-            ) : selectedUnit ? (
-              <View style={styles.unitContainer}>
-                <TouchableOpacity 
-                  style={[
-                    styles.unitCard,
-                    expandedUnit === 0 && styles.unitCardExpanded
-                  ]}
-                  onPress={() => handleUnitPress(0)}
-                >
-                  <View style={styles.unitHeader}>
-                    <Text style={styles.unitNumber}>Unit 1</Text>
-                    <View style={styles.unitProgressBar}>
-                      <View style={[styles.unitProgressFill, { width: '0%' }]} />
-                    </View>
-                  </View>
-                  
-                  <Text style={styles.unitTitle}>Saying Hello</Text>
-                  <Text style={styles.unitSubtitle}>{selectedUnit?.unit_code} • General Lessons</Text>
-              
-                  <View style={styles.unitFooter}>
-                    <Ionicons name="book-outline" size={20} color="#6b7280" />
-                    <Ionicons 
-                      name={expandedUnit === 0 ? "chevron-up" : "chevron-down"} 
-                      size={20} 
-                      color="#6b7280" 
-                    />
-                  </View>
-                </TouchableOpacity>
-
-                {/* Expanded Lessons */}
-                {expandedUnit === 0 && (
-                  <View style={styles.lessonsContainer}>
-                    {selectedUnit && UnitDataService.getLessonsForUnit(selectedUnit).map((lesson) => (
-                      <View 
-                        key={lesson.id} 
-                        style={[
-                          styles.lessonCard,
-                          isNavigating && styles.lessonCardDisabled
-                        ]}
-                      >
-                        <View style={styles.lessonContent}>
-                          <Text style={styles.lessonTitle}>{lesson?.title || 'Unknown'}</Text>
-                        </View>
-                        <View style={styles.lessonActions}>
-                          {getStatusButton(lesson.status, selectedUnit?.unit_code || '', lesson?.title || 'Unknown')}
-                        </View>
-                      </View>
-                    ))}
-                  </View>
-                )}
-              </View>
-            ) : null}
-          </View>
+          {/* Subject Boxes Section */}
+          <SubjectBoxes 
+            maxSubjects={6}
+          />
       </>
 
       <View style={styles.bottomSpacing} />

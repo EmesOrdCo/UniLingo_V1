@@ -7,12 +7,15 @@ import {
   SafeAreaView,
   ScrollView,
   Modal,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import PronunciationCheck from '../components/PronunciationCheck';
 import { PronunciationResult } from '../lib/pronunciationService';
+import { UnitDataAdapter, UnitConversationExchange } from '../lib/unitDataAdapter';
+import { logger } from '../lib/logger';
 
 // Hardcoded conversation dialogue (same as Write)
 const CONVERSATION = [
@@ -48,8 +51,15 @@ const CONVERSATION = [
 
 export default function UnitRoleplayScreen() {
   const navigation = useNavigation();
-  const { user } = useAuth();
+  const route = useRoute();
+  const { user, profile } = useAuth();
   const scrollViewRef = useRef<ScrollView>(null);
+  
+  const { unitTitle, subjectName, cefrLevel } = (route.params as any) || { 
+    unitTitle: 'Saying Hello', 
+    subjectName: 'Asking About Location',
+    cefrLevel: 'A1'
+  };
   
   const [conversationHistory, setConversationHistory] = useState<Array<{
     type: 'app' | 'user';
@@ -65,9 +75,64 @@ export default function UnitRoleplayScreen() {
   const [attemptKey, setAttemptKey] = useState(0);
   const [lastResult, setLastResult] = useState<PronunciationResult | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [conversationExchanges, setConversationExchanges] = useState<UnitConversationExchange[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const currentExchange = CONVERSATION[currentExchangeIndex] || CONVERSATION[0];
-  const isLastExchange = currentExchangeIndex === CONVERSATION.length - 1;
+  // Load conversation from lesson scripts
+  useEffect(() => {
+    loadConversation();
+  }, [subjectName, cefrLevel]);
+
+  const loadConversation = async () => {
+    try {
+      setLoading(true);
+      logger.info(`🎭 Loading conversation for subject: ${subjectName} (${cefrLevel})`);
+      
+      const nativeLanguage = profile?.native_language || 'French';
+      const exchanges = await UnitDataAdapter.getUnitConversationFromScript(subjectName, cefrLevel, nativeLanguage);
+      
+      if (exchanges.length === 0) {
+        logger.warn(`⚠️ No conversation found for subject: ${subjectName}`);
+        // Fallback to original hardcoded data
+        setConversationExchanges(CONVERSATION.map((item, index) => ({
+          id: `exchange_${index + 1}`,
+          speaker: index % 2 === 0 ? 'user' : 'assistant',
+          text: item.userMessage.french,
+          translation: item.userMessage.english,
+          type: index === 0 ? 'greeting' : index === CONVERSATION.length - 1 ? 'farewell' : 'response'
+        })));
+      } else {
+        setConversationExchanges(exchanges);
+        logger.info(`✅ Loaded ${exchanges.length} conversation exchanges from lesson scripts`);
+      }
+    } catch (error) {
+      logger.error('Error loading conversation:', error);
+      // Fallback to original hardcoded data
+      setConversationExchanges(CONVERSATION.map((item, index) => ({
+        id: `exchange_${index + 1}`,
+        speaker: index % 2 === 0 ? 'user' : 'assistant',
+        text: item.userMessage.french,
+        translation: item.userMessage.english,
+        type: index === 0 ? 'greeting' : index === CONVERSATION.length - 1 ? 'farewell' : 'response'
+      })));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const currentExchange = conversationExchanges.length > 0 && currentExchangeIndex < conversationExchanges.length
+    ? {
+        userMessage: {
+          french: conversationExchanges[currentExchangeIndex].text,
+          english: conversationExchanges[currentExchangeIndex].translation
+        },
+        appMessage: currentExchangeIndex > 0 ? {
+          french: conversationExchanges[currentExchangeIndex - 1].text,
+          english: conversationExchanges[currentExchangeIndex - 1].translation
+        } : { french: '', english: '' }
+      }
+    : CONVERSATION[currentExchangeIndex] || CONVERSATION[0];
+  const isLastExchange = currentExchangeIndex === (conversationExchanges.length > 0 ? conversationExchanges.length - 1 : CONVERSATION.length - 1);
 
   // Initialize first app message
   useEffect(() => {
@@ -240,13 +305,31 @@ export default function UnitRoleplayScreen() {
     );
   }
 
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color="#000000" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>{unitTitle} - Roleplay</Text>
+          <View style={styles.headerSpacer} />
+        </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#6366f1" />
+          <Text style={styles.loadingText}>Loading conversation...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#000000" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Saying Hello</Text>
+        <Text style={styles.headerTitle}>{unitTitle} - Roleplay</Text>
         <View style={styles.headerSpacer} />
       </View>
 
@@ -765,6 +848,18 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: '#6b7280',
+    textAlign: 'center',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+  },
+  loadingText: {
+    fontSize: 18,
+    color: '#6b7280',
+    marginTop: 16,
     textAlign: 'center',
   },
 });

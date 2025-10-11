@@ -10,8 +10,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { SubjectDataService } from '../lib/subjectDataService';
 
-const SUBJECTS = [
+// Fallback subjects when database is unavailable
+const FALLBACK_SUBJECTS = [
   'Medicine',
   'Engineering', 
   'Physics',
@@ -27,7 +29,28 @@ const SUBJECTS = [
 export default function LandingScreen() {
   const navigation = useNavigation();
   const [currentSubjectIndex, setCurrentSubjectIndex] = useState(0);
+  const [subjects, setSubjects] = useState<string[]>(FALLBACK_SUBJECTS);
   const fadeAnim = useRef(new Animated.Value(1)).current;
+
+  // Load subjects from database on component mount
+  useEffect(() => {
+    const loadSubjects = async () => {
+      try {
+        const availableSubjects = await SubjectDataService.getAvailableSubjects();
+        if (availableSubjects.length > 0) {
+          setSubjects(availableSubjects);
+          console.log(`✅ Loaded ${availableSubjects.length} subjects from database for landing page`);
+        } else {
+          console.log('⚠️ No subjects found in database, using fallback subjects');
+        }
+      } catch (error) {
+        console.error('❌ Error loading subjects for landing page:', error);
+        // Keep using fallback subjects
+      }
+    };
+
+    loadSubjects();
+  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -38,7 +61,7 @@ export default function LandingScreen() {
         useNativeDriver: true,
       }).start(() => {
         // Change subject
-        setCurrentSubjectIndex((prev) => (prev + 1) % SUBJECTS.length);
+        setCurrentSubjectIndex((prev) => (prev + 1) % subjects.length);
         // Fade in
         Animated.timing(fadeAnim, {
           toValue: 1,
@@ -49,7 +72,7 @@ export default function LandingScreen() {
     }, 2000); // Change every 2 seconds
 
     return () => clearInterval(interval);
-  }, [fadeAnim]);
+  }, [fadeAnim, subjects]);
 
   return (
     <View style={styles.container}>
@@ -74,7 +97,7 @@ export default function LandingScreen() {
               <View style={styles.taglineContainer}>
                 <Text style={styles.forText}>for</Text>
                 <Animated.Text style={[styles.flickerText, { opacity: fadeAnim }]}>
-                  {SUBJECTS[currentSubjectIndex]}
+                  {subjects[currentSubjectIndex]}
                 </Animated.Text>
               </View>
             </View>

@@ -40,6 +40,7 @@ import CreateLessonScreen from './src/screens/CreateLessonScreen';
 import AIChatPage from './src/screens/AIChatPage';
 import AssistantConfigScreen from './src/screens/AssistantConfigScreen';
 import LessonWalkthroughScreen from './src/screens/LessonWalkthroughScreen';
+import SubjectLessonScreen from './src/screens/SubjectLessonScreen';
 import OnboardingFlowScreen from './src/screens/OnboardingFlowScreen';
 import LandingScreen from './src/screens/LandingScreen';
 import FAQScreen from './src/screens/FAQScreen';
@@ -93,6 +94,7 @@ function MainNavigator() {
       <Stack.Screen name="AIChat" component={AIChatPage} />
       <Stack.Screen name="AssistantConfig" component={AssistantConfigScreen} />
       <Stack.Screen name="LessonWalkthrough" component={LessonWalkthroughScreen} />
+      <Stack.Screen name="SubjectLesson" component={SubjectLessonScreen} />
       <Stack.Screen name="OnboardingFlow" component={OnboardingFlowScreen} />
       <Stack.Screen name="FAQ" component={FAQScreen} />
       <Stack.Screen name="TermsAndConditions" component={TermsAndConditionsScreen} />

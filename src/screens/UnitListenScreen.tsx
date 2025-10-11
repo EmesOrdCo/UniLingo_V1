@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,34 +7,29 @@ import {
   SafeAreaView,
   ScrollView,
   Modal,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import * as Speech from 'expo-speech';
-
-// Hardcoded vocabulary for "Saying Hello"
-const VOCABULARY = [
-  { french: 'salut', english: 'hi' },
-  { french: 'bonjour', english: 'hello' },
-  { french: 'bon après-midi', english: 'good afternoon' },
-  { french: 'bonsoir', english: 'good evening' },
-];
-
-// Hardcoded sentences using the vocabulary
-const SENTENCES = [
-  { french: 'Bonjour, comment allez-vous?', english: 'Hello, how are you?' },
-  { french: 'Bonsoir, ça va bien?', english: 'Good evening, are you well?' },
-  { french: 'Salut, ça va?', english: 'Hi, how are you?' },
-];
+import { UnitDataAdapter, UnitVocabularyItem, UnitSentence } from '../lib/unitDataAdapter';
+import { logger } from '../lib/logger';
 
 export default function UnitListenScreen() {
   const navigation = useNavigation();
   const route = useRoute();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   
-  const { unitTitle } = (route.params as any) || { unitTitle: 'Saying Hello' };
+  const { unitTitle, subjectName, cefrLevel } = (route.params as any) || { 
+    unitTitle: 'Saying Hello', 
+    subjectName: 'Asking About Location',
+    cefrLevel: 'A1'
+  };
   
+  const [vocabulary, setVocabulary] = useState<UnitVocabularyItem[]>([]);
+  const [sentences, setSentences] = useState<UnitSentence[]>([]);
+  const [loading, setLoading] = useState(true);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [showResult, setShowResult] = useState(false);
@@ -46,14 +41,79 @@ export default function UnitListenScreen() {
   const [userAnswer, setUserAnswer] = useState<string[]>([]);
   const [availableWords, setAvailableWords] = useState<string[]>([]);
 
-  // Generate 14 questions: 7 multiple choice (4 words + 3 sentences), 7 sentence scramble
+  // Load data from database
+  useEffect(() => {
+    loadData();
+  }, [subjectName, cefrLevel]);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      logger.info(`🎧 Loading listen data for subject: ${subjectName} (${cefrLevel})`);
+      
+      const nativeLanguage = profile?.native_language || 'French';
+      
+      // Load vocabulary and sentences
+      const [vocabData, sentenceData] = await Promise.all([
+        UnitDataAdapter.getUnitVocabulary(subjectName, nativeLanguage),
+        UnitDataAdapter.getUnitSentences(subjectName, nativeLanguage)
+      ]);
+      
+      if (vocabData.length === 0) {
+        logger.warn(`⚠️ No vocabulary found for subject: ${subjectName}`);
+        // Fallback to original hardcoded data
+        setVocabulary([
+          { english: 'hi', french: 'salut' },
+          { english: 'hello', french: 'bonjour' },
+          { english: 'good afternoon', french: 'bon après-midi' },
+          { english: 'good evening', french: 'bonsoir' },
+        ]);
+      } else {
+        setVocabulary(vocabData);
+        logger.info(`✅ Loaded ${vocabData.length} vocabulary items from database`);
+      }
+
+      if (sentenceData.length === 0) {
+        logger.warn(`⚠️ No sentences found for subject: ${subjectName}`);
+        // Fallback to original hardcoded data
+        setSentences([
+          { english: 'Hello, how are you?', french: 'Bonjour, comment allez-vous?' },
+          { english: 'Good evening, are you well?', french: 'Bonsoir, ça va bien?' },
+          { english: 'Hi, how are you?', french: 'Salut, ça va?' },
+        ]);
+      } else {
+        setSentences(sentenceData);
+        logger.info(`✅ Loaded ${sentenceData.length} sentences from database`);
+      }
+    } catch (error) {
+      logger.error('Error loading listen data:', error);
+      // Fallback to original hardcoded data
+      setVocabulary([
+        { english: 'hi', french: 'salut' },
+        { english: 'hello', french: 'bonjour' },
+        { english: 'good afternoon', french: 'bon après-midi' },
+        { english: 'good evening', french: 'bonsoir' },
+      ]);
+      setSentences([
+        { english: 'Hello, how are you?', french: 'Bonjour, comment allez-vous?' },
+        { english: 'Good evening, are you well?', french: 'Bonsoir, ça va bien?' },
+        { english: 'Hi, how are you?', french: 'Salut, ça va?' },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Generate questions based on loaded data
   const generateQuestions = () => {
+    if (vocabulary.length === 0 || sentences.length === 0) return [];
+    
     const questions = [];
     
-    // First 4: Words - multiple choice
-    for (let i = 0; i < VOCABULARY.length; i++) {
-      const correctAnswer = VOCABULARY[i].french;
-      const wrongAnswers = VOCABULARY
+    // First: Words - multiple choice
+    for (let i = 0; i < vocabulary.length; i++) {
+      const correctAnswer = vocabulary[i].french;
+      const wrongAnswers = vocabulary
         .filter((_, idx) => idx !== i)
         .map(v => v.french)
         .sort(() => Math.random() - 0.5)
@@ -61,17 +121,17 @@ export default function UnitListenScreen() {
       
       questions.push({
         type: 'word-choice' as const,
-        audio: VOCABULARY[i].french,
+        audio: vocabulary[i].french,
         correctAnswer,
         options: [correctAnswer, ...wrongAnswers].sort(() => Math.random() - 0.5),
-        translation: VOCABULARY[i].english,
+        translation: vocabulary[i].english,
       });
     }
     
-    // Next 3: Sentences - multiple choice
-    for (let i = 0; i < SENTENCES.length; i++) {
-      const correctAnswer = SENTENCES[i].french;
-      const wrongAnswers = SENTENCES
+    // Next: Sentences - multiple choice
+    for (let i = 0; i < sentences.length; i++) {
+      const correctAnswer = sentences[i].french;
+      const wrongAnswers = sentences
         .filter((_, idx) => idx !== i)
         .map(v => v.french)
         .sort(() => Math.random() - 0.5)
@@ -79,15 +139,15 @@ export default function UnitListenScreen() {
       
       questions.push({
         type: 'sentence-choice' as const,
-        audio: SENTENCES[i].french,
+        audio: sentences[i].french,
         correctAnswer,
         options: [correctAnswer, ...wrongAnswers].sort(() => Math.random() - 0.5),
-        translation: SENTENCES[i].english,
+        translation: sentences[i].english,
       });
     }
     
-    // Last 7: Sentence scramble
-    const scrambleSentences = [...SENTENCES, ...SENTENCES, ...SENTENCES].slice(0, 7);
+    // Last: Sentence scramble
+    const scrambleSentences = [...sentences, ...sentences, ...sentences].slice(0, Math.max(7, vocabulary.length));
     for (let i = 0; i < scrambleSentences.length; i++) {
       const words = scrambleSentences[i].french.split(' ');
       const scrambled = [...words].sort(() => Math.random() - 0.5);
@@ -105,12 +165,30 @@ export default function UnitListenScreen() {
     return questions;
   };
 
-  const [questions] = useState(generateQuestions());
+  const [questions, setQuestions] = useState<any[]>([]);
+
+  // Regenerate questions when data changes
+  useEffect(() => {
+    if (vocabulary.length > 0 && sentences.length > 0) {
+      const newQuestions = generateQuestions();
+      setQuestions(newQuestions);
+      // Reset lesson state when new questions are generated
+      setCurrentQuestion(0);
+      setScore(0);
+      setCompleted(false);
+      setShowResult(false);
+      setIsCorrect(false);
+      setSelectedAnswer(null);
+      setUserAnswer([]);
+      setAvailableWords([]);
+    }
+  }, [vocabulary, sentences]);
+
   const question = questions[currentQuestion];
   const totalQuestions = questions.length;
 
   const playAudio = async (speed: number = 1.0) => {
-    if (isPlaying) return;
+    if (isPlaying || !question) return;
     
     try {
       setIsPlaying(true);
@@ -126,7 +204,7 @@ export default function UnitListenScreen() {
   };
 
   const handleAnswerSelect = (answer: string) => {
-    if (showResult || question.type === 'scramble') return;
+    if (showResult || !question || question.type === 'scramble') return;
     setSelectedAnswer(answer);
   };
 
@@ -145,19 +223,21 @@ export default function UnitListenScreen() {
   };
 
   const initializeScramble = () => {
-    if (question.type === 'scramble') {
+    if (question && question.type === 'scramble') {
       setAvailableWords(question.scrambled);
       setUserAnswer([]);
     }
   };
 
   React.useEffect(() => {
-    if (question.type === 'scramble') {
+    if (question && question.type === 'scramble') {
       initializeScramble();
     }
   }, [currentQuestion]);
 
   const handleCheck = () => {
+    if (!question) return;
+    
     if (question.type === 'scramble') {
       if (userAnswer.length === 0) return;
       const userSentence = userAnswer.join(' ');
@@ -281,13 +361,50 @@ export default function UnitListenScreen() {
     );
   }
 
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color="#000000" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>{unitTitle} - Listen</Text>
+          <View style={styles.headerSpacer} />
+        </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#6366f1" />
+          <Text style={styles.loadingText}>Loading listen exercises...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Safety check - don't render if no questions loaded
+  if (!question || questions.length === 0) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color="#000000" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>{unitTitle} - Listen</Text>
+          <View style={styles.headerSpacer} />
+        </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#6366f1" />
+          <Text style={styles.loadingText}>Preparing exercises...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#000000" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Saying Hello</Text>
+        <Text style={styles.headerTitle}>{unitTitle} - Listen</Text>
         <View style={styles.headerSpacer} />
       </View>
 
@@ -900,6 +1017,18 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: '#6b7280',
+    textAlign: 'center',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+  },
+  loadingText: {
+    fontSize: 18,
+    color: '#6b7280',
+    marginTop: 16,
     textAlign: 'center',
   },
 });

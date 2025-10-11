@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import { SubjectDataService } from '../lib/subjectDataService';
 
 // Comprehensive list of university degree subjects
 const UNIVERSITY_SUBJECTS = [
@@ -141,14 +142,44 @@ interface SubjectSelectionScreenProps {
 export default function SubjectSelectionScreen({ onSubjectSelect, selectedSubject }: SubjectSelectionScreenProps) {
   const navigation = useNavigation();
   const [searchQuery, setSearchQuery] = useState('');
+  const [availableSubjects, setAvailableSubjects] = useState<string[]>(UNIVERSITY_SUBJECTS);
   const [filteredSubjects, setFilteredSubjects] = useState(UNIVERSITY_SUBJECTS);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Load subjects from database on component mount
+  useEffect(() => {
+    const loadSubjects = async () => {
+      try {
+        setIsLoading(true);
+        const subjectsWithMetadata = await SubjectDataService.getSubjectsWithMetadata();
+        
+        // Combine database subjects with hardcoded subjects, prioritizing database subjects
+        const dbSubjects = subjectsWithMetadata.map(s => s.name);
+        const combinedSubjects = [...new Set([...dbSubjects, ...UNIVERSITY_SUBJECTS])].sort();
+        
+        setAvailableSubjects(combinedSubjects);
+        setFilteredSubjects(combinedSubjects);
+        
+        console.log(`✅ Loaded ${combinedSubjects.length} subjects for selection (${dbSubjects.length} from database)`);
+      } catch (error) {
+        console.error('❌ Error loading subjects for selection:', error);
+        // Keep using hardcoded subjects as fallback
+        setAvailableSubjects(UNIVERSITY_SUBJECTS);
+        setFilteredSubjects(UNIVERSITY_SUBJECTS);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadSubjects();
+  }, []);
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
     if (query.trim() === '') {
-      setFilteredSubjects(UNIVERSITY_SUBJECTS);
+      setFilteredSubjects(availableSubjects);
     } else {
-      const filtered = UNIVERSITY_SUBJECTS.filter(subject =>
+      const filtered = availableSubjects.filter(subject =>
         subject.toLowerCase().includes(query.toLowerCase())
       );
       setFilteredSubjects(filtered);

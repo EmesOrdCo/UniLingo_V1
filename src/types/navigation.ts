@@ -30,6 +30,7 @@ export type RootStackParamList = {
   AIChat: undefined;
   AssistantConfig: undefined;
   LessonWalkthrough: { lessonId: string; lessonTitle: string };
+  SubjectLesson: { subjectName: string; cefrLevel?: string };
   FAQ: undefined;
   TermsAndConditions: undefined;
   PrivacyPolicy: undefined;

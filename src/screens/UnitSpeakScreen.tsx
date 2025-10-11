@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,12 +7,15 @@ import {
   SafeAreaView,
   ScrollView,
   Modal,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import PronunciationCheck from '../components/PronunciationCheck';
 import { PronunciationResult } from '../lib/pronunciationService';
+import { UnitDataAdapter, UnitVocabularyItem, UnitSentence } from '../lib/unitDataAdapter';
+import { logger } from '../lib/logger';
 
 // Hardcoded vocabulary for "Saying Hello"
 const VOCABULARY = [
@@ -44,13 +47,120 @@ type Question = {
 
 export default function UnitSpeakScreen() {
   const navigation = useNavigation();
-  const { user } = useAuth();
+  const route = useRoute();
+  const { user, profile } = useAuth();
   
-  // Generate all 14 questions: 7 words + 7 sentences
-  const [questions] = useState<Question[]>(() => [
-    ...VOCABULARY.map(v => ({ type: 'word' as const, french: v.french, english: v.english })),
-    ...SENTENCES.map(s => ({ type: 'sentence' as const, french: s.french, english: s.english })),
-  ]);
+  const { unitTitle, subjectName, cefrLevel } = (route.params as any) || { 
+    unitTitle: 'Saying Hello', 
+    subjectName: 'Asking About Location',
+    cefrLevel: 'A1'
+  };
+
+  const [vocabulary, setVocabulary] = useState<UnitVocabularyItem[]>([]);
+  const [sentences, setSentences] = useState<UnitSentence[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  // Load data from database
+  useEffect(() => {
+    loadData();
+  }, [subjectName, cefrLevel]);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      logger.info(`🎤 Loading speak data for subject: ${subjectName} (${cefrLevel})`);
+      
+      const nativeLanguage = profile?.native_language || 'French';
+      
+      // Load vocabulary and sentences
+      const [vocabData, sentenceData] = await Promise.all([
+        UnitDataAdapter.getUnitVocabulary(subjectName, nativeLanguage),
+        UnitDataAdapter.getUnitSentences(subjectName, nativeLanguage)
+      ]);
+      
+      if (vocabData.length === 0) {
+        logger.warn(`⚠️ No vocabulary found for subject: ${subjectName}`);
+        // Fallback to original hardcoded data
+        setVocabulary([
+          { english: 'hi', french: 'salut' },
+          { english: 'hello', french: 'bonjour' },
+          { english: 'good afternoon', french: 'bon après-midi' },
+          { english: 'good evening', french: 'bonsoir' },
+          { english: 'goodbye', french: 'au revoir' },
+          { english: 'please', french: "s'il vous plaît" },
+          { english: 'good morning', french: 'bonjour' },
+        ]);
+      } else {
+        setVocabulary(vocabData);
+        logger.info(`✅ Loaded ${vocabData.length} vocabulary items from database`);
+      }
+
+      if (sentenceData.length === 0) {
+        logger.warn(`⚠️ No sentences found for subject: ${subjectName}`);
+        // Fallback to original hardcoded data
+        setSentences([
+          { english: 'Hi, how are you?', french: 'Salut, comment ça va ?' },
+          { english: 'Hello, my name is Marie.', french: "Bonjour, je m'appelle Marie." },
+          { english: 'Good morning, the weather is nice today.', french: 'Bonjour, ce matin il fait beau.' },
+          { english: 'Good afternoon, have fun at school.', french: "Bon après-midi, amuse-toi bien à l'école." },
+          { english: 'Good evening, we are going to the cinema.', french: 'Bonsoir, nous allons au cinéma.' },
+          { english: 'Goodbye, see you tomorrow!', french: 'Au revoir, à demain !' },
+          { english: 'A coffee, please.', french: "Un café, s'il vous plaît." },
+        ]);
+      } else {
+        setSentences(sentenceData);
+        logger.info(`✅ Loaded ${sentenceData.length} sentences from database`);
+      }
+    } catch (error) {
+      logger.error('Error loading speak data:', error);
+      // Fallback to original hardcoded data
+      setVocabulary([
+        { english: 'hi', french: 'salut' },
+        { english: 'hello', french: 'bonjour' },
+        { english: 'good afternoon', french: 'bon après-midi' },
+        { english: 'good evening', french: 'bonsoir' },
+        { english: 'goodbye', french: 'au revoir' },
+        { english: 'please', french: "s'il vous plaît" },
+        { english: 'good morning', french: 'bonjour' },
+      ]);
+      setSentences([
+        { english: 'Hi, how are you?', french: 'Salut, comment ça va ?' },
+        { english: 'Hello, my name is Marie.', french: "Bonjour, je m'appelle Marie." },
+        { english: 'Good morning, the weather is nice today.', french: 'Bonjour, ce matin il fait beau.' },
+        { english: 'Good afternoon, have fun at school.', french: "Bon après-midi, amuse-toi bien à l'école." },
+        { english: 'Good evening, we are going to the cinema.', french: 'Bonsoir, nous allons au cinéma.' },
+        { english: 'Goodbye, see you tomorrow!', french: 'Au revoir, à demain !' },
+        { english: 'A coffee, please.', french: "Un café, s'il vous plaît." },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Generate questions from loaded data
+  const generateQuestions = (): Question[] => {
+    if (vocabulary.length === 0 || sentences.length === 0) return [];
+    return [
+      ...vocabulary.map(v => ({ type: 'word' as const, french: v.french, english: v.english })),
+      ...sentences.map(s => ({ type: 'sentence' as const, french: s.french, english: s.english })),
+    ];
+  };
+
+  const [questions, setQuestions] = useState<Question[]>([]);
+
+  // Regenerate questions when data changes
+  useEffect(() => {
+    if (vocabulary.length > 0 && sentences.length > 0) {
+      const newQuestions = generateQuestions();
+      setQuestions(newQuestions);
+      // Reset lesson state when new questions are generated
+      setCurrentQuestionIndex(0);
+      setScore(0);
+      setCompleted(false);
+      setShowResult(false);
+      setIsCorrect(false);
+    }
+  }, [vocabulary, sentences]);
   
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [score, setScore] = useState(0);
@@ -61,7 +171,6 @@ export default function UnitSpeakScreen() {
   const [lastResult, setLastResult] = useState<PronunciationResult | null>(null);
   const [attemptKey, setAttemptKey] = useState(0);
 
-  const currentQuestion = questions[currentQuestionIndex];
   const totalQuestions = questions.length;
 
   const handlePronunciationComplete = async (result: PronunciationResult) => {
@@ -171,13 +280,51 @@ export default function UnitSpeakScreen() {
     );
   }
 
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color="#000000" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>{unitTitle} - Speak</Text>
+          <View style={styles.headerSpacer} />
+        </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#6366f1" />
+          <Text style={styles.loadingText}>Loading speak exercises...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Safety check - don't render if no questions loaded
+  const currentQuestion = questions[currentQuestionIndex];
+  if (!currentQuestion || questions.length === 0) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color="#000000" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>{unitTitle} - Speak</Text>
+          <View style={styles.headerSpacer} />
+        </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#6366f1" />
+          <Text style={styles.loadingText}>Preparing exercises...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#000000" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Saying Hello</Text>
+        <Text style={styles.headerTitle}>{unitTitle} - Speak</Text>
         <View style={styles.headerSpacer} />
       </View>
 
@@ -232,11 +379,11 @@ export default function UnitSpeakScreen() {
         {currentQuestion && (
           <PronunciationCheck
             key={`${currentQuestionIndex}-${attemptKey}`}
-            word={currentQuestion.french}
+            word={currentQuestion.english}
             onComplete={handlePronunciationComplete}
             maxRecordingDuration={currentQuestion.type === 'word' ? 3000 : 8000}
             showAlerts={false}
-            translation={currentQuestion.english}
+            translation={currentQuestion.french}
             hideScoreRing={true}
           />
         )}
@@ -571,6 +718,18 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: '#6b7280',
+    textAlign: 'center',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+  },
+  loadingText: {
+    fontSize: 18,
+    color: '#6b7280',
+    marginTop: 16,
     textAlign: 'center',
   },
 });

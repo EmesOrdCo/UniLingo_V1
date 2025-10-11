@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,29 +8,23 @@ import {
   ScrollView,
   Image,
   Modal,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
-
-// Hardcoded vocabulary for "Saying Hello"
-const VOCABULARY = [
-  { english: 'hi', french: 'salut' },
-  { english: 'hello', french: 'bonjour' },
-  { english: 'good morning', french: 'bonjour' },
-  { english: 'good afternoon', french: 'bon après-midi' },
-  { english: 'good evening', french: 'bonsoir' },
-  { english: 'goodbye', french: 'au revoir' },
-  { english: 'please', french: "s'il vous plaît" },
-];
+import { UnitDataAdapter, UnitVocabularyItem } from '../lib/unitDataAdapter';
+import { logger } from '../lib/logger';
 
 export default function UnitWordsScreen() {
   const navigation = useNavigation();
   const route = useRoute();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   
-  const { unitTitle } = (route.params as any) || { unitTitle: 'Saying Hello' };
+  const { unitTitle, subjectName } = (route.params as any) || { unitTitle: 'Saying Hello', subjectName: 'Asking About Location' };
   
+  const [vocabulary, setVocabulary] = useState<UnitVocabularyItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showIntro, setShowIntro] = useState(true);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
@@ -40,38 +34,86 @@ export default function UnitWordsScreen() {
   const [completed, setCompleted] = useState(false);
   const [showExitModal, setShowExitModal] = useState(false);
 
-  // Generate 14 questions: 7 English→French, 7 French→English
+  // Load vocabulary data from database
+  useEffect(() => {
+    loadVocabularyData();
+  }, [subjectName]);
+
+  const loadVocabularyData = async () => {
+    try {
+      setLoading(true);
+      logger.info(`📚 Loading vocabulary for subject: ${subjectName}`);
+      
+      const nativeLanguage = profile?.native_language || 'French';
+      const vocabData = await UnitDataAdapter.getUnitVocabulary(subjectName, nativeLanguage);
+      
+      if (vocabData.length === 0) {
+        logger.warn(`⚠️ No vocabulary found for subject: ${subjectName}`);
+        // Fallback to original hardcoded data
+        setVocabulary([
+          { english: 'hi', french: 'salut' },
+          { english: 'hello', french: 'bonjour' },
+          { english: 'good morning', french: 'bonjour' },
+          { english: 'good afternoon', french: 'bon après-midi' },
+          { english: 'good evening', french: 'bonsoir' },
+          { english: 'goodbye', french: 'au revoir' },
+          { english: 'please', french: "s'il vous plaît" },
+        ]);
+      } else {
+        setVocabulary(vocabData);
+        logger.info(`✅ Loaded ${vocabData.length} vocabulary items from database`);
+      }
+    } catch (error) {
+      logger.error('Error loading vocabulary data:', error);
+      // Fallback to original hardcoded data
+      setVocabulary([
+        { english: 'hi', french: 'salut' },
+        { english: 'hello', french: 'bonjour' },
+        { english: 'good morning', french: 'bonjour' },
+        { english: 'good afternoon', french: 'bon après-midi' },
+        { english: 'good evening', french: 'bonsoir' },
+        { english: 'goodbye', french: 'au revoir' },
+        { english: 'please', french: "s'il vous plaît" },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Generate questions based on loaded vocabulary
   const generateQuestions = () => {
+    if (vocabulary.length === 0) return [];
+    
     const questions = [];
     
-    // First 7: English → French
-    for (let i = 0; i < VOCABULARY.length; i++) {
-      const correctAnswer = VOCABULARY[i].french;
-      const wrongAnswers = VOCABULARY
+    // First half: English → French
+    for (let i = 0; i < vocabulary.length; i++) {
+      const correctAnswer = vocabulary[i].french;
+      const wrongAnswers = vocabulary
         .filter((_, idx) => idx !== i)
         .map(v => v.french)
         .sort(() => Math.random() - 0.5)
         .slice(0, 3);
       
       questions.push({
-        question: VOCABULARY[i].english,
+        question: vocabulary[i].english,
         correctAnswer,
         options: [correctAnswer, ...wrongAnswers].sort(() => Math.random() - 0.5),
         type: 'en-to-fr' as const,
       });
     }
     
-    // Second 7: French → English
-    for (let i = 0; i < VOCABULARY.length; i++) {
-      const correctAnswer = VOCABULARY[i].english;
-      const wrongAnswers = VOCABULARY
+    // Second half: French → English
+    for (let i = 0; i < vocabulary.length; i++) {
+      const correctAnswer = vocabulary[i].english;
+      const wrongAnswers = vocabulary
         .filter((_, idx) => idx !== i)
         .map(v => v.english)
         .sort(() => Math.random() - 0.5)
         .slice(0, 3);
       
       questions.push({
-        question: VOCABULARY[i].french,
+        question: vocabulary[i].french,
         correctAnswer,
         options: [correctAnswer, ...wrongAnswers].sort(() => Math.random() - 0.5),
         type: 'fr-to-en' as const,
@@ -81,7 +123,21 @@ export default function UnitWordsScreen() {
     return questions;
   };
 
-  const [questions] = useState(generateQuestions());
+  const [questions, setQuestions] = useState<any[]>([]);
+
+  // Regenerate questions when vocabulary changes
+  useEffect(() => {
+    if (vocabulary.length > 0) {
+      const newQuestions = generateQuestions();
+      setQuestions(newQuestions);
+      // Reset lesson state when new questions are generated
+      setCurrentQuestion(0);
+      setScore(0);
+      setCompleted(false);
+      setShowIntro(true);
+    }
+  }, [vocabulary]);
+
   const question = questions[currentQuestion];
   const totalQuestions = questions.length;
 
@@ -163,6 +219,24 @@ export default function UnitWordsScreen() {
     setShowExitModal(false);
   };
 
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color="#000000" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>{unitTitle} - Words</Text>
+          <View style={styles.headerSpacer} />
+        </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#6366f1" />
+          <Text style={styles.loadingText}>Loading vocabulary...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   if (showIntro) {
     return (
       <SafeAreaView style={styles.container}>
@@ -170,7 +244,7 @@ export default function UnitWordsScreen() {
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color="#000000" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Saying Hello - Words</Text>
+          <Text style={styles.headerTitle}>{unitTitle} - Words</Text>
           <View style={styles.headerSpacer} />
         </View>
 
@@ -178,7 +252,7 @@ export default function UnitWordsScreen() {
           <Text style={styles.introTitle}>Words you'll learn</Text>
           
           <View style={styles.wordsList}>
-            {VOCABULARY.map((word, index) => (
+            {vocabulary.map((word, index) => (
               <View key={index} style={styles.wordCard}>
                 <View style={styles.wordTextContainer}>
                   <Text style={styles.wordEnglish}>{word.french}</Text>
@@ -447,6 +521,18 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8fafc',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+  },
+  loadingText: {
+    fontSize: 18,
+    color: '#6b7280',
+    marginTop: 16,
+    textAlign: 'center',
   },
   header: {
     flexDirection: 'row',

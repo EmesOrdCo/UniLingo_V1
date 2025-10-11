@@ -7,10 +7,13 @@ import {
   SafeAreaView,
   ScrollView,
   Modal,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
+import { UnitDataAdapter, UnitWriteExercise } from '../lib/unitDataAdapter';
+import { logger } from '../lib/logger';
 
 // Hardcoded conversation dialogue
 const CONVERSATION = [
@@ -56,8 +59,15 @@ const CONVERSATION = [
 
 export default function UnitWriteScreen() {
   const navigation = useNavigation();
-  const { user } = useAuth();
+  const route = useRoute();
+  const { user, profile } = useAuth();
   const scrollViewRef = useRef<ScrollView>(null);
+  
+  const { unitTitle, subjectName, cefrLevel } = (route.params as any) || { 
+    unitTitle: 'Saying Hello', 
+    subjectName: 'Asking About Location',
+    cefrLevel: 'A1'
+  };
   
   const [conversationHistory, setConversationHistory] = useState<Array<{
     type: 'app' | 'user';
@@ -74,9 +84,84 @@ export default function UnitWriteScreen() {
   const [completed, setCompleted] = useState(false);
   const [showExitModal, setShowExitModal] = useState(false);
   const [checkButtonText, setCheckButtonText] = useState('Check');
+  const [writeExercises, setWriteExercises] = useState<UnitWriteExercise[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const currentExchange = CONVERSATION[currentExchangeIndex] || CONVERSATION[0];
-  const isLastExchange = currentExchangeIndex === CONVERSATION.length - 1;
+  // Load write exercises from lesson scripts
+  useEffect(() => {
+    loadWriteExercises();
+  }, [subjectName, cefrLevel]);
+
+  // Reset lesson state when write exercises are loaded
+  useEffect(() => {
+    if (writeExercises.length > 0) {
+      console.log('🔄 Resetting lesson state for new write exercises');
+      setCurrentExchangeIndex(0);
+      setScore(0);
+      setCompleted(false);
+      setShowResult(false);
+      setIsCorrect(false);
+      setSelectedAnswer(null);
+      setUserAnswer([]);
+      setAvailableWords([]);
+      setConversationHistory([]);
+    }
+  }, [writeExercises]);
+
+  const loadWriteExercises = async () => {
+    try {
+      setLoading(true);
+      logger.info(`📝 Loading write exercises for subject: ${subjectName} (${cefrLevel})`);
+      
+      const nativeLanguage = profile?.native_language || 'French';
+      const exercises = await UnitDataAdapter.getUnitWriteExercises(subjectName, cefrLevel, nativeLanguage);
+      
+      if (exercises.length === 0) {
+        logger.warn(`⚠️ No write exercises found for subject: ${subjectName}`);
+        // Fallback to original hardcoded data
+        setWriteExercises(CONVERSATION.map((item, index) => ({
+          id: `exercise_${index + 1}`,
+          french: item.userMessage.french,
+          english: item.userMessage.english,
+          type: 'scramble' as const
+        })));
+      } else {
+        setWriteExercises(exercises);
+        logger.info(`✅ Loaded ${exercises.length} write exercises from lesson scripts`);
+      }
+    } catch (error) {
+      logger.error('Error loading write exercises:', error);
+      // Fallback to original hardcoded data
+      setWriteExercises(CONVERSATION.map((item, index) => ({
+        id: `exercise_${index + 1}`,
+        french: item.userMessage.french,
+        english: item.userMessage.english,
+        type: 'scramble' as const
+      })));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const currentExchange = writeExercises.length > 0 && currentExchangeIndex < writeExercises.length 
+    ? { 
+        userMessage: { 
+          french: writeExercises[currentExchangeIndex].french, // This is actually English text now
+          english: writeExercises[currentExchangeIndex].english 
+        },
+        type: 'scramble' as const
+      }
+    : CONVERSATION[currentExchangeIndex] || CONVERSATION[0];
+
+  // Debug: Log which data source is being used
+  console.log('🔍 UnitWriteScreen currentExchange debug:', {
+    usingDatabaseData: writeExercises.length > 0,
+    writeExercisesLength: writeExercises.length,
+    currentExchangeIndex,
+    currentText: currentExchange.userMessage.french,
+    textPreview: currentExchange.userMessage.french?.substring(0, 50)
+  });
+  const isLastExchange = currentExchangeIndex === (writeExercises.length > 0 ? writeExercises.length - 1 : CONVERSATION.length - 1);
 
   // Initialize first app message
   useEffect(() => {
@@ -299,13 +384,31 @@ export default function UnitWriteScreen() {
     );
   }
 
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color="#000000" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>{unitTitle} - Write</Text>
+          <View style={styles.headerSpacer} />
+        </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#6366f1" />
+          <Text style={styles.loadingText}>Loading write exercises...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#000000" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Saying Hello</Text>
+        <Text style={styles.headerTitle}>{unitTitle} - Write</Text>
         <View style={styles.headerSpacer} />
       </View>
 
@@ -556,6 +659,18 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8fafc',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+  },
+  loadingText: {
+    fontSize: 18,
+    color: '#6b7280',
+    marginTop: 16,
+    textAlign: 'center',
   },
   header: {
     flexDirection: 'row',
