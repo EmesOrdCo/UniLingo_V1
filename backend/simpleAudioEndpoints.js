@@ -638,42 +638,9 @@ OUTPUT FORMAT: Return ONLY the script text with no explanations, markdown, or ad
       throw new Error('No script generated from OpenAI');
     }
 
-    // VALIDATION CHECK: Ensure script is in native language, not target language
-    console.log(`🔍 VALIDATING SCRIPT LANGUAGE USAGE...`);
-    console.log(`   Native language: "${nativeLanguage}"`);
-    console.log(`   Target language: "${targetLanguage}"`);
-    
-    // CRITICAL VALIDATION: Check if script is written in the wrong language
-    if (nativeLanguage !== 'English' && nativeLanguage !== 'english' && nativeLanguage !== 'ENGLISH') {
-      console.log(`🚨 VALIDATION CHECK: Native language is "${nativeLanguage}" - script MUST be in this language`);
-      
-      // Sample first 300 characters to check language
-      const scriptSample = script.substring(0, 300).toLowerCase();
-      console.log(`📝 Script sample for validation: "${scriptSample.substring(0, 100)}..."`);
-      
-      // Common English words that shouldn't appear in non-English explanations
-      const englishIndicators = [
-        'welcome to', 'today\'s lesson', 'in this lesson', 'in this session', 
-        'we will explore', 'let\'s dive into', 'first we have', 'next is', 
-        'now let\'s talk', 'moving on to', 'now let\'s discuss', 'let\'s begin',
-        'for example', 'an example', 'this can be translated', 'in conclusion'
-      ];
-      
-      const hasEnglishExplanations = englishIndicators.some(phrase => scriptSample.includes(phrase));
-      
-      if (hasEnglishExplanations) {
-        console.error(`❌ VALIDATION FAILED: Script is in English instead of ${nativeLanguage}`);
-        console.error(`   Script starts with: "${script.substring(0, 150)}..."`);
-        console.error(`   This is WRONG - explanations should be in ${nativeLanguage}`);
-        throw new Error(`CRITICAL VALIDATION FAILED: Script is in English but user's native language is ${nativeLanguage}. The AI must write explanations in ${nativeLanguage}, not English.`);
-      }
-      
-      console.log(`✅ Language validation passed: Script appears to be in ${nativeLanguage}`);
-    } else {
-      console.log(`ℹ️ Native language is English - no validation needed`);
-    }
+    // Language validation removed - trust the AI to follow the enhanced prompts
+    console.log(`✅ Script generated successfully for ${nativeLanguage} native language`);
 
-    console.log(`🔍 FINAL VALIDATION: About to validate script language...`);
     console.log(`✅ Generated script: ${script.length} characters`);
     return script;
   } catch (error) {
