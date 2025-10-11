@@ -519,10 +519,19 @@ Create an educational audio lesson that teaches the user important terminology a
 CONTENT SOURCE:
 Keywords extracted from the PDF: ${keywords.join(', ')}
 
-CRITICAL LANGUAGE RULES:
-1. ALL explanations, definitions, context, instructions, transitions, and summaries must be in ${nativeLanguage}
+CRITICAL LANGUAGE RULES (MANDATORY - NO EXCEPTIONS):
+1. ALL explanations, definitions, context, instructions, transitions, and summaries MUST be in ${nativeLanguage}
 2. ONLY keywords, terms, and example sentences should be in ${targetLanguage}
 3. When providing translations of examples, use ${nativeLanguage}
+4. The script introduction, conclusion, and all connecting text MUST be in ${nativeLanguage}
+5. If your native language is NOT English, do NOT write explanations in English
+
+LANGUAGE VALIDATION CHECK:
+- If native language is Spanish: Write explanations in Spanish
+- If native language is French: Write explanations in French  
+- If native language is German: Write explanations in German
+- If native language is Chinese: Write explanations in Chinese
+- If native language is ANY language other than English: Write explanations in that language
 
 AUDIO SYSTEM CONTEXT:
 - This script will be read aloud by AWS Polly text-to-speech
@@ -567,10 +576,15 @@ CRITICAL WORKFLOW:
 3. You create a comprehensive audio lesson script that teaches these keywords
 4. The script will be converted to speech using AWS Polly and played back to the user
 
-LANGUAGE USAGE RULES (NON-NEGOTIABLE):
+LANGUAGE USAGE RULES (NON-NEGOTIABLE - CRITICAL):
 - User's native language: Use ONLY for explanations, definitions, context, instructions, transitions, and summaries
 - Target language: Use ONLY for keywords, terms, and example sentences
 - Translations: Always provide in the user's native language
+- INTRODUCTION: Must be in user's native language (NOT English unless native language is English)
+- CONCLUSION: Must be in user's native language (NOT English unless native language is English)
+- ALL CONNECTING TEXT: Must be in user's native language (NOT English unless native language is English)
+
+CRITICAL WARNING: If the user's native language is NOT English, you MUST write all explanations in their native language. Do NOT default to English.
 
 AUDIO SYSTEM REQUIREMENTS:
 - Everything you write will be spoken exactly as written by AWS Polly
@@ -617,6 +631,30 @@ OUTPUT FORMAT: Return ONLY the script text with no explanations, markdown, or ad
     
     if (!script) {
       throw new Error('No script generated from OpenAI');
+    }
+
+    // VALIDATION CHECK: Ensure script is in native language, not target language
+    console.log(`🔍 Validating script language usage...`);
+    console.log(`   Native language: ${nativeLanguage}`);
+    console.log(`   Target language: ${targetLanguage}`);
+    
+    // Check if script is written in the wrong language
+    if (nativeLanguage !== 'English' && nativeLanguage !== 'english') {
+      // Sample first 200 characters to check language
+      const scriptSample = script.substring(0, 200).toLowerCase();
+      
+      // Common English words that shouldn't appear in non-English explanations
+      const englishIndicators = ['welcome to', 'today\'s lesson', 'in this session', 'we will explore', 'let\'s dive into', 'first we have', 'next is', 'now let\'s talk', 'moving on to', 'now let\'s discuss'];
+      
+      const hasEnglishExplanations = englishIndicators.some(phrase => scriptSample.includes(phrase));
+      
+      if (hasEnglishExplanations) {
+        console.error(`❌ VALIDATION FAILED: Script appears to be in English instead of ${nativeLanguage}`);
+        console.error(`   Script sample: ${scriptSample.substring(0, 100)}...`);
+        throw new Error(`Script validation failed: Generated script is in English instead of ${nativeLanguage}. Please regenerate with proper language usage.`);
+      }
+      
+      console.log(`✅ Language validation passed: Script appears to be in ${nativeLanguage}`);
     }
 
     console.log(`✅ Generated script: ${script.length} characters`);
