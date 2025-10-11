@@ -17,7 +17,7 @@ class SimplePollyService {
       }
     });
 
-    this.bucketName = 'Audio_Lessons';
+    this.bucketName = 'audio-lessons'; // Supabase Storage bucket name
     
     console.log('🎙️ SimplePollyService initialized:', {
       region: process.env.AWS_REGION,
