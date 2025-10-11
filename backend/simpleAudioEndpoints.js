@@ -491,40 +491,88 @@ function setupSimpleAudioRoutes(app, limiters) {
 async function generateAudioScript(keywords, nativeLanguage, targetLanguage, fileName) {
   const AIService = require('./aiService');
   
-  const prompt = `Create an engaging and comprehensive audio lesson script based on the extracted keywords from "${fileName}".
+  const prompt = `CONTEXT & PURPOSE:
+You are creating a comprehensive audio lesson script for a language learning application. This script will be converted to speech using AWS Polly text-to-speech and played back to a user who is learning a new language.
 
-User's Native Language: ${nativeLanguage}
-Target Language: ${targetLanguage}
+USER INFORMATION:
+- User's Native Language (for explanations): ${nativeLanguage}
+- Target Language (being learned): ${targetLanguage}
+- Source Document: ${fileName}
+- Course/Subject: General (extracted from PDF content)
 
-Keywords to include: ${keywords.join(', ')}
+SCRIPT PURPOSE:
+Create an educational audio lesson that teaches the user important terminology and concepts from their uploaded PDF document. The lesson should be comprehensive, engaging, and help the user understand and remember key terms in their target language.
 
-REQUIREMENTS:
-1. Script length should be PROPORTIONAL to the number of keywords (${keywords.length} keywords found)
-2. Write explanations, definitions, and context in ${nativeLanguage}
-3. Include ${targetLanguage} terms, definitions, and example sentences naturally in the script
-4. For EACH keyword, provide:
-   - Clear pronunciation in ${targetLanguage}
+CONTENT SOURCE:
+Keywords extracted from the PDF: ${keywords.join(', ')}
+
+CRITICAL LANGUAGE RULES:
+1. ALL explanations, definitions, context, instructions, transitions, and summaries must be in ${nativeLanguage}
+2. ONLY keywords, terms, and example sentences should be in ${targetLanguage}
+3. When providing translations of examples, use ${nativeLanguage}
+
+AUDIO SYSTEM CONTEXT:
+- This script will be read aloud by AWS Polly text-to-speech
+- Everything you write will be spoken exactly as written
+- Do NOT include pronunciation guides, phonetic breakdowns, or pronunciation instructions
+- Simply write the ${targetLanguage} terms clearly and naturally
+
+SCRIPT STRUCTURE REQUIREMENTS:
+1. Introduction in ${nativeLanguage} explaining what the lesson covers
+2. For EACH of the ${keywords.length} keywords, provide:
+   - Clear statement of the ${targetLanguage} term
    - Definition/explanation in ${nativeLanguage}
    - Practical example sentence in ${targetLanguage}
    - Brief translation of the example in ${nativeLanguage}
-5. Structure should flow naturally - not rigid format, but engaging and educational
-6. Include pronunciation tips for ${targetLanguage} terms
-7. Create smooth transitions between concepts
-8. End with a comprehensive summary of all key points
+3. Smooth transitions between concepts in ${nativeLanguage}
+4. Comprehensive conclusion/summary in ${nativeLanguage}
 
 CONTENT GUIDELINES:
-- Make it sound conversational and engaging
+- Make it conversational and engaging in ${nativeLanguage}
 - Vary sentence structure to avoid repetition
 - Include practical, real-world examples
-- Ensure all ${keywords.length} keywords are thoroughly covered
-- Aim for comprehensive learning experience
+- Ensure ALL ${keywords.length} keywords are thoroughly covered
+- Script length should be proportional to the number of keywords
+- Create a natural learning flow that builds understanding progressively
 
-FORMAT: Return ONLY the script text, no explanations or formatting.`;
+FORMAT: Return ONLY the script text, no explanations, markdown, or additional formatting.`;
 
   const messages = [
     {
       role: 'system',
-      content: `You are an expert language learning content creator specializing in creating comprehensive audio lesson scripts. Your scripts blend native language explanations with target language examples in a natural, engaging flow. You create content that is proportional to the number of keywords provided - more keywords means longer, more detailed lessons. Return ONLY the script text with no explanations, markdown, or additional formatting.`
+      content: `You are an expert language learning content creator and educational script writer specializing in creating comprehensive audio lesson scripts for language learning applications. 
+
+Your expertise includes:
+- Creating engaging, educational content that helps users learn new languages
+- Understanding the psychology of language acquisition and retention
+- Writing scripts that work perfectly with text-to-speech systems
+- Balancing comprehensive coverage with engaging, conversational delivery
+
+CRITICAL WORKFLOW:
+1. You receive user information (native language, target language, course subject)
+2. You receive keywords extracted from their uploaded PDF document
+3. You create a comprehensive audio lesson script that teaches these keywords
+4. The script will be converted to speech using AWS Polly and played back to the user
+
+LANGUAGE USAGE RULES (NON-NEGOTIABLE):
+- User's native language: Use ONLY for explanations, definitions, context, instructions, transitions, and summaries
+- Target language: Use ONLY for keywords, terms, and example sentences
+- Translations: Always provide in the user's native language
+
+AUDIO SYSTEM REQUIREMENTS:
+- Everything you write will be spoken exactly as written by AWS Polly
+- NEVER include pronunciation guides, phonetic breakdowns, or pronunciation instructions
+- Write target language terms clearly and naturally - the TTS will handle pronunciation
+- Ensure smooth, natural speech flow that sounds conversational when spoken aloud
+
+CONTENT CREATION PRINCIPLES:
+- Create content proportional to the number of keywords (more keywords = longer, more detailed lessons)
+- Ensure comprehensive coverage of ALL provided keywords
+- Build understanding progressively through logical flow
+- Use practical, real-world examples that enhance learning
+- Make content engaging and memorable
+
+OUTPUT FORMAT: Return ONLY the script text with no explanations, markdown, or additional formatting.`
     },
     {
       role: 'user',
