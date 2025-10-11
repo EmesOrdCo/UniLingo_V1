@@ -15,7 +15,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import { supabase } from '../lib/supabase';
 import { SimpleAudioLessonService, SimpleAudioLesson } from '../lib/simpleAudioLessonService';
 import { UploadService } from '../lib/uploadService';
-import { getBackendUrl } from '../lib/backendConfig';
+import { getBackendUrl } from '../config/backendConfig';
 
 const { width: screenWidth } = Dimensions.get('window');
 
