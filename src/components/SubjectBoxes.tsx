@@ -138,12 +138,9 @@ export default function SubjectBoxes({ onSubjectSelect, maxSubjects = 6, onCefrL
   ];
 
   useEffect(() => {
+    // Load subjects whenever CEFR level changes
     loadSubjects();
-  }, []);
-
-  useEffect(() => {
-    filterSubjectsByLevel();
-  }, [selectedCefrLevel, allSubjects]);
+  }, [selectedCefrLevel]);
 
   useEffect(() => {
     // Notify parent component when CEFR level changes
@@ -155,7 +152,10 @@ export default function SubjectBoxes({ onSubjectSelect, maxSubjects = 6, onCefrL
   const loadSubjects = async () => {
     try {
       setLoading(true);
-      const subjectsWithMetadata = await SubjectDataService.getSubjectsWithAccurateCounts();
+      
+      // OPTIMIZATION: Only load the currently selected CEFR level for fast initial display
+      console.log(`🚀 Fast loading: Fetching only ${selectedCefrLevel} subjects...`);
+      const subjectsWithMetadata = await SubjectDataService.getSubjectsForCefrLevel(selectedCefrLevel);
       
       console.log('🔍 Raw subjects data:', subjectsWithMetadata.slice(0, 3));
       
@@ -175,17 +175,17 @@ export default function SubjectBoxes({ onSubjectSelect, maxSubjects = 6, onCefrL
         });
       
       setAllSubjects(filteredSubjects);
-      console.log(`✅ Loaded ${filteredSubjects.length} subjects for subject boxes`);
+      console.log(`✅ Loaded ${filteredSubjects.length} subjects for ${selectedCefrLevel}`);
     } catch (error) {
       console.error('❌ Error loading subjects for subject boxes:', error);
       // Fallback to some basic subjects
       const fallbackSubjects = [
-        { name: 'Medicine', wordCount: 0, hasLessons: false },
-        { name: 'Engineering', wordCount: 0, hasLessons: false },
-        { name: 'Physics', wordCount: 0, hasLessons: false },
-        { name: 'Biology', wordCount: 0, hasLessons: false },
-        { name: 'Chemistry', wordCount: 0, hasLessons: false },
-        { name: 'Mathematics', wordCount: 0, hasLessons: false },
+        { name: 'Medicine', wordCount: 0, hasLessons: false, cefrLevel: selectedCefrLevel },
+        { name: 'Engineering', wordCount: 0, hasLessons: false, cefrLevel: selectedCefrLevel },
+        { name: 'Physics', wordCount: 0, hasLessons: false, cefrLevel: selectedCefrLevel },
+        { name: 'Biology', wordCount: 0, hasLessons: false, cefrLevel: selectedCefrLevel },
+        { name: 'Chemistry', wordCount: 0, hasLessons: false, cefrLevel: selectedCefrLevel },
+        { name: 'Mathematics', wordCount: 0, hasLessons: false, cefrLevel: selectedCefrLevel },
       ];
       setAllSubjects(fallbackSubjects);
       setSubjects(fallbackSubjects);
@@ -194,21 +194,10 @@ export default function SubjectBoxes({ onSubjectSelect, maxSubjects = 6, onCefrL
     }
   };
 
-  const filterSubjectsByLevel = () => {
-    // Filter by CEFR level and show all matching subjects (no limit)
-    const filtered = allSubjects
-      .filter(subject => {
-        // Safety check for subject existence and required fields
-        if (!subject || !subject.name) {
-          console.warn('⚠️ Skipping invalid subject:', subject);
-          return false;
-        }
-        return subject.cefrLevel === selectedCefrLevel;
-      })
-      .sort((a, b) => (Number(b.wordCount) || 0) - (Number(a.wordCount) || 0));
-    setSubjects(filtered);
-    console.log(`🔍 Filtered to ${filtered.length} subjects at ${selectedCefrLevel} level`);
-  };
+  // Automatically set subjects when allSubjects changes (no filtering needed since we load by CEFR level)
+  useEffect(() => {
+    setSubjects(allSubjects);
+  }, [allSubjects]);
 
   const handleSubjectPress = (subject: SubjectData) => {
     console.log('📚 Subject pressed:', subject.name);

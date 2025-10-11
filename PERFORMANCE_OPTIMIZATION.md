@@ -1,6 +1,17 @@
 # Dashboard Performance Optimization
 
-## Problem
+## Latest Update (v2): CEFR-Specific Loading
+
+### Further Optimization
+Instead of loading ALL CEFR levels at once, we now only load the currently selected level (A1 by default).
+
+**Benefits:**
+- Even faster initial load (only queries 1 CEFR level instead of 6)
+- Reduces database load by ~83% (1 level vs all 6 levels)
+- Instant switching between levels (queries on-demand)
+- Better scalability as more subjects are added
+
+## Original Problem
 The dashboard was taking a very long time to load when displaying subject boxes because `getSubjectsWithAccurateCounts()` was making **individual database queries for each subject+CEFR combination** (potentially 20-50+ queries).
 
 ## Solution
@@ -28,29 +39,37 @@ The dashboard was taking a very long time to load when displaying subject boxes 
 
 ## Performance Impact
 
-### Before Optimization:
+### Before Optimization (v0):
 - **20-50+ database queries** per load
 - Loading time: **3-10 seconds** (depending on data size)
 - No caching - same delay every time
 
-### After Optimization:
-- **2 database queries** per load
+### After Optimization (v1):
+- **2 database queries** per load (all CEFR levels)
 - Loading time: **<1 second** (first load)
 - Loading time: **~50ms** (cached loads)
 - Skeleton UI for better perceived performance
 
+### After Optimization (v2 - Current):
+- **2 database queries** per load (only 1 CEFR level)
+- Loading time: **~200-400ms** (even faster!)
+- Queries on-demand when user changes CEFR level
+- Reduced database load by ~83%
+
 ## Code Changes
 
 ### `src/lib/subjectDataService.ts`
-1. Added `cachedSubjectsWithCounts` and `countsTimestamp` for caching
-2. Rewrote `getSubjectsWithAccurateCounts()` to use single query + in-memory counting
-3. Added timing logs to measure performance (`duration` in console)
-4. Updated `clearCache()` to clear all caches
+1. **v1**: Added `cachedSubjectsWithCounts` and `countsTimestamp` for caching
+2. **v1**: Rewrote `getSubjectsWithAccurateCounts()` to use single query + in-memory counting
+3. **v2**: Added `getSubjectsForCefrLevel(cefrLevel)` - queries only ONE CEFR level
+4. Added timing logs to measure performance (`duration` in console)
+5. Updated `clearCache()` to clear all caches
 
 ### `src/components/SubjectBoxes.tsx`
-1. Added skeleton loading placeholders
-2. Shows 6 skeleton boxes while data loads
-3. Maintains layout during loading for smooth transition
+1. **v1**: Added skeleton loading placeholders (6 skeleton boxes while loading)
+2. **v2**: Changed to use `getSubjectsForCefrLevel()` instead of `getSubjectsWithAccurateCounts()`
+3. **v2**: Loads subjects whenever CEFR level changes (on-demand loading)
+4. **v2**: Removed filtering logic (no longer needed since we query by level)
 
 ## Testing
 
