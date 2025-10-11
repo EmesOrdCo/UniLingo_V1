@@ -673,20 +673,32 @@ OUTPUT FORMAT: Return ONLY the script text with no explanations, markdown, or ad
       console.log(`ℹ️ Native language is English - no validation needed`);
     }
 
+    console.log(`🔍 FINAL VALIDATION: About to validate script language...`);
     console.log(`✅ Generated script: ${script.length} characters`);
     return script;
   } catch (error) {
-    console.error('❌ Error generating audio script:', error);
-    console.error('❌ Error details:', error.message);
+    console.error('❌ ERROR GENERATING AUDIO SCRIPT:');
+    console.error('   Error type:', error.constructor.name);
+    console.error('   Error message:', error.message);
+    console.error('   Error stack:', error.stack);
+    console.error('   Native language:', nativeLanguage);
+    console.error('   Target language:', targetLanguage);
+    console.error('   Keywords count:', keywords.length);
     
     // Enhanced fallback script that includes more keywords
     const fallbackKeywords = keywords.slice(0, Math.min(10, keywords.length));
     console.log(`⚠️ Using fallback script with ${fallbackKeywords.length} keywords`);
     
-    // Create a basic fallback script - use English for now as fallback
-    // TODO: Make this dynamic based on native language
-    const fallbackScript = `Welcome to your comprehensive audio lesson based on ${fileName}. This lesson covers ${keywords.length} important ${targetLanguage} terms and concepts. Let's begin with our key vocabulary: ${fallbackKeywords.join(', ')}. Each term will be clearly pronounced, defined, and used in practical examples. Pay attention to pronunciation and practice along with me. These terms are essential for understanding this subject matter thoroughly.`;
+    // Create a basic fallback script in the user's native language
+    let fallbackScript;
+    if (nativeLanguage.toLowerCase().includes('chinese')) {
+      fallbackScript = `欢迎来到基于${fileName}的综合音频课程。本课程涵盖${keywords.length}个重要的${targetLanguage}术语和概念。让我们从关键词汇开始：${fallbackKeywords.join('、')}。每个术语都将被清晰地发音、定义，并在实际例子中使用。请注意发音并与我一起练习。这些术语对于深入理解这个主题至关重要。`;
+    } else {
+      // Default to English if we can't determine the language
+      fallbackScript = `Welcome to your comprehensive audio lesson based on ${fileName}. This lesson covers ${keywords.length} important ${targetLanguage} terms and concepts. Let's begin with our key vocabulary: ${fallbackKeywords.join(', ')}. Each term will be clearly pronounced, defined, and used in practical examples. Pay attention to pronunciation and practice along with me. These terms are essential for understanding this subject matter thoroughly.`;
+    }
     
+    console.log(`⚠️ Fallback script language: ${nativeLanguage.toLowerCase().includes('chinese') ? 'Chinese' : 'English'}`);
     return fallbackScript;
   }
 }
