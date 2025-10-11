@@ -5,6 +5,8 @@
 
 const { PollyClient, SynthesizeSpeechCommand } = require('@aws-sdk/client-polly');
 const { supabase } = require('./supabaseClient');
+const fs = require('fs');
+const path = require('path');
 
 class SimplePollyService {
   constructor() {
@@ -226,44 +228,167 @@ class SimplePollyService {
   }
 
   /**
+   * Split text into chunks that are safe for Polly (under 2800 characters)
+   * @param {string} text - The text to split
+   * @returns {string[]} - Array of text chunks
+   */
+  splitTextIntoChunks(text) {
+    const maxChunkSize = 2800; // Safety margin under 3000 char limit
+    const chunks = [];
+    
+    // Split by sentences first, then by words if needed
+    const sentences = text.split(/(?<=[.!?])\s+/);
+    let currentChunk = '';
+    
+    for (const sentence of sentences) {
+      // If adding this sentence would exceed the limit
+      if (currentChunk.length + sentence.length > maxChunkSize) {
+        if (currentChunk.length > 0) {
+          chunks.push(currentChunk.trim());
+          currentChunk = sentence;
+        } else {
+          // Single sentence is too long, split by words
+          const words = sentence.split(' ');
+          let wordChunk = '';
+          
+          for (const word of words) {
+            if (wordChunk.length + word.length + 1 > maxChunkSize) {
+              if (wordChunk.length > 0) {
+                chunks.push(wordChunk.trim());
+                wordChunk = word;
+              } else {
+                // Single word is too long (shouldn't happen), truncate
+                chunks.push(word.substring(0, maxChunkSize));
+              }
+            } else {
+              wordChunk += (wordChunk.length > 0 ? ' ' : '') + word;
+            }
+          }
+          
+          if (wordChunk.length > 0) {
+            currentChunk = wordChunk;
+          }
+        }
+      } else {
+        currentChunk += (currentChunk.length > 0 ? ' ' : '') + sentence;
+      }
+    }
+    
+    if (currentChunk.length > 0) {
+      chunks.push(currentChunk.trim());
+    }
+    
+    console.log(`📝 Split text into ${chunks.length} chunks`);
+    chunks.forEach((chunk, index) => {
+      console.log(`   Chunk ${index + 1}: ${chunk.length} characters`);
+    });
+    
+    return chunks;
+  }
+
+  /**
+   * Concatenate multiple MP3 buffers into one
+   * @param {Buffer[]} audioBuffers - Array of MP3 audio buffers
+   * @returns {Buffer} - Concatenated MP3 buffer
+   */
+  concatenateMP3Buffers(audioBuffers) {
+    console.log(`🔗 Concatenating ${audioBuffers.length} MP3 files...`);
+    
+    // Calculate total length
+    const totalLength = audioBuffers.reduce((sum, buffer) => sum + buffer.length, 0);
+    console.log(`📊 Total size: ${(totalLength / 1024).toFixed(2)} KB`);
+    
+    // Create a new buffer with the total length
+    const concatenatedBuffer = Buffer.alloc(totalLength);
+    let offset = 0;
+    
+    // Copy each buffer into the concatenated buffer
+    for (let i = 0; i < audioBuffers.length; i++) {
+      const buffer = audioBuffers[i];
+      buffer.copy(concatenatedBuffer, offset);
+      offset += buffer.length;
+    }
+    
+    console.log('✅ MP3 files concatenated successfully');
+    return concatenatedBuffer;
+  }
+
+  /**
    * Generate audio from text using AWS Polly with language support
+   * Handles long text by chunking and concatenating
    * @param {string} text - The text to convert to speech
    * @param {string} language - Language for voice selection (default: English)
    * @returns {Promise<Buffer>} - Audio data as buffer
    */
   async generateAudio(text, language = 'English') {
     try {
-      const voiceId = this.getVoiceForLanguage(language);
-      const languageCode = this.getLanguageCode(language);
+      console.log(`🔊 Generating audio for ${text.length} characters...`);
       
-      console.log('🔊 Generating audio with AWS Polly...');
-      console.log(`   Language: ${language}`);
-      console.log(`   Voice: ${voiceId}`);
-      console.log(`   Language Code: ${languageCode}`);
-      console.log(`   Text length: ${text.length} characters`);
-
-      const params = {
-        Text: text,
-        OutputFormat: 'mp3',
-        VoiceId: voiceId,
-        Engine: 'neural',
-        LanguageCode: languageCode,
-        SampleRate: '24000'
-      };
-
-      const command = new SynthesizeSpeechCommand(params);
-      const response = await this.pollyClient.send(command);
-
-      console.log('✅ Audio generated successfully');
-
-      const audioBuffer = await this.streamToBuffer(response.AudioStream);
-      console.log(`📊 Audio size: ${(audioBuffer.length / 1024).toFixed(2)} KB`);
-
-      return audioBuffer;
+      // If text is short enough, generate directly
+      if (text.length <= 2800) {
+        return await this.generateSingleAudio(text, language);
+      }
+      
+      // For long text, split into chunks and concatenate
+      console.log('📝 Text too long, splitting into chunks...');
+      const chunks = this.splitTextIntoChunks(text);
+      
+      if (chunks.length === 0) {
+        throw new Error('No valid chunks created from text');
+      }
+      
+      // Generate audio for each chunk
+      const audioBuffers = [];
+      for (let i = 0; i < chunks.length; i++) {
+        console.log(`🎙️ Generating chunk ${i + 1}/${chunks.length}...`);
+        const chunkAudio = await this.generateSingleAudio(chunks[i], language);
+        audioBuffers.push(chunkAudio);
+      }
+      
+      // Concatenate all audio buffers
+      const finalAudio = this.concatenateMP3Buffers(audioBuffers);
+      
+      console.log(`✅ Generated audio from ${chunks.length} chunks`);
+      return finalAudio;
+      
     } catch (error) {
       console.error('❌ Error generating audio:', error);
       throw new Error(`Polly generation failed: ${error.message}`);
     }
+  }
+
+  /**
+   * Generate audio from a single text chunk
+   * @param {string} text - The text chunk to convert to speech
+   * @param {string} language - Language for voice selection
+   * @returns {Promise<Buffer>} - Audio data as buffer
+   */
+  async generateSingleAudio(text, language = 'English') {
+    const voiceId = this.getVoiceForLanguage(language);
+    const languageCode = this.getLanguageCode(language);
+    
+    console.log(`🔊 Generating single audio chunk...`);
+    console.log(`   Language: ${language}`);
+    console.log(`   Voice: ${voiceId}`);
+    console.log(`   Language Code: ${languageCode}`);
+    console.log(`   Text length: ${text.length} characters`);
+
+    const params = {
+      Text: text,
+      OutputFormat: 'mp3',
+      VoiceId: voiceId,
+      Engine: 'neural',
+      LanguageCode: languageCode,
+      SampleRate: '24000'
+    };
+
+    const command = new SynthesizeSpeechCommand(params);
+    const response = await this.pollyClient.send(command);
+
+    const audioBuffer = await this.streamToBuffer(response.AudioStream);
+    console.log(`📊 Chunk audio size: ${(audioBuffer.length / 1024).toFixed(2)} KB`);
+
+    return audioBuffer;
   }
 
   /**
