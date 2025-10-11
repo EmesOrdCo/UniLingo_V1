@@ -16,46 +16,26 @@ import { supabase } from '../lib/supabase';
 import { SimpleAudioLessonService, SimpleAudioLesson } from '../lib/simpleAudioLessonService';
 import { UploadService } from '../lib/uploadService';
 import { getBackendUrl } from '../config/backendConfig';
+import { useAuth } from '../contexts/AuthContext';
 
 const { width: screenWidth } = Dimensions.get('window');
 
 export default function AudioRecapScreen() {
   const navigation = useNavigation();
+  const { user, profile } = useAuth();
   const [isUploading, setIsUploading] = useState(false);
   const [audioLessons, setAudioLessons] = useState<SimpleAudioLesson[]>([]);
-  const [currentUser, setCurrentUser] = useState<any>(null);
-  const [nativeLanguage, setNativeLanguage] = useState<string>('English');
-  const [targetLanguage, setTargetLanguage] = useState<string>('English');
 
-  // Get current user and language preferences
+  // Get user's language preferences from profile
+  const nativeLanguage = profile?.native_language || 'English';
+  const targetLanguage = profile?.target_language || 'English';
+
+  // Load user's audio lessons when user changes
   useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setCurrentUser(user);
-      
-      if (user) {
-        // Get user's language preferences from profile
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('native_language, target_language')
-          .eq('id', user.id)
-          .single();
-        
-        if (profile?.native_language) {
-          setNativeLanguage(profile.native_language);
-        }
-        
-        if (profile?.target_language) {
-          setTargetLanguage(profile.target_language);
-        }
-        
-        // Load user's audio lessons
-        loadAudioLessons(user.id);
-      }
-    };
-    
-    getUser();
-  }, []);
+    if (user?.id) {
+      loadAudioLessons(user.id);
+    }
+  }, [user?.id]);
 
   // Load user's audio lessons
   const loadAudioLessons = async (userId: string) => {
@@ -68,7 +48,7 @@ export default function AudioRecapScreen() {
   };
 
   const handleCreateAudioLesson = async () => {
-    if (!currentUser) {
+    if (!user) {
       Alert.alert('Error', 'Please log in to create audio lessons');
       return;
     }
@@ -129,17 +109,21 @@ export default function AudioRecapScreen() {
 
           // Step 2: Create audio lesson with full pipeline
           console.log('🎵 Creating audio lesson...');
+          console.log('🎵 Creating audio lesson with:');
+          console.log('   Native Language:', nativeLanguage);
+          console.log('   Target Language:', targetLanguage);
+          
           const audioResult = await SimpleAudioLessonService.createAudioLessonFromPDF(
             extractedText,
             file.name,
             nativeLanguage,
             targetLanguage,
-            currentUser.id
+            user.id
           );
 
       if (audioResult.success && audioResult.audioLesson) {
         // Refresh the lessons list
-        await loadAudioLessons(currentUser.id);
+        await loadAudioLessons(user.id);
         
         Alert.alert(
           'Success!',
@@ -158,7 +142,7 @@ export default function AudioRecapScreen() {
   };
 
   const handlePlayAudioLesson = (lesson: SimpleAudioLesson) => {
-    if (!currentUser) {
+    if (!user) {
       Alert.alert('Error', 'Please log in to play audio lessons');
       return;
     }
@@ -166,12 +150,12 @@ export default function AudioRecapScreen() {
     // Navigate to dedicated audio player screen
     (navigation as any).navigate('AudioPlayer', {
       lesson,
-      userId: currentUser.id,
+      userId: user.id,
     });
   };
 
   const handleDeleteAudioLesson = (lessonId: string) => {
-    if (!currentUser) return;
+    if (!user) return;
 
     Alert.alert(
       'Delete Audio Lesson',
@@ -183,9 +167,9 @@ export default function AudioRecapScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              const success = await SimpleAudioLessonService.deleteAudioLesson(lessonId, currentUser.id);
+                  const success = await SimpleAudioLessonService.deleteAudioLesson(lessonId, user.id);
               if (success) {
-                await loadAudioLessons(currentUser.id);
+                await loadAudioLessons(user.id);
                 Alert.alert('Success', 'Audio lesson deleted successfully');
               } else {
                 Alert.alert('Error', 'Failed to delete audio lesson');
