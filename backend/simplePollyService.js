@@ -168,12 +168,13 @@ class SimplePollyService {
       'es-ES': 'es-ES',
       'es-MX': 'es-MX',
       
-      'Chinese': 'zh-CN',
-      'Chinese (Simplified)': 'zh-CN', // Supabase format
-      'Chinese (Traditional)': 'zh-CN', // Supabase format
-      'chinese': 'zh-CN',
-      'zh': 'zh-CN',
-      'zh-CN': 'zh-CN',
+      'Chinese': 'cmn-CN', // Mandarin Chinese (AWS Polly format)
+      'Chinese (Simplified)': 'cmn-CN', // Supabase format → Mandarin
+      'Chinese (Traditional)': 'cmn-CN', // Supabase format → Mandarin
+      'chinese': 'cmn-CN',
+      'zh': 'cmn-CN',
+      'zh-CN': 'cmn-CN',
+      'cmn-CN': 'cmn-CN', // AWS Polly native format
       
       'French': 'fr-FR',
       'french': 'fr-FR',
