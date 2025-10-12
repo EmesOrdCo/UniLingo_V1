@@ -12,6 +12,9 @@
  * Issues: #4 (Worker service) + #5 (Concurrency)
  */
 
+// Load environment variables FIRST before any other imports
+require('dotenv').config();
+
 const { Worker } = require('bullmq');
 const AIService = require('./aiService');
 const path = require('path');
@@ -20,9 +23,6 @@ const CircuitBreaker = require('./circuitBreaker');
 const { cacheJobResult } = require('./queueClient');
 const notificationManager = require('./notifications');
 const { openaiLimiter, azureSpeechLimiter } = require('./rateLimiter');
-
-// Load environment variables
-require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 // Initialize circuit breakers for external services (Issue #6 + #8)
 const openaiCircuitBreaker = new CircuitBreaker('openai', {

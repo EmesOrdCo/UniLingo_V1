@@ -1,3 +1,6 @@
+// Load environment variables FIRST before any other imports
+require('dotenv').config();
+
 const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
@@ -18,7 +21,6 @@ const queueClient = require('./queueClient');
 const CircuitBreaker = require('./circuitBreaker');
 const notificationManager = require('./notifications');
 const profileController = require('./profileController');
-require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 // Initialize circuit breakers for monitoring (Issue #6)
 const openaiCircuitBreaker = new CircuitBreaker('openai');
