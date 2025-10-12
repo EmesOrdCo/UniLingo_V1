@@ -18,6 +18,11 @@ class ResilientPronunciationService {
       timeout: 60000 // 1 minute
     };
     
+    // ⚠️ IN-MEMORY QUEUE: Acceptable for short-lived pronunciation requests
+    // Purpose: Concurrency control for Azure Speech (max 20 concurrent connections)
+    // Behavior: Lost on restart, but pronunciation is fast (2-10s) and can be retried
+    // Different from long-running AI jobs which need BullMQ persistence
+    // TODO (Optional): Migrate to BullMQ if pronunciation becomes a bottleneck
     this.requestQueue = [];
     this.processing = 0;
     this.maxConcurrent = 20; // Azure Speech Service S0 tier limit

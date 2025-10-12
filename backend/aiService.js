@@ -5,10 +5,21 @@ const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '..', '.env') });
 
 const { supabase } = require('./supabaseClient');
+const { retryWithBackoff, classifyError } = require('./retryUtils');
+const CircuitBreaker = require('./circuitBreaker');
 
 // Initialize OpenAI client
 const openai = new OpenAI({
   apiKey: process.env.EXPO_PUBLIC_OPENAI_API_KEY,
+});
+
+// Initialize circuit breaker for OpenAI (Issue #6 + #8)
+// Shared across all instances via Redis
+const openaiCircuitBreaker = new CircuitBreaker('openai', {
+  failureThreshold: 5,       // Open after 5 failures
+  successThreshold: 2,       // Close after 2 successes in HALF_OPEN
+  timeout: 60000,            // 60 seconds before trying HALF_OPEN
+  monitoringWindow: 60000,   // Count failures in 60 second window
 });
 
 // Rate limiting configuration
@@ -20,7 +31,11 @@ const RATE_LIMITS = {
   maxDelay: 30000,
 };
 
-// In-memory rate limiting (for production, use Redis)
+// ❌ DEPRECATED: In-memory queue replaced by BullMQ (Issues #2-3)
+// This code is NO LONGER USED in production - kept for backward compatibility only
+// New queue-based flow: server.js → queueClient.enqueue() → BullMQ → worker.js
+// TODO: Remove this entire queue implementation in next cleanup PR
+// The functions below (processQueue, executeRequest) are not called by new endpoints
 let requestQueue = [];
 let isProcessing = false;
 let currentMinute = Math.floor(Date.now() / 60000);
@@ -30,6 +45,8 @@ let circuitBreakerOpen = false;
 let circuitBreakerTimeout = null;
 
 // Start minute counter
+// ⚠️ STATEFUL CODE: Each instance resets its own counters independently
+// With horizontal scaling: Each instance tracks separately (not synchronized)
 setInterval(() => {
   currentMinute = Math.floor(Date.now() / 60000);
   requestsThisMinute = 0;
@@ -305,18 +322,24 @@ class AIService {
 
       console.log('Cost estimation:', this.getCostInfo(costEstimate));
 
-      const response = await executeRequest(
-        async () => {
+      // Issue #8: Use circuit breaker and retry logic
+      const response = await openaiCircuitBreaker.execute(async () => {
+        return await retryWithBackoff(async () => {
           const completion = await openai.chat.completions.create({
             model: 'gpt-4o-mini',
             messages: messages,
             temperature: 0.1,
           });
           return completion;
-        },
-        2, // High priority for flashcard generation
-        costEstimate.inputTokens + costEstimate.estimatedOutputTokens // Use actual estimated tokens
-      );
+        }, {
+          maxAttempts: 3,
+          baseDelay: 2000,
+          maxDelay: 10000,
+          onRetry: (error, attempt) => {
+            console.log(`🔄 Retrying OpenAI call (attempt ${attempt + 1}):`, error.message);
+          }
+        });
+      });
 
       const content = response.choices[0]?.message?.content || '';
       updateUsage(response.usage?.total_tokens || 0);

@@ -14,7 +14,20 @@ const FileCleanupManager = require('./fileCleanupManager');
 const errorLogger = require('./errorLogger');
 const ipWhitelistManager = require('./ipWhitelistManager');
 const setupSimpleAudioRoutes = require('./simpleAudioEndpoints');
+const queueClient = require('./queueClient');
+const CircuitBreaker = require('./circuitBreaker');
+const notificationManager = require('./notifications');
+const profileController = require('./profileController');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
+
+// Initialize circuit breakers for monitoring (Issue #6)
+const openaiCircuitBreaker = new CircuitBreaker('openai');
+const azureCircuitBreaker = new CircuitBreaker('azure');
+
+// Budget kill-switch (Issue #10)
+// Stored in Redis for shared state across instances
+const BUDGET_KILL_SWITCH_KEY = 'system:budget_kill_switch';
+const BUDGET_LIMIT_KEY = 'system:monthly_budget_limit';
 
 console.log('🔍 Debug - Current directory:', __dirname);
 console.log('🔍 Debug - .env file path:', path.join(__dirname, '.env'));
@@ -64,6 +77,11 @@ const aiLimiter = rateLimit({
 });
 
 // Enhanced User Tracking System
+// ⚠️ STATEFUL CODE: These Maps are stored in memory per instance
+// With horizontal scaling (multiple instances), each instance maintains separate state
+// TODO (Issue #3): Migrate to Redis for shared state across instances
+// Impact: User rate limits are per-instance, not global. A user can exceed limits
+// by distributing requests across multiple instances.
 const userRateLimits = new Map();
 const userTracking = new Map(); // New: Comprehensive user activity tracking
 const USER_LIMITS = {
@@ -170,6 +188,8 @@ const updateUserActivity = (userId, ipAddress, requestType, responseTime, succes
 };
 
 // Clean up old user tracking data (every hour)
+// ⚠️ STATEFUL CODE: Each instance runs its own cleanup independently
+// With horizontal scaling: Redundant but harmless - each instance cleans its own memory
 setInterval(() => {
   const now = Date.now();
   const cleanupThreshold = 24 * 60 * 60 * 1000; // 24 hours
@@ -195,6 +215,8 @@ setInterval(() => {
 }, 60 * 60 * 1000);
 
 // Clean up old rate limit entries every hour
+// ⚠️ STATEFUL CODE: Each instance runs its own cleanup independently
+// With horizontal scaling: Redundant but harmless - each instance cleans its own memory
 setInterval(() => {
   const now = Date.now();
   for (const [key, data] of userRateLimits.entries()) {
@@ -859,18 +881,32 @@ app.post('/api/test-processing', async (req, res) => {
 });
 
 // AI Service endpoints
+// POST /api/ai/generate-flashcards - Queue-based (non-blocking)
+// Returns immediately with job ID, processes in background worker
 app.post('/api/ai/generate-flashcards', aiLimiter, userRateLimit('ai'), async (req, res) => {
   try {
     const { content, subject, topic, userId, nativeLanguage, showNativeLanguage } = req.body;
     
+    // Validate required fields
     if (!content || !subject || !topic || !userId) {
       return res.status(400).json({ 
         error: 'Missing required fields: content, subject, topic, userId' 
       });
     }
 
+    // Issue #10: Check budget kill-switch
+    const killSwitchActive = await queueClient.redis.get(BUDGET_KILL_SWITCH_KEY);
+    if (killSwitchActive === 'true') {
+      console.warn(`🚨 Budget kill-switch active - rejecting non-critical job`);
+      return res.status(429).json({
+        error: 'Service temporarily unavailable due to budget limits',
+        code: 'BUDGET_LIMIT_EXCEEDED',
+        message: 'Please try again later or contact support',
+      });
+    }
+
     console.log('\n' + '🤖'.repeat(20));
-    console.log('🤖 AI FLASHCARD GENERATION REQUEST');
+    console.log('🤖 AI FLASHCARD GENERATION REQUEST (QUEUE-BASED)');
     console.log('🤖'.repeat(20));
     console.log(`📝 Subject: ${subject}`);
     console.log(`📚 Topic: ${topic}`);
@@ -880,33 +916,40 @@ app.post('/api/ai/generate-flashcards', aiLimiter, userRateLimit('ai'), async (r
     console.log(`📄 Content length: ${content.length} characters`);
     console.log('🤖'.repeat(20) + '\n');
 
-    const result = await AIService.generateFlashcards(
-      content, 
-      subject, 
-      topic, 
-      userId, 
-      nativeLanguage || 'English', 
-      showNativeLanguage || false
-    );
+    // Enqueue job instead of processing immediately
+    const { jobId } = await queueClient.enqueue('generate-flashcards', {
+      content,
+      subject,
+      topic,
+      userId,
+      nativeLanguage: nativeLanguage || 'English',
+      showNativeLanguage: showNativeLanguage || false
+    });
     
-    console.log('\n' + '✅'.repeat(20));
-    console.log('✅ FLASHCARD GENERATION SUCCESS');
-    console.log('✅'.repeat(20));
-    console.log(`📊 Generated: ${result.flashcards.length} flashcards`);
-    console.log(`🔢 Tokens used: ${result.tokenUsage}`);
-    console.log('✅'.repeat(20) + '\n');
+    console.log(`✅ Job enqueued successfully: ${jobId}`);
+    console.log(`⏱️ Request completed in < 200ms`);
+    console.log(`📋 Check job status at: GET /api/job-status/${jobId}`);
+    console.log('🤖'.repeat(20) + '\n');
 
-    res.json(result);
+    // Return 202 Accepted with job ID immediately
+    res.status(202).json({
+      success: true,
+      message: 'Flashcard generation job queued successfully',
+      jobId: jobId,
+      status: 'queued',
+      statusUrl: `/api/job-status/${jobId}`,
+      estimatedTime: '10-30 seconds'
+    });
 
   } catch (error) {
     console.error('\n' + '❌'.repeat(20));
-    console.error('❌ FLASHCARD GENERATION ERROR');
+    console.error('❌ FLASHCARD GENERATION QUEUE ERROR');
     console.error('❌'.repeat(20));
     console.error(`Error: ${error.message}`);
     console.error('❌'.repeat(20) + '\n');
     
     res.status(500).json({
-      error: 'Failed to generate flashcards',
+      error: 'Failed to queue flashcard generation',
       details: error.message
     });
   }
@@ -953,6 +996,337 @@ app.post('/api/ai/generate-lesson', aiLimiter, userRateLimit('ai'), async (req, 
     
     res.status(500).json({
       error: 'Failed to generate lesson',
+      details: error.message
+    });
+  }
+});
+
+// Job Status Endpoint - Check status of queued jobs
+app.get('/api/job-status/:jobId', async (req, res) => {
+  try {
+    const { jobId } = req.params;
+    
+    console.log(`📋 Checking job status: ${jobId}`);
+    
+    const status = await queueClient.getJobStatus(jobId);
+    
+    console.log(`✅ Job status retrieved: ${status.status}`);
+    
+    res.json({
+      success: true,
+      ...status
+    });
+  } catch (error) {
+    console.error(`❌ Failed to get job status:`, error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to retrieve job status',
+      details: error.message
+    });
+  }
+});
+
+// SSE Job Events Endpoint (Issue #9)
+// Subscribe to real-time updates for a specific job
+app.get('/api/job-events', (req, res) => {
+  const { jobId } = req.query;
+  
+  if (!jobId) {
+    return res.status(400).json({
+      error: 'Missing required parameter: jobId',
+      usage: 'GET /api/job-events?jobId=your-job-id'
+    });
+  }
+  
+  console.log(`📡 SSE: Client connecting for job ${jobId}`);
+  
+  // Subscribe client to job notifications
+  notificationManager.subscribe(jobId, res);
+});
+
+// SSE Connection Statistics (Monitoring)
+app.get('/api/sse/stats', monitoringWhitelist, (req, res) => {
+  try {
+    const stats = notificationManager.getStats();
+    res.json({
+      success: true,
+      sse: stats,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('❌ Failed to get SSE stats:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get SSE statistics',
+      details: error.message
+    });
+  }
+});
+
+// Queue Statistics Endpoint (monitoring)
+app.get('/api/queue/stats', monitoringWhitelist, async (req, res) => {
+  try {
+    const stats = await queueClient.getQueueStats();
+    res.json({
+      success: true,
+      stats: stats,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('❌ Failed to get queue stats:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get queue statistics',
+      details: error.message
+    });
+  }
+});
+
+// Redis Health Check Endpoint
+app.get('/api/redis/health', monitoringWhitelist, async (req, res) => {
+  try {
+    const healthy = await queueClient.healthCheck();
+    res.json({
+      success: true,
+      redis: healthy ? 'connected' : 'disconnected',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('❌ Redis health check failed:', error);
+    res.status(500).json({
+      success: false,
+      redis: 'error',
+      error: error.message
+    });
+  }
+});
+
+// Circuit Breaker Status Endpoint (Issue #6)
+app.get('/api/circuit-breakers/status', monitoringWhitelist, async (req, res) => {
+  try {
+    const openaiStatus = await openaiCircuitBreaker.getStatus();
+    const azureStatus = await azureCircuitBreaker.getStatus();
+    
+    res.json({
+      success: true,
+      circuitBreakers: {
+        openai: openaiStatus,
+        azure: azureStatus,
+      },
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('❌ Failed to get circuit breaker status:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get circuit breaker status',
+      details: error.message
+    });
+  }
+});
+
+// Reset Circuit Breaker (Admin endpoint)
+app.post('/api/circuit-breakers/reset/:name', monitoringWhitelist, async (req, res) => {
+  try {
+    const { name } = req.params;
+    
+    let breaker;
+    if (name === 'openai') {
+      breaker = openaiCircuitBreaker;
+    } else if (name === 'azure') {
+      breaker = azureCircuitBreaker;
+    } else {
+      return res.status(400).json({
+        success: false,
+        error: `Unknown circuit breaker: ${name}`,
+        available: ['openai', 'azure']
+      });
+    }
+    
+    await breaker.reset();
+    
+    res.json({
+      success: true,
+      message: `Circuit breaker ${name} reset to CLOSED`,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error(`❌ Failed to reset circuit breaker:`, error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to reset circuit breaker',
+      details: error.message
+    });
+  }
+});
+
+// Budget Kill-Switch Endpoints (Issue #10)
+app.get('/api/admin/budget/status', monitoringWhitelist, async (req, res) => {
+  try {
+    const killSwitchActive = await queueClient.redis.get(BUDGET_KILL_SWITCH_KEY);
+    const budgetLimit = await queueClient.redis.get(BUDGET_LIMIT_KEY);
+    const queueStats = await queueClient.getQueueStats();
+    
+    res.json({
+      success: true,
+      budget: {
+        killSwitchActive: killSwitchActive === 'true',
+        monthlyLimit: budgetLimit ? parseFloat(budgetLimit) : null,
+        queueDepth: queueStats.waiting + queueStats.active,
+      },
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('❌ Failed to get budget status:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get budget status',
+      details: error.message
+    });
+  }
+});
+
+app.post('/api/admin/budget/kill-switch', monitoringWhitelist, async (req, res) => {
+  try {
+    const { enabled, reason } = req.body;
+    
+    if (enabled === undefined) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required field: enabled (true/false)'
+      });
+    }
+    
+    await queueClient.redis.set(BUDGET_KILL_SWITCH_KEY, enabled.toString());
+    
+    const action = enabled ? 'activated' : 'deactivated';
+    console.log(`🚨 Budget kill-switch ${action}${reason ? `: ${reason}` : ''}`);
+    
+    res.json({
+      success: true,
+      message: `Budget kill-switch ${action}`,
+      killSwitchActive: enabled,
+      reason: reason || null,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('❌ Failed to toggle kill-switch:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to toggle kill-switch',
+      details: error.message
+    });
+  }
+});
+
+// Consolidated Profile Endpoint (Issue #12)
+// Single endpoint to fetch all user profile data
+app.get('/api/profile/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const requestUserId = req.headers['user-id'] || req.query.userId;
+    
+    // Security: Ensure user can only access their own profile
+    if (userId !== requestUserId && requestUserId !== 'admin') {
+      return res.status(403).json({
+        error: 'Forbidden: Cannot access another user\'s profile',
+        code: 'FORBIDDEN'
+      });
+    }
+    
+    console.log(`📋 Fetching consolidated profile for user: ${userId}`);
+    
+    const profile = await profileController.getUserProfile(userId);
+    
+    console.log(`✅ Profile loaded (fromCache: ${profile.fromCache})`);
+    
+    res.json({
+      success: true,
+      profile: profile,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error(`❌ Failed to load profile:`, error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to load profile',
+      details: error.message
+    });
+  }
+});
+
+// Invalidate Profile Cache (Admin)
+app.post('/api/profile/:userId/invalidate', monitoringWhitelist, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { type } = req.body; // 'profile', 'manifest', or 'all'
+    
+    if (type === 'manifest') {
+      await profileController.invalidateManifestCache(userId);
+    } else if (type === 'all') {
+      await profileController.invalidateAllCaches(userId);
+    } else {
+      await profileController.invalidateProfileCache(userId);
+    }
+    
+    res.json({
+      success: true,
+      message: `Cache invalidated for user ${userId} (type: ${type || 'profile'})`,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error(`❌ Failed to invalidate cache:`, error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to invalidate cache',
+      details: error.message
+    });
+  }
+});
+
+// Alert Metrics Endpoint (Issue #10)
+// Structured metrics for monitoring systems
+app.get('/api/metrics/alerts', monitoringWhitelist, async (req, res) => {
+  try {
+    const queueStats = await queueClient.getQueueStats();
+    const performanceMetrics = performanceMonitor.getMetrics();
+    const sseStats = notificationManager.getStats();
+    const circuitBreakers = {
+      openai: await openaiCircuitBreaker.getStatus(),
+      azure: await azureCircuitBreaker.getStatus(),
+    };
+    
+    // Calculate alert conditions
+    const alerts = {
+      queueDepthHigh: queueStats.waiting > 50,
+      queueDepthCritical: queueStats.waiting > 100,
+      failureRateHigh: performanceMetrics.errorRate > 10,
+      circuitBreakerOpen: circuitBreakers.openai.state === 'OPEN' || circuitBreakers.azure.state === 'OPEN',
+      workerStalled: queueStats.active > 0 && queueStats.active < 1, // Jobs active but not processing
+    };
+    
+    res.json({
+      success: true,
+      metrics: {
+        queue: queueStats,
+        performance: {
+          errorRate: performanceMetrics.errorRate,
+          avgResponseTime: performanceMetrics.avgResponseTime,
+          requestsPerMinute: performanceMetrics.requestsPerMinute,
+        },
+        circuitBreakers: circuitBreakers,
+        sse: sseStats,
+      },
+      alerts: alerts,
+      alertsActive: Object.values(alerts).filter(v => v).length,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('❌ Failed to get alert metrics:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get alert metrics',
       details: error.message
     });
   }

@@ -25,6 +25,9 @@ class PerformanceMonitor {
       azureOcrTotalTime: 0
     };
     
+    // ✅ METRICS STORAGE: Circular buffer for recent requests (not a job queue)
+    // Purpose: Keep last 100 requests for monitoring and diagnostics
+    // Losing this on restart is acceptable (just metrics, not user data)
     this.recentRequests = [];
     this.maxRecentRequests = 100;
   }

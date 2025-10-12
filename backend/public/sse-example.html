@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SSE Job Notifications Example</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 { color: #333; margin-bottom: 10px; }
+        h2 { color: #666; font-size: 1.2em; margin-top: 30px; }
+        .subtitle { color: #999; margin-bottom: 30px; }
+        button {
+            background: #007AFF;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover { background: #0051D5; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        #status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 6px;
+            font-weight: 500;
+        }
+        #status.waiting { background: #FFF3CD; color: #856404; }
+        #status.active { background: #D1ECF1; color: #0C5460; }
+        #status.completed { background: #D4EDDA; color: #155724; }
+        #status.failed { background: #F8D7DA; color: #721C24; }
+        #events {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 6px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+        }
+        .event {
+            padding: 8px;
+            margin: 5px 0;
+            border-left: 3px solid #ccc;
+            padding-left: 10px;
+        }
+        .event.connected { border-color: #17a2b8; }
+        .event.active { border-color: #ffc107; }
+        .event.completed { border-color: #28a745; }
+        .event.failed { border-color: #dc3545; }
+        .event.heartbeat { border-color: #6c757d; opacity: 0.6; }
+        pre { background: #f4f4f4; padding: 10px; border-radius: 4px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔔 SSE Job Notifications Example</h1>
+        <p class="subtitle">Real-time job status updates using Server-Sent Events</p>
+
+        <button id="generateBtn">Generate Flashcards</button>
+        <button id="connectBtn" disabled>Connect to SSE</button>
+        <button id="disconnectBtn" disabled>Disconnect</button>
+        <button id="clearBtn">Clear Events</button>
+
+        <div id="status"></div>
+
+        <h2>Events Log</h2>
+        <div id="events"></div>
+
+        <h2>How It Works</h2>
+        <pre>
+1. Click "Generate Flashcards" → Gets jobId
+2. Click "Connect to SSE" → Opens EventSource connection
+3. Receive real-time updates:
+   - connected: Initial connection
+   - active: Worker picked up job
+   - completed: Job finished successfully
+   - failed: Job failed
+   - heartbeat: Every 30s to keep connection alive
+4. Click "Disconnect" to close connection
+        </pre>
+    </div>
+
+    <script>
+        const BACKEND_URL = window.location.origin;
+        let eventSource = null;
+        let currentJobId = null;
+
+        const statusDiv = document.getElementById('status');
+        const eventsDiv = document.getElementById('events');
+        const generateBtn = document.getElementById('generateBtn');
+        const connectBtn = document.getElementById('connectBtn');
+        const disconnectBtn = document.getElementById('disconnectBtn');
+        const clearBtn = document.getElementById('clearBtn');
+
+        // Generate flashcards
+        generateBtn.addEventListener('click', async () => {
+            generateBtn.disabled = true;
+            statusDiv.textContent = 'Generating job...';
+            statusDiv.className = '';
+
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/ai/generate-flashcards`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'user-id': 'sse-test-user'
+                    },
+                    body: JSON.stringify({
+                        content: 'SSE test content. Medical terms: cardiology, pathology, neurology.',
+                        subject: 'Medicine',
+                        topic: 'Medical Specialties',
+                        userId: 'sse-test-user',
+                        nativeLanguage: 'English'
+                    })
+                });
+
+                const data = await response.json();
+                currentJobId = data.jobId;
+
+                statusDiv.textContent = `Job created: ${currentJobId}`;
+                statusDiv.className = 'waiting';
+
+                addEvent('Job enqueued', { jobId: currentJobId, status: 'queued' });
+
+                connectBtn.disabled = false;
+                generateBtn.disabled = false;
+
+            } catch (error) {
+                statusDiv.textContent = `Error: ${error.message}`;
+                statusDiv.className = 'failed';
+                generateBtn.disabled = false;
+            }
+        });
+
+        // Connect to SSE
+        connectBtn.addEventListener('click', () => {
+            if (!currentJobId) {
+                alert('Please generate a job first!');
+                return;
+            }
+
+            connectBtn.disabled = true;
+            disconnectBtn.disabled = false;
+
+            eventSource = new EventSource(`${BACKEND_URL}/api/job-events?jobId=${currentJobId}`);
+
+            eventSource.addEventListener('connected', (e) => {
+                const data = JSON.parse(e.data);
+                addEvent('connected', data, 'Connected to SSE stream');
+                statusDiv.textContent = 'Connected to SSE - Waiting for updates...';
+                statusDiv.className = 'waiting';
+            });
+
+            eventSource.addEventListener('active', (e) => {
+                const data = JSON.parse(e.data);
+                addEvent('active', data, 'Job is being processed');
+                statusDiv.textContent = 'Job is being processed...';
+                statusDiv.className = 'active';
+            });
+
+            eventSource.addEventListener('completed', (e) => {
+                const data = JSON.parse(e.data);
+                addEvent('completed', data, 'Job completed successfully! 🎉');
+                statusDiv.textContent = `Job completed in ${(data.duration / 1000).toFixed(1)}s! ✅`;
+                statusDiv.className = 'completed';
+                
+                // Auto-disconnect after completion
+                setTimeout(() => {
+                    eventSource.close();
+                    connectBtn.disabled = false;
+                    disconnectBtn.disabled = true;
+                }, 2000);
+            });
+
+            eventSource.addEventListener('failed', (e) => {
+                const data = JSON.parse(e.data);
+                addEvent('failed', data, 'Job failed ❌');
+                statusDiv.textContent = `Job failed: ${data.error}`;
+                statusDiv.className = 'failed';
+                
+                // Auto-disconnect after failure
+                setTimeout(() => {
+                    eventSource.close();
+                    connectBtn.disabled = false;
+                    disconnectBtn.disabled = true;
+                }, 2000);
+            });
+
+            eventSource.addEventListener('heartbeat', (e) => {
+                const data = JSON.parse(e.data);
+                addEvent('heartbeat', data, '💓 Heartbeat');
+            });
+
+            eventSource.addEventListener('error', (e) => {
+                console.error('SSE Error:', e);
+                addEvent('error', { error: 'Connection error' }, 'Connection error');
+                statusDiv.textContent = 'SSE connection error';
+                statusDiv.className = 'failed';
+                
+                eventSource.close();
+                connectBtn.disabled = false;
+                disconnectBtn.disabled = true;
+            });
+        });
+
+        // Disconnect from SSE
+        disconnectBtn.addEventListener('click', () => {
+            if (eventSource) {
+                eventSource.close();
+                addEvent('disconnected', {}, 'Manually disconnected');
+                statusDiv.textContent = 'Disconnected from SSE';
+                statusDiv.className = '';
+            }
+            connectBtn.disabled = false;
+            disconnectBtn.disabled = true;
+        });
+
+        // Clear events
+        clearBtn.addEventListener('click', () => {
+            eventsDiv.innerHTML = '';
+        });
+
+        // Helper: Add event to log
+        function addEvent(type, data, message) {
+            const eventEl = document.createElement('div');
+            eventEl.className = `event ${type}`;
+            
+            const timestamp = new Date().toLocaleTimeString();
+            const dataStr = JSON.stringify(data, null, 2);
+            
+            eventEl.innerHTML = `
+                <strong>${timestamp} - ${type.toUpperCase()}</strong>
+                ${message ? `<br>${message}` : ''}
+                <br><small>${dataStr}</small>
+            `;
+            
+            eventsDiv.appendChild(eventEl);
+            eventsDiv.scrollTop = eventsDiv.scrollHeight;
+        }
+    </script>
+</body>
+</html>
+
