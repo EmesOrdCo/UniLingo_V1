@@ -30,9 +30,10 @@ function createLimiter(name, options = {}) {
   const limiter = new Bottleneck({
     id: name, // Shared across all instances
     
-    // Redis connection for distributed state
+    // Redis connection for distributed state - use existing connection
     datastore: 'ioredis',
     clientOptions: redisConfig,
+    client: redisClient, // Use shared Redis client instead of creating new one
     clearDatastore: false,
     
     // Rate limiting configuration
