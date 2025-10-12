@@ -10,6 +10,19 @@
  * Issue #8: Robust retry logic
  */
 
+const Redis = require('ioredis');
+
+// Redis connection
+const redisConfig = process.env.REDIS_URL ? 
+  process.env.REDIS_URL :
+  {
+    host: process.env.REDIS_HOST || 'localhost',
+    port: parseInt(process.env.REDIS_PORT || '6379'),
+    password: process.env.REDIS_PASSWORD,
+  };
+
+const redis = new Redis(redisConfig);
+
 /**
  * Error classification
  * Determines if an error is retryable
@@ -320,12 +333,6 @@ async function getRateLimitStatus(identifier, action, windowMs) {
 }
 
 module.exports = {
-  // Bottleneck limiters
-  openaiLimiter,
-  azureSpeechLimiter,
-  azureVisionLimiter,
-  createLimiter,
-  
   // Retry utilities
   retryWithBackoff,
   withRetry,
