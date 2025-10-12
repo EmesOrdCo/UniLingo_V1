@@ -108,6 +108,27 @@ export default function LessonsContent() {
         <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
       </TouchableOpacity>
 
+      {/* Listen Section */}
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <Ionicons name="headset-outline" size={20} color="#8b5cf6" />
+          <Text style={styles.sectionTitle}>Listen</Text>
+        </View>
+        
+        <TouchableOpacity 
+          style={styles.activityCard} 
+          onPress={() => handleActivityPress('Audio Recap')}
+        >
+          <View style={styles.activityContent}>
+            <Text style={styles.activityTitle}>Audio Recap</Text>
+            <Text style={styles.activityDescription}>Do guided audio lessons, hands free</Text>
+          </View>
+          <View style={[styles.activityIcon, { backgroundColor: '#6466E9' }]}>
+            <Ionicons name="headset" size={24} color="#ffffff" />
+          </View>
+        </TouchableOpacity>
+      </View>
+
       {/* Speak Section */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
@@ -128,40 +149,6 @@ export default function LessonsContent() {
           </View>
           <View style={styles.activityIcon}>
             <Ionicons name="sparkles" size={24} color="#ffffff" />
-          </View>
-        </TouchableOpacity>
-      </View>
-
-      {/* Listen Section */}
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Ionicons name="headset-outline" size={20} color="#8b5cf6" />
-          <Text style={styles.sectionTitle}>Listen</Text>
-        </View>
-        
-        <TouchableOpacity 
-          style={styles.activityCard} 
-          onPress={() => handleActivityPress('Audio Recap')}
-        >
-          <View style={styles.activityContent}>
-            <Text style={styles.activityTitle}>Audio Recap</Text>
-            <Text style={styles.activityDescription}>Do guided audio lessons, hands free</Text>
-          </View>
-          <View style={[styles.activityIcon, { backgroundColor: '#6466E9' }]}>
-            <Ionicons name="headset" size={24} color="#ffffff" />
-          </View>
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={styles.activityCard} 
-          onPress={() => handleActivityPress('Podcasts')}
-        >
-          <View style={styles.activityContent}>
-            <Text style={styles.activityTitle}>Podcasts</Text>
-            <Text style={styles.activityDescription}>Learn something new on the move</Text>
-          </View>
-          <View style={styles.activityIcon}>
-            <Ionicons name="radio" size={24} color="#ffffff" />
           </View>
         </TouchableOpacity>
       </View>
