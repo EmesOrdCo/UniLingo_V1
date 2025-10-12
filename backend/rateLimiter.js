@@ -32,8 +32,7 @@ function createLimiter(name, options = {}) {
     
     // Redis connection for distributed state - use existing connection
     datastore: 'ioredis',
-    clientOptions: redisConfig,
-    client: redisClient, // Use shared Redis client instead of creating new one
+    client: redisClient, // Use shared Redis client
     clearDatastore: false,
     
     // Rate limiting configuration
