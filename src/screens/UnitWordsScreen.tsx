@@ -89,16 +89,23 @@ export default function UnitWordsScreen() {
     // First half: English → French
     for (let i = 0; i < vocabulary.length; i++) {
       const correctAnswer = vocabulary[i].french;
+      const correctImageUrl = vocabulary[i].image_url;
       const wrongAnswers = vocabulary
         .filter((_, idx) => idx !== i)
-        .map(v => v.french)
+        .map(v => ({ text: v.french, image_url: v.image_url }))
         .sort(() => Math.random() - 0.5)
         .slice(0, 3);
+      
+      const allOptions = [
+        { text: correctAnswer, image_url: correctImageUrl },
+        ...wrongAnswers
+      ].sort(() => Math.random() - 0.5);
       
       questions.push({
         question: vocabulary[i].english,
         correctAnswer,
-        options: [correctAnswer, ...wrongAnswers].sort(() => Math.random() - 0.5),
+        options: allOptions.map(opt => opt.text),
+        optionsWithImages: allOptions,
         type: 'en-to-fr' as const,
       });
     }
@@ -391,6 +398,10 @@ export default function UnitWordsScreen() {
               const isCorrectAnswer = option === question.correctAnswer;
               const showCorrect = showResult && isCorrectAnswer;
               const showIncorrect = showResult && isSelected && !isCorrect;
+              
+              // Get the image URL for this option
+              const optionWithImage = question.optionsWithImages?.find(opt => opt.text === option);
+              const imageUrl = optionWithImage?.image_url;
 
               return (
                 <TouchableOpacity
@@ -404,9 +415,17 @@ export default function UnitWordsScreen() {
                   onPress={() => handleAnswerSelect(option)}
                   disabled={showResult}
                 >
-                  <View style={styles.optionImagePlaceholder}>
-                    <Ionicons name="image-outline" size={40} color="#9ca3af" />
-                  </View>
+                  {imageUrl ? (
+                    <Image
+                      source={{ uri: imageUrl }}
+                      style={styles.optionImage}
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <View style={styles.optionImagePlaceholder}>
+                      <Ionicons name="image-outline" size={40} color="#9ca3af" />
+                    </View>
+                  )}
                   <Text
                     style={[
                       styles.optionCardText,
@@ -680,6 +699,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#e5e7eb',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  optionImage: {
+    width: '100%',
+    aspectRatio: 1.3,
   },
   questionImagePlaceholder: {
     width: 150,

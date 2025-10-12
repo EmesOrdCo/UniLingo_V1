@@ -5,6 +5,7 @@ import { supabase } from './supabase';
 export interface UnitVocabularyItem {
   english: string;
   french: string;
+  image_url?: string;
 }
 
 export interface UnitSentence {
@@ -57,7 +58,8 @@ export class UnitDataAdapter {
       // Convert to Unit format
       const unitVocabulary: UnitVocabularyItem[] = lessonData.vocabulary.map(vocab => ({
         english: vocab.english_translation,
-        french: this.getTranslation(vocab, nativeLanguage)
+        french: this.getTranslation(vocab, nativeLanguage),
+        image_url: vocab.image_url
       }));
 
       logger.info(`✅ Converted ${unitVocabulary.length} vocabulary items for Unit screen`);

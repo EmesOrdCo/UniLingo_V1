@@ -17,6 +17,7 @@ export interface SubjectVocabulary {
   example_sentence_german?: string;
   example_sentence_mandarin?: string;
   example_sentence_hindi?: string;
+  image_url?: string;
 }
 
 export interface SubjectLessonScript {
