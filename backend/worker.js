@@ -39,15 +39,17 @@ const azureCircuitBreaker = new CircuitBreaker('azure', {
 
 // Redis connection configuration (same as queueClient.js)
 const redisConfig = {
-  connection: process.env.REDIS_URL ? 
-    process.env.REDIS_URL :
-    {
-      host: process.env.REDIS_HOST || 'localhost',
-      port: parseInt(process.env.REDIS_PORT || '6379'),
-      password: process.env.REDIS_PASSWORD,
-      maxRetriesPerRequest: null,
-      enableReadyCheck: false,
-    }
+  connection: process.env.REDIS_PUBLIC_URL ? 
+    process.env.REDIS_PUBLIC_URL :
+    process.env.REDIS_URL ? 
+      process.env.REDIS_URL :
+      {
+        host: process.env.REDIS_HOST || 'localhost',
+        port: parseInt(process.env.REDIS_PORT || '6379'),
+        password: process.env.REDIS_PASSWORD,
+        maxRetriesPerRequest: null,
+        enableReadyCheck: false,
+      }
 };
 
 // Worker statistics
