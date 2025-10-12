@@ -511,9 +511,10 @@ class SimplePollyService {
    * @param {string} title - Lesson title
    * @param {string} scriptText - The text to convert to audio
    * @param {string} userId - User ID
+   * @param {string} nativeLanguage - User's native language for voice selection (default: 'English')
    * @returns {Promise<object>} - Audio lesson data
    */
-  async createAudioLesson(title, scriptText, userId) {
+  async createAudioLesson(title, scriptText, userId, nativeLanguage = 'English') {
     const startTime = Date.now();
     
     try {
@@ -522,6 +523,7 @@ class SimplePollyService {
       console.log('🎵'.repeat(30));
       console.log(`📝 Title: ${title}`);
       console.log(`👤 User ID: ${userId}`);
+      console.log(`🌐 Native Language: ${nativeLanguage}`);
       console.log(`📄 Script length: ${scriptText.length} characters`);
 
       // 1. Estimate duration
@@ -550,7 +552,8 @@ class SimplePollyService {
 
       // 3. Generate audio with Polly
       console.log('\n🎙️ Generating audio with AWS Polly...');
-      const audioBuffer = await this.generateAudio(scriptText, 'English'); // Use English voice for mixed content
+      console.log(`🗣️ Using voice for language: ${nativeLanguage}`);
+      const audioBuffer = await this.generateAudio(scriptText, nativeLanguage);
 
       // 4. Upload to Supabase Storage
       console.log('\n☁️ Uploading to Supabase Storage...');

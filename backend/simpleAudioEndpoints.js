@@ -453,7 +453,8 @@ function setupSimpleAudioRoutes(app, limiters) {
         audioLesson = await SimplePollyService.createAudioLesson(
           `Audio Lesson: ${fileName.replace('.pdf', '')}`,
           audioScript,
-          userId
+          userId,
+          nativeLanguage
         );
         console.log(`✅ Audio lesson created: ${audioLesson.id}`);
       } catch (pollyError) {
