@@ -106,12 +106,16 @@ export default function GamesScreen({ route }: { route?: any }) {
     topics: false,
     gameStats: false,
     flashcardStats: false
+    // Note: dailyChallenge is NOT tracked here because it's rendered AFTER loading completes
   });
 
   // Check if all loading states are complete
   useEffect(() => {
+    console.log('🔍 Loading states:', loadingStates);
     const allLoaded = Object.values(loadingStates).every(state => state === true);
+    console.log('🔍 All loaded?', allLoaded);
     if (allLoaded) {
+      console.log('✅ All data loaded, hiding loading screen');
       setIsLoading(false);
     }
   }, [loadingStates]);
@@ -1690,7 +1694,9 @@ export default function GamesScreen({ route }: { route?: any }) {
         }
       >
         {/* Daily Challenge Box */}
-        <DailyChallengeBox refreshTrigger={refreshTrigger} />
+        <DailyChallengeBox 
+          refreshTrigger={refreshTrigger}
+        />
         
         {/* Your Game Stats */}
         <GameStatsSection 

@@ -33,15 +33,28 @@ export default function ArcadeSection({ onGamePlayed }: ArcadeSectionProps) {
   const [showXPInfoModal, setShowXPInfoModal] = useState(false);
 
   useEffect(() => {
-    loadGames();
-  }, []);
-
-  useEffect(() => {
-    if (user?.id) {
-      loadHighScores();
-      loadAvailableXP();
-    }
+    // Load all data together to ensure loading screen shows until everything is ready
+    loadAllData();
   }, [user?.id]);
+
+  const loadAllData = async () => {
+    try {
+      setLoading(true);
+      // Load games first
+      await loadGames();
+      // Then load user-specific data if user is logged in
+      if (user?.id) {
+        await Promise.all([
+          loadHighScores(),
+          loadAvailableXP()
+        ]);
+      }
+    } catch (error) {
+      console.error('Error loading arcade data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const loadAvailableXP = async () => {
     if (!user?.id) return;
@@ -59,8 +72,6 @@ export default function ArcadeSection({ onGamePlayed }: ArcadeSectionProps) {
       setGames(fetchedGames);
     } catch (error) {
       console.error('Error loading games:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
