@@ -6,6 +6,7 @@ export interface SubjectData {
   wordCount?: number;
   hasLessons?: boolean;
   cefrLevel?: string;
+  orderIndex?: number;
 }
 
 export interface SubjectWordsData {
@@ -125,9 +126,10 @@ export class SubjectDataService {
       // Get subjects with lessons for this CEFR level
       const { data: lessonData, error: lessonError } = await supabase
         .from('lesson_scripts')
-        .select('subject_name, cefr_level')
+        .select('subject_name, cefr_level, order_index')
         .eq('cefr_level', cefrLevel)
-        .not('subject_name', 'is', null);
+        .not('subject_name', 'is', null)
+        .order('order_index', { ascending: true });
 
       if (lessonError) {
         console.warn('⚠️ Error fetching lesson data:', lessonError);
@@ -137,8 +139,9 @@ export class SubjectDataService {
       const normalizeSubjectName = (name: string): string => name.trim().toLowerCase();
       const canonicalNames: { [normalized: string]: string } = {};
       const subjectsWithLessons = new Set<string>();
+      const orderIndexBySubject: { [normalized: string]: number } = {};
 
-      // Process lesson data
+      // Process lesson data and store order_index
       if (lessonData) {
         lessonData.forEach(row => {
           if (row.subject_name) {
@@ -147,6 +150,10 @@ export class SubjectDataService {
               canonicalNames[normalized] = row.subject_name.trim();
             }
             subjectsWithLessons.add(normalized);
+            // Store the order_index for sorting later
+            if (row.order_index !== null && row.order_index !== undefined) {
+              orderIndexBySubject[normalized] = row.order_index;
+            }
           }
         });
       }
@@ -178,12 +185,23 @@ export class SubjectDataService {
             name: String(displayName).trim(),
             wordCount: Number(wordCount),
             hasLessons: Boolean(subjectsWithLessons.has(normalized)),
-            cefrLevel: String(cefrLevel).trim()
+            cefrLevel: String(cefrLevel).trim(),
+            orderIndex: orderIndexBySubject[normalized]
           };
         });
 
-      // Sort by word count
-      subjectsWithMetadata.sort((a, b) => (b.wordCount || 0) - (a.wordCount || 0));
+      // Sort by order_index (if available), otherwise by word count
+      subjectsWithMetadata.sort((a, b) => {
+        // If both have order_index, sort by that
+        if (a.orderIndex !== undefined && b.orderIndex !== undefined) {
+          return a.orderIndex - b.orderIndex;
+        }
+        // If only one has order_index, prioritize it
+        if (a.orderIndex !== undefined) return -1;
+        if (b.orderIndex !== undefined) return 1;
+        // Otherwise, sort by word count
+        return (b.wordCount || 0) - (a.wordCount || 0);
+      });
 
       const duration = Date.now() - startTime;
       console.log(`✅ Found ${subjectsWithMetadata.length} subjects for ${cefrLevel} in ${duration}ms`);
@@ -218,8 +236,9 @@ export class SubjectDataService {
       // Get subjects with lessons
       const { data: lessonData, error: lessonError } = await supabase
         .from('lesson_scripts')
-        .select('subject_name, cefr_level')
-        .not('subject_name', 'is', null);
+        .select('subject_name, cefr_level, order_index')
+        .not('subject_name', 'is', null)
+        .order('order_index', { ascending: true });
 
       if (lessonError) {
         console.warn('⚠️ Error fetching lesson data:', lessonError);
@@ -229,16 +248,25 @@ export class SubjectDataService {
       const normalizeSubjectName = (name: string): string => name.trim().toLowerCase();
       const canonicalNames: { [normalized: string]: string } = {};
       const subjectsWithLessons = new Set<string>();
+      const orderIndexBySubject: { [key: string]: number } = {};
 
-      // Process lesson data
+      // Process lesson data and store order_index
       if (lessonData) {
         lessonData.forEach(row => {
           if (row.subject_name) {
             const normalized = normalizeSubjectName(row.subject_name);
+            const cefrLevel = String(row.cefr_level).trim();
+            const key = `${normalized}|${cefrLevel}`;
+            
             if (!canonicalNames[normalized]) {
               canonicalNames[normalized] = row.subject_name.trim();
             }
             subjectsWithLessons.add(normalized);
+            
+            // Store the order_index for this subject+CEFR combination
+            if (row.order_index !== null && row.order_index !== undefined) {
+              orderIndexBySubject[key] = row.order_index;
+            }
           }
         });
       }
@@ -277,13 +305,15 @@ export class SubjectDataService {
             .order('id', { ascending: true });
 
           const wordCount = vocabulary?.length || 0;
+          const key = `${normalizedSubject}|${cefrLevel}`;
           
           if (wordCount > 0) {
             subjectsWithMetadata.push({
               name: String(displayName).trim(),
               wordCount: Number(wordCount),
               hasLessons: Boolean(subjectsWithLessons.has(normalizedSubject)),
-              cefrLevel: String(cefrLevel).trim()
+              cefrLevel: String(cefrLevel).trim(),
+              orderIndex: orderIndexBySubject[key]
             });
           }
         } catch (error) {
@@ -291,8 +321,18 @@ export class SubjectDataService {
         }
       }
 
-      // Sort by word count
-      subjectsWithMetadata.sort((a, b) => (b.wordCount || 0) - (a.wordCount || 0));
+      // Sort by order_index (if available), otherwise by word count
+      subjectsWithMetadata.sort((a, b) => {
+        // If both have order_index, sort by that
+        if (a.orderIndex !== undefined && b.orderIndex !== undefined) {
+          return a.orderIndex - b.orderIndex;
+        }
+        // If only one has order_index, prioritize it
+        if (a.orderIndex !== undefined) return -1;
+        if (b.orderIndex !== undefined) return 1;
+        // Otherwise, sort by word count
+        return (b.wordCount || 0) - (a.wordCount || 0);
+      });
 
       console.log(`✅ Found ${subjectsWithMetadata.length} subject+CEFR combinations with accurate word counts`);
       console.log('🔍 Top 5 by word count:', subjectsWithMetadata.slice(0, 5).map(s => ({ name: s.name, wordCount: s.wordCount, hasLessons: s.hasLessons, cefrLevel: s.cefrLevel })));
