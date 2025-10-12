@@ -9,16 +9,19 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { SubjectDataService, SubjectData } from '../lib/subjectDataService';
+import { GeneralLessonProgressService, GeneralLessonProgress } from '../lib/generalLessonProgressService';
+import { useAuth } from '../contexts/AuthContext';
 
 interface SubjectBoxProps {
   subject: SubjectData;
   onPress: (subject: SubjectData) => void;
   isExpanded?: boolean;
+  progress?: GeneralLessonProgress | null;
 }
 
-const SubjectBox: React.FC<SubjectBoxProps> = ({ subject, onPress, isExpanded = false }) => {
+const SubjectBox: React.FC<SubjectBoxProps> = ({ subject, onPress, isExpanded = false, progress }) => {
   const getSubjectIcon = (subjectName: string) => {
     const name = subjectName.toLowerCase();
     if (name.includes('medicine') || name.includes('medical')) return 'medical';
@@ -50,7 +53,14 @@ const SubjectBox: React.FC<SubjectBoxProps> = ({ subject, onPress, isExpanded = 
   };
 
   const iconName = getSubjectIcon(subject.name);
-  const color = getSubjectColor(subject.name);
+  const originalColor = getSubjectColor(subject.name);
+  
+  // Determine if all 5 exercises are completed
+  const isCompleted = progress?.status === 'completed' && progress.exercises_completed >= 5;
+  
+  // Use green if completed, otherwise use gray
+  const color = isCompleted ? '#10b981' : '#9ca3af';
+  const iconColor = isCompleted ? '#10b981' : '#9ca3af';
 
   return (
     <TouchableOpacity 
@@ -60,11 +70,13 @@ const SubjectBox: React.FC<SubjectBoxProps> = ({ subject, onPress, isExpanded = 
     >
       <View style={styles.subjectHeader}>
         <View style={styles.subjectIconContainer}>
-          <Ionicons name={iconName as any} size={24} color={color} />
+          <Ionicons name={iconName as any} size={24} color={iconColor} />
         </View>
         <View style={styles.subjectInfo}>
           <View style={styles.titleRow}>
-            <Text style={styles.subjectTitle}>{String(subject.name || 'Unknown Subject')}</Text>
+            <Text style={styles.subjectTitle} numberOfLines={1} style={[styles.subjectTitle, { flex: 1 }]}>
+              {String(subject.name || 'Unknown Subject')}
+            </Text>
             {(() => {
               const cefrLevel = subject.cefrLevel;
               if (cefrLevel && String(cefrLevel).trim().length > 0) {
@@ -76,34 +88,63 @@ const SubjectBox: React.FC<SubjectBoxProps> = ({ subject, onPress, isExpanded = 
               }
               return null;
             })()}
+            {progress?.status === 'completed' && (
+              <View style={styles.completedBadge}>
+                <Ionicons name="checkmark-circle" size={18} color="#10b981" />
+              </View>
+            )}
           </View>
           <Text style={styles.subjectSubtitle}>
             {String(subject.wordCount || 0)} words • {subject.hasLessons ? 'Has lessons' : 'Vocabulary only'}
           </Text>
         </View>
-        <Ionicons 
-          name={isExpanded ? "chevron-up" : "chevron-down"} 
-          size={20} 
-          color="#9ca3af" 
-        />
       </View>
       
       {(() => {
         const wordCount = Number(subject.wordCount) || 0;
         if (wordCount > 0) {
           return (
-            <View style={styles.subjectStats}>
-              <View style={styles.statItem}>
-                <Ionicons name="book-outline" size={16} color="#6b7280" />
-                <Text style={styles.statText}>{String(wordCount)} words</Text>
-              </View>
-              {subject.hasLessons && (
+            <>
+              <View style={styles.subjectStats}>
                 <View style={styles.statItem}>
-                  <Ionicons name="play-circle-outline" size={16} color="#6b7280" />
-                  <Text style={styles.statText}>Lessons available</Text>
+                  <Ionicons name="book-outline" size={16} color="#6b7280" />
+                  <Text style={styles.statText}>{String(wordCount)} words</Text>
+                </View>
+                {subject.hasLessons && (
+                  <View style={styles.statItem}>
+                    <Ionicons name="play-circle-outline" size={16} color="#6b7280" />
+                    <Text style={styles.statText}>Lessons available</Text>
+                  </View>
+                )}
+                {progress && progress.status !== 'not_started' && (
+                  <View style={styles.statItem}>
+                    <Ionicons 
+                      name={isCompleted ? "checkmark-circle" : "hourglass-outline"} 
+                      size={16} 
+                      color={isCompleted ? "#10b981" : "#9ca3af"} 
+                    />
+                    <Text style={styles.statText}>
+                      {progress.exercises_completed}/{progress.total_exercises} exercises
+                    </Text>
+                  </View>
+                )}
+              </View>
+              
+              {/* Progress Bar */}
+              {progress && progress.exercises_completed > 0 && (
+                <View style={styles.progressBarContainer}>
+                  <View 
+                    style={[
+                      styles.progressBarFill, 
+                      { 
+                        width: `${(progress.exercises_completed / progress.total_exercises) * 100}%`,
+                        backgroundColor: isCompleted ? '#10b981' : '#9ca3af'
+                      }
+                    ]} 
+                  />
                 </View>
               )}
-            </View>
+            </>
           );
         }
         return null;
@@ -120,12 +161,14 @@ interface SubjectBoxesProps {
 
 export default function SubjectBoxes({ onSubjectSelect, maxSubjects = 6, onCefrLevelChange }: SubjectBoxesProps) {
   const navigation = useNavigation();
+  const { user } = useAuth();
   const [allSubjects, setAllSubjects] = useState<SubjectData[]>([]);
   const [subjects, setSubjects] = useState<SubjectData[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCefrLevel, setSelectedCefrLevel] = useState<string>('A1');
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const [expandedSubject, setExpandedSubject] = useState<string | null>(null);
+  const [subjectProgress, setSubjectProgress] = useState<Map<string, GeneralLessonProgress>>(new Map());
 
   const CEFR_LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
   
@@ -148,6 +191,37 @@ export default function SubjectBoxes({ onSubjectSelect, maxSubjects = 6, onCefrL
       onCefrLevelChange(selectedCefrLevel);
     }
   }, [selectedCefrLevel]);
+
+  // Load progress data when component focuses
+  useFocusEffect(
+    React.useCallback(() => {
+      if (user) {
+        loadProgress();
+      }
+    }, [user, selectedCefrLevel])
+  );
+
+  const loadProgress = async () => {
+    if (!user) return;
+
+    try {
+      const progressList = await GeneralLessonProgressService.getSubjectProgressByCefrLevel(
+        user.id,
+        selectedCefrLevel
+      );
+      
+      // Create a map for quick lookup
+      const progressMap = new Map<string, GeneralLessonProgress>();
+      progressList.forEach(p => {
+        const key = `${p.subject_name}|${p.cefr_level}`;
+        progressMap.set(key, p);
+      });
+      
+      setSubjectProgress(progressMap);
+    } catch (error) {
+      console.error('Error loading subject progress:', error);
+    }
+  };
 
   const loadSubjects = async () => {
     try {
@@ -307,13 +381,18 @@ export default function SubjectBoxes({ onSubjectSelect, maxSubjects = 6, onCefrL
 
       
       <View style={styles.subjectsGrid}>
-        {subjects.filter(subject => subject && subject.name).map((subject, index) => (
-          <View key={`${String(subject.name)}-${index}`} style={styles.subjectContainer}>
-            <SubjectBox
-              subject={subject}
-              onPress={handleSubjectPress}
-              isExpanded={expandedSubject === subject.name}
-            />
+        {subjects.filter(subject => subject && subject.name).map((subject, index) => {
+          const progressKey = `${subject.name}|${subject.cefrLevel}`;
+          const progress = subjectProgress.get(progressKey);
+          
+          return (
+            <View key={`${String(subject.name)}-${index}`} style={styles.subjectContainer}>
+              <SubjectBox
+                subject={subject}
+                onPress={handleSubjectPress}
+                isExpanded={expandedSubject === subject.name}
+                progress={progress}
+              />
             
             {/* Expanded Lessons (like original system) */}
             {expandedSubject === subject.name && (
@@ -342,7 +421,8 @@ export default function SubjectBoxes({ onSubjectSelect, maxSubjects = 6, onCefrL
               </View>
             )}
           </View>
-        ))}
+        );
+        })}
       </View>
       
       {subjects.length === 0 ? (
@@ -612,5 +692,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#ffffff',
+  },
+  completedBadge: {
+    marginLeft: 8,
+  },
+  progressBarContainer: {
+    height: 4,
+    backgroundColor: '#e5e7eb',
+    borderRadius: 2,
+    marginTop: 8,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    borderRadius: 2,
   },
 });

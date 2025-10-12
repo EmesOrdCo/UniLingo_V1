@@ -7,6 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { SubjectLessonService, SubjectLessonData } from '../lib/subjectLessonService';
 import { XPService } from '../lib/xpService';
 import { logger } from '../lib/logger';
+import { GeneralLessonProgressService } from '../lib/generalLessonProgressService';
 import LessonFlashcards from '../components/lesson/LessonFlashcards';
 import LessonFlashcardQuiz from '../components/lesson/LessonFlashcardQuiz';
 import LessonSentenceScramble from '../components/lesson/LessonSentenceScramble';
@@ -15,7 +16,7 @@ import LessonFillInTheBlank from '../components/lesson/LessonFillInTheBlank';
 import LessonListen from '../components/lesson/LessonListen';
 import LessonSpeak from '../components/lesson/LessonSpeak';
 
-type ExerciseStep = 'flow-preview' | 'flashcards' | 'flashcard-quiz' | 'sentence-scramble' | 'word-scramble' | 'fill-in-blank' | 'listen' | 'speak' | 'completed';
+type ExerciseStep = 'flow-preview' | 'words' | 'listen' | 'speak' | 'write' | 'roleplay' | 'completed';
 
 interface RouteParams {
   subjectName: string;
@@ -155,15 +156,38 @@ export default function SubjectLessonScreen() {
     // Mark exercise as completed
     setCompletedExercises(prev => new Set(prev).add(exerciseType));
 
+    // Record progress in database
+    if (user && cefrLevel) {
+      try {
+        const sessionTime = calculateSessionTime();
+        const accuracy = maxScore > 0 ? (score / maxScore) * 100 : 0;
+        
+        await GeneralLessonProgressService.recordExerciseCompletion(
+          user.id,
+          subjectName,
+          cefrLevel,
+          {
+            exerciseName: exerciseType,
+            score,
+            maxScore,
+            accuracy,
+            timeSpentSeconds: sessionTime
+          }
+        );
+        
+        logger.info(`📊 Progress recorded for ${exerciseType}`);
+      } catch (error) {
+        logger.error('Error recording progress:', error);
+      }
+    }
+
     // Define exercise flow order
     const exerciseFlow: ExerciseStep[] = [
-      'flashcards',
-      'flashcard-quiz', 
-      'word-scramble',
-      'sentence-scramble',
-      'fill-in-blank',
+      'words',
       'listen',
-      'speak'
+      'speak',
+      'write',
+      'roleplay'
     ];
 
     // Find current exercise index
@@ -173,13 +197,11 @@ export default function SubjectLessonScreen() {
     if (currentIndex < exerciseFlow.length - 1) {
       const nextExercise = exerciseFlow[currentIndex + 1];
       const exerciseNames: { [key: string]: string } = {
-        'flashcards': 'Flashcards',
-        'flashcard-quiz': 'Quiz',
-        'word-scramble': 'Word Scramble',
-        'sentence-scramble': 'Sentence Scramble',
-        'fill-in-blank': 'Fill in the Blank',
+        'words': 'Words',
         'listen': 'Listen',
-        'speak': 'Speak'
+        'speak': 'Speak',
+        'write': 'Write',
+        'roleplay': 'Roleplay'
       };
       
       logger.info(`🔄 Auto-advancing to next exercise: ${nextExercise}`);
@@ -275,52 +297,30 @@ export default function SubjectLessonScreen() {
     );
   }
 
+  // Helper function to count B sentences in lesson script
+  const countBSentences = (script: string): number => {
+    if (!script) return 0;
+    const bMatches = script.match(/B: /g);
+    return bMatches ? bMatches.length : 0;
+  };
+
+  // Get lesson script for Write and Roleplay scoring
+  const lessonScript = lessonData?.lessonScript?.english_lesson_script || '';
+  const bSentenceCount = countBSentences(lessonScript);
+
+  // Calculate correct max scores for each exercise
+  const maxScoreWords = formattedVocabulary.length; // Flashcards: number of cards
+  const maxScoreListen = formattedVocabulary.length; // Listen: number of words
+  const maxScoreSpeak = formattedVocabulary.length; // Speak: number of words (binary scoring)
+  const maxScoreWrite = bSentenceCount || formattedVocabulary.length; // Write: number of B sentences
+  const maxScoreRoleplay = bSentenceCount || formattedVocabulary.length; // Roleplay: number of B sentences
+
   // Render current exercise
-  if (currentStep === 'flashcards') {
+  if (currentStep === 'words') {
     return (
       <LessonFlashcards
         vocabulary={formattedVocabulary}
-        onComplete={(score) => handleExerciseComplete('flashcards', score, 100)}
-        onClose={handleExit}
-      />
-    );
-  }
-
-  if (currentStep === 'flashcard-quiz') {
-    return (
-      <LessonFlashcardQuiz
-        vocabulary={formattedVocabulary}
-        onComplete={(score) => handleExerciseComplete('flashcardQuiz', score, 100)}
-        onClose={handleExit}
-      />
-    );
-  }
-
-  if (currentStep === 'sentence-scramble') {
-    return (
-      <LessonSentenceScramble
-        vocabulary={formattedVocabulary}
-        onComplete={(score) => handleExerciseComplete('sentenceScramble', score, 100)}
-        onClose={handleExit}
-      />
-    );
-  }
-
-  if (currentStep === 'word-scramble') {
-    return (
-      <LessonWordScramble
-        vocabulary={formattedVocabulary}
-        onComplete={(score) => handleExerciseComplete('wordScramble', score, 100)}
-        onClose={handleExit}
-      />
-    );
-  }
-
-  if (currentStep === 'fill-in-blank') {
-    return (
-      <LessonFillInTheBlank
-        vocabulary={formattedVocabulary}
-        onComplete={(score) => handleExerciseComplete('fillInBlank', score, 100)}
+        onComplete={(score) => handleExerciseComplete('words', score, maxScoreWords)}
         onClose={handleExit}
       />
     );
@@ -330,7 +330,7 @@ export default function SubjectLessonScreen() {
     return (
       <LessonListen
         vocabulary={formattedVocabulary}
-        onComplete={(score) => handleExerciseComplete('listen', score, 100)}
+        onComplete={(score) => handleExerciseComplete('listen', score, maxScoreListen)}
         onClose={handleExit}
       />
     );
@@ -340,7 +340,27 @@ export default function SubjectLessonScreen() {
     return (
       <LessonSpeak
         vocabulary={formattedVocabulary}
-        onComplete={(score) => handleExerciseComplete('speak', score, 100)}
+        onComplete={(score) => handleExerciseComplete('speak', score, maxScoreSpeak)}
+        onClose={handleExit}
+      />
+    );
+  }
+
+  if (currentStep === 'write') {
+    return (
+      <LessonFillInTheBlank
+        vocabulary={formattedVocabulary}
+        onComplete={(score) => handleExerciseComplete('write', score, maxScoreWrite)}
+        onClose={handleExit}
+      />
+    );
+  }
+
+  if (currentStep === 'roleplay') {
+    return (
+      <LessonSentenceScramble
+        vocabulary={formattedVocabulary}
+        onComplete={(score) => handleExerciseComplete('roleplay', score, maxScoreRoleplay)}
         onClose={handleExit}
       />
     );

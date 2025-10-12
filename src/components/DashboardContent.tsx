@@ -9,6 +9,7 @@ import { GeneralVocabService } from '../lib/generalVocabService';
 import { UnitDataService, UnitData } from '../lib/unitDataService';
 import SubjectBoxes from './SubjectBoxes';
 import { SubjectData } from '../lib/subjectDataService';
+import { CefrProgressService, CefrLevelProgress } from '../lib/cefrProgressService';
 
 interface DashboardContentProps {
   progressData: any;
@@ -22,6 +23,8 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
   const { selectedUnit, setSelectedUnit } = useSelectedUnit();
   const { refreshTrigger } = useRefresh();
   const [selectedCefrLevel, setSelectedCefrLevel] = useState<string>('A1');
+  const [cefrProgress, setCefrProgress] = useState<CefrLevelProgress | null>(null);
+  const [loadingCefrProgress, setLoadingCefrProgress] = useState(false);
   
   console.log('📊 DashboardContent - selectedUnit from context:', selectedUnit);
   
@@ -34,6 +37,20 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
       console.log('📊 Using selectedUnit from context:', selectedUnit);
     }
   }, [selectedUnit]);
+
+  // Load CEFR progress when component mounts or CEFR level changes
+  useEffect(() => {
+    if (user?.id) {
+      loadCefrProgress(selectedCefrLevel);
+    }
+  }, [user?.id, selectedCefrLevel]);
+
+  // Reload CEFR progress when refresh is triggered
+  useEffect(() => {
+    if (refreshTrigger && user?.id) {
+      loadCefrProgress(selectedCefrLevel);
+    }
+  }, [refreshTrigger, user?.id, selectedCefrLevel]);
 
   const loadDefaultUnit = async () => {
     try {
@@ -71,6 +88,20 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
       setSelectedUnit(defaultUnit);
     } catch (error) {
       console.error('Error loading Unit 1:', error);
+    }
+  };
+
+  const loadCefrProgress = async (cefrLevel: string) => {
+    if (!user?.id) return;
+    
+    try {
+      setLoadingCefrProgress(true);
+      const progress = await CefrProgressService.getCefrLevelProgress(user.id, cefrLevel);
+      setCefrProgress(progress);
+    } catch (error) {
+      console.error('Error loading CEFR progress:', error);
+    } finally {
+      setLoadingCefrProgress(false);
     }
   };
 
@@ -258,9 +289,28 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
             {/* Progress Bar */}
             <View style={styles.progressSection}>
               <View style={styles.progressBar}>
-                <View style={styles.progressFill} />
+                <View 
+                  style={[
+                    styles.progressFill,
+                    {
+                      width: loadingCefrProgress 
+                        ? '2%' 
+                        : `${cefrProgress?.progressPercentage || 0}%`,
+                      backgroundColor: cefrProgress?.status === 'completed' 
+                        ? '#10b981' 
+                        : cefrProgress?.status === 'in_progress' 
+                          ? '#6366f1' 
+                          : '#e5e7eb'
+                    }
+                  ]} 
+                />
               </View>
-              <Text style={styles.progressText}>2%</Text>
+              <Text style={styles.progressText}>
+                {loadingCefrProgress 
+                  ? '...' 
+                  : `${cefrProgress?.progressPercentage || 0}%`
+                }
+              </Text>
             </View>
           </View>
 
@@ -344,11 +394,8 @@ const styles = StyleSheet.create({
     borderColor: '#e2e8f0',
   },
   progressFill: {
-    width: '2%',
     height: '100%',
-    backgroundColor: '#6366f1',
     borderRadius: 6,
-    shadowColor: '#6366f1',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
