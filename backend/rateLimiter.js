@@ -14,19 +14,10 @@
  */
 
 const Bottleneck = require('bottleneck');
-const Redis = require('ioredis');
+const { redis, redisConfig } = require('./redisConnection');
 
-// Redis connection
-const redisConfig = process.env.REDIS_URL ? 
-  process.env.REDIS_URL :
-  {
-    host: process.env.REDIS_HOST || 'localhost',
-    port: parseInt(process.env.REDIS_PORT || '6379'),
-    password: process.env.REDIS_PASSWORD,
-  };
-
-const redis = new Redis(redisConfig);
-const redisClient = new Redis(redisConfig); // Separate client for Bottleneck
+// Use shared Redis connection
+const redisClient = redis; // Use the shared connection
 
 /**
  * Create a Redis-backed rate limiter

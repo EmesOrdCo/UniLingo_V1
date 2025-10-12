@@ -37,7 +37,8 @@ class CircuitBreaker {
         password: process.env.REDIS_PASSWORD,
       };
     
-    this.redis = new Redis(redisConfig);
+    const { redis } = require('./redisConnection');
+    this.redis = redis;
     
     // Redis keys
     this.keys = {

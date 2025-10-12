@@ -27,7 +27,7 @@ const redisConfig = {
 };
 
 // Create Redis client for health checks
-const redis = new Redis(redisConfig.connection);
+const { redis } = require('./redisConnection');
 
 // Log connection status
 redis.on('connect', () => {
