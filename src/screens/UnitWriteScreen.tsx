@@ -161,8 +161,8 @@ export default function UnitWriteScreen() {
 
   // Reset lesson state when write exercises are loaded
   useEffect(() => {
-    if (writeExercises.length > 0) {
-      console.log('🔄 Resetting lesson state for new write exercises');
+    if (conversationData && conversationData.conversation && conversationData.conversation.length > 0) {
+      console.log('🔄 Resetting lesson state for new conversation data');
       setCurrentExchangeIndex(0);
       setScore(0);
       setCompleted(false);
@@ -171,9 +171,17 @@ export default function UnitWriteScreen() {
       setSelectedAnswer(null);
       setUserAnswer([]);
       setAvailableWords([]);
-      setConversationHistory([]);
+      // Initialize with first Thomas message (first Assistant message)
+      const firstAssistantMsg = conversationData.conversation.find(msg => msg.speaker === 'Assistant');
+      if (firstAssistantMsg) {
+        setConversationHistory([{
+          type: 'app',
+          french: firstAssistantMsg.message,
+          english: firstAssistantMsg.message,
+        }]);
+      }
     }
-  }, [writeExercises]);
+  }, [conversationData]);
 
   const loadWriteExercises = async () => {
     try {
@@ -247,48 +255,83 @@ export default function UnitWriteScreen() {
     }
   };
 
-  const currentExchange = writeExercises.length > 0 && currentExchangeIndex < writeExercises.length 
-    ? { 
-        userMessage: { 
-          french: writeExercises[currentExchangeIndex].french, // This is actually English text now
-          english: writeExercises[currentExchangeIndex].english 
+  // Get current exchange data from conversation
+  const getCurrentExchange = () => {
+    if (!conversationData || !conversationData.conversation) {
+      return CONVERSATION[currentExchangeIndex] || CONVERSATION[0];
+    }
+
+    // Get the current question/response pair from conversation data
+    // We need to find the user message at the current index
+    const userMessages = conversationData.conversation.filter(msg => msg.speaker === 'User');
+    
+    if (currentExchangeIndex < userMessages.length) {
+      const userMsg = userMessages[currentExchangeIndex];
+      const assistantMessages = conversationData.conversation.filter(msg => msg.speaker === 'Assistant');
+      const assistantMsg = assistantMessages[currentExchangeIndex] || assistantMessages[0];
+      
+      return {
+        appMessage: {
+          french: assistantMsg.message,
+          english: assistantMsg.message
         },
-        type: 'scramble' as const
-      }
-    : CONVERSATION[currentExchangeIndex] || CONVERSATION[0];
+        userMessage: {
+          french: userMsg.message,
+          english: userMsg.message
+        },
+        type: currentExchangeIndex < 2 ? 'choice' as const : 'scramble' as const,
+        wrongOption: currentExchangeIndex < 2 ? (currentExchangeIndex === 0 ? 'No' : 'Goodbye') : undefined
+      };
+    }
+    
+    return CONVERSATION[currentExchangeIndex] || CONVERSATION[0];
+  };
+
+  const currentExchange = getCurrentExchange();
 
   // Debug: Log which data source is being used
   console.log('🔍 UnitWriteScreen currentExchange debug:', {
-    usingDatabaseData: writeExercises.length > 0,
-    writeExercisesLength: writeExercises.length,
+    hasConversationData: !!conversationData,
+    conversationLength: conversationData?.conversation?.length || 0,
     currentExchangeIndex,
     currentText: currentExchange.userMessage.french,
     textPreview: currentExchange.userMessage.french?.substring(0, 50)
   });
-  const isLastExchange = currentExchangeIndex === (writeExercises.length > 0 ? writeExercises.length - 1 : CONVERSATION.length - 1);
+  
+  const getTotalExchanges = () => {
+    if (conversationData && conversationData.conversation) {
+      return conversationData.conversation.filter(msg => msg.speaker === 'User').length;
+    }
+    return CONVERSATION.length;
+  };
+  
+  const isLastExchange = currentExchangeIndex === getTotalExchanges() - 1;
 
-  // Initialize first app message
+  // Initialize with Thomas's first message in chat history
   useEffect(() => {
     if (conversationHistory.length === 0 && !completed) {
-      setConversationHistory([{
-        type: 'app',
-        french: CONVERSATION[0].appMessage.french,
-        english: CONVERSATION[0].appMessage.english,
-      }]);
+      const firstExchange = getCurrentExchange();
+      if (firstExchange && firstExchange.appMessage) {
+        setConversationHistory([{
+          type: 'app',
+          french: firstExchange.appMessage.french,
+          english: firstExchange.appMessage.english,
+        }]);
+      }
     }
-  }, []);
+  }, [conversationData, completed]);
 
   // Initialize scramble words when needed
   useEffect(() => {
-    if (!completed && currentExchangeIndex < CONVERSATION.length) {
-      const exchange = CONVERSATION[currentExchangeIndex];
+    if (!completed) {
+      const exchange = getCurrentExchange();
       if (exchange && exchange.type === 'scramble' && conversationHistory.length > 0) {
         const words = exchange.userMessage.french.split(' ');
         setAvailableWords([...words].sort(() => Math.random() - 0.5));
         setUserAnswer([]);
       }
     }
-  }, [currentExchangeIndex, conversationHistory.length, completed]);
+  }, [currentExchangeIndex, conversationHistory.length, completed, conversationData]);
 
   // Auto-scroll to bottom when conversation updates
   useEffect(() => {
@@ -333,10 +376,11 @@ export default function UnitWriteScreen() {
       setScore(score + 1);
       setCheckButtonText('Correct! ✓');
       
-      // After 1 second, add user message to chat and move to next
+      // After 1 second, add user's answer and next Thomas message to chat history
       setTimeout(() => {
         const newHistory = [
           ...conversationHistory,
+          // Add user's correct answer to history
           {
             type: 'user' as const,
             french: currentExchange.userMessage.french,
@@ -344,13 +388,17 @@ export default function UnitWriteScreen() {
           }
         ];
 
-        if (!isLastExchange) {
-          // Add next app message
-          newHistory.push({
-            type: 'app' as const,
-            french: CONVERSATION[currentExchangeIndex + 1].appMessage.french,
-            english: CONVERSATION[currentExchangeIndex + 1].appMessage.english,
-          });
+        // If not the last exchange, add the next Thomas message
+        if (!isLastExchange && conversationData) {
+          const assistantMessages = conversationData.conversation.filter(msg => msg.speaker === 'Assistant');
+          const nextAssistantMsg = assistantMessages[currentExchangeIndex + 1];
+          if (nextAssistantMsg) {
+            newHistory.push({
+              type: 'app' as const,
+              french: nextAssistantMsg.message,
+              english: nextAssistantMsg.message,
+            });
+          }
         }
 
         setConversationHistory(newHistory);
@@ -385,6 +433,7 @@ export default function UnitWriteScreen() {
   const handleSkip = () => {
     const newHistory = [
       ...conversationHistory,
+      // Add user's answer to history (even if skipped)
       {
         type: 'user' as const,
         french: currentExchange.userMessage.french,
@@ -392,12 +441,17 @@ export default function UnitWriteScreen() {
       }
     ];
 
-    if (!isLastExchange) {
-      newHistory.push({
-        type: 'app' as const,
-        french: CONVERSATION[currentExchangeIndex + 1].appMessage.french,
-        english: CONVERSATION[currentExchangeIndex + 1].appMessage.english,
-      });
+    // If not the last exchange, add the next Thomas message
+    if (!isLastExchange && conversationData) {
+      const assistantMessages = conversationData.conversation.filter(msg => msg.speaker === 'Assistant');
+      const nextAssistantMsg = assistantMessages[currentExchangeIndex + 1];
+      if (nextAssistantMsg) {
+        newHistory.push({
+          type: 'app' as const,
+          french: nextAssistantMsg.message,
+          english: nextAssistantMsg.message,
+        });
+      }
     }
 
     setConversationHistory(newHistory);
@@ -720,7 +774,8 @@ export default function UnitWriteScreen() {
   }, []);
 
   if (completed) {
-    const accuracyPercentage = Math.round((score / CONVERSATION.length) * 100);
+    const totalExchanges = getTotalExchanges();
+    const accuracyPercentage = Math.round((score / totalExchanges) * 100);
     
     return (
       <SafeAreaView style={styles.completionContainer}>
@@ -731,7 +786,7 @@ export default function UnitWriteScreen() {
           
           <View style={styles.completionStats}>
             <View style={styles.completionStatCard}>
-              <Text style={styles.completionStatValue}>{score}/{CONVERSATION.length}</Text>
+              <Text style={styles.completionStatValue}>{score}/{totalExchanges}</Text>
               <Text style={styles.completionStatLabel}>Correct</Text>
             </View>
             <View style={styles.completionStatCard}>
@@ -744,10 +799,12 @@ export default function UnitWriteScreen() {
             <TouchableOpacity 
               style={styles.completionRetryButton} 
               onPress={() => {
+                // Reset to initial state with first Thomas message
+                const firstExchange = getCurrentExchange();
                 setConversationHistory([{
                   type: 'app',
-                  french: CONVERSATION[0].appMessage.french,
-                  english: CONVERSATION[0].appMessage.english,
+                  french: firstExchange.appMessage.french,
+                  english: firstExchange.appMessage.english,
                 }]);
                 setCurrentExchangeIndex(0);
                 setScore(0);
@@ -789,192 +846,19 @@ export default function UnitWriteScreen() {
     );
   }
 
-  // Show conversation interface if we have conversation data
+  // This is for the old conversation data system - redirect to fallback chat interface
   if (conversationData && conversationData.conversation.length > 0) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="#000000" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>{unitTitle} - Write</Text>
-          <View style={styles.headerSpacer} />
-        </View>
-
-        {/* Conversation Interface */}
-        <KeyboardAvoidingView 
-          style={styles.conversationContainer} 
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        >
-          <ScrollView 
-            style={styles.conversationScrollView}
-            contentContainerStyle={styles.conversationContent}
-            ref={scrollViewRef}
-          >
-            {/* Conversation Messages */}
-            {conversationData.conversation.slice(0, currentMessageIndex + (isTypingAnimation ? 0 : 1)).map((message, index) => (
-              <View key={index} style={[
-                styles.messageContainer,
-                message.speaker === 'Assistant' ? styles.assistantMessage : styles.userMessage
-              ]}>
-                <Text style={[
-                  styles.messageText,
-                  message.speaker === 'Assistant' ? styles.assistantText : styles.userText
-                ]}>
-                  {message.speaker === 'Assistant' && index === currentMessageIndex && isTypingAnimation 
-                    ? typingText 
-                    : message.message}
-                </Text>
-              </View>
-            ))}
-            
-            {/* Show current message with typing animation */}
-            {isTypingAnimation && currentMessageIndex < conversationData.conversation.length && (
-              <View style={[
-                styles.messageContainer,
-                styles.assistantMessage
-              ]}>
-                <Text style={[styles.messageText, styles.assistantText]}>
-                  {typingText}
-                </Text>
-              </View>
-            )}
-
-            {/* Exercise Section */}
-            {exerciseState.isActive && exerciseState.exercise && (
-              <View style={styles.exerciseContainer}>
-                <Text style={styles.exerciseTitle}>
-                  Practice: {exerciseState.exercise.type === 'sentence-scramble' ? 'Sentence Scramble' : 'Fill in the Blank'}
-                </Text>
-                
-                {exerciseState.exercise.type === 'sentence-scramble' && (
-                  <View style={styles.scrambleContainer}>
-                    <Text style={styles.scrambleInstructions}>
-                      Put the words in the correct order:
-                    </Text>
-                    <View style={styles.scrambleWordsContainer}>
-                      {scrambleOrder.map((word, index) => (
-                        <TouchableOpacity
-                          key={index}
-                          style={styles.scrambleWord}
-                          onPress={() => {
-                            const newOrder = [...scrambleOrder];
-                            const wordIndex = newOrder.indexOf(word);
-                            if (wordIndex > -1) {
-                              newOrder.splice(wordIndex, 1);
-                              setScrambleOrder(newOrder);
-                            }
-                          }}
-                        >
-                          <Text style={styles.scrambleWordText}>{word}</Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                    <View style={styles.scrambleAnswerContainer}>
-                      {scrambleOrder.map((word, index) => (
-                        <TouchableOpacity
-                          key={index}
-                          style={styles.scrambleAnswerWord}
-                          onPress={() => {
-                            const newOrder = [...scrambleOrder];
-                            newOrder.splice(index, 1);
-                            setScrambleOrder(newOrder);
-                          }}
-                        >
-                          <Text style={styles.scrambleAnswerText}>{word}</Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  </View>
-                )}
-
-                {exerciseState.exercise.type === 'fill-in-blank' && (
-                  <View style={styles.fillBlankContainer}>
-                    <Text style={styles.fillBlankInstructions}>
-                      Complete the sentence:
-                    </Text>
-                    <Text style={styles.fillBlankSentence}>
-                      {exerciseState.exercise.sentence.replace(
-                        new RegExp(exerciseState.exercise.keyword, 'gi'), 
-                        '_____'
-                      )}
-                    </Text>
-                    <TextInput
-                      style={styles.fillBlankInput}
-                      value={fillBlankAnswer}
-                      onChangeText={setFillBlankAnswer}
-                      placeholder={`Type "${exerciseState.exercise.keyword}" here...`}
-                      placeholderTextColor="#9ca3af"
-                    />
-                  </View>
-                )}
-
-                <TouchableOpacity 
-                  style={styles.checkExerciseButton}
-                  onPress={() => {
-                    let isCorrect = false;
-                    
-                    if (exerciseState.exercise?.type === 'sentence-scramble') {
-                      isCorrect = JSON.stringify(scrambleOrder) === JSON.stringify(scrambleCorrectOrder);
-                    } else if (exerciseState.exercise?.type === 'fill-in-blank') {
-                      isCorrect = fillBlankAnswer.toLowerCase().trim() === exerciseState.exercise.keyword.toLowerCase();
-                    }
-                    
-                    if (isCorrect) {
-                      setExerciseState(prev => ({ ...prev, isCompleted: true, score: prev.score + 1 }));
-                      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                      setTimeout(() => {
-                        setExerciseState({ isActive: false, exercise: null, isCompleted: false, score: 0 });
-                        handleNextMessage();
-                      }, 1500);
-                    } else {
-                      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-                    }
-                  }}
-                >
-                  <Text style={styles.checkExerciseButtonText}>Check</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-          </ScrollView>
-        </KeyboardAvoidingView>
-
-        {/* Exit Confirmation Modal */}
-        <Modal
-          visible={showExitModal}
-          transparent={true}
-          animationType="fade"
-          onRequestClose={handleCancelExit}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Are you sure you want to leave?</Text>
-              <Text style={styles.modalSubtitle}>
-                Your progress won't be saved for this lesson, and you'll have to start again when you return.
-              </Text>
-              
-              <TouchableOpacity style={styles.modalConfirmButton} onPress={handleConfirmExit}>
-                <Text style={styles.modalConfirmButtonText}>Yes, I want to leave</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity style={styles.modalCancelButton} onPress={handleCancelExit}>
-                <Text style={styles.modalCancelButtonText}>Not Now</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </Modal>
-      </SafeAreaView>
-    );
+    // Just fall through to the chat-style interface below
   }
 
-  // Fallback to original interface
+  // Chat-style interface (like messaging app)
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#000000" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{unitTitle} - Write</Text>
+        <Text style={styles.headerTitle}>{unitTitle}</Text>
         <View style={styles.headerSpacer} />
       </View>
 
@@ -1006,7 +890,7 @@ export default function UnitWriteScreen() {
       {/* Progress Bar */}
       <View style={styles.progressContainer}>
         <View style={styles.progressSegments}>
-          {CONVERSATION.map((_, idx) => (
+          {Array.from({ length: getTotalExchanges() }).map((_, idx) => (
             <View
               key={idx}
               style={[
@@ -1019,204 +903,208 @@ export default function UnitWriteScreen() {
         </View>
       </View>
 
-      {/* Conversation History */}
+      {/* Scrollable Chat History (completed exchanges only) */}
       <ScrollView 
         ref={scrollViewRef}
-        style={styles.conversationScroll}
-        contentContainerStyle={styles.conversationContent}
+        style={styles.chatScroll}
+        contentContainerStyle={styles.chatContent}
       >
         {conversationHistory.map((message, index) => (
-          <View key={index} style={[
-            styles.messageWrapper,
-            message.type === 'user' && styles.messageWrapperUser
-          ]}>
+          <View key={index}>
             {message.type === 'app' && (
-              <Text style={styles.messageName}>Thomas</Text>
-            )}
-            <View
-              style={[
-                styles.messageBubble,
-                message.type === 'app' ? styles.appMessageBubble : styles.userMessageBubble
-              ]}
-            >
-              <Text style={[
-                styles.messageFrench,
-                message.type === 'user' && styles.userMessageFrench
-              ]}>
-                {message.french}
-              </Text>
-              <Text style={[
-                styles.messageEnglish,
-                message.type === 'user' && styles.userMessageEnglish
-              ]}>
-                {message.english}
-              </Text>
-              
-              {/* Action Buttons */}
-              <View style={styles.messageActions}>
-                <TouchableOpacity style={styles.messageActionButton}>
-                  <Ionicons name="volume-high" size={16} color="#ffffff" />
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.messageActionButton}>
-                  <Ionicons name="wifi" size={16} color="#ffffff" />
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.messageActionButton}>
-                  <Ionicons name="swap-horizontal" size={16} color="#ffffff" />
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.messageActionButton}>
-                  <Ionicons name="bar-chart" size={16} color="#ffffff" />
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.messageActionButton}>
-                  <Ionicons name="school" size={16} color="#ffffff" />
-                </TouchableOpacity>
+              <View style={styles.chatMessageLeft}>
+                <Text style={styles.chatSenderName}>Thomas</Text>
+                <View style={styles.chatBubbleThomas}>
+                  <Text style={styles.chatBubblePrimary}>{message.french}</Text>
+                  <Text style={styles.chatBubbleSecondary}>{message.english}</Text>
+                  <View style={styles.chatBubbleActions}>
+                    <TouchableOpacity style={styles.chatActionIcon}>
+                      <Ionicons name="volume-high" size={16} color="rgba(255,255,255,0.8)" />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.chatActionIcon}>
+                      <Ionicons name="wifi" size={16} color="rgba(255,255,255,0.8)" />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.chatActionIcon}>
+                      <Ionicons name="swap-horizontal" size={16} color="rgba(255,255,255,0.8)" />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.chatActionIcon}>
+                      <Ionicons name="stats-chart" size={16} color="rgba(255,255,255,0.8)" />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.chatActionIcon}>
+                      <Ionicons name="school" size={16} color="rgba(255,255,255,0.8)" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
               </View>
-            </View>
+            )}
+            {message.type === 'user' && (
+              <View style={styles.chatMessageRight}>
+                <View style={styles.chatBubbleUser}>
+                  <Text style={styles.chatBubbleUserPrimary}>{message.french}</Text>
+                  <Text style={styles.chatBubbleUserSecondary}>{message.english}</Text>
+                  <View style={styles.chatBubbleActions}>
+                    <TouchableOpacity style={styles.chatActionIcon}>
+                      <Ionicons name="volume-high" size={16} color="rgba(255,255,255,0.8)" />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.chatActionIcon}>
+                      <Ionicons name="wifi" size={16} color="rgba(255,255,255,0.8)" />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.chatActionIcon}>
+                      <Ionicons name="swap-horizontal" size={16} color="rgba(255,255,255,0.8)" />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.chatActionIcon}>
+                      <Ionicons name="stats-chart" size={16} color="rgba(255,255,255,0.8)" />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.chatActionIcon}>
+                      <Ionicons name="school" size={16} color="rgba(255,255,255,0.8)" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            )}
           </View>
         ))}
       </ScrollView>
 
-      {/* Input Area */}
-      {currentExchangeIndex < CONVERSATION.length && (
-        <View style={styles.inputContainer}>
-          <Text style={styles.inputTitle}>
+      {/* Pinned Bottom Section: Current Question + Answer Interface */}
+      {currentExchangeIndex < getTotalExchanges() && (
+        <View style={styles.bottomPinnedSection}>
+          <Text style={styles.questionLabel}>
             {currentExchange.type === 'choice' ? 'TAP THE CORRECT ANSWER' : 'CORRECT THE ORDERING'}
           </Text>
+          
+          {/* Current Question Bubble */}
+          <Text style={styles.currentPrompt}>{currentExchange.userMessage.english}</Text>
 
+          {/* Answer Interface */}
           {currentExchange.type === 'choice' ? (
-            // Multiple Choice
-            <View style={styles.choiceContainer}>
-              <Text style={styles.choicePrompt}>{currentExchange.userMessage.english}</Text>
-              
+            // Multiple Choice (First 2 questions)
+            <View style={styles.multiChoiceContainer}>
               <TouchableOpacity
                 style={[
-                  styles.choiceButton,
-                  selectedAnswer === currentExchange.userMessage.french && !showResult && styles.choiceButtonSelected,
-                  showResult && selectedAnswer === currentExchange.userMessage.french && isCorrect && styles.choiceButtonCorrect,
-                  showResult && selectedAnswer === currentExchange.userMessage.french && !isCorrect && styles.choiceButtonIncorrect,
+                  styles.multiChoiceButton,
+                  selectedAnswer === currentExchange.userMessage.french && styles.multiChoiceSelected,
                 ]}
                 onPress={() => handleAnswerSelect(currentExchange.userMessage.french)}
                 disabled={showResult}
               >
-                <Text style={[
-                  styles.choiceButtonText,
-                  selectedAnswer === currentExchange.userMessage.french && !showResult && styles.choiceButtonTextSelected,
-                  showResult && selectedAnswer === currentExchange.userMessage.french && isCorrect && styles.choiceButtonTextCorrect,
-                  showResult && selectedAnswer === currentExchange.userMessage.french && !isCorrect && styles.choiceButtonTextIncorrect,
-                ]}>
+                <Text style={styles.multiChoiceButtonText}>
                   {currentExchange.userMessage.french}
                 </Text>
-                {showResult && selectedAnswer === currentExchange.userMessage.french && isCorrect && (
-                  <Ionicons name="checkmark-circle" size={24} color="#10b981" />
-                )}
-                {showResult && selectedAnswer === currentExchange.userMessage.french && !isCorrect && (
-                  <Ionicons name="close-circle" size={24} color="#ef4444" />
-                )}
+                <Text style={styles.multiChoiceButtonEnglish}>
+                  {currentExchange.userMessage.english}
+                </Text>
               </TouchableOpacity>
               
               <TouchableOpacity
                 style={[
-                  styles.choiceButton,
-                  selectedAnswer === currentExchange.wrongOption && !showResult && styles.choiceButtonSelected,
-                  showResult && selectedAnswer === currentExchange.wrongOption && styles.choiceButtonIncorrect,
+                  styles.multiChoiceButton,
+                  selectedAnswer === currentExchange.wrongOption && styles.multiChoiceSelected,
                 ]}
                 onPress={() => handleAnswerSelect(currentExchange.wrongOption)}
                 disabled={showResult}
               >
-                <Text style={[
-                  styles.choiceButtonText,
-                  selectedAnswer === currentExchange.wrongOption && !showResult && styles.choiceButtonTextSelected,
-                  showResult && selectedAnswer === currentExchange.wrongOption && styles.choiceButtonTextIncorrect,
-                ]}>
+                <Text style={styles.multiChoiceButtonText}>
                   {currentExchange.wrongOption}
                 </Text>
-                {showResult && selectedAnswer === currentExchange.wrongOption && (
-                  <Ionicons name="close-circle" size={24} color="#ef4444" />
-                )}
               </TouchableOpacity>
             </View>
           ) : (
-            // Sentence Scramble
-            <View style={styles.scrambleContainer}>
-              <Text style={styles.scramblePrompt}>{currentExchange.userMessage.english}</Text>
-              
-              {/* User Answer Area */}
-              <View style={styles.answerArea}>
-                {userAnswer.map((word, index) => (
-                  <TouchableOpacity
-                    key={`answer-${index}`}
-                    style={styles.wordChip}
-                    onPress={() => handleWordPress(word, true)}
-                    disabled={showResult}
+            // Word Scramble (Remaining questions)
+            <View style={styles.wordScrambleContainer}>
+              {/* Answer input bar */}
+              <View style={styles.scrambleInputBar}>
+                {userAnswer.length > 0 ? (
+                  userAnswer.map((word, index) => (
+                    <TouchableOpacity
+                      key={`answer-${index}`}
+                      style={styles.scrambleWordInBar}
+                      onPress={() => handleWordPress(word, true)}
+                      disabled={showResult}
+                    >
+                      <Text style={styles.scrambleWordInBarText}>{word}</Text>
+                    </TouchableOpacity>
+                  ))
+                ) : (
+                  <Text style={styles.scramblePlaceholder}>Tap words to arrange them</Text>
+                )}
+                {userAnswer.length > 0 && (
+                  <TouchableOpacity 
+                    style={styles.clearButton}
+                    onPress={() => {
+                      if (!showResult) {
+                        setAvailableWords([...availableWords, ...userAnswer]);
+                        setUserAnswer([]);
+                      }
+                    }}
                   >
-                    <Text style={styles.wordChipText}>{word}</Text>
+                    <Ionicons name="close" size={20} color="#9ca3af" />
                   </TouchableOpacity>
-                ))}
-                {userAnswer.length === 0 && (
-                  <Text style={styles.placeholderText}>Tap the words below</Text>
                 )}
               </View>
 
-              {/* Available Words */}
-              <View style={styles.wordsContainer}>
+              {/* Available words */}
+              <View style={styles.scrambleWordsGrid}>
                 {availableWords.map((word, index) => (
                   <TouchableOpacity
                     key={`available-${index}`}
-                    style={styles.wordChip}
+                    style={styles.scrambleWordButton}
                     onPress={() => handleWordPress(word, false)}
                     disabled={showResult}
                   >
-                    <Text style={styles.wordChipText}>{word}</Text>
+                    <Text style={styles.scrambleWordButtonText}>{word}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
             </View>
           )}
 
-          {/* Result Message */}
+          {/* Feedback */}
           {showResult && !isCorrect && (
-            <View style={styles.resultMessage}>
-              <Text style={styles.resultTitle}>Incorrect! 😔</Text>
-              <Text style={styles.resultSubtitle}>
-                The correct answer is: {currentExchange.userMessage.french}
-              </Text>
-            </View>
+            <Text style={styles.feedbackIncorrect}>❌ Incorrect - Try again!</Text>
           )}
-        </View>
-      )}
+          {showResult && isCorrect && (
+            <Text style={styles.feedbackCorrect}>✓ Correct!</Text>
+          )}
 
-      {/* Bottom Actions */}
-      <View style={styles.bottomActions}>
-        {!showResult || isCorrect ? (
-          <TouchableOpacity
-            style={[
-              styles.checkButton,
-              (currentExchange.type === 'choice' && !selectedAnswer) || 
-              (currentExchange.type === 'scramble' && userAnswer.length === 0) 
-                ? styles.checkButtonDisabled 
-                : isCorrect 
-                ? styles.checkButtonCorrect 
-                : null
-            ]}
-            onPress={handleCheck}
-            disabled={
-              (currentExchange.type === 'choice' && !selectedAnswer) || 
-              (currentExchange.type === 'scramble' && userAnswer.length === 0)
-            }
-          >
-            <Text style={styles.checkButtonText}>{checkButtonText}</Text>
-          </TouchableOpacity>
-        ) : (
-          <View style={styles.incorrectActions}>
-            <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
-              <Text style={styles.retryButtonText}>Retry</Text>
+          {/* Bottom Action Buttons */}
+          <View style={styles.bottomActionBar}>
+            <TouchableOpacity style={styles.roundSpeakerButton}>
+              <Ionicons name="volume-high" size={28} color="#ffffff" />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
-              <Text style={styles.skipButtonText}>Skip</Text>
-              <Ionicons name="arrow-forward" size={20} color="#64748b" />
+
+            {!showResult || isCorrect ? (
+              <TouchableOpacity
+                style={[
+                  styles.checkButton,
+                  ((currentExchange.type === 'choice' && !selectedAnswer) || 
+                  (currentExchange.type === 'scramble' && userAnswer.length === 0)) && styles.checkButtonDisabled
+                ]}
+                onPress={handleCheck}
+                disabled={
+                  (currentExchange.type === 'choice' && !selectedAnswer) || 
+                  (currentExchange.type === 'scramble' && userAnswer.length === 0)
+                }
+              >
+                <Text style={styles.checkButtonText}>Check</Text>
+              </TouchableOpacity>
+            ) : (
+              <View style={styles.retrySkipButtons}>
+                <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
+                  <Text style={styles.retryButtonText}>Retry</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
+                  <Text style={styles.skipButtonText}>Skip</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            <TouchableOpacity style={styles.roundClockButton}>
+              <Ionicons name="time-outline" size={28} color="#ffffff" />
             </TouchableOpacity>
           </View>
-        )}
-      </View>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -1843,5 +1731,297 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#6b7280',
     textAlign: 'center',
+  },
+  // New chat-style interface styles
+  chatScroll: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+  },
+  chatContent: {
+    padding: 16,
+    paddingBottom: 8,
+  },
+  chatMessageLeft: {
+    alignSelf: 'flex-start',
+    maxWidth: '85%',
+    marginBottom: 16,
+  },
+  chatMessageRight: {
+    alignSelf: 'flex-end',
+    maxWidth: '85%',
+    marginBottom: 16,
+  },
+  chatSenderName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1f2937',
+    marginBottom: 4,
+    marginLeft: 4,
+  },
+  chatBubbleThomas: {
+    backgroundColor: '#6366f1',
+    padding: 16,
+    borderRadius: 20,
+    borderBottomLeftRadius: 6,
+  },
+  chatBubbleUser: {
+    backgroundColor: '#a78bfa',
+    padding: 16,
+    borderRadius: 20,
+    borderBottomRightRadius: 6,
+  },
+  chatBubblePrimary: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#ffffff',
+    marginBottom: 4,
+    lineHeight: 22,
+  },
+  chatBubbleSecondary: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.85)',
+    lineHeight: 18,
+  },
+  chatBubbleUserPrimary: {
+    color: '#ffffff',
+  },
+  chatBubbleUserSecondary: {
+    color: 'rgba(255, 255, 255, 0.85)',
+  },
+  chatBubbleActions: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  chatActionIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bottomPinnedSection: {
+    backgroundColor: '#f9fafb',
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+    paddingTop: 16,
+    paddingHorizontal: 16,
+    paddingBottom: 20,
+  },
+  questionLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#9ca3af',
+    textAlign: 'center',
+    letterSpacing: 0.8,
+    marginBottom: 12,
+  },
+  currentPrompt: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#000000',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  multiChoiceContainer: {
+    gap: 12,
+    marginBottom: 16,
+  },
+  multiChoiceButton: {
+    backgroundColor: '#ffffff',
+    padding: 24,
+    borderRadius: 16,
+    borderWidth: 3,
+    borderColor: '#e5e7eb',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  multiChoiceSelected: {
+    borderColor: '#6366f1',
+    backgroundColor: '#f5f3ff',
+  },
+  multiChoiceButtonText: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1f2937',
+    marginBottom: 4,
+  },
+  multiChoiceButtonEnglish: {
+    fontSize: 16,
+    color: '#6b7280',
+  },
+  wordScrambleContainer: {
+    gap: 16,
+    marginBottom: 16,
+  },
+  scrambleInputBar: {
+    backgroundColor: '#f3f4f6',
+    minHeight: 60,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#d1d5db',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 8,
+  },
+  scrambleWordInBar: {
+    backgroundColor: '#ffffff',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#cbd5e1',
+  },
+  scrambleWordInBarText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1f2937',
+  },
+  scramblePlaceholder: {
+    fontSize: 16,
+    color: '#9ca3af',
+    fontStyle: 'italic',
+  },
+  clearButton: {
+    marginLeft: 'auto',
+    padding: 4,
+  },
+  scrambleWordsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    justifyContent: 'center',
+  },
+  scrambleWordButton: {
+    backgroundColor: '#ffffff',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#d1d5db',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  scrambleWordButtonText: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#1f2937',
+  },
+  feedbackIncorrect: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#ef4444',
+    textAlign: 'center',
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  feedbackCorrect: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#10b981',
+    textAlign: 'center',
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  bottomActionBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginTop: 8,
+  },
+  roundSpeakerButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#6366f1',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#6366f1',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  roundClockButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#6366f1',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#6366f1',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  checkButton: {
+    flex: 1,
+    backgroundColor: '#cbd5e1',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  checkButtonDisabled: {
+    backgroundColor: '#e5e7eb',
+    opacity: 0.5,
+  },
+  checkButtonText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1f2937',
+  },
+  retrySkipButtons: {
+    flex: 1,
+    flexDirection: 'row',
+    gap: 8,
+  },
+  retryButton: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: '#6366f1',
+  },
+  retryButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#6366f1',
+  },
+  skipButton: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#d1d5db',
+  },
+  skipButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6b7280',
   },
 });

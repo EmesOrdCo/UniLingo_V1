@@ -212,30 +212,72 @@ export default function UnitRoleplayScreen() {
     }
   };
 
-  const currentExchange = conversationExchanges.length > 0 && currentExchangeIndex < conversationExchanges.length
-    ? {
-        userMessage: {
-          french: conversationExchanges[currentExchangeIndex].text,
-          english: conversationExchanges[currentExchangeIndex].translation
-        },
-        appMessage: currentExchangeIndex > 0 ? {
-          french: conversationExchanges[currentExchangeIndex - 1].text,
-          english: conversationExchanges[currentExchangeIndex - 1].translation
-        } : { french: '', english: '' }
-      }
-    : CONVERSATION[currentExchangeIndex] || CONVERSATION[0];
-  const isLastExchange = currentExchangeIndex === (conversationExchanges.length > 0 ? conversationExchanges.length - 1 : CONVERSATION.length - 1);
+  // Get current exchange data from conversation
+  const getCurrentExchange = () => {
+    if (!conversationData || !conversationData.conversation) {
+      return CONVERSATION[currentExchangeIndex] || CONVERSATION[0];
+    }
 
-  // Initialize first app message
+    // Get the current question/response pair from conversation data
+    const userMessages = conversationData.conversation.filter(msg => msg.speaker === 'User');
+    
+    if (currentExchangeIndex < userMessages.length) {
+      const userMsg = userMessages[currentExchangeIndex];
+      const assistantMessages = conversationData.conversation.filter(msg => msg.speaker === 'Assistant');
+      const assistantMsg = assistantMessages[currentExchangeIndex] || assistantMessages[0];
+      
+      return {
+        appMessage: {
+          french: assistantMsg.message,
+          english: assistantMsg.message
+        },
+        userMessage: {
+          french: userMsg.message,
+          english: userMsg.message
+        }
+      };
+    }
+    
+    return CONVERSATION[currentExchangeIndex] || CONVERSATION[0];
+  };
+
+  const currentExchange = getCurrentExchange();
+  
+  const getTotalExchanges = () => {
+    if (conversationData && conversationData.conversation) {
+      return conversationData.conversation.filter(msg => msg.speaker === 'User').length;
+    }
+    return CONVERSATION.length;
+  };
+  
+  const isLastExchange = currentExchangeIndex === getTotalExchanges() - 1;
+
+  // Initialize with Thomas's first message in chat history
   useEffect(() => {
     if (conversationHistory.length === 0 && !completed) {
-      setConversationHistory([{
-        type: 'app',
-        french: CONVERSATION[0].appMessage.french,
-        english: CONVERSATION[0].appMessage.english,
-      }]);
+      const firstExchange = getCurrentExchange();
+      if (firstExchange && firstExchange.appMessage) {
+        setConversationHistory([{
+          type: 'app',
+          french: firstExchange.appMessage.french,
+          english: firstExchange.appMessage.english,
+        }]);
+      }
     }
-  }, []);
+  }, [conversationData, completed]);
+
+  // Reset lesson state when conversation is loaded
+  useEffect(() => {
+    if (conversationData && conversationData.conversation && conversationData.conversation.length > 0) {
+      console.log('🔄 Resetting lesson state for new conversation data');
+      setCurrentExchangeIndex(0);
+      setScore(0);
+      setCompleted(false);
+      setShowResult(false);
+      setIsCorrect(false);
+      // Don't initialize history here - let the above useEffect handle it
+    }
+  }, [conversationData]);
 
   // Auto-scroll to bottom when conversation updates
   useEffect(() => {
@@ -245,36 +287,6 @@ export default function UnitRoleplayScreen() {
   }, [conversationHistory]);
 
   const handlePronunciationComplete = async (result: PronunciationResult) => {
-    // Handle conversation system exercises
-    if (exerciseState.isActive && exerciseState.exercise) {
-      console.log('🎤 Pronunciation result (conversation system):', result);
-      setLastResult(result);
-      
-      const pronunciationScore = result.assessment?.pronunciationScore || 0;
-      const passed = pronunciationScore >= 60;
-      
-      if (passed) {
-        setIsCorrect(true);
-        setScore(prev => prev + 1);
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      } else {
-        setIsCorrect(false);
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      }
-      
-      setShowResult(true);
-      
-      // Auto-advance after showing result
-      setTimeout(() => {
-        setExerciseState({ isActive: false, exercise: null, isCompleted: false, score: 0 });
-        setShowResult(false);
-        handleNextMessage();
-      }, 2000);
-      
-      return;
-    }
-
-    // Original logic for non-conversation system
     if (!result.success || !result.assessment) return;
 
     const pronunciationScore = result.assessment.pronunciationScore;
@@ -286,12 +298,14 @@ export default function UnitRoleplayScreen() {
     setShowResult(true);
     
     if (passed) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setScore(score + 1);
       
-      // After 1 second, add user message to chat and move to next
+      // After 1 second, add user response to chat and then add next Thomas question
       setTimeout(() => {
         const newHistory = [
           ...conversationHistory,
+          // Add user's response
           {
             type: 'user' as const,
             french: currentExchange.userMessage.french,
@@ -299,18 +313,24 @@ export default function UnitRoleplayScreen() {
           }
         ];
 
-        if (!isLastExchange) {
-          // Add next app message
-          newHistory.push({
-            type: 'app' as const,
-            french: CONVERSATION[currentExchangeIndex + 1].appMessage.french,
-            english: CONVERSATION[currentExchangeIndex + 1].appMessage.english,
-          });
+        // If not the last exchange, add the next Thomas message
+        if (!isLastExchange && conversationData) {
+          const assistantMessages = conversationData.conversation.filter(msg => msg.speaker === 'Assistant');
+          const nextAssistantMsg = assistantMessages[currentExchangeIndex + 1];
+          if (nextAssistantMsg) {
+            newHistory.push({
+              type: 'app' as const,
+              french: nextAssistantMsg.message,
+              english: nextAssistantMsg.message,
+            });
+          }
         }
 
         setConversationHistory(newHistory);
         setCurrentExchangeIndex(currentExchangeIndex + 1);
         setShowResult(false);
+        setIsCorrect(false);
+        setLastResult(null);
         setAttemptKey(attemptKey + 1);
 
         if (isLastExchange) {
@@ -320,18 +340,23 @@ export default function UnitRoleplayScreen() {
           }, 500);
         }
       }, 1000);
+    } else {
+      // Incorrect - show error feedback and wait for user to retry or skip
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
   };
 
   const handleRetry = () => {
     setShowResult(false);
     setIsCorrect(false);
+    setLastResult(null);
     setAttemptKey(attemptKey + 1);
   };
 
   const handleSkip = () => {
     const newHistory = [
       ...conversationHistory,
+      // Add user's (skipped) response
       {
         type: 'user' as const,
         french: currentExchange.userMessage.french,
@@ -339,18 +364,24 @@ export default function UnitRoleplayScreen() {
       }
     ];
 
-    if (!isLastExchange) {
-      newHistory.push({
-        type: 'app' as const,
-        french: CONVERSATION[currentExchangeIndex + 1].appMessage.french,
-        english: CONVERSATION[currentExchangeIndex + 1].appMessage.english,
-      });
+    // If not the last exchange, add the next Thomas message
+    if (!isLastExchange && conversationData) {
+      const assistantMessages = conversationData.conversation.filter(msg => msg.speaker === 'Assistant');
+      const nextAssistantMsg = assistantMessages[currentExchangeIndex + 1];
+      if (nextAssistantMsg) {
+        newHistory.push({
+          type: 'app' as const,
+          french: nextAssistantMsg.message,
+          english: nextAssistantMsg.message,
+        });
+      }
     }
 
     setConversationHistory(newHistory);
     setCurrentExchangeIndex(currentExchangeIndex + 1);
     setShowResult(false);
     setIsCorrect(false);
+    setLastResult(null);
     setAttemptKey(attemptKey + 1);
 
     if (isLastExchange) {
@@ -644,7 +675,8 @@ export default function UnitRoleplayScreen() {
   }, []);
 
   if (completed) {
-    const accuracyPercentage = Math.round((score / CONVERSATION.length) * 100);
+    const totalExchanges = getTotalExchanges();
+    const accuracyPercentage = Math.round((score / totalExchanges) * 100);
     
     return (
       <View style={styles.completionContainer}>
@@ -654,7 +686,7 @@ export default function UnitRoleplayScreen() {
         <View style={styles.statsContainer}>
           <View style={styles.statItem}>
             <Text style={styles.statLabel}>Score</Text>
-            <Text style={styles.statValue}>{score}/{CONVERSATION.length}</Text>
+            <Text style={styles.statValue}>{score}/{totalExchanges}</Text>
           </View>
           <View style={styles.statItem}>
             <Text style={styles.statLabel}>Percentage</Text>
@@ -666,10 +698,11 @@ export default function UnitRoleplayScreen() {
           <TouchableOpacity 
             style={styles.resetButton} 
             onPress={() => {
+              const firstExchange = getCurrentExchange();
               setConversationHistory([{
                 type: 'app',
-                french: CONVERSATION[0].appMessage.french,
-                english: CONVERSATION[0].appMessage.english,
+                french: firstExchange.appMessage.french,
+                english: firstExchange.appMessage.english,
               }]);
               setCurrentExchangeIndex(0);
               setScore(0);
@@ -707,110 +740,12 @@ export default function UnitRoleplayScreen() {
     );
   }
 
-  // Show conversation interface if we have conversation data
+  // This is for the old conversation data system - redirect to fallback chat interface
   if (conversationData && conversationData.conversation.length > 0) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="#000000" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>{unitTitle} - Roleplay</Text>
-          <View style={styles.headerSpacer} />
-        </View>
-
-        {/* Conversation Interface */}
-        <KeyboardAvoidingView 
-          style={styles.conversationContainer} 
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        >
-          <ScrollView 
-            style={styles.conversationScrollView}
-            contentContainerStyle={styles.conversationContent}
-            ref={scrollViewRef}
-          >
-            {/* Conversation Messages */}
-            {conversationData.conversation.slice(0, currentMessageIndex + (isTypingAnimation ? 0 : 1)).map((message, index) => (
-              <View key={index} style={[
-                styles.messageContainer,
-                message.speaker === 'Assistant' ? styles.assistantMessage : styles.userMessage
-              ]}>
-                <Text style={[
-                  styles.messageText,
-                  message.speaker === 'Assistant' ? styles.assistantText : styles.userText
-                ]}>
-                  {message.speaker === 'Assistant' && index === currentMessageIndex && isTypingAnimation 
-                    ? typingText 
-                    : message.message}
-                </Text>
-              </View>
-            ))}
-            
-            {/* Show current message with typing animation */}
-            {isTypingAnimation && currentMessageIndex < conversationData.conversation.length && (
-              <View style={[
-                styles.messageContainer,
-                styles.assistantMessage
-              ]}>
-                <Text style={[styles.messageText, styles.assistantText]}>
-                  {typingText}
-                </Text>
-              </View>
-            )}
-
-            {/* Exercise Section */}
-            {exerciseState.isActive && exerciseState.exercise && (
-              <View style={styles.exerciseContainer}>
-                <Text style={styles.exerciseTitle}>
-                  Practice: Say the sentence
-                </Text>
-                <Text style={styles.exerciseSentence}>
-                  "{exerciseState.exercise.sentence}"
-                </Text>
-                
-                <PronunciationCheck
-                  key={`${currentMessageIndex}-${Date.now()}`}
-                  word={exerciseState.exercise.sentence}
-                  onComplete={handlePronunciationComplete}
-                  maxRecordingDuration={8000}
-                  showAlerts={false}
-                  translation={exerciseState.exercise.sentence}
-                  hideScoreRing={true}
-                />
-              </View>
-            )}
-          </ScrollView>
-        </KeyboardAvoidingView>
-
-        {/* Exit Confirmation Modal */}
-        <Modal
-          visible={showExitModal}
-          transparent={true}
-          animationType="fade"
-          onRequestClose={handleCancelExit}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Are you sure you want to leave?</Text>
-              <Text style={styles.modalSubtitle}>
-                Your progress won't be saved for this lesson, and you'll have to start again when you return.
-              </Text>
-              
-              <TouchableOpacity style={styles.modalConfirmButton} onPress={handleConfirmExit}>
-                <Text style={styles.modalConfirmButtonText}>Yes, I want to leave</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity style={styles.modalCancelButton} onPress={handleCancelExit}>
-                <Text style={styles.modalCancelButtonText}>Not Now</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </Modal>
-      </SafeAreaView>
-    );
+    // Just fall through to the chat-style interface below
   }
 
-  // Fallback to original interface
+  // Chat-style interface (like messaging app with microphone)
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -849,7 +784,7 @@ export default function UnitRoleplayScreen() {
       {/* Progress Bar */}
       <View style={styles.progressContainer}>
         <View style={styles.progressSegments}>
-          {CONVERSATION.map((_, idx) => (
+          {Array.from({ length: getTotalExchanges() }).map((_, idx) => (
             <View
               key={idx}
               style={[
@@ -862,55 +797,52 @@ export default function UnitRoleplayScreen() {
         </View>
       </View>
 
-      {/* Conversation History */}
+      {/* Scrollable Chat History (completed exchanges only) */}
       <ScrollView 
         ref={scrollViewRef}
-        style={styles.conversationScroll}
-        contentContainerStyle={styles.conversationContent}
+        style={styles.chatScroll}
+        contentContainerStyle={styles.chatContent}
       >
         {conversationHistory.map((message, index) => (
-          <View key={index} style={[
-            styles.messageWrapper,
-            message.type === 'user' && styles.messageWrapperUser
-          ]}>
+          <View key={index} style={styles.chatMessageContainer}>
             {message.type === 'app' && (
-              <Text style={styles.messageName}>Thomas</Text>
+              <Text style={styles.chatSenderName}>Thomas</Text>
             )}
             <View
               style={[
-                styles.messageBubble,
-                message.type === 'app' ? styles.appMessageBubble : styles.userMessageBubble
+                styles.chatBubble,
+                message.type === 'app' ? styles.chatBubbleThomas : styles.chatBubbleUser
               ]}
             >
               <Text style={[
-                styles.messageFrench,
-                message.type === 'user' && styles.userMessageFrench
+                styles.chatBubblePrimary,
+                message.type === 'user' && styles.chatBubbleUserPrimary
               ]}>
                 {message.french}
               </Text>
               <Text style={[
-                styles.messageEnglish,
-                message.type === 'user' && styles.userMessageEnglish
+                styles.chatBubbleSecondary,
+                message.type === 'user' && styles.chatBubbleUserSecondary
               ]}>
                 {message.english}
               </Text>
               
-              {/* Action Buttons */}
-              <View style={styles.messageActions}>
-                <TouchableOpacity style={styles.messageActionButton}>
-                  <Ionicons name="volume-high" size={16} color="#ffffff" />
+              {/* Action Icons */}
+              <View style={styles.chatBubbleActions}>
+                <TouchableOpacity style={styles.chatActionIcon}>
+                  <Ionicons name="volume-high" size={18} color="rgba(255,255,255,0.8)" />
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.messageActionButton}>
-                  <Ionicons name="wifi" size={16} color="#ffffff" />
+                <TouchableOpacity style={styles.chatActionIcon}>
+                  <Ionicons name="wifi" size={18} color="rgba(255,255,255,0.8)" />
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.messageActionButton}>
-                  <Ionicons name="swap-horizontal" size={16} color="#ffffff" />
+                <TouchableOpacity style={styles.chatActionIcon}>
+                  <Ionicons name="swap-horizontal" size={18} color="rgba(255,255,255,0.8)" />
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.messageActionButton}>
-                  <Ionicons name="bar-chart" size={16} color="#ffffff" />
+                <TouchableOpacity style={styles.chatActionIcon}>
+                  <Ionicons name="stats-chart" size={18} color="rgba(255,255,255,0.8)" />
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.messageActionButton}>
-                  <Ionicons name="school" size={16} color="#ffffff" />
+                <TouchableOpacity style={styles.chatActionIcon}>
+                  <Ionicons name="school" size={18} color="rgba(255,255,255,0.8)" />
                 </TouchableOpacity>
               </View>
             </View>
@@ -918,13 +850,30 @@ export default function UnitRoleplayScreen() {
         ))}
       </ScrollView>
 
-      {/* Speech Input Area */}
-      {currentExchangeIndex < CONVERSATION.length && (
-        <View style={styles.inputContainer}>
-          <Text style={styles.inputTitle}>SAY YOUR RESPONSE</Text>
-          <Text style={styles.responsePrompt}>{currentExchange.userMessage.english}</Text>
+      {/* Pinned Bottom Section: Current Question + Microphone Interface */}
+      {currentExchangeIndex < getTotalExchanges() && (
+        <View style={styles.bottomPinnedSection}>
+          {/* Current Question - Same style as Write */}
+          <View style={styles.currentQuestionContainer}>
+            <Text style={styles.currentQuestionSenderName}>Thomas</Text>
+            <View style={styles.currentQuestionBubble}>
+              <Text style={styles.currentQuestionPrimary}>{currentExchange.appMessage.french}</Text>
+              <Text style={styles.currentQuestionSecondary}>{currentExchange.appMessage.english}</Text>
+            </View>
+          </View>
+          
+          {/* What user should say - also shown as Thomas message on left */}
+          <View style={styles.currentQuestionContainer}>
+            <Text style={styles.currentQuestionSenderName}>Say this:</Text>
+            <View style={styles.currentQuestionBubble}>
+              <Text style={styles.currentQuestionPrimary}>{currentExchange.userMessage.french}</Text>
+              <Text style={styles.currentQuestionSecondary}>{currentExchange.userMessage.english}</Text>
+            </View>
+          </View>
+          
+          <Text style={styles.questionLabel}>TAP TO RECORD</Text>
 
-          {/* Pronunciation Check Component - Hide the text, show only record button */}
+          {/* Microphone / Pronunciation Check */}
           {!showResult && (
             <PronunciationCheck
               key={`${currentExchangeIndex}-${attemptKey}`}
@@ -937,51 +886,28 @@ export default function UnitRoleplayScreen() {
             />
           )}
 
-          {/* Result Message */}
-          {showResult && (
-            <View style={styles.resultMessage}>
-              <Text style={[
-                styles.resultTitle,
-                isCorrect ? styles.resultTitleCorrect : styles.resultTitleIncorrect
-              ]}>
-                {isCorrect ? 'You got this 🙌' : 'Incorrect! 😔'}
-              </Text>
+          {/* Feedback */}
+          {showResult && isCorrect && (
+            <Text style={styles.feedbackCorrect}>✓ You got this 🙌</Text>
+          )}
+          {showResult && !isCorrect && lastResult?.assessment && (
+            <View style={styles.feedbackIncorrectContainer}>
+              <Text style={styles.feedbackIncorrect}>❌ Try again!</Text>
+              <Text style={styles.recognizedText}>You said: {lastResult.assessment.recognizedText || 'No speech detected'}</Text>
               
-              {!isCorrect && lastResult?.assessment && (
-                <>
-                  <Text style={styles.resultSubtitle}>
-                    It sounded as if you said:
-                  </Text>
-                  <Text style={styles.recognizedSpeech}>
-                    {lastResult.assessment.recognizedText || 'No speech detected'}
-                  </Text>
-                  
-                  <View style={styles.metrics}>
-                    <View style={styles.metricRow}>
-                      <Text style={styles.metricLabel}>Accuracy:</Text>
-                      <Text style={styles.metricValue}>
-                        {Math.round(lastResult.assessment.accuracyScore)}/100
-                      </Text>
-                    </View>
-                    <View style={styles.metricRow}>
-                      <Text style={styles.metricLabel}>Fluency:</Text>
-                      <Text style={styles.metricValue}>
-                        {Math.round(lastResult.assessment.fluencyScore)}/100
-                      </Text>
-                    </View>
-                  </View>
+              <View style={styles.scoreMetrics}>
+                <Text style={styles.scoreText}>Accuracy: {Math.round(lastResult.assessment.accuracyScore)}/100</Text>
+                <Text style={styles.scoreText}>Fluency: {Math.round(lastResult.assessment.fluencyScore)}/100</Text>
+              </View>
 
-                  <View style={styles.incorrectActions}>
-                    <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
-                      <Text style={styles.retryButtonText}>Retry</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
-                      <Text style={styles.skipButtonText}>Skip</Text>
-                      <Ionicons name="arrow-forward" size={20} color="#64748b" />
-                    </TouchableOpacity>
-                  </View>
-                </>
-              )}
+              <View style={styles.retrySkipButtons}>
+                <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
+                  <Text style={styles.retryButtonText}>Retry</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
+                  <Text style={styles.skipButtonText}>Skip</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           )}
         </View>
@@ -1038,6 +964,105 @@ const styles = StyleSheet.create({
   },
   progressSegmentActive: {
     backgroundColor: '#6366f1',
+  },
+  // New chat-style interface styles (same as Write)
+  chatScroll: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+  },
+  chatContent: {
+    padding: 16,
+    paddingBottom: 8,
+  },
+  chatMessageContainer: {
+    marginBottom: 16,
+    maxWidth: '85%',
+  },
+  chatSenderName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1f2937',
+    marginBottom: 4,
+    marginLeft: 4,
+  },
+  chatBubble: {
+    padding: 16,
+    borderRadius: 20,
+  },
+  chatBubbleThomas: {
+    backgroundColor: '#6366f1',
+    alignSelf: 'flex-start',
+    borderBottomLeftRadius: 6,
+  },
+  chatBubbleUser: {
+    backgroundColor: '#a78bfa',
+    alignSelf: 'flex-end',
+    borderBottomRightRadius: 6,
+  },
+  chatBubblePrimary: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#ffffff',
+    marginBottom: 4,
+    lineHeight: 22,
+  },
+  chatBubbleSecondary: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.85)',
+    lineHeight: 18,
+  },
+  chatBubbleUserPrimary: {
+    color: '#ffffff',
+  },
+  chatBubbleUserSecondary: {
+    color: 'rgba(255, 255, 255, 0.85)',
+  },
+  chatBubbleActions: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  chatActionIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  // Current question styles (pinned at bottom)
+  currentQuestionContainer: {
+    marginBottom: 12,
+    maxWidth: '85%',
+  },
+  currentQuestionSenderName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1f2937',
+    marginBottom: 4,
+    marginLeft: 4,
+  },
+  currentQuestionBubble: {
+    padding: 16,
+    borderRadius: 20,
+    backgroundColor: '#6366f1',
+    alignSelf: 'flex-start',
+    borderBottomLeftRadius: 6,
+  },
+  currentQuestionPrimary: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#ffffff',
+    marginBottom: 4,
+    lineHeight: 22,
+  },
+  currentQuestionSecondary: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.85)',
+    lineHeight: 18,
   },
   conversationScroll: {
     flex: 1,
@@ -1212,6 +1237,75 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 16,
   },
+  // New chat-style interface styles
+  bottomPinnedSection: {
+    backgroundColor: '#f9fafb',
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+    paddingTop: 16,
+    paddingHorizontal: 16,
+    paddingBottom: 20,
+  },
+  questionLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#9ca3af',
+    textAlign: 'center',
+    letterSpacing: 0.8,
+    marginBottom: 12,
+  },
+  currentPrompt: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#000000',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  feedbackCorrect: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#10b981',
+    textAlign: 'center',
+    marginTop: 12,
+    marginBottom: 12,
+  },
+  feedbackIncorrectContainer: {
+    backgroundColor: '#fef2f2',
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: '#fecaca',
+  },
+  feedbackIncorrect: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#ef4444',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  recognizedText: {
+    fontSize: 15,
+    color: '#6b7280',
+    textAlign: 'center',
+    marginBottom: 12,
+    fontStyle: 'italic',
+  },
+  scoreMetrics: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 16,
+    paddingVertical: 8,
+  },
+  scoreText: {
+    fontSize: 14,
+    color: '#374151',
+    fontWeight: '600',
+  },
+  retrySkipButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
   resultMessage: {
     backgroundColor: '#f8fafc',
     borderRadius: 12,
@@ -1270,33 +1364,30 @@ const styles = StyleSheet.create({
   retryButton: {
     flex: 1,
     backgroundColor: '#ffffff',
-    paddingVertical: 16,
+    paddingVertical: 14,
     borderRadius: 12,
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#e2e8f0',
+    borderWidth: 3,
+    borderColor: '#6366f1',
   },
   retryButtonText: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#1e293b',
+    fontWeight: '700',
+    color: '#6366f1',
   },
   skipButton: {
     flex: 1,
     backgroundColor: '#ffffff',
-    paddingVertical: 16,
+    paddingVertical: 14,
     borderRadius: 12,
     alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 8,
     borderWidth: 2,
-    borderColor: '#e2e8f0',
+    borderColor: '#d1d5db',
   },
   skipButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#64748b',
+    color: '#6b7280',
   },
   completionContainer: {
     flex: 1,
