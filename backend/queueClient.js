@@ -7,27 +7,27 @@
  */
 
 const { Queue } = require('bullmq');
-const Redis = require('ioredis');
 const crypto = require('crypto');
+const { redis } = require('./redisConnection');
 
-// Redis connection configuration
+// Redis connection configuration for BullMQ
 // Railway automatically sets REDIS_URL when Redis plugin is added
 const redisConfig = {
-  connection: process.env.REDIS_URL ? 
-    // Use REDIS_URL if available (Railway format)
-    process.env.REDIS_URL :
-    // Otherwise use individual config
-    {
-      host: process.env.REDIS_HOST || 'localhost',
-      port: parseInt(process.env.REDIS_PORT || '6379'),
-      password: process.env.REDIS_PASSWORD,
-      maxRetriesPerRequest: null, // Required for BullMQ
-      enableReadyCheck: false,
-    }
+  connection: process.env.REDIS_PUBLIC_URL ? 
+    // Use REDIS_PUBLIC_URL if available (Railway format)
+    process.env.REDIS_PUBLIC_URL :
+    process.env.REDIS_URL ? 
+      // Use REDIS_URL if available (Railway format)
+      process.env.REDIS_URL :
+      // Otherwise use individual config
+      {
+        host: process.env.REDIS_HOST || 'localhost',
+        port: parseInt(process.env.REDIS_PORT || '6379'),
+        password: process.env.REDIS_PASSWORD,
+        maxRetriesPerRequest: null, // Required for BullMQ
+        enableReadyCheck: false,
+      }
 };
-
-// Create Redis client for health checks
-const { redis } = require('./redisConnection');
 
 // Log connection status
 redis.on('connect', () => {

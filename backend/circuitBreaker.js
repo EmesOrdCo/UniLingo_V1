@@ -13,7 +13,7 @@
  * Issue #6 + #8: Circuit breaker with Redis state
  */
 
-const Redis = require('ioredis');
+const { redis } = require('./redisConnection');
 
 class CircuitBreaker {
   constructor(name, options = {}) {
@@ -28,16 +28,7 @@ class CircuitBreaker {
       monitoringWindow: options.monitoringWindow || 60000, // Window to count failures (ms)
     };
     
-    // Redis connection
-    const redisConfig = process.env.REDIS_URL ? 
-      process.env.REDIS_URL :
-      {
-        host: process.env.REDIS_HOST || 'localhost',
-        port: parseInt(process.env.REDIS_PORT || '6379'),
-        password: process.env.REDIS_PASSWORD,
-      };
-    
-    const { redis } = require('./redisConnection');
+    // Use shared Redis connection
     this.redis = redis;
     
     // Redis keys
