@@ -509,7 +509,23 @@ function setupSimpleAudioRoutes(app, limiters) {
 async function generateAudioScript(keywords, nativeLanguage, targetLanguage, fileName) {
   const AIService = require('./aiService');
   
-  const prompt = `CONTEXT & PURPOSE:
+  // Build language-specific guidance
+  let languageGuidance = '';
+  const isNativeEnglish = nativeLanguage.toLowerCase().includes('english');
+  
+  if (!isNativeEnglish) {
+    languageGuidance = `
+⚠️⚠️⚠️ CRITICAL WARNING ⚠️⚠️⚠️
+The user's native language is ${nativeLanguage}, NOT English.
+You MUST write ALL explanations, definitions, and connecting text in ${nativeLanguage}.
+DO NOT default to English. This is the most important requirement.
+Every sentence that is not a ${targetLanguage} term or example MUST be in ${nativeLanguage}.
+`;
+  }
+  
+  const prompt = `${languageGuidance}
+
+CONTEXT & PURPOSE:
 You are creating a comprehensive audio lesson script for a language learning application. This script will be converted to speech using AWS Polly text-to-speech and played back to a user who is learning a new language.
 
 USER INFORMATION:
@@ -529,13 +545,18 @@ CRITICAL LANGUAGE RULES (MANDATORY - NO EXCEPTIONS):
 2. ONLY keywords, terms, and example sentences should be in ${targetLanguage}
 3. When providing translations of examples, use ${nativeLanguage}
 4. The script introduction, conclusion, and all connecting text MUST be in ${nativeLanguage}
-5. If your native language is NOT English, do NOT write explanations in English
+5. If native language is NOT English, do NOT write explanations in English - write them in ${nativeLanguage}
+
+${!isNativeEnglish ? `⚠️ DOUBLE CHECK: Your script should START with ${nativeLanguage} text, NOT English text!` : ''}
 
 LANGUAGE VALIDATION CHECK:
 - If native language is Spanish: Write explanations in Spanish
 - If native language is French: Write explanations in French  
 - If native language is German: Write explanations in German
-- If native language is Chinese: Write explanations in Chinese
+- If native language is Chinese (Simplified): Write explanations in Simplified Chinese (简体中文)
+- If native language is Chinese (Traditional): Write explanations in Traditional Chinese (繁體中文)
+- If native language is Japanese: Write explanations in Japanese
+- If native language is Korean: Write explanations in Korean
 - If native language is ANY language other than English: Write explanations in that language
 
 AUDIO SYSTEM CONTEXT:
@@ -562,6 +583,8 @@ CONTENT GUIDELINES:
 - Script length should be proportional to the number of keywords
 - Create a natural learning flow that builds understanding progressively
 
+${!isNativeEnglish ? `\n⚠️ FINAL REMINDER: Start writing in ${nativeLanguage} immediately. The first word of your script should be in ${nativeLanguage}!\n` : ''}
+
 FORMAT: Return ONLY the script text, no explanations, markdown, or additional formatting.`;
 
   const messages = [
@@ -574,6 +597,7 @@ Your expertise includes:
 - Understanding the psychology of language acquisition and retention
 - Writing scripts that work perfectly with text-to-speech systems
 - Balancing comprehensive coverage with engaging, conversational delivery
+- FLUENT multilingual communication in the user's native language
 
 CRITICAL WORKFLOW:
 1. You receive user information (native language, target language, course subject)
@@ -581,15 +605,34 @@ CRITICAL WORKFLOW:
 3. You create a comprehensive audio lesson script that teaches these keywords
 4. The script will be converted to speech using AWS Polly and played back to the user
 
-LANGUAGE USAGE RULES (NON-NEGOTIABLE - CRITICAL):
-- User's native language: Use ONLY for explanations, definitions, context, instructions, transitions, and summaries
-- Target language: Use ONLY for keywords, terms, and example sentences
+LANGUAGE USAGE RULES (NON-NEGOTIABLE - ABSOLUTE PRIORITY):
+⚠️ THIS IS THE MOST IMPORTANT INSTRUCTION ⚠️
+
+When the user's native language is NOT English:
+- You MUST write ALL explanations in their native language (e.g., Chinese, Spanish, French, etc.)
+- DO NOT use English for explanations, definitions, or connecting text
+- The ONLY English should be the target language terms if target language is English
+- Your script should be immediately readable and understandable by someone who speaks the native language
+
+Language-specific rules:
+- User's native language: Use EXCLUSIVELY for explanations, definitions, context, instructions, transitions, and summaries
+- Target language: Use ONLY for keywords, terms, and example sentences  
 - Translations: Always provide in the user's native language
 - INTRODUCTION: Must be in user's native language (NOT English unless native language is English)
 - CONCLUSION: Must be in user's native language (NOT English unless native language is English)
 - ALL CONNECTING TEXT: Must be in user's native language (NOT English unless native language is English)
 
-CRITICAL WARNING: If the user's native language is NOT English, you MUST write all explanations in their native language. Do NOT default to English.
+VALIDATION BEFORE RESPONDING:
+Before you generate the script, mentally answer:
+1. What is the user's native language? ${nativeLanguage}
+2. Is it English? ${isNativeEnglish ? 'YES - write explanations in English' : 'NO - write explanations in ' + nativeLanguage}
+3. What language should my first sentence be in? ${isNativeEnglish ? 'English' : nativeLanguage}
+
+${!isNativeEnglish ? `🚨 SPECIFIC INSTRUCTION FOR THIS REQUEST 🚨
+Native Language: ${nativeLanguage}
+YOU MUST START YOUR SCRIPT IN ${nativeLanguage.toUpperCase()}.
+THE FIRST WORDS YOU WRITE SHOULD BE IN ${nativeLanguage.toUpperCase()}.
+DO NOT START WITH ENGLISH TEXT.` : ''}
 
 AUDIO SYSTEM REQUIREMENTS:
 - Everything you write will be spoken exactly as written by AWS Polly
@@ -638,10 +681,42 @@ OUTPUT FORMAT: Return ONLY the script text with no explanations, markdown, or ad
       throw new Error('No script generated from OpenAI');
     }
 
-    // Language validation removed - trust the AI to follow the enhanced prompts
-    console.log(`✅ Script generated successfully for ${nativeLanguage} native language`);
+    // Validate that script is in the correct language for non-English native speakers
+    if (!isNativeEnglish) {
+      // Check if script starts with common English phrases (likely wrong language)
+      const englishStartPhrases = [
+        'welcome to',
+        'hello',
+        'hi there',
+        'good morning',
+        'good afternoon',
+        'today we',
+        'in this lesson',
+        'let\'s begin',
+        'let\'s start',
+        'we will learn',
+        'this lesson covers'
+      ];
+      
+      const scriptStart = script.substring(0, 100).toLowerCase();
+      const startsWithEnglish = englishStartPhrases.some(phrase => scriptStart.includes(phrase));
+      
+      if (startsWithEnglish) {
+        console.error(`⚠️ WARNING: Script appears to be in English despite native language being ${nativeLanguage}`);
+        console.error(`   Script start: "${script.substring(0, 100)}..."`);
+        console.error(`   This indicates the AI model ignored the language instructions`);
+        
+        throw new Error(
+          `Script generation failed: AI generated script in English instead of ${nativeLanguage}. ` +
+          `Please try again. If this persists, the model may need stronger language constraints.`
+        );
+      }
+    }
 
+    console.log(`✅ Script generated successfully for ${nativeLanguage} native language`);
     console.log(`✅ Generated script: ${script.length} characters`);
+    console.log(`📝 Script preview: "${script.substring(0, 100)}..."`);
+    
     return script;
   } catch (error) {
     console.error('❌ ERROR GENERATING AUDIO SCRIPT:');
