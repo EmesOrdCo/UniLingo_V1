@@ -2228,7 +2228,7 @@ app.use((error, req, res, next) => {
 });
 
 // Start server
-app.listen(PORT, '0.0.0.0', async () => {
+app.listen(PORT, '0.0.0.0', () => {
   // Update frontend configuration with current IP
   updateFrontendConfig();
   
@@ -2236,13 +2236,11 @@ app.listen(PORT, '0.0.0.0', async () => {
   console.log(`📁 Upload directory: ${path.resolve('uploads')}`);
   console.log(`🌐 Network accessible at: http://${LOCAL_IP}:${PORT}`);
   
-  // Initialize IP whitelist manager
-  try {
-    await ipWhitelistManager.initialize();
-  } catch (error) {
+  // Initialize IP whitelist manager asynchronously (non-blocking)
+  ipWhitelistManager.initialize().catch(error => {
     console.error('⚠️ Failed to initialize IP whitelist manager:', error);
     console.error('⚠️ Monitoring endpoints may not work correctly');
-  }
+  });
   
   // Network connectivity tests removed - not necessary for local development
 });
