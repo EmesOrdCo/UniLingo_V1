@@ -29,21 +29,17 @@ const redisConfig = {
       }
 };
 
-// Log connection status
-redis.on('connect', () => {
-  console.log('✅ Redis connected successfully');
-});
-
-redis.on('error', (err) => {
-  console.error('❌ Redis connection error:', err.message);
-});
+// Redis connection events are already handled in redisConnection.js
+// No need to add duplicate listeners here
 
 /**
  * AI Jobs Queue
  * Handles all AI-related jobs (flashcard generation, lesson generation, etc.)
+ * 
+ * Note: BullMQ Queue creates its own Redis connection, so we pass the connection config
  */
 const aiJobsQueue = new Queue('ai-jobs', {
-  ...redisConfig,
+  connection: redisConfig.connection, // Use the same connection config (REDIS_PUBLIC_URL)
   defaultJobOptions: {
     attempts: 3, // Retry up to 3 times
     backoff: {
