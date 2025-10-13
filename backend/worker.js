@@ -52,6 +52,11 @@ const redisConfig = {
       }
 };
 
+console.log('🔍 Worker Redis Environment Variables:');
+console.log('  REDIS_PUBLIC_URL:', process.env.REDIS_PUBLIC_URL ? 'SET (length: ' + process.env.REDIS_PUBLIC_URL.length + ')' : 'NOT SET');
+console.log('  REDIS_URL:', process.env.REDIS_URL ? 'SET (length: ' + process.env.REDIS_URL.length + ')' : 'NOT SET');
+console.log('🔧 Worker Redis Config:', typeof redisConfig.connection === 'string' ? redisConfig.connection.replace(/:[^:@]+@/, ':****@') : redisConfig.connection);
+
 // Worker statistics
 const stats = {
   processed: 0,
@@ -265,7 +270,7 @@ async function handleGenerateLesson(job) {
  * Priority: Higher priority jobs processed first
  */
 const worker = new Worker('ai-jobs', processJob, {
-  ...redisConfig,
+  connection: redisConfig.connection, // Use the same connection config (REDIS_PUBLIC_URL)
   concurrency: 3, // Issue #5: Process up to 3 jobs concurrently
   limiter: {
     max: 10, // Max 10 jobs

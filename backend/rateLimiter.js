@@ -27,6 +27,8 @@ const redisClient = redis; // Use the shared connection
  * @returns {Bottleneck} - Configured limiter
  */
 function createLimiter(name, options = {}) {
+  console.log(`🔧 Creating rate limiter "${name}" with Redis config:`, typeof redisConfig === 'string' ? redisConfig.replace(/:[^:@]+@/, ':****@') : redisConfig);
+  
   // Bottleneck needs TWO Redis connections: one for commands, one for pub/sub
   // We'll use the shared connection for commands and let Bottleneck create a subscriber
   const limiter = new Bottleneck({
@@ -37,7 +39,7 @@ function createLimiter(name, options = {}) {
     client: redisClient, // Use shared Redis client for commands
     // Bottleneck will create its own subscriber connection using the same config
     Connection: require('ioredis'),
-    clientOptions: typeof redisConfig === 'string' ? redisConfig : redisConfig,
+    clientOptions: redisConfig, // Use the same connection string as shared Redis
     clearDatastore: false,
     
     // Rate limiting configuration
