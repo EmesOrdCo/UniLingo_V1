@@ -46,13 +46,8 @@ console.log('  REDIS_PUBLIC_URL:', process.env.REDIS_PUBLIC_URL ? 'SET (length: 
 console.log('  REDIS_URL:', process.env.REDIS_URL ? 'SET (length: ' + process.env.REDIS_URL.length + ')' : 'NOT SET');
 console.log('🔧 Worker Redis Config:', redisConfig);
 
-// Test shared Redis connection
-console.log('🔧 Testing shared Redis connection...');
-redis.ping().then(() => {
-  console.log('✅ Shared Redis connection: OK');
-}).catch((error) => {
-  console.error('❌ Shared Redis connection failed:', error.message);
-});
+// Redis connection is handled by redisConnection.js
+// No need to test connection here as it will be established automatically
 
 // Worker statistics
 const stats = {
