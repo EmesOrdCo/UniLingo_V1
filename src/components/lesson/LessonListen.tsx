@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
 import * as Haptics from 'expo-haptics';
+import LeaveConfirmationModal from './LeaveConfirmationModal';
 
 interface LessonListenProps {
   vocabulary: any[];
@@ -35,12 +36,17 @@ export default function LessonListen({
   const [score, setScore] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [gameComplete, setGameComplete] = useState(false);
+  const [showLeaveModal, setShowLeaveModal] = useState(false);
 
   useEffect(() => {
     if (onProgressUpdate) {
       onProgressUpdate(currentIndex);
     }
   }, [currentIndex]);
+
+  const handleClose = () => {
+    setShowLeaveModal(true);
+  };
 
   const currentVocab = vocabulary[currentIndex];
 
@@ -192,7 +198,7 @@ export default function LessonListen({
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+        <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
           <Ionicons name="close" size={28} color="#1f2937" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Listen Exercise</Text>
@@ -295,6 +301,13 @@ export default function LessonListen({
           )}
         </View>
       </ScrollView>
+
+      {/* Leave Confirmation Modal */}
+      <LeaveConfirmationModal
+        visible={showLeaveModal}
+        onLeave={onClose}
+        onCancel={() => setShowLeaveModal(false)}
+      />
     </SafeAreaView>
   );
 }

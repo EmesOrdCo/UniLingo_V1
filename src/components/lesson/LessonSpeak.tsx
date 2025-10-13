@@ -11,6 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import PronunciationCheck from '../PronunciationCheck';
+import LeaveConfirmationModal from './LeaveConfirmationModal';
 
 interface LessonSpeakProps {
   vocabulary: any[];
@@ -32,12 +33,17 @@ export default function LessonSpeak({
   const [totalScore, setTotalScore] = useState(0);
   const [currentWordPassed, setCurrentWordPassed] = useState(false);
   const [gameComplete, setGameComplete] = useState(false);
+  const [showLeaveModal, setShowLeaveModal] = useState(false);
 
   useEffect(() => {
     if (onProgressUpdate) {
       onProgressUpdate(currentIndex);
     }
   }, [currentIndex]);
+
+  const handleClose = () => {
+    setShowLeaveModal(true);
+  };
 
   const currentVocab = vocabulary[currentIndex];
   const currentWord = currentVocab?.keywords || currentVocab?.english_term || currentVocab?.term || '';
@@ -139,7 +145,7 @@ export default function LessonSpeak({
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+        <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
           <Ionicons name="close" size={28} color="#1f2937" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Speak Exercise</Text>
@@ -186,6 +192,13 @@ export default function LessonSpeak({
           </View>
         )}
       </ScrollView>
+
+      {/* Leave Confirmation Modal */}
+      <LeaveConfirmationModal
+        visible={showLeaveModal}
+        onLeave={onClose}
+        onCancel={() => setShowLeaveModal(false)}
+      />
     </SafeAreaView>
   );
 }

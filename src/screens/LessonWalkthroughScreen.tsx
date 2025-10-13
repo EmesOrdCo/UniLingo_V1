@@ -508,39 +508,12 @@ export default function LessonWalkthroughScreen() {
       console.error('❌ Error updating lesson progress:', error);
     }
 
-    // Determine next step
-    let nextStep: ExerciseStep;
-
-    switch (exerciseType) {
-      case 'flashcards':
-        nextStep = 'flashcard-quiz';
-        break;
-      case 'flashcard-quiz':
-        nextStep = 'fill-in-blank';
-        break;
-      case 'fill-in-blank':
-        nextStep = 'listen';
-        break;
-      case 'listen':
-        nextStep = 'speak';
-        break;
-      case 'speak':
-        nextStep = 'conversation';
-        break;
-      case 'conversation':
-        nextStep = 'completed';
-        break;
-      default:
-        return;
-    }
-
-    // Move to next step
+    // Return to flow preview after completing exercise
     setTimeout(() => {
-      setCurrentStep(nextStep);
-      setCurrentExercise(nextStep);
+      setCurrentStep('flow-preview');
       setIsTransitioning(false); // Clear transitioning flag
-      console.log(`🎯 Transitioning to ${nextStep} with question index 0`);
-    }, 1000);
+      console.log(`🎯 Exercise ${exerciseType} completed, returning to flow preview`);
+    }, 500);
   };
 
   const handleLessonComplete = async () => {
@@ -985,8 +958,8 @@ export default function LessonWalkthroughScreen() {
         vocabulary={lessonVocabulary}
         onComplete={(score) => handleExerciseComplete('flashcards', score, lessonVocabulary.length)}
         onClose={() => {
-          console.log('Flashcards close button pressed');
-          navigation.goBack();
+          console.log('Flashcards close button pressed - returning to flow preview');
+          setCurrentStep('flow-preview');
         }}
         onProgressUpdate={handleFlashcardsProgressUpdate}
         initialQuestionIndex={0}
@@ -1000,11 +973,10 @@ export default function LessonWalkthroughScreen() {
         vocabulary={lessonVocabulary}
         onComplete={(score) => {
           handleExerciseComplete('flashcard-quiz', score, lessonVocabulary.length);
-          navigateToExercise('fill-in-blank');
         }}
         onClose={() => {
-          console.log('Flashcard quiz close button pressed');
-          navigation.goBack();
+          console.log('Flashcard quiz close button pressed - returning to flow preview');
+          setCurrentStep('flow-preview');
         }}
         onProgressUpdate={handleFlashcardQuizProgressUpdate}
         initialQuestionIndex={0}
@@ -1018,11 +990,10 @@ export default function LessonWalkthroughScreen() {
         vocabulary={lessonVocabulary}
         onComplete={(score) => {
           handleExerciseComplete('fill-in-blank', score, lessonVocabulary.length);
-          navigateToExercise('listen');
         }}
         onClose={() => {
-          console.log('Fill in the blank close button pressed');
-          navigation.goBack();
+          console.log('Fill in the blank close button pressed - returning to flow preview');
+          setCurrentStep('flow-preview');
         }}
         onProgressUpdate={handleFillInBlankProgressUpdate}
         initialQuestionIndex={0}
@@ -1036,11 +1007,10 @@ export default function LessonWalkthroughScreen() {
         vocabulary={lessonVocabulary}
         onComplete={(score) => {
           handleExerciseComplete('listen', score, lessonVocabulary.length);
-          navigateToExercise('speak');
         }}
         onClose={() => {
-          console.log('Listen close button pressed');
-          navigation.goBack();
+          console.log('Listen close button pressed - returning to flow preview');
+          setCurrentStep('flow-preview');
         }}
         onProgressUpdate={(index) => {
           console.log(`Listen progress: question ${index + 1}/${lessonVocabulary.length}`);
@@ -1056,8 +1026,8 @@ export default function LessonWalkthroughScreen() {
         vocabulary={lessonVocabulary}
         onComplete={(score) => handleExerciseComplete('speak', score, lessonVocabulary.length)}
         onClose={() => {
-          console.log('Speak close button pressed');
-          navigation.goBack();
+          console.log('Speak close button pressed - returning to flow preview');
+          setCurrentStep('flow-preview');
         }}
         onProgressUpdate={(index) => {
           console.log(`Speak progress: question ${index + 1}/${lessonVocabulary.length}`);

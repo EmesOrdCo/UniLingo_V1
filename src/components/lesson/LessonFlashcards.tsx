@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Animated, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import LeaveConfirmationModal from './LeaveConfirmationModal';
 
 interface LessonFlashcardsProps {
   vocabulary: any[];
@@ -17,6 +18,7 @@ export default function LessonFlashcards({ vocabulary, onComplete, onClose, onPr
   const [currentIndex, setCurrentIndex] = useState(initialQuestionIndex);
   const [isFlipped, setIsFlipped] = useState(false);
   const [viewedCards, setViewedCards] = useState<Set<number>>(new Set());
+  const [showLeaveModal, setShowLeaveModal] = useState(false);
   const flipAnimation = useRef(new Animated.Value(0)).current;
 
   // Safety check for vocabulary data
@@ -39,6 +41,10 @@ export default function LessonFlashcards({ vocabulary, onComplete, onClose, onPr
       onProgressUpdate(currentIndex);
     }
   }, [currentIndex, onProgressUpdate]);
+
+  const handleClose = () => {
+    setShowLeaveModal(true);
+  };
 
   const flipCard = () => {
     const toValue = isFlipped ? 0 : 1;
@@ -101,10 +107,7 @@ export default function LessonFlashcards({ vocabulary, onComplete, onClose, onPr
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.closeButton} 
-          onPress={() => {
-            console.log('Close button touched in LessonFlashcards');
-            onClose();
-          }}
+          onPress={handleClose}
           activeOpacity={0.7}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
@@ -191,6 +194,13 @@ export default function LessonFlashcards({ vocabulary, onComplete, onClose, onPr
           />
         ))}
       </View>
+
+      {/* Leave Confirmation Modal */}
+      <LeaveConfirmationModal
+        visible={showLeaveModal}
+        onLeave={onClose}
+        onCancel={() => setShowLeaveModal(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -285,7 +295,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cardBack: {
-    backgroundColor: '#6366f1',
+    backgroundColor: '#ffffff',
     justifyContent: 'center',
     alignItems: 'center',
     position: 'absolute',
@@ -313,13 +323,13 @@ const styles = StyleSheet.create({
   },
   definitionText: {
     fontSize: 16,
-    color: '#ffffff',
+    color: '#1e293b',
     textAlign: 'center',
     marginBottom: 12,
   },
   exampleText: {
     fontSize: 14,
-    color: '#e2e8f0',
+    color: '#64748b',
     textAlign: 'center',
     fontStyle: 'italic',
     marginBottom: 24,

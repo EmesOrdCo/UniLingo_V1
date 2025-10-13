@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, TextInput, Dimensions, Scroll
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import LeaveConfirmationModal from './LeaveConfirmationModal';
 
 interface LessonFillInTheBlankProps {
   vocabulary: any[];
@@ -28,6 +29,7 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
   const [isCorrect, setIsCorrect] = useState(false);
   const [gameComplete, setGameComplete] = useState(false);
   const [showHint, setShowHint] = useState(false);
+  const [showLeaveModal, setShowLeaveModal] = useState(false);
 
   // Generate questions from vocabulary
   React.useEffect(() => {
@@ -50,6 +52,10 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
       onProgressUpdate(currentQuestionIndex);
     }
   }, [currentQuestionIndex]); // Removed onProgressUpdate from dependencies to prevent infinite loops
+
+  const handleClose = () => {
+    setShowLeaveModal(true);
+  };
 
   const handleCheckAnswer = () => {
     if (!userAnswer.trim()) return;
@@ -109,10 +115,7 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
         <View style={styles.header}>
           <TouchableOpacity 
             style={styles.closeButton} 
-            onPress={() => {
-              console.log('Close button touched in LessonFillInTheBlank');
-              onClose();
-            }}
+            onPress={handleClose}
             activeOpacity={0.7}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
@@ -127,6 +130,13 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
             This lesson doesn't have enough example sentences to create fill-in-the-blank questions.
           </Text>
         </View>
+
+        {/* Leave Confirmation Modal */}
+        <LeaveConfirmationModal
+          visible={showLeaveModal}
+          onLeave={onClose}
+          onCancel={() => setShowLeaveModal(false)}
+        />
       </SafeAreaView>
     );
   }
@@ -137,10 +147,7 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
         <View style={styles.header}>
           <TouchableOpacity 
             style={styles.closeButton} 
-            onPress={() => {
-              console.log('Close button touched in LessonFillInTheBlank');
-              onClose();
-            }}
+            onPress={handleClose}
             activeOpacity={0.7}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
@@ -215,6 +222,13 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
             </TouchableOpacity>
           </View>
         </ScrollView>
+
+        {/* Leave Confirmation Modal */}
+        <LeaveConfirmationModal
+          visible={showLeaveModal}
+          onLeave={onClose}
+          onCancel={() => setShowLeaveModal(false)}
+        />
       </SafeAreaView>
     );
   }
@@ -234,10 +248,7 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.closeButton} 
-          onPress={() => {
-            console.log('Close button touched in LessonFillInTheBlank');
-            onClose();
-          }}
+          onPress={handleClose}
           activeOpacity={0.7}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
@@ -340,6 +351,13 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
           )}
         </View>
       </View>
+
+      {/* Leave Confirmation Modal */}
+      <LeaveConfirmationModal
+        visible={showLeaveModal}
+        onLeave={onClose}
+        onCancel={() => setShowLeaveModal(false)}
+      />
     </SafeAreaView>
   );
 }
