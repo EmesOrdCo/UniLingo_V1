@@ -1,0 +1,11 @@
+# Ignore unnecessary files in Docker build
+node_modules/
+.git/
+.gitignore
+*.log
+*.tmp
+test-results/
+results/
+*.md
+!README.md
+!report_template.md
