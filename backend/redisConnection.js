@@ -16,29 +16,50 @@ console.log('  REDIS_PORT:', process.env.REDIS_PORT || 'NOT SET');
 console.log('  REDIS_PASSWORD:', process.env.REDIS_PASSWORD ? 'SET' : 'NOT SET');
 
 // Redis connection configuration - prioritize REDIS_PUBLIC_URL for Railway deployment
-const redisConfig = process.env.REDIS_PUBLIC_URL ? 
-  process.env.REDIS_PUBLIC_URL :
-  process.env.REDIS_URL ? 
-    process.env.REDIS_URL :
-    {
-      host: process.env.REDIS_HOST || 'localhost',
-      port: parseInt(process.env.REDIS_PORT || '6379'),
-      password: process.env.REDIS_PASSWORD,
-    };
-
-console.log('🔧 Redis Config Type:', typeof redisConfig);
-if (typeof redisConfig === 'string') {
-  console.log('🔧 Redis URL (masked):', redisConfig.replace(/:[^:@]+@/, ':****@'));
+// Parse Redis URL into connection options to ensure all connections use the same config
+let redisConfig;
+if (process.env.REDIS_PUBLIC_URL) {
+  const url = new URL(process.env.REDIS_PUBLIC_URL);
+  redisConfig = {
+    host: url.hostname,
+    port: parseInt(url.port) || 6379,
+    password: url.password || undefined,
+    maxRetriesPerRequest: null,
+    enableReadyCheck: false,
+  };
+} else if (process.env.REDIS_URL) {
+  const url = new URL(process.env.REDIS_URL);
+  redisConfig = {
+    host: url.hostname,
+    port: parseInt(url.port) || 6379,
+    password: url.password || undefined,
+    maxRetriesPerRequest: null,
+    enableReadyCheck: false,
+  };
 } else {
-  console.log('🔧 Redis Config:', redisConfig);
+  redisConfig = {
+    host: process.env.REDIS_HOST || 'localhost',
+    port: parseInt(process.env.REDIS_PORT || '6379'),
+    password: process.env.REDIS_PASSWORD,
+    maxRetriesPerRequest: null,
+    enableReadyCheck: false,
+  };
 }
 
+console.log('🔧 Redis Config Type:', typeof redisConfig);
+console.log('🔧 Redis Config:', redisConfig);
+
 // Create a single Redis connection instance
-const redis = new Redis(redisConfig);
+console.log('🔧 Creating Redis connection with config...');
+const redis = new Redis(redisConfig, {
+  lazyConnect: false, // Connect immediately
+  enableOfflineQueue: false, // Fail fast if connection is down
+});
 
 // Error handling
 redis.on('error', (error) => {
-  console.error('❌ Redis connection error:', error.message);
+  console.error('❌ [SHARED REDIS] Redis connection error:', error.message);
+  console.error('   Stack trace:', error.stack);
 });
 
 redis.on('connect', () => {

@@ -38,36 +38,8 @@ const azureCircuitBreaker = new CircuitBreaker('azure', {
   timeout: 30000,
 });
 
-// Redis connection configuration (same as queueClient.js)
-// Parse Redis URL into connection options to ensure all connections use the same config
-let redisConfig;
-if (process.env.REDIS_PUBLIC_URL) {
-  const url = new URL(process.env.REDIS_PUBLIC_URL);
-  redisConfig = {
-    host: url.hostname,
-    port: parseInt(url.port) || 6379,
-    password: url.password || undefined,
-    maxRetriesPerRequest: null,
-    enableReadyCheck: false,
-  };
-} else if (process.env.REDIS_URL) {
-  const url = new URL(process.env.REDIS_URL);
-  redisConfig = {
-    host: url.hostname,
-    port: parseInt(url.port) || 6379,
-    password: url.password || undefined,
-    maxRetriesPerRequest: null,
-    enableReadyCheck: false,
-  };
-} else {
-  redisConfig = {
-    host: process.env.REDIS_HOST || 'localhost',
-    port: parseInt(process.env.REDIS_PORT || '6379'),
-    password: process.env.REDIS_PASSWORD,
-    maxRetriesPerRequest: null,
-    enableReadyCheck: false,
-  };
-}
+// Redis connection configuration (imported from centralized redisConnection.js)
+const { redisConfig } = require('./redisConnection');
 
 console.log('🔍 Worker Redis Environment Variables:');
 console.log('  REDIS_PUBLIC_URL:', process.env.REDIS_PUBLIC_URL ? 'SET (length: ' + process.env.REDIS_PUBLIC_URL.length + ')' : 'NOT SET');

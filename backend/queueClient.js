@@ -10,36 +10,8 @@ const { Queue } = require('bullmq');
 const crypto = require('crypto');
 const { redis } = require('./redisConnection');
 
-// Redis connection configuration for BullMQ
-// Parse Redis URL into connection options to ensure all connections use the same config
-let redisConfig;
-if (process.env.REDIS_PUBLIC_URL) {
-  const url = new URL(process.env.REDIS_PUBLIC_URL);
-  redisConfig = {
-    host: url.hostname,
-    port: parseInt(url.port) || 6379,
-    password: url.password || undefined,
-    maxRetriesPerRequest: null, // Required for BullMQ
-    enableReadyCheck: false,
-  };
-} else if (process.env.REDIS_URL) {
-  const url = new URL(process.env.REDIS_URL);
-  redisConfig = {
-    host: url.hostname,
-    port: parseInt(url.port) || 6379,
-    password: url.password || undefined,
-    maxRetriesPerRequest: null, // Required for BullMQ
-    enableReadyCheck: false,
-  };
-} else {
-  redisConfig = {
-    host: process.env.REDIS_HOST || 'localhost',
-    port: parseInt(process.env.REDIS_PORT || '6379'),
-    password: process.env.REDIS_PASSWORD,
-    maxRetriesPerRequest: null, // Required for BullMQ
-    enableReadyCheck: false,
-  };
-}
+// Redis connection configuration (imported from centralized redisConnection.js)
+const { redisConfig } = require('./redisConnection');
 
 // Redis connection events are already handled in redisConnection.js
 // No need to add duplicate listeners here
