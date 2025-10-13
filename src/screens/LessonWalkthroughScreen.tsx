@@ -11,13 +11,11 @@ import { ProgressTrackingService } from '../lib/progressTrackingService';
 import { logger } from '../lib/logger';
 import LessonFlashcards from '../components/lesson/LessonFlashcards';
 import LessonFlashcardQuiz from '../components/lesson/LessonFlashcardQuiz';
-import LessonSentenceScramble from '../components/lesson/LessonSentenceScramble';
-import LessonWordScramble from '../components/lesson/LessonWordScramble';
 import LessonFillInTheBlank from '../components/lesson/LessonFillInTheBlank';
 import LessonListen from '../components/lesson/LessonListen';
 import LessonSpeak from '../components/lesson/LessonSpeak';
 
-type ExerciseStep = 'flow-preview' | 'flashcards' | 'flashcard-quiz' | 'sentence-scramble' | 'word-scramble' | 'fill-in-blank' | 'listen' | 'speak' | 'conversation' | 'completed';
+type ExerciseStep = 'flow-preview' | 'flashcards' | 'flashcard-quiz' | 'fill-in-blank' | 'listen' | 'speak' | 'conversation' | 'completed';
 
 interface RouteParams {
   lessonId: string;
@@ -33,8 +31,6 @@ export default function LessonWalkthroughScreen() {
   const [exerciseScores, setExerciseScores] = useState({
     flashcards: 0,
     flashcardQuiz: 0,
-    sentenceScramble: 0,
-    wordScramble: 0,
     fillInBlank: 0,
     listen: 0,
     speak: 0,
@@ -193,8 +189,6 @@ export default function LessonWalkthroughScreen() {
     setExerciseScores({
       flashcards: 0,
       flashcardQuiz: 0,
-      sentenceScramble: 0,
-      wordScramble: 0,
       fillInBlank: 0,
       listen: 0,
       speak: 0
@@ -203,7 +197,7 @@ export default function LessonWalkthroughScreen() {
     
     // Initialize progress in database
     try {
-      const maxPossibleScore = lessonVocabulary.length * 7; // 7 points per word across all exercises
+      const maxPossibleScore = lessonVocabulary.length * 5; // 5 points per word across all exercises
       await LessonService.updateLessonProgress(lessonId, user.id, {
         started_at: now.toISOString(),
         completed_at: undefined,
@@ -245,8 +239,6 @@ export default function LessonWalkthroughScreen() {
     setExerciseScores({
       flashcards: 0,
       flashcardQuiz: 0,
-      sentenceScramble: 0,
-      wordScramble: 0,
       fillInBlank: 0,
       listen: 0,
       speak: 0
@@ -300,7 +292,7 @@ export default function LessonWalkthroughScreen() {
       console.log('🔄 Restored completed exercises from database:', lessonProgress.completed_exercises);
     } else {
       // Fallback: estimate from score
-      const exerciseTypes = ['flashcards', 'flashcardQuiz', 'sentenceScramble', 'wordScramble', 'fillInBlank', 'listen', 'speak', 'conversation'];
+      const exerciseTypes = ['flashcards', 'flashcardQuiz', 'fillInBlank', 'listen', 'speak', 'conversation'];
       completedExercisesSet = new Set(exerciseTypes.slice(0, completedExerciseCount));
       console.log('🔄 Estimated completed exercises from score:', Array.from(completedExercisesSet));
     }
@@ -311,11 +303,9 @@ export default function LessonWalkthroughScreen() {
     const restoredScores = {
       flashcards: completedExerciseCount > 0 ? estimatedScorePerCompletedExercise : 0,
       flashcardQuiz: completedExerciseCount > 1 ? estimatedScorePerCompletedExercise : 0,
-      sentenceScramble: completedExerciseCount > 2 ? estimatedScorePerCompletedExercise : 0,
-      wordScramble: completedExerciseCount > 3 ? estimatedScorePerCompletedExercise : 0,
-      fillInBlank: completedExerciseCount > 4 ? estimatedScorePerCompletedExercise : 0,
-      listen: completedExerciseCount > 5 ? estimatedScorePerCompletedExercise : 0,
-      speak: completedExerciseCount > 6 ? estimatedScorePerCompletedExercise : 0
+      fillInBlank: completedExerciseCount > 2 ? estimatedScorePerCompletedExercise : 0,
+      listen: completedExerciseCount > 3 ? estimatedScorePerCompletedExercise : 0,
+      speak: completedExerciseCount > 4 ? estimatedScorePerCompletedExercise : 0
     };
     setExerciseScores(restoredScores);
     
@@ -371,16 +361,6 @@ export default function LessonWalkthroughScreen() {
   const handleFlashcardQuizProgressUpdate = useCallback((questionIndex: number) => {
     setCurrentQuestionIndex(questionIndex);
     saveResumePosition('flashcard-quiz', questionIndex);
-  }, []);
-
-  const handleSentenceScrambleProgressUpdate = useCallback((questionIndex: number) => {
-    setCurrentQuestionIndex(questionIndex);
-    saveResumePosition('sentence-scramble', questionIndex);
-  }, []);
-
-  const handleWordScrambleProgressUpdate = useCallback((questionIndex: number) => {
-    setCurrentQuestionIndex(questionIndex);
-    saveResumePosition('word-scramble', questionIndex);
   }, []);
 
   const handleFillInBlankProgressUpdate = useCallback((questionIndex: number) => {
@@ -506,11 +486,11 @@ export default function LessonWalkthroughScreen() {
       await ProgressTrackingService.updateLessonProgress({
         lessonId,
         totalScore: totalScore,
-        maxPossibleScore: lessonVocabulary.length * 7,
+        maxPossibleScore: lessonVocabulary.length * 5,
         exercisesCompleted: newCompletedSet.size,
-        totalExercises: 7, // Total number of exercises
+        totalExercises: 5, // Total number of exercises
         timeSpentSeconds: timeSpentSeconds,
-        status: newCompletedSet.size >= 7 ? 'completed' : 'in_progress',
+        status: newCompletedSet.size >= 5 ? 'completed' : 'in_progress',
         completedExercises: completedExercisesArray, // Save which exercises are completed
       });
 
@@ -518,7 +498,7 @@ export default function LessonWalkthroughScreen() {
       setLessonProgress(prev => prev ? {
         ...prev,
         total_score: totalScore,
-        max_possible_score: lessonVocabulary.length * 7,
+        max_possible_score: lessonVocabulary.length * 5,
         completed_exercises: completedExercisesArray,
         time_spent_seconds: timeSpentSeconds
       } : null);
@@ -536,12 +516,6 @@ export default function LessonWalkthroughScreen() {
         nextStep = 'flashcard-quiz';
         break;
       case 'flashcard-quiz':
-        nextStep = 'sentence-scramble';
-        break;
-      case 'sentence-scramble':
-        nextStep = 'word-scramble';
-        break;
-      case 'word-scramble':
         nextStep = 'fill-in-blank';
         break;
       case 'fill-in-blank':
@@ -668,8 +642,6 @@ export default function LessonWalkthroughScreen() {
     setExerciseScores({
       flashcards: 0,
       flashcardQuiz: 0,
-      sentenceScramble: 0,
-      wordScramble: 0,
       fillInBlank: 0,
       listen: 0,
       speak: 0
@@ -678,7 +650,7 @@ export default function LessonWalkthroughScreen() {
     
     // Reset progress in database
     try {
-      const maxPossibleScore = lessonVocabulary.length * 7; // 7 points per word across all exercises
+      const maxPossibleScore = lessonVocabulary.length * 5; // 5 points per word across all exercises
       await LessonService.updateLessonProgress(lessonId, user.id, {
         started_at: now.toISOString(),
         completed_at: undefined,
@@ -719,15 +691,10 @@ export default function LessonWalkthroughScreen() {
   if (currentStep === 'flow-preview') {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-                     <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-             <Ionicons name="arrow-back" size={24} color="#6366f1" />
-           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Exercise Flow</Text>
-          <View style={styles.placeholder} />
-        </View>
-
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          <TouchableOpacity style={styles.backButtonTop} onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={24} color="#6366f1" />
+          </TouchableOpacity>
           <View style={styles.flowContainer}>
             <View style={styles.flowHeader}>
               <Text style={styles.flowTitle}>Ready to Start?</Text>
@@ -745,7 +712,7 @@ export default function LessonWalkthroughScreen() {
                     <Text style={styles.progressBoxTitle}>Progress</Text>
                     <Text style={styles.progressBoxDescription}>
                       {lessonProgress.total_score > 0 ? 
-                        `${lessonProgress.total_score}/${lessonVocabulary.length * 7} points earned` :
+                        `${lessonProgress.total_score}/${lessonVocabulary.length * 5} points earned` :
                         'Lesson started - Ready to continue'
                       }
                     </Text>
@@ -753,13 +720,13 @@ export default function LessonWalkthroughScreen() {
                       <View 
                         style={[
                           styles.progressBarFill, 
-                          { width: `${lessonProgress.total_score > 0 ? (lessonProgress.total_score / (lessonVocabulary.length * 7)) * 100 : 0}%` }
+                          { width: `${lessonProgress.total_score > 0 ? (lessonProgress.total_score / (lessonVocabulary.length * 5)) * 100 : 0}%` }
                         ]} 
                       />
                     </View>
                     <Text style={styles.progressBoxDuration}>
                       {lessonProgress.total_score > 0 ? 
-                        `${Math.floor(lessonProgress.total_score / lessonVocabulary.length)} of 7 exercises completed` :
+                        `${Math.floor(lessonProgress.total_score / lessonVocabulary.length)} of 5 exercises completed` :
                         'Click "Resume Lesson" to continue where you left off'
                       }
                     </Text>
@@ -833,86 +800,18 @@ export default function LessonWalkthroughScreen() {
                 </View>
               </TouchableOpacity>
 
-              {/* Exercise 3: Sentence Scramble */}
+              {/* Exercise 3: Fill in the Blank */}
               <TouchableOpacity 
                 style={[
                   styles.flowExercise,
                   (!completedExercises.has('flashcard-quiz') && !lessonProgress?.completed_at) && styles.flowExerciseLocked
                 ]}
-                onPress={() => completedExercises.has('flashcard-quiz') || lessonProgress?.completed_at ? navigateToExercise('sentence-scramble') : null}
+                onPress={() => completedExercises.has('flashcard-quiz') || lessonProgress?.completed_at ? navigateToExercise('fill-in-blank') : null}
                 activeOpacity={completedExercises.has('flashcard-quiz') || lessonProgress?.completed_at ? 0.7 : 1}
                 disabled={!completedExercises.has('flashcard-quiz') && !lessonProgress?.completed_at}
               >
                 <View style={styles.flowExerciseNumber}>
                   <Text style={styles.flowExerciseNumberText}>3</Text>
-                </View>
-                <View style={styles.flowExerciseContent}>
-                  <View style={styles.flowExerciseIcon}>
-                    <Ionicons name="text" size={32} color="#6366f1" />
-                  </View>
-                  <View style={styles.flowExerciseInfo}>
-                    <Text style={styles.flowExerciseTitle}>Sentence Scramble</Text>
-                    <Text style={styles.flowExerciseDescription}>
-                      Unscramble example sentences to practice vocabulary in context
-                    </Text>
-                    <Text style={styles.flowExerciseDuration}>~2-3 minutes</Text>
-                  </View>
-                  <View style={styles.flowExerciseArrow}>
-                    {!completedExercises.has('flashcard-quiz') && !lessonProgress?.completed_at ? (
-                      <Ionicons name="lock-closed" size={20} color="#94a3b8" />
-                    ) : (
-                      <Ionicons name="chevron-forward" size={20} color="#cbd5e1" />
-                    )}
-                  </View>
-                </View>
-              </TouchableOpacity>
-
-              {/* Exercise 4: Word Scramble */}
-              <TouchableOpacity 
-                style={[
-                  styles.flowExercise,
-                  (!completedExercises.has('sentence-scramble') && !lessonProgress?.completed_at) && styles.flowExerciseLocked
-                ]}
-                onPress={() => completedExercises.has('sentence-scramble') || lessonProgress?.completed_at ? navigateToExercise('word-scramble') : null}
-                activeOpacity={completedExercises.has('sentence-scramble') || lessonProgress?.completed_at ? 0.7 : 1}
-                disabled={!completedExercises.has('sentence-scramble') && !lessonProgress?.completed_at}
-              >
-                <View style={styles.flowExerciseNumber}>
-                  <Text style={styles.flowExerciseNumberText}>4</Text>
-                </View>
-                <View style={styles.flowExerciseContent}>
-                  <View style={styles.flowExerciseIcon}>
-                    <Ionicons name="grid" size={32} color="#6366f1" />
-                  </View>
-                  <View style={styles.flowExerciseInfo}>
-                    <Text style={styles.flowExerciseTitle}>Word Scramble</Text>
-                    <Text style={styles.flowExerciseDescription}>
-                      Unscramble vocabulary words using definitions as hints
-                    </Text>
-                    <Text style={styles.flowExerciseDuration}>~2-3 minutes</Text>
-                  </View>
-                  <View style={styles.flowExerciseArrow}>
-                    {!completedExercises.has('sentence-scramble') && !lessonProgress?.completed_at ? (
-                      <Ionicons name="lock-closed" size={20} color="#94a3b8" />
-                    ) : (
-                      <Ionicons name="chevron-forward" size={20} color="#cbd5e1" />
-                    )}
-                  </View>
-                </View>
-              </TouchableOpacity>
-
-              {/* Exercise 5: Fill in the Blank */}
-              <TouchableOpacity 
-                style={[
-                  styles.flowExercise,
-                  (!completedExercises.has('word-scramble') && !lessonProgress?.completed_at) && styles.flowExerciseLocked
-                ]}
-                onPress={() => completedExercises.has('word-scramble') || lessonProgress?.completed_at ? navigateToExercise('fill-in-blank') : null}
-                activeOpacity={completedExercises.has('word-scramble') || lessonProgress?.completed_at ? 0.7 : 1}
-                disabled={!completedExercises.has('word-scramble') && !lessonProgress?.completed_at}
-              >
-                <View style={styles.flowExerciseNumber}>
-                  <Text style={styles.flowExerciseNumberText}>5</Text>
                 </View>
                 <View style={styles.flowExerciseContent}>
                   <View style={styles.flowExerciseIcon}>
@@ -926,7 +825,7 @@ export default function LessonWalkthroughScreen() {
                     <Text style={styles.flowExerciseDuration}>~3-4 minutes</Text>
                   </View>
                   <View style={styles.flowExerciseArrow}>
-                    {!completedExercises.has('word-scramble') && !lessonProgress?.completed_at ? (
+                    {!completedExercises.has('flashcard-quiz') && !lessonProgress?.completed_at ? (
                       <Ionicons name="lock-closed" size={20} color="#94a3b8" />
                     ) : (
                       <Ionicons name="chevron-forward" size={20} color="#cbd5e1" />
@@ -935,7 +834,7 @@ export default function LessonWalkthroughScreen() {
                 </View>
               </TouchableOpacity>
 
-              {/* Exercise 6: Listen */}
+              {/* Exercise 4: Listen */}
               <TouchableOpacity 
                 style={[
                   styles.flowExercise,
@@ -946,7 +845,7 @@ export default function LessonWalkthroughScreen() {
                 disabled={!completedExercises.has('fill-in-blank') && !lessonProgress?.completed_at}
               >
                 <View style={styles.flowExerciseNumber}>
-                  <Text style={styles.flowExerciseNumberText}>6</Text>
+                  <Text style={styles.flowExerciseNumberText}>4</Text>
                 </View>
                 <View style={styles.flowExerciseContent}>
                   <View style={styles.flowExerciseIcon}>
@@ -969,7 +868,7 @@ export default function LessonWalkthroughScreen() {
                 </View>
               </TouchableOpacity>
 
-              {/* Exercise 7: Speak */}
+              {/* Exercise 5: Speak */}
               <TouchableOpacity 
                 style={[
                   styles.flowExercise,
@@ -980,7 +879,7 @@ export default function LessonWalkthroughScreen() {
                 disabled={!completedExercises.has('listen') && !lessonProgress?.completed_at}
               >
                 <View style={styles.flowExerciseNumber}>
-                  <Text style={styles.flowExerciseNumberText}>7</Text>
+                  <Text style={styles.flowExerciseNumberText}>5</Text>
                 </View>
                 <View style={styles.flowExerciseContent}>
                   <View style={styles.flowExerciseIcon}>
@@ -1003,7 +902,7 @@ export default function LessonWalkthroughScreen() {
                 </View>
               </TouchableOpacity>
 
-              {/* Exercise 8: Conversation */}
+              {/* Exercise 6: Conversation */}
               <TouchableOpacity 
                 style={[
                   styles.flowExercise,
@@ -1014,7 +913,7 @@ export default function LessonWalkthroughScreen() {
                 disabled={!completedExercises.has('speak') && !lessonProgress?.completed_at}
               >
                 <View style={styles.flowExerciseNumber}>
-                  <Text style={styles.flowExerciseNumberText}>8</Text>
+                  <Text style={styles.flowExerciseNumberText}>6</Text>
                 </View>
                 <View style={styles.flowExerciseContent}>
                   <View style={styles.flowExerciseIcon}>
@@ -1101,49 +1000,13 @@ export default function LessonWalkthroughScreen() {
         vocabulary={lessonVocabulary}
         onComplete={(score) => {
           handleExerciseComplete('flashcard-quiz', score, lessonVocabulary.length);
-          navigateToExercise('sentence-scramble');
+          navigateToExercise('fill-in-blank');
         }}
         onClose={() => {
           console.log('Flashcard quiz close button pressed');
           navigation.goBack();
         }}
         onProgressUpdate={handleFlashcardQuizProgressUpdate}
-        initialQuestionIndex={0}
-      />
-    );
-  }
-
-  if (currentStep === 'sentence-scramble') {
-    return (
-      <LessonSentenceScramble
-        vocabulary={lessonVocabulary}
-        onComplete={(score) => {
-          handleExerciseComplete('sentence-scramble', score, lessonVocabulary.length);
-          navigateToExercise('word-scramble');
-        }}
-        onClose={() => {
-          console.log('Sentence scramble close button pressed');
-          navigation.goBack();
-        }}
-        onProgressUpdate={handleSentenceScrambleProgressUpdate}
-        initialQuestionIndex={0}
-      />
-    );
-  }
-
-  if (currentStep === 'word-scramble') {
-    return (
-      <LessonWordScramble
-        vocabulary={lessonVocabulary}
-        onComplete={(score) => {
-          handleExerciseComplete('word-scramble', score, lessonVocabulary.length);
-          navigateToExercise('fill-in-blank');
-        }}
-        onClose={() => {
-          console.log('Word scramble close button pressed');
-          navigation.goBack();
-        }}
-        onProgressUpdate={handleWordScrambleProgressUpdate}
         initialQuestionIndex={0}
       />
     );
@@ -1234,7 +1097,7 @@ export default function LessonWalkthroughScreen() {
             
             <View style={styles.scoreSummary}>
               <Text style={styles.scoreText}>
-                Total Score: {Object.values(exerciseScores).reduce((sum, score) => sum + score, 0)}/{lessonVocabulary.length * 7}
+                Total Score: {Object.values(exerciseScores).reduce((sum, score) => sum + score, 0)}/{lessonVocabulary.length * 5}
               </Text>
             </View>
 
@@ -1268,7 +1131,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 20,
     paddingTop: 24,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f9fafb',
     borderBottomWidth: 1,
     borderBottomColor: '#f1f5f9',
     shadowColor: '#000',
@@ -1279,6 +1142,10 @@ const styles = StyleSheet.create({
   },
   backButton: {
     padding: 8,
+  },
+  backButtonTop: {
+    padding: 8,
+    marginLeft: 12,
   },
   headerTitle: {
     fontSize: 28,
@@ -1438,11 +1305,13 @@ const styles = StyleSheet.create({
   },
   // Flow preview styles
   flowContainer: {
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingTop: 0,
+    paddingBottom: 20,
   },
   flowHeader: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 0,
   },
   flowTitle: {
     fontSize: 28,
@@ -1457,6 +1326,7 @@ const styles = StyleSheet.create({
   },
   exerciseFlow: {
     gap: 20,
+    marginTop: 20,
     marginBottom: 32,
   },
   flowExercise: {
@@ -1576,7 +1446,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8fafc',
     borderRadius: 16,
     padding: 20,
-    marginTop: 16,
+    marginTop: 0,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
