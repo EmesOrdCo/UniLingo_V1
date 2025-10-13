@@ -25,6 +25,9 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
   const [selectedCefrLevel, setSelectedCefrLevel] = useState<string>('A1');
   const [cefrProgress, setCefrProgress] = useState<CefrLevelProgress | null>(null);
   const [loadingCefrProgress, setLoadingCefrProgress] = useState(false);
+  const [cefrDropdownVisible, setCefrDropdownVisible] = useState(false);
+
+  const CEFR_LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
   
   console.log('📊 DashboardContent - selectedUnit from context:', selectedUnit);
   
@@ -240,12 +243,12 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
 
   const getCefrLevelTitle = (level: string): string => {
     const titles: { [key: string]: string } = {
-      'A1': 'Beginner Level',
-      'A2': 'Elementary Level',
-      'B1': 'Intermediate Level',
-      'B2': 'Upper Intermediate Level',
-      'C1': 'Advanced Level',
-      'C2': 'Proficient Level',
+      'A1': 'Foundation',
+      'A2': 'Beginner',
+      'B1': 'Intermediate',
+      'B2': 'Advanced',
+      'C1': 'Expert',
+      'C2': 'Fluent',
     };
     return titles[level] || 'General Subjects';
   };
@@ -253,10 +256,10 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
   const getCefrLevelDescription = (level: string): string => {
     const descriptions: { [key: string]: string } = {
       'A1': 'Start your journey with basic vocabulary and simple expressions for everyday situations.',
-      'A2': 'Build on the basics with more vocabulary and common phrases for familiar topics.',
+      'A2': 'Build confidence with common phrases and vocabulary for familiar topics.',
       'B1': 'Develop intermediate skills to handle most situations and express opinions clearly.',
       'B2': 'Master complex topics and communicate fluently with detailed explanations.',
-      'C1': 'Achieve advanced proficiency with sophisticated vocabulary and nuanced expressions.',
+      'C1': 'Achieve expert proficiency with sophisticated vocabulary and nuanced expressions.',
       'C2': 'Perfect your mastery with native-level comprehension and expression.',
     };
     return descriptions[level] || 'Learn essential vocabulary and practice with interactive exercises across various subjects.';
@@ -278,38 +281,67 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
       <>
         {/* Course Overview Section */}
           <View style={styles.courseOverview}>
-            <Text style={styles.courseLevel}>{selectedCefrLevel}</Text>
-            <View style={styles.courseTitleRow}>
-              <Text style={styles.courseTitle}>{getCefrLevelTitle(selectedCefrLevel)}</Text>
+            <View style={styles.courseOverviewHeader}>
+              <Text style={styles.courseTitle}>{getCefrLevelTitle(selectedCefrLevel)} {selectedCefrLevel}</Text>
+              <TouchableOpacity 
+                style={styles.cefrSelectorButton}
+                onPress={() => setCefrDropdownVisible(!cefrDropdownVisible)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.cefrSelectorButtonText}>{selectedCefrLevel}</Text>
+                <Ionicons 
+                  name={cefrDropdownVisible ? "chevron-up" : "chevron-down"} 
+                  size={20} 
+                  color="#6366f1" 
+                />
+              </TouchableOpacity>
             </View>
-            <Text style={styles.courseDescription}>
-              {getCefrLevelDescription(selectedCefrLevel)}
-            </Text>
+
+            {/* CEFR Dropdown Menu */}
+            {cefrDropdownVisible && (
+              <View style={styles.cefrDropdownContainer}>
+                <ScrollView style={styles.cefrDropdownMenu} nestedScrollEnabled>
+                  {CEFR_LEVELS.map((level) => (
+                    <TouchableOpacity
+                      key={level}
+                      style={[
+                        styles.cefrDropdownItem,
+                        selectedCefrLevel === level && styles.cefrDropdownItemSelected
+                      ]}
+                      onPress={() => {
+                        setSelectedCefrLevel(level);
+                        setCefrDropdownVisible(false);
+                      }}
+                    >
+                      <Text style={[
+                        styles.cefrDropdownItemText,
+                        selectedCefrLevel === level && styles.cefrDropdownItemTextSelected
+                      ]}>
+                        Level {level}
+                      </Text>
+                      {selectedCefrLevel === level && (
+                        <Ionicons name="checkmark" size={20} color="#6366f1" />
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
             
-            {/* Progress Bar */}
+            <Text style={styles.courseDescription}>{getCefrLevelDescription(selectedCefrLevel)}</Text>
+            
+            {/* Progress Section */}
             <View style={styles.progressSection}>
               <View style={styles.progressBar}>
                 <View 
                   style={[
-                    styles.progressFill,
-                    {
-                      width: loadingCefrProgress 
-                        ? '2%' 
-                        : `${cefrProgress?.progressPercentage || 0}%`,
-                      backgroundColor: cefrProgress?.status === 'completed' 
-                        ? '#10b981' 
-                        : cefrProgress?.status === 'in_progress' 
-                          ? '#6366f1' 
-                          : '#e5e7eb'
-                    }
+                    styles.progressFill, 
+                    { width: cefrProgress ? `${cefrProgress.completionPercentage}%` : '0%' }
                   ]} 
                 />
               </View>
               <Text style={styles.progressText}>
-                {loadingCefrProgress 
-                  ? '...' 
-                  : `${cefrProgress?.progressPercentage || 0}%`
-                }
+                {cefrProgress ? `${Math.round(cefrProgress.completionPercentage)}%` : '0%'}
               </Text>
             </View>
           </View>
@@ -317,7 +349,7 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
           {/* Subject Boxes Section */}
           <SubjectBoxes 
             maxSubjects={6}
-            onCefrLevelChange={(level) => setSelectedCefrLevel(level)}
+            selectedCefrLevel={selectedCefrLevel}
           />
       </>
 
@@ -332,33 +364,28 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
   },
   courseOverview: {
-    padding: 28,
-    backgroundColor: '#f0f4ff',
-    margin: 16,
+    padding: 24,
+    backgroundColor: '#e0e7ff',
+    marginHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 16,
     borderRadius: 20,
-    shadowColor: '#6366f1',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 6,
     borderWidth: 3,
     borderColor: '#6366f1',
+    position: 'relative',
+    overflow: 'visible',
+  },
+  courseOverviewHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
   },
   courseLevel: {
     fontSize: 14,
-    color: '#ffffff',
-    marginBottom: 4,
-    fontWeight: '700',
-    backgroundColor: '#6366f1',
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 14,
-    alignSelf: 'flex-start',
-    shadowColor: '#6366f1',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 3,
+    color: '#6b7280',
+    marginBottom: 8,
+    fontWeight: '500',
   },
   courseTitleRow: {
     flexDirection: 'row',
@@ -367,63 +394,97 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   courseTitle: {
-    fontSize: 24,
+    fontSize: 32,
     fontWeight: '700',
     color: '#000000',
+    marginBottom: 0,
     flex: 1,
   },
   courseDescription: {
     fontSize: 16,
     color: '#4b5563',
-    lineHeight: 22,
+    lineHeight: 24,
     marginBottom: 20,
   },
   progressSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
+    marginTop: 0,
+    gap: 12,
   },
   progressBar: {
     flex: 1,
-    height: 10,
-    backgroundColor: '#f1f5f9',
-    borderRadius: 8,
-    marginRight: 12,
+    height: 8,
+    backgroundColor: '#c7d2fe',
+    borderRadius: 6,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
   },
   progressFill: {
     height: '100%',
+    backgroundColor: '#6366f1',
     borderRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 2,
   },
   progressText: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 18,
+    fontWeight: '700',
     color: '#000000',
+    minWidth: 45,
   },
-  changeButton: {
+  cefrSelectorButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderWidth: 1,
+    paddingVertical: 10,
+    borderWidth: 2,
     borderColor: '#6366f1',
-    borderRadius: 8,
-    marginLeft: 12,
-    backgroundColor: '#f8fafc',
-    shadowColor: '#6366f1',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    borderRadius: 12,
+    backgroundColor: '#ffffff',
+    gap: 8,
   },
-  changeButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
+  cefrSelectorButtonText: {
     color: '#6366f1',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  cefrDropdownContainer: {
+    position: 'absolute',
+    top: 50,
+    right: 24,
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
+    zIndex: 1000,
+    minWidth: 150,
+  },
+  cefrDropdownMenu: {
+    maxHeight: 250,
+  },
+  cefrDropdownItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+  },
+  cefrDropdownItemSelected: {
+    backgroundColor: '#f0f1ff',
+  },
+  cefrDropdownItemText: {
+    fontSize: 16,
+    color: '#374151',
+    fontWeight: '500',
+  },
+  cefrDropdownItemTextSelected: {
+    color: '#6366f1',
+    fontWeight: '600',
   },
   unitsSection: {
     padding: 20,

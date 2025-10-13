@@ -58,94 +58,46 @@ const SubjectBox: React.FC<SubjectBoxProps> = ({ subject, onPress, isExpanded = 
   // Determine if all 5 exercises are completed
   const isCompleted = progress?.status === 'completed' && progress.exercises_completed >= 5;
   
-  // Use green if completed, otherwise use gray
-  const color = isCompleted ? '#10b981' : '#9ca3af';
+  // Always use purple for border, green icon if completed, gray if not
+  const color = '#6366f1'; // Always purple border
   const iconColor = isCompleted ? '#10b981' : '#9ca3af';
 
   return (
     <TouchableOpacity 
-      style={[styles.subjectBox, { borderLeftColor: color }]}
+      style={[
+        styles.subjectBox, 
+        { borderLeftColor: color },
+        isExpanded && styles.subjectBoxExpanded
+      ]}
       onPress={() => onPress(subject)}
       activeOpacity={0.7}
     >
-      <View style={styles.subjectHeader}>
-        <View style={styles.subjectIconContainer}>
-          <Ionicons name={iconName as any} size={24} color={iconColor} />
-        </View>
-        <View style={styles.subjectInfo}>
-          <View style={styles.titleRow}>
-            <Text style={styles.subjectTitle} numberOfLines={1} style={[styles.subjectTitle, { flex: 1 }]}>
-              {String(subject.name || 'Unknown Subject')}
+      <View style={styles.subjectContent}>
+        <View style={styles.subjectMainInfo}>
+          <Text style={styles.unitNumber}>Unit 1</Text>
+          <Text style={styles.subjectTitle}>{String(subject.name || 'Unknown Subject')}</Text>
+          <View style={styles.subjectMetaRow}>
+            <Text style={styles.subjectMeta}>
+              {String(subject.cefrLevel || 'A1.1')} • Topic Group
             </Text>
-            {(() => {
-              const cefrLevel = subject.cefrLevel;
-              if (cefrLevel && String(cefrLevel).trim().length > 0) {
-                return (
-                  <View style={styles.cefrBadge}>
-                    <Text style={styles.cefrBadgeText}>{String(cefrLevel)}</Text>
-                  </View>
-                );
-              }
-              return null;
-            })()}
-            {progress?.status === 'completed' && (
-              <View style={styles.completedBadge}>
-                <Ionicons name="checkmark-circle" size={18} color="#10b981" />
-              </View>
-            )}
+            <TouchableOpacity style={styles.downloadIcon}>
+              <Ionicons name="download-outline" size={20} color="#9ca3af" />
+            </TouchableOpacity>
           </View>
-          <Text style={styles.subjectSubtitle}>
-            {String(subject.wordCount || 0)} words • {subject.hasLessons ? 'Has lessons' : 'Vocabulary only'}
-          </Text>
+        </View>
+        <View style={styles.expandIcon}>
+          <Ionicons 
+            name={isExpanded ? "chevron-up" : "chevron-down"} 
+            size={24} 
+            color="#9ca3af" 
+          />
         </View>
       </View>
       
       {(() => {
-        const wordCount = Number(subject.wordCount) || 0;
-        if (wordCount > 0) {
-          return (
-            <>
-              <View style={styles.subjectStats}>
-                <View style={styles.statItem}>
-                  <Ionicons name="book-outline" size={16} color="#6b7280" />
-                  <Text style={styles.statText}>{String(wordCount)} words</Text>
-                </View>
-                {subject.hasLessons && (
-                  <View style={styles.statItem}>
-                    <Ionicons name="play-circle-outline" size={16} color="#6b7280" />
-                    <Text style={styles.statText}>Lessons available</Text>
-                  </View>
-                )}
-                {progress && progress.status !== 'not_started' && (
-                  <View style={styles.statItem}>
-                    <Ionicons 
-                      name={isCompleted ? "checkmark-circle" : "hourglass-outline"} 
-                      size={16} 
-                      color={isCompleted ? "#10b981" : "#9ca3af"} 
-                    />
-                    <Text style={styles.statText}>
-                      {progress.exercises_completed}/{progress.total_exercises} exercises
-                    </Text>
-                  </View>
-                )}
-              </View>
-              
-              {/* Progress Bar */}
-              {progress && progress.exercises_completed > 0 && (
-                <View style={styles.progressBarContainer}>
-                  <View 
-                    style={[
-                      styles.progressBarFill, 
-                      { 
-                        width: `${(progress.exercises_completed / progress.total_exercises) * 100}%`,
-                        backgroundColor: isCompleted ? '#10b981' : '#9ca3af'
-                      }
-                    ]} 
-                  />
-                </View>
-              )}
-            </>
-          );
+        const cefrLevel = subject.cefrLevel;
+        if (cefrLevel && String(cefrLevel).trim().length > 0) {
+          return null; // CEFR badge now shown inline
         }
         return null;
       })()}
@@ -156,21 +108,18 @@ const SubjectBox: React.FC<SubjectBoxProps> = ({ subject, onPress, isExpanded = 
 interface SubjectBoxesProps {
   onSubjectSelect?: (subject: SubjectData) => void;
   maxSubjects?: number;
+  selectedCefrLevel?: string;
   onCefrLevelChange?: (level: string) => void;
 }
 
-export default function SubjectBoxes({ onSubjectSelect, maxSubjects = 6, onCefrLevelChange }: SubjectBoxesProps) {
+export default function SubjectBoxes({ onSubjectSelect, maxSubjects = 6, selectedCefrLevel = 'A1', onCefrLevelChange }: SubjectBoxesProps) {
   const navigation = useNavigation();
   const { user } = useAuth();
   const [allSubjects, setAllSubjects] = useState<SubjectData[]>([]);
   const [subjects, setSubjects] = useState<SubjectData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedCefrLevel, setSelectedCefrLevel] = useState<string>('A1');
-  const [dropdownVisible, setDropdownVisible] = useState(false);
   const [expandedSubject, setExpandedSubject] = useState<string | null>(null);
   const [subjectProgress, setSubjectProgress] = useState<Map<string, GeneralLessonProgress>>(new Map());
-
-  const CEFR_LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
   
   const LESSONS = [
     { id: 'Words', title: 'Words', icon: 'book', color: '#6466E9' },
@@ -183,13 +132,6 @@ export default function SubjectBoxes({ onSubjectSelect, maxSubjects = 6, onCefrL
   useEffect(() => {
     // Load subjects whenever CEFR level changes
     loadSubjects();
-  }, [selectedCefrLevel]);
-
-  useEffect(() => {
-    // Notify parent component when CEFR level changes
-    if (onCefrLevelChange) {
-      onCefrLevelChange(selectedCefrLevel);
-    }
   }, [selectedCefrLevel]);
 
   // Load progress data when component focuses
@@ -327,59 +269,6 @@ export default function SubjectBoxes({ onSubjectSelect, maxSubjects = 6, onCefrL
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.headerTextContainer}>
-          <Text style={styles.headerTitle}>Available Subjects</Text>
-          <Text style={styles.headerSubtitle}>Choose a subject to start learning</Text>
-        </View>
-        
-        {/* CEFR Level Dropdown */}
-        <TouchableOpacity 
-          style={styles.dropdownButton}
-          onPress={() => setDropdownVisible(!dropdownVisible)}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.dropdownButtonText}>{selectedCefrLevel}</Text>
-          <Ionicons 
-            name={dropdownVisible ? "chevron-up" : "chevron-down"} 
-            size={20} 
-            color="#6366f1" 
-          />
-        </TouchableOpacity>
-      </View>
-
-      {/* Dropdown Menu */}
-      {dropdownVisible ? (
-        <View style={styles.dropdownMenu}>
-          <ScrollView style={styles.dropdownScroll}>
-            {CEFR_LEVELS.filter(level => level && String(level).trim()).map((level) => (
-              <TouchableOpacity
-                key={String(level)}
-                style={[
-                  styles.dropdownItem,
-                  selectedCefrLevel === level ? styles.dropdownItemSelected : null
-                ]}
-                onPress={() => {
-                  setSelectedCefrLevel(String(level));
-                  setDropdownVisible(false);
-                }}
-              >
-                <Text style={[
-                  styles.dropdownItemText,
-                  selectedCefrLevel === level ? styles.dropdownItemTextSelected : null
-                ]}>
-                  Level {String(level)}
-                </Text>
-                {selectedCefrLevel === level ? (
-                  <Ionicons name="checkmark" size={20} color="#6366f1" />
-                ) : null}
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-      ) : null}
-
-      
       <View style={styles.subjectsGrid}>
         {subjects.filter(subject => subject && subject.name).map((subject, index) => {
           const progressKey = `${subject.name}|${subject.cefrLevel}`;
@@ -397,14 +286,16 @@ export default function SubjectBoxes({ onSubjectSelect, maxSubjects = 6, onCefrL
             {/* Expanded Lessons (like original system) */}
             {expandedSubject === subject.name && (
               <View style={styles.lessonsContainer}>
-                {LESSONS.map((lesson) => (
+                {LESSONS.map((lesson, index) => (
                   <TouchableOpacity
                     key={lesson.id}
-                    style={styles.lessonCard}
+                    style={[
+                      styles.lessonCard,
+                      index === LESSONS.length - 1 && { marginBottom: 0 }
+                    ]}
                     onPress={() => handleLessonPress(subject, lesson.title)}
                   >
                     <View style={styles.lessonContent}>
-                      <Ionicons name={lesson.icon as any} size={20} color={lesson.color} />
                       <Text style={styles.lessonTitle}>{lesson.title}</Text>
                     </View>
                     <View style={styles.lessonActions}>
@@ -412,7 +303,7 @@ export default function SubjectBoxes({ onSubjectSelect, maxSubjects = 6, onCefrL
                         style={styles.startButton}
                         onPress={() => handleLessonPress(subject, lesson.title)}
                       >
-                        <Ionicons name="play" size={16} color="#ffffff" />
+                        <Ionicons name="play" size={18} color="#ffffff" />
                         <Text style={styles.startButtonText}>Start</Text>
                       </TouchableOpacity>
                     </View>
@@ -526,17 +417,51 @@ const styles = StyleSheet.create({
   },
   subjectBox: {
     backgroundColor: '#ffffff',
-    padding: 16,
-    borderRadius: 12,
+    padding: 20,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: '#e5e7eb',
     borderLeftWidth: 4,
-    marginBottom: 12,
+    marginBottom: 0,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  subjectBoxExpanded: {
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+    borderBottomWidth: 0,
+  },
+  subjectContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  subjectMainInfo: {
+    flex: 1,
+  },
+  unitNumber: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#9ca3af',
+    marginBottom: 4,
+  },
+  subjectMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  subjectMeta: {
+    fontSize: 14,
+    color: '#9ca3af',
+  },
+  downloadIcon: {
+    padding: 2,
+  },
+  expandIcon: {
+    marginLeft: 12,
   },
   subjectHeader: {
     flexDirection: 'row',
@@ -561,10 +486,10 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   subjectTitle: {
-    fontSize: 16,
+    fontSize: 20,
     fontWeight: '600',
     color: '#000000',
-    marginRight: 8,
+    marginBottom: 4,
   },
   cefrBadge: {
     backgroundColor: '#6366f1',
@@ -626,70 +551,78 @@ const styles = StyleSheet.create({
   },
   // Original Expandable System Styles
   subjectContainer: {
-    marginBottom: 12,
+    marginBottom: 16,
   },
   lessonsContainer: {
     backgroundColor: '#ffffff',
     borderWidth: 1,
     borderColor: '#e5e7eb',
     borderTopWidth: 0,
-    borderBottomLeftRadius: 12,
-    borderBottomRightRadius: 12,
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
     paddingTop: 16,
     paddingHorizontal: 16,
     paddingBottom: 16,
-    borderLeftWidth: 3,
+    borderLeftWidth: 4,
     borderLeftColor: '#6366f1',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
   },
   lessonCard: {
     backgroundColor: '#f8fafc',
-    padding: 18,
+    padding: 16,
     marginBottom: 12,
-    borderRadius: 14,
+    borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     borderWidth: 1,
-    borderColor: '#e2e8f0',
+    borderColor: '#e5e7eb',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.02,
-    shadowRadius: 4,
+    shadowOpacity: 0.03,
+    shadowRadius: 2,
     elevation: 1,
   },
   lessonContent: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 0,
   },
   lessonTitle: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 18,
+    fontWeight: '400',
     color: '#000000',
   },
   lessonActions: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-end',
-    gap: 12,
   },
   startButton: {
     backgroundColor: '#6366f1',
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 10,
-    gap: 6,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 12,
+    gap: 8,
     shadowColor: '#6366f1',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 3,
+    minWidth: 100,
+    justifyContent: 'center',
   },
   startButtonText: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: '600',
     color: '#ffffff',
   },

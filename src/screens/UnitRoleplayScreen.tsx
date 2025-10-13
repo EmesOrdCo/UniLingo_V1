@@ -141,6 +141,28 @@ export default function UnitRoleplayScreen() {
     loadConversation();
   }, [subjectName, cefrLevel]);
 
+  // Reset lesson state when conversation is loaded
+  useEffect(() => {
+    if (conversationData && conversationData.conversation && conversationData.conversation.length > 0) {
+      console.log('🔄 Resetting lesson state for new conversation data');
+      setCurrentExchangeIndex(0);
+      setScore(0);
+      setCompleted(false);
+      setShowResult(false);
+      setIsCorrect(false);
+      // Initialize with first Thomas message (first Assistant message)
+      const firstAssistantMsg = conversationData.conversation.find(msg => msg.speaker === 'Assistant');
+      if (firstAssistantMsg) {
+        console.log('✅ ROLEPLAY - Setting first message:', firstAssistantMsg.message.substring(0, 50));
+        setConversationHistory([{
+          type: 'app',
+          french: firstAssistantMsg.message,
+          english: firstAssistantMsg.message,
+        }]);
+      }
+    }
+  }, [conversationData]);
+
   const loadConversation = async () => {
     try {
       setLoading(true);
@@ -155,8 +177,15 @@ export default function UnitRoleplayScreen() {
       // Load conversation exchanges
       const exchanges = await UnitDataAdapter.getUnitConversationFromScript(subjectName, cefrLevel, nativeLanguage);
       
+      console.log('🔍 ROLEPLAY - Loaded exchanges:', {
+        count: exchanges.length,
+        first: exchanges[0],
+        second: exchanges[1]
+      });
+      
       if (exchanges.length === 0) {
-        logger.warn(`⚠️ No conversation found for subject: ${subjectName}`);
+        logger.warn(`⚠️ No conversation found for subject: ${subjectName} - USING FALLBACK`);
+        console.log('❌ ROLEPLAY - USING FALLBACK DATA (Bonjour)');
         // Fallback to original hardcoded data
         setConversationExchanges(CONVERSATION.map((item, index) => ({
           id: `exchange_${index + 1}`,
@@ -185,11 +214,19 @@ export default function UnitRoleplayScreen() {
             message: exchange.text
           }))
         };
+        
+        console.log('✅ ROLEPLAY - Created conversation data:', {
+          messageCount: conversation.conversation.length,
+          firstMessage: conversation.conversation[0],
+          secondMessage: conversation.conversation[1]
+        });
+        
         setConversationData(conversation);
         logger.info(`✅ Loaded conversation with ${conversation.conversation.length} messages`);
       }
     } catch (error) {
       logger.error('Error loading conversation:', error);
+      console.error('❌ ROLEPLAY - ERROR:', error);
       // Fallback to original hardcoded data
       setConversationExchanges(CONVERSATION.map((item, index) => ({
         id: `exchange_${index + 1}`,
@@ -214,17 +251,36 @@ export default function UnitRoleplayScreen() {
 
   // Get current exchange data from conversation
   const getCurrentExchange = () => {
+    console.log('🔍 getCurrentExchange called:', {
+      hasConversationData: !!conversationData,
+      conversationLength: conversationData?.conversation?.length || 0,
+      currentExchangeIndex
+    });
+    
     if (!conversationData || !conversationData.conversation) {
+      console.log('⚠️ ROLEPLAY - No conversationData, using CONVERSATION fallback');
       return CONVERSATION[currentExchangeIndex] || CONVERSATION[0];
     }
 
     // Get the current question/response pair from conversation data
     const userMessages = conversationData.conversation.filter(msg => msg.speaker === 'User');
+    const assistantMessages = conversationData.conversation.filter(msg => msg.speaker === 'Assistant');
+    
+    console.log('🔍 ROLEPLAY - Messages:', {
+      totalMessages: conversationData.conversation.length,
+      userMessagesCount: userMessages.length,
+      assistantMessagesCount: assistantMessages.length,
+      currentExchangeIndex
+    });
     
     if (currentExchangeIndex < userMessages.length) {
       const userMsg = userMessages[currentExchangeIndex];
-      const assistantMessages = conversationData.conversation.filter(msg => msg.speaker === 'Assistant');
       const assistantMsg = assistantMessages[currentExchangeIndex] || assistantMessages[0];
+      
+      console.log('✅ ROLEPLAY - Current exchange:', {
+        assistantMsg: assistantMsg.message.substring(0, 50),
+        userMsg: userMsg.message.substring(0, 50)
+      });
       
       return {
         appMessage: {
@@ -238,10 +294,20 @@ export default function UnitRoleplayScreen() {
       };
     }
     
+    console.log('⚠️ ROLEPLAY - Index out of range, using CONVERSATION fallback');
     return CONVERSATION[currentExchangeIndex] || CONVERSATION[0];
   };
 
   const currentExchange = getCurrentExchange();
+
+  // Debug: Log which data source is being used
+  console.log('🔍 UnitRoleplayScreen currentExchange debug:', {
+    hasConversationData: !!conversationData,
+    conversationLength: conversationData?.conversation?.length || 0,
+    currentExchangeIndex,
+    currentText: currentExchange.userMessage.french,
+    textPreview: currentExchange.userMessage.french?.substring(0, 50)
+  });
   
   const getTotalExchanges = () => {
     if (conversationData && conversationData.conversation) {
@@ -251,33 +317,6 @@ export default function UnitRoleplayScreen() {
   };
   
   const isLastExchange = currentExchangeIndex === getTotalExchanges() - 1;
-
-  // Initialize with Thomas's first message in chat history
-  useEffect(() => {
-    if (conversationHistory.length === 0 && !completed) {
-      const firstExchange = getCurrentExchange();
-      if (firstExchange && firstExchange.appMessage) {
-        setConversationHistory([{
-          type: 'app',
-          french: firstExchange.appMessage.french,
-          english: firstExchange.appMessage.english,
-        }]);
-      }
-    }
-  }, [conversationData, completed]);
-
-  // Reset lesson state when conversation is loaded
-  useEffect(() => {
-    if (conversationData && conversationData.conversation && conversationData.conversation.length > 0) {
-      console.log('🔄 Resetting lesson state for new conversation data');
-      setCurrentExchangeIndex(0);
-      setScore(0);
-      setCompleted(false);
-      setShowResult(false);
-      setIsCorrect(false);
-      // Don't initialize history here - let the above useEffect handle it
-    }
-  }, [conversationData]);
 
   // Auto-scroll to bottom when conversation updates
   useEffect(() => {
@@ -804,76 +843,71 @@ export default function UnitRoleplayScreen() {
         contentContainerStyle={styles.chatContent}
       >
         {conversationHistory.map((message, index) => (
-          <View key={index} style={styles.chatMessageContainer}>
+          <View key={index}>
             {message.type === 'app' && (
-              <Text style={styles.chatSenderName}>Thomas</Text>
-            )}
-            <View
-              style={[
-                styles.chatBubble,
-                message.type === 'app' ? styles.chatBubbleThomas : styles.chatBubbleUser
-              ]}
-            >
-              <Text style={[
-                styles.chatBubblePrimary,
-                message.type === 'user' && styles.chatBubbleUserPrimary
-              ]}>
-                {message.french}
-              </Text>
-              <Text style={[
-                styles.chatBubbleSecondary,
-                message.type === 'user' && styles.chatBubbleUserSecondary
-              ]}>
-                {message.english}
-              </Text>
-              
-              {/* Action Icons */}
-              <View style={styles.chatBubbleActions}>
-                <TouchableOpacity style={styles.chatActionIcon}>
-                  <Ionicons name="volume-high" size={18} color="rgba(255,255,255,0.8)" />
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.chatActionIcon}>
-                  <Ionicons name="wifi" size={18} color="rgba(255,255,255,0.8)" />
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.chatActionIcon}>
-                  <Ionicons name="swap-horizontal" size={18} color="rgba(255,255,255,0.8)" />
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.chatActionIcon}>
-                  <Ionicons name="stats-chart" size={18} color="rgba(255,255,255,0.8)" />
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.chatActionIcon}>
-                  <Ionicons name="school" size={18} color="rgba(255,255,255,0.8)" />
-                </TouchableOpacity>
+              <View style={styles.chatMessageLeft}>
+                <Text style={styles.chatSenderName}>Thomas</Text>
+                <View style={styles.chatBubbleThomas}>
+                  <Text style={styles.chatBubblePrimary}>{message.french}</Text>
+                  <Text style={styles.chatBubbleSecondary}>{message.english}</Text>
+                  <View style={styles.chatBubbleActions}>
+                    <TouchableOpacity style={styles.chatActionIcon}>
+                      <Ionicons name="volume-high" size={16} color="rgba(255,255,255,0.8)" />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.chatActionIcon}>
+                      <Ionicons name="wifi" size={16} color="rgba(255,255,255,0.8)" />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.chatActionIcon}>
+                      <Ionicons name="swap-horizontal" size={16} color="rgba(255,255,255,0.8)" />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.chatActionIcon}>
+                      <Ionicons name="stats-chart" size={16} color="rgba(255,255,255,0.8)" />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.chatActionIcon}>
+                      <Ionicons name="school" size={16} color="rgba(255,255,255,0.8)" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
               </View>
-            </View>
+            )}
+            {message.type === 'user' && (
+              <View style={styles.chatMessageRight}>
+                <View style={styles.chatBubbleUser}>
+                  <Text style={styles.chatBubbleUserPrimary}>{message.french}</Text>
+                  <Text style={styles.chatBubbleUserSecondary}>{message.english}</Text>
+                  <View style={styles.chatBubbleActions}>
+                    <TouchableOpacity style={styles.chatActionIcon}>
+                      <Ionicons name="volume-high" size={16} color="rgba(255,255,255,0.8)" />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.chatActionIcon}>
+                      <Ionicons name="wifi" size={16} color="rgba(255,255,255,0.8)" />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.chatActionIcon}>
+                      <Ionicons name="swap-horizontal" size={16} color="rgba(255,255,255,0.8)" />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.chatActionIcon}>
+                      <Ionicons name="stats-chart" size={16} color="rgba(255,255,255,0.8)" />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.chatActionIcon}>
+                      <Ionicons name="school" size={16} color="rgba(255,255,255,0.8)" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            )}
           </View>
         ))}
       </ScrollView>
 
-      {/* Pinned Bottom Section: Current Question + Microphone Interface */}
+      {/* Pinned Bottom Section: Current Question + Answer Interface */}
       {currentExchangeIndex < getTotalExchanges() && (
         <View style={styles.bottomPinnedSection}>
-          {/* Current Question - Same style as Write */}
-          <View style={styles.currentQuestionContainer}>
-            <Text style={styles.currentQuestionSenderName}>Thomas</Text>
-            <View style={styles.currentQuestionBubble}>
-              <Text style={styles.currentQuestionPrimary}>{currentExchange.appMessage.french}</Text>
-              <Text style={styles.currentQuestionSecondary}>{currentExchange.appMessage.english}</Text>
-            </View>
-          </View>
+          <Text style={styles.questionLabel}>SAY THIS PHRASE</Text>
           
-          {/* What user should say - also shown as Thomas message on left */}
-          <View style={styles.currentQuestionContainer}>
-            <Text style={styles.currentQuestionSenderName}>Say this:</Text>
-            <View style={styles.currentQuestionBubble}>
-              <Text style={styles.currentQuestionPrimary}>{currentExchange.userMessage.french}</Text>
-              <Text style={styles.currentQuestionSecondary}>{currentExchange.userMessage.english}</Text>
-            </View>
-          </View>
-          
-          <Text style={styles.questionLabel}>TAP TO RECORD</Text>
+          {/* Current Question Bubble */}
+          <Text style={styles.currentPrompt}>{currentExchange.userMessage.english}</Text>
 
-          {/* Microphone / Pronunciation Check */}
+          {/* Answer Interface - Microphone / Pronunciation Check */}
           {!showResult && (
             <PronunciationCheck
               key={`${currentExchangeIndex}-${attemptKey}`}
@@ -887,19 +921,9 @@ export default function UnitRoleplayScreen() {
           )}
 
           {/* Feedback */}
-          {showResult && isCorrect && (
-            <Text style={styles.feedbackCorrect}>✓ You got this 🙌</Text>
-          )}
-          {showResult && !isCorrect && lastResult?.assessment && (
-            <View style={styles.feedbackIncorrectContainer}>
-              <Text style={styles.feedbackIncorrect}>❌ Try again!</Text>
-              <Text style={styles.recognizedText}>You said: {lastResult.assessment.recognizedText || 'No speech detected'}</Text>
-              
-              <View style={styles.scoreMetrics}>
-                <Text style={styles.scoreText}>Accuracy: {Math.round(lastResult.assessment.accuracyScore)}/100</Text>
-                <Text style={styles.scoreText}>Fluency: {Math.round(lastResult.assessment.fluencyScore)}/100</Text>
-              </View>
-
+          {showResult && !isCorrect && (
+            <View style={styles.feedbackIncorrectSection}>
+              <Text style={styles.feedbackIncorrect}>❌ Incorrect - Try again!</Text>
               <View style={styles.retrySkipButtons}>
                 <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
                   <Text style={styles.retryButtonText}>Retry</Text>
@@ -909,6 +933,9 @@ export default function UnitRoleplayScreen() {
                 </TouchableOpacity>
               </View>
             </View>
+          )}
+          {showResult && isCorrect && (
+            <Text style={styles.feedbackCorrect}>✓ Correct!</Text>
           )}
         </View>
       )}
@@ -974,9 +1001,15 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 8,
   },
-  chatMessageContainer: {
-    marginBottom: 16,
+  chatMessageLeft: {
+    alignSelf: 'flex-start',
     maxWidth: '85%',
+    marginBottom: 16,
+  },
+  chatMessageRight: {
+    alignSelf: 'flex-end',
+    maxWidth: '85%',
+    marginBottom: 16,
   },
   chatSenderName: {
     fontSize: 14,
@@ -985,18 +1018,16 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     marginLeft: 4,
   },
-  chatBubble: {
-    padding: 16,
-    borderRadius: 20,
-  },
   chatBubbleThomas: {
     backgroundColor: '#6366f1',
-    alignSelf: 'flex-start',
+    padding: 16,
+    borderRadius: 20,
     borderBottomLeftRadius: 6,
   },
   chatBubbleUser: {
     backgroundColor: '#a78bfa',
-    alignSelf: 'flex-end',
+    padding: 16,
+    borderRadius: 20,
     borderBottomRightRadius: 6,
   },
   chatBubblePrimary: {
@@ -1026,9 +1057,9 @@ const styles = StyleSheet.create({
     borderTopColor: 'rgba(255, 255, 255, 0.2)',
   },
   chatActionIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1242,9 +1273,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#f9fafb',
     borderTopWidth: 1,
     borderTopColor: '#e5e7eb',
-    paddingTop: 16,
-    paddingHorizontal: 16,
-    paddingBottom: 20,
+    paddingTop: 12,
+    paddingHorizontal: 12,
+    paddingBottom: 12,
   },
   questionLabel: {
     fontSize: 12,
@@ -1252,22 +1283,74 @@ const styles = StyleSheet.create({
     color: '#9ca3af',
     textAlign: 'center',
     letterSpacing: 0.8,
-    marginBottom: 12,
+    marginBottom: 8,
   },
   currentPrompt: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '700',
     color: '#000000',
     textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
+  },
+  bottomActionBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    marginTop: 8,
+  },
+  roundSpeakerButton: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#6366f1',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#6366f1',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  checkButton: {
+    flex: 1,
+    backgroundColor: '#cbd5e1',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  checkButtonDisabled: {
+    backgroundColor: '#e5e7eb',
+    opacity: 0.5,
+  },
+  checkButtonText: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1f2937',
   },
   feedbackCorrect: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '700',
     color: '#10b981',
     textAlign: 'center',
-    marginTop: 12,
-    marginBottom: 12,
+    marginTop: 8,
+    marginBottom: 8,
+  },
+  feedbackIncorrect: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#ef4444',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  feedbackIncorrectSection: {
+    marginTop: 16,
+    width: '100%',
   },
   feedbackIncorrectContainer: {
     backgroundColor: '#fef2f2',
@@ -1276,13 +1359,6 @@ const styles = StyleSheet.create({
     marginTop: 12,
     borderWidth: 1,
     borderColor: '#fecaca',
-  },
-  feedbackIncorrect: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#ef4444',
-    textAlign: 'center',
-    marginBottom: 8,
   },
   recognizedText: {
     fontSize: 15,
@@ -1304,7 +1380,9 @@ const styles = StyleSheet.create({
   },
   retrySkipButtons: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 8,
+    width: '100%',
+    marginTop: 8,
   },
   resultMessage: {
     backgroundColor: '#f8fafc',
@@ -1365,10 +1443,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#ffffff',
     paddingVertical: 14,
+    paddingHorizontal: 16,
     borderRadius: 12,
     alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 3,
     borderColor: '#6366f1',
+    minHeight: 48,
   },
   retryButtonText: {
     fontSize: 16,
@@ -1379,10 +1460,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#ffffff',
     paddingVertical: 14,
+    paddingHorizontal: 16,
     borderRadius: 12,
     alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 2,
     borderColor: '#d1d5db',
+    minHeight: 48,
   },
   skipButtonText: {
     fontSize: 16,
@@ -1521,4 +1605,5 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
+
 
