@@ -383,10 +383,10 @@ process.on('SIGINT', () => shutdown('SIGINT'));
 // Health check endpoint for monitoring (simple HTTP server)
 // This allows Railway/monitoring to check if worker is alive
 const http = require('http');
-const HEALTH_PORT = process.env.WORKER_HEALTH_PORT || 3002;
+const HEALTH_PORT = process.env.PORT || 3001;
 
 const healthServer = http.createServer((req, res) => {
-  if (req.url === '/health' || req.url === '/') {
+  if (req.url === '/api/health' || req.url === '/health' || req.url === '/') {
     const uptime = Date.now() - stats.startTime;
     const uptimeMinutes = (uptime / 1000 / 60).toFixed(2);
     
@@ -415,7 +415,7 @@ const healthServer = http.createServer((req, res) => {
 
 healthServer.listen(HEALTH_PORT, () => {
   console.log(`💚 Health check server listening on port ${HEALTH_PORT}`);
-  console.log(`   Health check: http://localhost:${HEALTH_PORT}/health`);
+  console.log(`   Health check: http://localhost:${HEALTH_PORT}/api/health`);
 });
 
 console.log('\n🎬 Worker initialization complete, waiting for jobs...\n');

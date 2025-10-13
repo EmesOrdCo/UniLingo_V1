@@ -10,5 +10,13 @@
     "numReplicas": 1,
     "healthcheckPath": "/api/health",
     "healthcheckTimeout": 10
+  },
+  "services": {
+    "backend-worker": {
+      "deploy": {
+        "healthcheckPath": "/api/health",
+        "healthcheckTimeout": 10
+      }
+    }
   }
 }
