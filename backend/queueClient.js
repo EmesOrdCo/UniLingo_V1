@@ -12,22 +12,20 @@ const { redis } = require('./redisConnection');
 
 // Redis connection configuration for BullMQ
 // Railway automatically sets REDIS_URL when Redis plugin is added
-const redisConfig = {
-  connection: process.env.REDIS_PUBLIC_URL ? 
-    // Use REDIS_PUBLIC_URL if available (Railway format)
-    process.env.REDIS_PUBLIC_URL :
-    process.env.REDIS_URL ? 
-      // Use REDIS_URL if available (Railway format)
-      process.env.REDIS_URL :
-      // Otherwise use individual config
-      {
-        host: process.env.REDIS_HOST || 'localhost',
-        port: parseInt(process.env.REDIS_PORT || '6379'),
-        password: process.env.REDIS_PASSWORD,
-        maxRetriesPerRequest: null, // Required for BullMQ
-        enableReadyCheck: false,
-      }
-};
+const redisConfig = process.env.REDIS_PUBLIC_URL ? 
+  // Use REDIS_PUBLIC_URL if available (Railway format)
+  process.env.REDIS_PUBLIC_URL :
+  process.env.REDIS_URL ? 
+    // Use REDIS_URL if available (Railway format)
+    process.env.REDIS_URL :
+    // Otherwise use individual config
+    {
+      host: process.env.REDIS_HOST || 'localhost',
+      port: parseInt(process.env.REDIS_PORT || '6379'),
+      password: process.env.REDIS_PASSWORD,
+      maxRetriesPerRequest: null, // Required for BullMQ
+      enableReadyCheck: false,
+    };
 
 // Redis connection events are already handled in redisConnection.js
 // No need to add duplicate listeners here
@@ -39,7 +37,7 @@ const redisConfig = {
  * Note: BullMQ Queue creates its own Redis connection, so we pass the connection config
  */
 const aiJobsQueue = new Queue('ai-jobs', {
-  connection: redisConfig.connection, // Use the same connection config (REDIS_PUBLIC_URL)
+  connection: redisConfig, // Use the Redis config directly (REDIS_PUBLIC_URL)
   defaultJobOptions: {
     attempts: 3, // Retry up to 3 times
     backoff: {

@@ -23,6 +23,7 @@ const CircuitBreaker = require('./circuitBreaker');
 const { cacheJobResult } = require('./queueClient');
 const notificationManager = require('./notifications');
 const { openaiLimiter, azureSpeechLimiter } = require('./rateLimiter');
+const { redis } = require('./redisConnection');
 
 // Initialize circuit breakers for external services (Issue #6 + #8)
 const openaiCircuitBreaker = new CircuitBreaker('openai', {
@@ -38,24 +39,30 @@ const azureCircuitBreaker = new CircuitBreaker('azure', {
 });
 
 // Redis connection configuration (same as queueClient.js)
-const redisConfig = {
-  connection: process.env.REDIS_PUBLIC_URL ? 
-    process.env.REDIS_PUBLIC_URL :
-    process.env.REDIS_URL ? 
-      process.env.REDIS_URL :
-      {
-        host: process.env.REDIS_HOST || 'localhost',
-        port: parseInt(process.env.REDIS_PORT || '6379'),
-        password: process.env.REDIS_PASSWORD,
-        maxRetriesPerRequest: null,
-        enableReadyCheck: false,
-      }
-};
+const redisConfig = process.env.REDIS_PUBLIC_URL ? 
+  process.env.REDIS_PUBLIC_URL :
+  process.env.REDIS_URL ? 
+    process.env.REDIS_URL :
+    {
+      host: process.env.REDIS_HOST || 'localhost',
+      port: parseInt(process.env.REDIS_PORT || '6379'),
+      password: process.env.REDIS_PASSWORD,
+      maxRetriesPerRequest: null,
+      enableReadyCheck: false,
+    };
 
 console.log('🔍 Worker Redis Environment Variables:');
 console.log('  REDIS_PUBLIC_URL:', process.env.REDIS_PUBLIC_URL ? 'SET (length: ' + process.env.REDIS_PUBLIC_URL.length + ')' : 'NOT SET');
 console.log('  REDIS_URL:', process.env.REDIS_URL ? 'SET (length: ' + process.env.REDIS_URL.length + ')' : 'NOT SET');
-console.log('🔧 Worker Redis Config:', typeof redisConfig.connection === 'string' ? redisConfig.connection.replace(/:[^:@]+@/, ':****@') : redisConfig.connection);
+console.log('🔧 Worker Redis Config:', typeof redisConfig === 'string' ? redisConfig.replace(/:[^:@]+@/, ':****@') : redisConfig);
+
+// Test shared Redis connection
+console.log('🔧 Testing shared Redis connection...');
+redis.ping().then(() => {
+  console.log('✅ Shared Redis connection: OK');
+}).catch((error) => {
+  console.error('❌ Shared Redis connection failed:', error.message);
+});
 
 // Worker statistics
 const stats = {
@@ -270,7 +277,7 @@ async function handleGenerateLesson(job) {
  * Priority: Higher priority jobs processed first
  */
 const worker = new Worker('ai-jobs', processJob, {
-  connection: redisConfig.connection, // Use the same connection config (REDIS_PUBLIC_URL)
+  connection: redisConfig, // Use the Redis config directly (REDIS_PUBLIC_URL)
   concurrency: 3, // Issue #5: Process up to 3 jobs concurrently
   limiter: {
     max: 10, // Max 10 jobs
@@ -337,6 +344,23 @@ worker.on('stalled', (jobId) => {
 
 worker.on('error', (error) => {
   console.error('❌ Worker error:', error);
+  console.error('   Error details:', {
+    message: error.message,
+    code: error.code,
+    errno: error.errno,
+    syscall: error.syscall,
+    address: error.address,
+    port: error.port,
+  });
+  
+  // If it's a Redis connection error, log additional details
+  if (error.message.includes('ECONNREFUSED') || error.message.includes('ENOTFOUND')) {
+    console.error('🔍 Redis connection error detected!');
+    console.error('   This suggests the worker is trying to connect to localhost Redis');
+    console.error('   Check that REDIS_PUBLIC_URL is properly set in Railway');
+    console.error('   Current Redis config:', typeof redisConfig === 'string' ? 
+      redisConfig.replace(/:[^:@]+@/, ':****@') : redisConfig);
+  }
 });
 
 // Graceful shutdown
