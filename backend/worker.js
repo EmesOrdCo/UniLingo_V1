@@ -39,22 +39,40 @@ const azureCircuitBreaker = new CircuitBreaker('azure', {
 });
 
 // Redis connection configuration (same as queueClient.js)
-const redisConfig = process.env.REDIS_PUBLIC_URL ? 
-  process.env.REDIS_PUBLIC_URL :
-  process.env.REDIS_URL ? 
-    process.env.REDIS_URL :
-    {
-      host: process.env.REDIS_HOST || 'localhost',
-      port: parseInt(process.env.REDIS_PORT || '6379'),
-      password: process.env.REDIS_PASSWORD,
-      maxRetriesPerRequest: null,
-      enableReadyCheck: false,
-    };
+// Parse Redis URL into connection options to ensure all connections use the same config
+let redisConfig;
+if (process.env.REDIS_PUBLIC_URL) {
+  const url = new URL(process.env.REDIS_PUBLIC_URL);
+  redisConfig = {
+    host: url.hostname,
+    port: parseInt(url.port) || 6379,
+    password: url.password || undefined,
+    maxRetriesPerRequest: null,
+    enableReadyCheck: false,
+  };
+} else if (process.env.REDIS_URL) {
+  const url = new URL(process.env.REDIS_URL);
+  redisConfig = {
+    host: url.hostname,
+    port: parseInt(url.port) || 6379,
+    password: url.password || undefined,
+    maxRetriesPerRequest: null,
+    enableReadyCheck: false,
+  };
+} else {
+  redisConfig = {
+    host: process.env.REDIS_HOST || 'localhost',
+    port: parseInt(process.env.REDIS_PORT || '6379'),
+    password: process.env.REDIS_PASSWORD,
+    maxRetriesPerRequest: null,
+    enableReadyCheck: false,
+  };
+}
 
 console.log('🔍 Worker Redis Environment Variables:');
 console.log('  REDIS_PUBLIC_URL:', process.env.REDIS_PUBLIC_URL ? 'SET (length: ' + process.env.REDIS_PUBLIC_URL.length + ')' : 'NOT SET');
 console.log('  REDIS_URL:', process.env.REDIS_URL ? 'SET (length: ' + process.env.REDIS_URL.length + ')' : 'NOT SET');
-console.log('🔧 Worker Redis Config:', typeof redisConfig === 'string' ? redisConfig.replace(/:[^:@]+@/, ':****@') : redisConfig);
+console.log('🔧 Worker Redis Config:', redisConfig);
 
 // Test shared Redis connection
 console.log('🔧 Testing shared Redis connection...');
@@ -358,8 +376,7 @@ worker.on('error', (error) => {
     console.error('🔍 Redis connection error detected!');
     console.error('   This suggests the worker is trying to connect to localhost Redis');
     console.error('   Check that REDIS_PUBLIC_URL is properly set in Railway');
-    console.error('   Current Redis config:', typeof redisConfig === 'string' ? 
-      redisConfig.replace(/:[^:@]+@/, ':****@') : redisConfig);
+    console.error('   Current Redis config:', redisConfig);
   }
 });
 
