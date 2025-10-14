@@ -192,13 +192,15 @@ export default function LessonWalkthroughScreen() {
       flashcardQuiz: 0,
       fillInBlank: 0,
       listen: 0,
-      speak: 0
+      speak: 0,
+      conversation: 0
     });
     setCompletedExercises(new Set());
     
     // Initialize progress in database
     try {
-      const maxPossibleScore = lessonVocabulary.length * 7; // 7 points per word across all exercises (Fill-in-Blank and Listen have 2 rounds each)
+      // Calculate max possible score: vocabulary exercises (7 points per word) + conversation (~7 exchanges)
+      const maxPossibleScore = (lessonVocabulary.length * 7) + 7;
       await LessonService.updateLessonProgress(lessonId, user.id, {
         started_at: now.toISOString(),
         completed_at: undefined,
@@ -306,7 +308,8 @@ export default function LessonWalkthroughScreen() {
       flashcardQuiz: completedExerciseCount > 1 ? estimatedScorePerCompletedExercise : 0,
       fillInBlank: completedExerciseCount > 2 ? estimatedScorePerCompletedExercise : 0,
       listen: completedExerciseCount > 3 ? estimatedScorePerCompletedExercise : 0,
-      speak: completedExerciseCount > 4 ? estimatedScorePerCompletedExercise : 0
+      speak: completedExerciseCount > 4 ? estimatedScorePerCompletedExercise : 0,
+      conversation: completedExerciseCount > 5 ? estimatedScorePerCompletedExercise : 0
     };
     setExerciseScores(restoredScores);
     
@@ -563,15 +566,20 @@ export default function LessonWalkthroughScreen() {
       const accuracyPercentage = Math.round((score / maxScore) * 100);
       const timeSpentSeconds = (lessonProgress?.time_spent_seconds || 0) + 60; // Add 1 minute per exercise
 
+      // Calculate max possible score
+      // Flashcards (1) + Quiz (1) + Fill-in-Blank (2 rounds) + Listen (2 rounds) + Speak (1) + Conversation (varies)
+      // Conversation has 6-8 exchanges, so we estimate ~7 for max score calculation
+      const estimatedMaxScore = (lessonVocabulary.length * 7) + 7; // 7 points per vocab + ~7 conversation exchanges
+      
       // Update lesson progress
       await ProgressTrackingService.updateLessonProgress({
         lessonId,
         totalScore: totalScore,
-        maxPossibleScore: lessonVocabulary.length * 7,
+        maxPossibleScore: estimatedMaxScore,
         exercisesCompleted: newCompletedSet.size,
-        totalExercises: 5, // Total number of exercises
+        totalExercises: 6, // Total number of exercises (flashcards, quiz, fill-in-blank, listen, speak, conversation)
         timeSpentSeconds: timeSpentSeconds,
-        status: newCompletedSet.size >= 5 ? 'completed' : 'in_progress',
+        status: newCompletedSet.size >= 6 ? 'completed' : 'in_progress',
         completedExercises: completedExercisesArray, // Save which exercises are completed
       });
 
@@ -579,7 +587,7 @@ export default function LessonWalkthroughScreen() {
       setLessonProgress(prev => prev ? {
         ...prev,
         total_score: totalScore,
-        max_possible_score: lessonVocabulary.length * 5,
+        max_possible_score: estimatedMaxScore,
         completed_exercises: completedExercisesArray,
         time_spent_seconds: timeSpentSeconds
       } : null);
@@ -610,7 +618,8 @@ export default function LessonWalkthroughScreen() {
     console.log(`⏱️ Lesson completion timing: totalActiveTime=${totalActiveTime}s, isActive=${isActive}, sessionStartTime=${sessionStartTime}, finalActiveTime=${finalActiveTime}s`);
 
     const totalScore = Object.values(exerciseScores).reduce((sum, score) => sum + score, 0);
-    const maxPossibleScore = lessonVocabulary.length * 7; // 7 total points (Fill-in-Blank and Listen have 2 rounds each)
+    // Calculate max possible score: vocabulary exercises (7 points per word) + conversation (~7 exchanges)
+    const maxPossibleScore = (lessonVocabulary.length * 7) + (totalExchanges || 7);
     const accuracyPercentage = Math.round((totalScore / maxPossibleScore) * 100);
 
     // Stop active timing
@@ -698,13 +707,15 @@ export default function LessonWalkthroughScreen() {
       flashcardQuiz: 0,
       fillInBlank: 0,
       listen: 0,
-      speak: 0
+      speak: 0,
+      conversation: 0
     });
     setCompletedExercises(new Set());
     
     // Reset progress in database
     try {
-      const maxPossibleScore = lessonVocabulary.length * 7; // 7 points per word across all exercises (Fill-in-Blank and Listen have 2 rounds each)
+      // Calculate max possible score: vocabulary exercises (7 points per word) + conversation (~7 exchanges)
+      const maxPossibleScore = (lessonVocabulary.length * 7) + 7;
       await LessonService.updateLessonProgress(lessonId, user.id, {
         started_at: now.toISOString(),
         completed_at: undefined,
