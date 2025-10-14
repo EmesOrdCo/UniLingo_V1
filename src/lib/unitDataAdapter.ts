@@ -339,21 +339,46 @@ export class UnitDataAdapter {
       // For Roleplay exercises, we use English as the target language
       // The user will practice speaking English conversations
       const englishScript = lessonScript.english_script;
+      const nativeScript = this.getNativeLanguageScript(lessonScript, nativeLanguage);
 
       if (!englishScript) {
         logger.warn(`⚠️ No English script content found for ${subjectName}`);
         return [];
       }
 
-      // Split English script into conversation exchanges
-      const exchanges = this.splitScriptIntoConversation(englishScript);
+      // Split both scripts into conversation exchanges
+      const englishExchanges = this.splitScriptIntoConversation(englishScript);
+      const nativeExchanges = nativeScript ? this.splitScriptIntoConversation(nativeScript) : [];
       
-      logger.info(`✅ Converted ${exchanges.length} conversation exchanges from lesson script`);
+      // Combine English and native language exchanges
+      const exchanges = englishExchanges.map((englishExchange, index) => {
+        const nativeExchange = nativeExchanges[index];
+        return {
+          ...englishExchange,
+          translation: nativeExchange ? nativeExchange.text : englishExchange.text // Use native translation if available
+        };
+      });
+      
+      logger.info(`✅ Converted ${exchanges.length} conversation exchanges from lesson script with native translations`);
       return exchanges;
     } catch (error) {
       logger.error('Error converting conversation for Unit screen:', error);
       return [];
     }
+  }
+
+  /**
+   * Helper method to get native language script from lesson script
+   */
+  private static getNativeLanguageScript(lessonScript: LessonScript, nativeLanguage: string): string | null {
+    const languageMap: { [key: string]: string | undefined } = {
+      'French': lessonScript.french_script,
+      'Spanish': lessonScript.spanish_script,
+      'German': lessonScript.german_script,
+      'Chinese (Simplified)': lessonScript.mandarin_script,
+      'Hindi': lessonScript.hindi_script,
+    };
+    return languageMap[nativeLanguage] || null;
   }
 
   /**

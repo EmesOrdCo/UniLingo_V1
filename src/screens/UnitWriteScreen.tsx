@@ -13,12 +13,16 @@ import {
   Platform,
   Dimensions,
   Animated,
+  Share,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { UnitDataAdapter, UnitWriteExercise, UnitConversationExchange } from '../lib/unitDataAdapter';
 import { logger } from '../lib/logger';
+import { getAppropriateSpeechLanguage, getTargetLanguageSpeechCode, getNativeLanguageSpeechCode } from '../lib/languageService';
+import * as Speech from 'expo-speech';
 import * as Haptics from 'expo-haptics';
 
 const { width } = Dimensions.get('window');
@@ -121,6 +125,7 @@ export default function UnitWriteScreen() {
 
   // New conversation system state
   const [conversationData, setConversationData] = useState<ConversationData | null>(null);
+  const [conversationExchanges, setConversationExchanges] = useState<UnitConversationExchange[]>([]);
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
   const [isTyping, setIsTyping] = useState(false);
   const [isTypingAnimation, setIsTypingAnimation] = useState(false);
@@ -146,6 +151,11 @@ export default function UnitWriteScreen() {
   
   // Vocabulary for exercise creation
   const [vocabulary, setVocabulary] = useState<any[]>([]);
+  
+  // Button functionality states
+  const [showTranslation, setShowTranslation] = useState(true);
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  const [hiddenMessages, setHiddenMessages] = useState<Set<number>>(new Set());
   
   // Use refs to prevent stale closures
   const currentMessageIndexRef = useRef(0);
@@ -174,10 +184,13 @@ export default function UnitWriteScreen() {
       // Initialize with first Thomas message (first Assistant message)
       const firstAssistantMsg = conversationData.conversation.find(msg => msg.speaker === 'Assistant');
       if (firstAssistantMsg) {
+        // Find the corresponding exchange data to get native language translations
+        const exchangeData = conversationExchanges[0];
+        
         setConversationHistory([{
           type: 'app',
           french: firstAssistantMsg.message,
-          english: firstAssistantMsg.message,
+          english: exchangeData?.translation || firstAssistantMsg.message,
         }]);
       }
     }
@@ -218,6 +231,15 @@ export default function UnitWriteScreen() {
           ]).flat()
         };
         setConversationData(fallbackConversation);
+        
+        // Set fallback conversation exchanges
+        setConversationExchanges(CONVERSATION.map((item, index) => ({
+          id: `exchange_${index + 1}`,
+          speaker: index % 2 === 0 ? 'user' : 'assistant',
+          text: item.userMessage.french,
+          translation: item.userMessage.english,
+          type: index === 0 ? 'greeting' : index === CONVERSATION.length - 1 ? 'farewell' : 'response'
+        })));
       } else {
         setWriteExercises(exercises);
         logger.info(`✅ Loaded ${exercises.length} write exercises from lesson scripts`);
@@ -230,6 +252,7 @@ export default function UnitWriteScreen() {
           }))
         };
         setConversationData(conversation);
+        setConversationExchanges(conversationExchanges);
         logger.info(`✅ Loaded conversation with ${conversation.conversation.length} messages`);
       }
     } catch (error) {
@@ -250,6 +273,15 @@ export default function UnitWriteScreen() {
         ]).flat()
       };
       setConversationData(fallbackConversation);
+      
+      // Set fallback conversation exchanges
+      setConversationExchanges(CONVERSATION.map((item, index) => ({
+        id: `exchange_${index + 1}`,
+        speaker: index % 2 === 0 ? 'user' : 'assistant',
+        text: item.userMessage.french,
+        translation: item.userMessage.english,
+        type: index === 0 ? 'greeting' : index === CONVERSATION.length - 1 ? 'farewell' : 'response'
+      })));
     } finally {
       setLoading(false);
     }
@@ -270,14 +302,17 @@ export default function UnitWriteScreen() {
       const assistantMessages = conversationData.conversation.filter(msg => msg.speaker === 'Assistant');
       const assistantMsg = assistantMessages[currentExchangeIndex] || assistantMessages[0];
       
+      // Find the corresponding exchange data to get native language translations
+      const exchangeData = conversationExchanges[currentExchangeIndex];
+      
       return {
         appMessage: {
           french: assistantMsg.message,
-          english: assistantMsg.message
+          english: exchangeData?.translation || assistantMsg.message
         },
         userMessage: {
           french: userMsg.message,
-          english: userMsg.message
+          english: exchangeData?.translation || userMsg.message
         },
         type: currentExchangeIndex < 2 ? 'choice' as const : 'scramble' as const,
         wrongOption: currentExchangeIndex < 2 ? (currentExchangeIndex === 0 ? 'No' : 'Goodbye') : undefined
@@ -393,10 +428,13 @@ export default function UnitWriteScreen() {
           const assistantMessages = conversationData.conversation.filter(msg => msg.speaker === 'Assistant');
           const nextAssistantMsg = assistantMessages[currentExchangeIndex + 1];
           if (nextAssistantMsg) {
+            // Find the corresponding exchange data to get native language translations
+            const nextExchangeData = conversationExchanges[currentExchangeIndex + 1];
+            
             newHistory.push({
               type: 'app' as const,
               french: nextAssistantMsg.message,
-              english: nextAssistantMsg.message,
+              english: nextExchangeData?.translation || nextAssistantMsg.message,
             });
           }
         }
@@ -446,10 +484,13 @@ export default function UnitWriteScreen() {
       const assistantMessages = conversationData.conversation.filter(msg => msg.speaker === 'Assistant');
       const nextAssistantMsg = assistantMessages[currentExchangeIndex + 1];
       if (nextAssistantMsg) {
+        // Find the corresponding exchange data to get native language translations
+        const nextExchangeData = conversationExchanges[currentExchangeIndex + 1];
+        
         newHistory.push({
           type: 'app' as const,
           french: nextAssistantMsg.message,
-          english: nextAssistantMsg.message,
+          english: nextExchangeData?.translation || nextAssistantMsg.message,
         });
       }
     }
@@ -491,6 +532,130 @@ export default function UnitWriteScreen() {
   const handleConfirmExit = () => {
     setShowExitModal(false);
     navigation.goBack();
+  };
+
+  // Helper function to get speech language code from database language code
+  const getSpeechLanguageCode = (databaseLanguageCode: string | null | undefined): string => {
+    if (!databaseLanguageCode) return 'en';
+    
+    const languageMap: Record<string, string> = {
+      'en-GB': 'en',    // English (UK) -> English
+      'en': 'en',       // English -> English
+      'es': 'es',       // Spanish -> Spanish
+      'de': 'de',       // German -> German
+      'it': 'it',       // Italian -> Italian
+      'fr': 'fr',       // French -> French
+      'pt': 'pt',       // Portuguese -> Portuguese
+      'sv': 'sv',       // Swedish -> Swedish
+      'tr': 'tr',       // Turkish -> Turkish
+      'zh': 'zh',       // Chinese/Mandarin -> Chinese
+    };
+    
+    return languageMap[databaseLanguageCode] || 'en';
+  };
+
+  // Button functionality handlers
+  const handleAudioPlay = async (text: string, languageCode: string, speed: number = 1.0) => {
+    if (isPlayingAudio) return;
+    
+    console.log('🎤 Starting speech:', { text, languageCode, speed });
+    
+    setIsPlayingAudio(true);
+    try {
+      // Stop any current speech
+      Speech.stop();
+      
+      console.log('🎤 Using language code:', languageCode);
+      
+      // Configure speech options with language
+      const options = {
+        language: languageCode,
+        pitch: 1.0,
+        rate: speed,
+        volume: 0.8,
+        onStart: () => {
+          console.log('🎤 Speech started');
+        },
+        onDone: () => {
+          console.log('🎤 Speech finished');
+          setIsPlayingAudio(false);
+        },
+        onStopped: () => {
+          console.log('🎤 Speech stopped');
+          setIsPlayingAudio(false);
+        },
+        onError: (error: any) => {
+          console.error('🎤 Speech error:', error);
+          setIsPlayingAudio(false);
+          Alert.alert(
+            'Audio Unavailable',
+            'Audio playback is currently unavailable. Please try again later.',
+            [{ text: 'OK' }]
+          );
+        }
+      };
+      
+      console.log('🎤 Speaking text with options:', options);
+      // Speak the text
+      Speech.speak(text, options);
+      
+    } catch (error) {
+      console.error('Error playing audio:', error);
+      setIsPlayingAudio(false);
+      Alert.alert(
+        'Audio Unavailable',
+        'Audio playback is currently unavailable. Please try again later.',
+        [{ text: 'OK' }]
+      );
+    }
+  };
+
+  const handleNormalSpeedPlay = (text: string, languageCode: string) => {
+    handleAudioPlay(text, languageCode, 1.0);
+  };
+
+  const handleSlowSpeedPlay = (text: string, languageCode: string) => {
+    handleAudioPlay(text, languageCode, 0.7);
+  };
+
+  const handleToggleTranslation = () => {
+    setShowTranslation(!showTranslation);
+  };
+
+  const handleShareMessage = async (frenchText: string, englishText: string) => {
+    try {
+      const shareText = `${frenchText}\n${englishText}`;
+      await Share.share({
+        message: shareText,
+        title: 'UniLingo Learning',
+      });
+    } catch (error) {
+      console.error('Error sharing:', error);
+    }
+  };
+
+  const handleToggleHideMessage = (messageIndex: number) => {
+    const newHiddenMessages = new Set(hiddenMessages);
+    if (newHiddenMessages.has(messageIndex)) {
+      newHiddenMessages.delete(messageIndex);
+    } else {
+      newHiddenMessages.add(messageIndex);
+    }
+    setHiddenMessages(newHiddenMessages);
+  };
+
+  const handleShowLearningResources = (text: string) => {
+    // Show modal with learning resources
+    Alert.alert(
+      'Learning Resources',
+      `Grammar and vocabulary help for: "${text}"`,
+      [
+        { text: 'Grammar Help', onPress: () => console.log('Show grammar') },
+        { text: 'Vocabulary', onPress: () => console.log('Show vocabulary') },
+        { text: 'Practice', onPress: () => console.log('Show practice') },
+        { text: 'Cancel', style: 'cancel' }
+      ]
+    );
   };
 
   const handleCancelExit = () => {
@@ -915,22 +1080,60 @@ export default function UnitWriteScreen() {
               <View style={styles.chatMessageLeft}>
                 <Text style={styles.chatSenderName}>Thomas</Text>
                 <View style={styles.chatBubbleThomas}>
-                  <Text style={styles.chatBubblePrimary}>{message.french}</Text>
-                  <Text style={styles.chatBubbleSecondary}>{message.english}</Text>
+                  {!hiddenMessages.has(index) && <Text style={styles.chatBubblePrimary}>{message.french}</Text>}
+                  {showTranslation && !hiddenMessages.has(index) && <Text style={styles.chatBubbleSecondary}>{message.english}</Text>}
+                  {hiddenMessages.has(index) && <Text style={styles.chatBubbleHidden}>••••••••</Text>}
                   <View style={styles.chatBubbleActions}>
-                    <TouchableOpacity style={styles.chatActionIcon}>
-                      <Ionicons name="volume-high" size={16} color="rgba(255,255,255,0.8)" />
+                    <TouchableOpacity 
+                      style={[styles.chatActionIcon, isPlayingAudio && styles.chatActionIconActive]}
+                      onPress={() => {
+                        // For target language text, use target language voice (English)
+                        handleNormalSpeedPlay(message.french, getSpeechLanguageCode('en-GB'));
+                      }}
+                    >
+                      <Ionicons 
+                        name="volume-high" 
+                        size={16} 
+                        color={isPlayingAudio ? "#ffffff" : "rgba(255,255,255,0.8)"} 
+                      />
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.chatActionIcon}>
-                      <Ionicons name="wifi" size={16} color="rgba(255,255,255,0.8)" />
+                    <TouchableOpacity 
+                      style={[styles.chatActionIcon, isPlayingAudio && styles.chatActionIconActive]}
+                      onPress={() => {
+                        // For target language text, use target language voice (English)
+                        handleSlowSpeedPlay(message.french, getSpeechLanguageCode('en-GB'));
+                      }}
+                    >
+                      <Ionicons 
+                        name="time" 
+                        size={16} 
+                        color={isPlayingAudio ? "#ffffff" : "rgba(255,255,255,0.8)"} 
+                      />
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.chatActionIcon}>
-                      <Ionicons name="swap-horizontal" size={16} color="rgba(255,255,255,0.8)" />
+                    <TouchableOpacity 
+                      style={styles.chatActionIcon}
+                      onPress={() => handleToggleTranslation()}
+                    >
+                      <Ionicons 
+                        name="swap-horizontal" 
+                        size={16} 
+                        color="rgba(255,255,255,0.8)" 
+                      />
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.chatActionIcon}>
-                      <Ionicons name="stats-chart" size={16} color="rgba(255,255,255,0.8)" />
+                    <TouchableOpacity 
+                      style={styles.chatActionIcon}
+                      onPress={() => handleToggleHideMessage(index)}
+                    >
+                      <Ionicons 
+                        name={hiddenMessages.has(index) ? "eye-off" : "eye"} 
+                        size={16} 
+                        color="rgba(255,255,255,0.8)" 
+                      />
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.chatActionIcon}>
+                    <TouchableOpacity 
+                      style={styles.chatActionIcon}
+                      onPress={() => handleShowLearningResources(message.french)}
+                    >
                       <Ionicons name="school" size={16} color="rgba(255,255,255,0.8)" />
                     </TouchableOpacity>
                   </View>
@@ -940,22 +1143,60 @@ export default function UnitWriteScreen() {
             {message.type === 'user' && (
               <View style={styles.chatMessageRight}>
                 <View style={styles.chatBubbleUser}>
-                  <Text style={styles.chatBubbleUserPrimary}>{message.french}</Text>
-                  <Text style={styles.chatBubbleUserSecondary}>{message.english}</Text>
+                  {!hiddenMessages.has(index) && <Text style={styles.chatBubbleUserPrimary}>{message.french}</Text>}
+                  {showTranslation && !hiddenMessages.has(index) && <Text style={styles.chatBubbleUserSecondary}>{message.english}</Text>}
+                  {hiddenMessages.has(index) && <Text style={styles.chatBubbleUserHidden}>••••••••</Text>}
                   <View style={styles.chatBubbleActions}>
-                    <TouchableOpacity style={styles.chatActionIcon}>
-                      <Ionicons name="volume-high" size={16} color="rgba(255,255,255,0.8)" />
+                    <TouchableOpacity 
+                      style={[styles.chatActionIcon, isPlayingAudio && styles.chatActionIconActive]}
+                      onPress={() => {
+                        // For target language text, use target language voice (English)
+                        handleNormalSpeedPlay(message.french, getSpeechLanguageCode('en-GB'));
+                      }}
+                    >
+                      <Ionicons 
+                        name="volume-high" 
+                        size={16} 
+                        color={isPlayingAudio ? "#ffffff" : "rgba(255,255,255,0.8)"} 
+                      />
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.chatActionIcon}>
-                      <Ionicons name="wifi" size={16} color="rgba(255,255,255,0.8)" />
+                    <TouchableOpacity 
+                      style={[styles.chatActionIcon, isPlayingAudio && styles.chatActionIconActive]}
+                      onPress={() => {
+                        // For target language text, use target language voice (English)
+                        handleSlowSpeedPlay(message.french, getSpeechLanguageCode('en-GB'));
+                      }}
+                    >
+                      <Ionicons 
+                        name="time" 
+                        size={16} 
+                        color={isPlayingAudio ? "#ffffff" : "rgba(255,255,255,0.8)"} 
+                      />
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.chatActionIcon}>
-                      <Ionicons name="swap-horizontal" size={16} color="rgba(255,255,255,0.8)" />
+                    <TouchableOpacity 
+                      style={styles.chatActionIcon}
+                      onPress={() => handleToggleTranslation()}
+                    >
+                      <Ionicons 
+                        name="swap-horizontal" 
+                        size={16} 
+                        color="rgba(255,255,255,0.8)" 
+                      />
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.chatActionIcon}>
-                      <Ionicons name="stats-chart" size={16} color="rgba(255,255,255,0.8)" />
+                    <TouchableOpacity 
+                      style={styles.chatActionIcon}
+                      onPress={() => handleToggleHideMessage(index)}
+                    >
+                      <Ionicons 
+                        name={hiddenMessages.has(index) ? "eye-off" : "eye"} 
+                        size={16} 
+                        color="rgba(255,255,255,0.8)" 
+                      />
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.chatActionIcon}>
+                    <TouchableOpacity 
+                      style={styles.chatActionIcon}
+                      onPress={() => handleShowLearningResources(message.french)}
+                    >
                       <Ionicons name="school" size={16} color="rgba(255,255,255,0.8)" />
                     </TouchableOpacity>
                   </View>
@@ -972,9 +1213,6 @@ export default function UnitWriteScreen() {
           <Text style={styles.questionLabel}>
             {currentExchange.type === 'choice' ? 'TAP THE CORRECT ANSWER' : 'CORRECT THE ORDERING'}
           </Text>
-          
-          {/* Current Question Bubble */}
-          <Text style={styles.currentPrompt}>{currentExchange.userMessage.english}</Text>
 
           {/* Answer Interface */}
           {currentExchange.type === 'choice' ? (
@@ -1069,7 +1307,16 @@ export default function UnitWriteScreen() {
 
           {/* Bottom Action Buttons */}
           <View style={styles.bottomActionBar}>
-            <TouchableOpacity style={styles.roundSpeakerButton}>
+            <TouchableOpacity 
+              style={[styles.roundSpeakerButton, isPlayingAudio && styles.roundSpeakerButtonActive]}
+              onPress={() => {
+                const textToSpeak = currentExchange.type === 'choice' 
+                  ? (selectedAnswer || currentExchange.userMessage.french)
+                  : (userAnswer.length > 0 ? userAnswer.join(' ') : currentExchange.userMessage.french);
+                // For user's arranged/selected answer (target language), use English speech
+                handleNormalSpeedPlay(textToSpeak, getSpeechLanguageCode('en-GB'));
+              }}
+            >
               <Ionicons name="volume-high" size={28} color="#ffffff" />
             </TouchableOpacity>
 
@@ -1099,7 +1346,16 @@ export default function UnitWriteScreen() {
               </View>
             )}
 
-            <TouchableOpacity style={styles.roundClockButton}>
+            <TouchableOpacity 
+              style={[styles.roundClockButton, isPlayingAudio && styles.roundClockButtonActive]}
+              onPress={() => {
+                const textToSpeak = currentExchange.type === 'choice' 
+                  ? (selectedAnswer || currentExchange.userMessage.french)
+                  : (userAnswer.length > 0 ? userAnswer.join(' ') : currentExchange.userMessage.french);
+                // For user's arranged/selected answer (target language), use English speech
+                handleSlowSpeedPlay(textToSpeak, getSpeechLanguageCode('en-GB'));
+              }}
+            >
               <Ionicons name="time-outline" size={28} color="#ffffff" />
             </TouchableOpacity>
           </View>
@@ -1804,6 +2060,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  chatActionIconActive: {
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    transform: [{ scale: 1.1 }],
+  },
+  chatBubbleHidden: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: 'rgba(255,255,255,0.6)',
+    fontStyle: 'italic',
+  },
+  chatBubbleUserHidden: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: 'rgba(255,255,255,0.6)',
+    fontStyle: 'italic',
+  },
   bottomPinnedSection: {
     backgroundColor: '#f9fafb',
     borderTopWidth: 1,
@@ -1957,6 +2229,10 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 4,
   },
+  roundSpeakerButtonActive: {
+    backgroundColor: '#4f46e5',
+    transform: [{ scale: 1.1 }],
+  },
   roundClockButton: {
     width: 56,
     height: 56,
@@ -1969,6 +2245,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 4,
+  },
+  roundClockButtonActive: {
+    backgroundColor: '#4f46e5',
+    transform: [{ scale: 1.1 }],
   },
   checkButton: {
     flex: 1,
