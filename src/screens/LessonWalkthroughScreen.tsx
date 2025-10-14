@@ -14,6 +14,7 @@ import LessonFlashcardQuiz from '../components/lesson/LessonFlashcardQuiz';
 import LessonFillInTheBlank from '../components/lesson/LessonFillInTheBlank';
 import LessonListen from '../components/lesson/LessonListen';
 import LessonSpeak from '../components/lesson/LessonSpeak';
+import LessonConversation from '../components/lesson/LessonConversation';
 
 type ExerciseStep = 'flow-preview' | 'flashcards' | 'flashcard-quiz' | 'fill-in-blank' | 'listen' | 'speak' | 'conversation' | 'completed';
 
@@ -368,15 +369,25 @@ export default function LessonWalkthroughScreen() {
     saveResumePosition('fill-in-blank', questionIndex);
   }, []);
 
-  // Handle conversation navigation - must be at top level to follow Rules of Hooks
+  // Conversation data state
+  const [conversationData, setConversationData] = useState<{
+    conversation: Array<{
+      speaker: string;
+      message: string;
+    }>;
+  } | null>(null);
+
+  // Load conversation data when lesson loads
   useEffect(() => {
-    if (currentStep === 'conversation' && lesson?.id) {
-      (navigation as any).navigate('ConversationLessonScreen', { 
-        lessonId: lesson.id, 
-        lessonTitle: lesson.title || 'Unknown'
-      });
+    if (lesson?.chat_content) {
+      try {
+        const parsedConversation = JSON.parse(lesson.chat_content);
+        setConversationData(parsedConversation);
+      } catch (error) {
+        console.error('Error parsing conversation data:', error);
+      }
     }
-  }, [currentStep, lesson?.id, lesson?.title, navigation]);
+  }, [lesson?.chat_content]);
 
   const loadResumePosition = async () => {
     try {
@@ -1038,13 +1049,15 @@ export default function LessonWalkthroughScreen() {
   }
 
   if (currentStep === 'conversation') {
+    const totalExchanges = conversationData?.conversation.filter((msg) => msg.speaker === 'User').length || lessonVocabulary.length;
+    
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#6366f1" />
-          <Text style={styles.loadingText}>Loading conversation...</Text>
-        </View>
-      </SafeAreaView>
+      <LessonConversation
+        vocabulary={lessonVocabulary}
+        conversationData={conversationData}
+        onComplete={(score) => handleExerciseComplete('conversation', score, totalExchanges)}
+        onClose={() => setCurrentStep('flow-preview')}
+      />
     );
   }
 
