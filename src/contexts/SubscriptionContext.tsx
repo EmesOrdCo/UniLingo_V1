@@ -48,7 +48,7 @@ const parseSubscriptionDetails = (paymentTier: string, nextBillingDate?: string)
     features: string[];
   } = {
     name: 'Premium Monthly',
-    cost: 9.99,
+    cost: 13.99,
     planType: 'monthly',
     features: [
       'AI flashcards',
@@ -65,12 +65,12 @@ const parseSubscriptionDetails = (paymentTier: string, nextBillingDate?: string)
   // Parse payment tier to determine plan details (only monthly and yearly)
   if (paymentTier.includes('yearly') || paymentTier.includes('annual')) {
     planDetails.planType = 'yearly';
-    planDetails.cost = 89.99; // Yearly price
+    planDetails.cost = 139.99; // Yearly price
     planDetails.name = 'Premium Yearly';
   } else {
     // Default to monthly for any other payment tier
     planDetails.planType = 'monthly';
-    planDetails.cost = 9.99; // Monthly price
+    planDetails.cost = 13.99; // Monthly price
     planDetails.name = 'Premium Monthly';
   }
 

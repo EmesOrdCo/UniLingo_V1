@@ -109,7 +109,7 @@ export class MockBillingClient implements BillingClient {
         id: 'monthly',
         name: 'Monthly Plan',
         description: 'Full access to all features',
-        price: 12.99,
+        price: 13.99,
         currency: 'GBP',
         period: 'monthly',
         features: [
@@ -122,20 +122,20 @@ export class MockBillingClient implements BillingClient {
       {
         id: 'yearly',
         name: 'Annual Plan',
-        description: 'Best value - Save 50%',
-        price: 7.50,
+        description: 'Best value - Save 17%',
+        price: 11.67,
         currency: 'GBP',
         period: 'yearly',
         isPopular: true,
         discount: {
-          percentage: 50,
-          originalPrice: 179.96,
+          percentage: 17,
+          originalPrice: 167.88,
         },
         features: [
           'All 14 languages included',
           '100+ lessons from beginner to advanced',
           'Learn on the go with podcasts, audio recap, and more',
-          'Save 50% compared to monthly',
+          'Save 17% compared to monthly',
         ],
       },
       {

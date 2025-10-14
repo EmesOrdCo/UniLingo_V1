@@ -100,9 +100,31 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
     try {
       setLoadingCefrProgress(true);
       const progress = await CefrProgressService.getCefrLevelProgress(user.id, cefrLevel);
-      setCefrProgress(progress);
+      console.log(`📊 CEFR Progress loaded for ${cefrLevel}:`, progress);
+      
+      // Ensure we always have a valid progress object
+      if (progress) {
+        setCefrProgress(progress);
+      } else {
+        // Set a default progress object if service returns null
+        setCefrProgress({
+          cefrLevel,
+          completedUnits: 0,
+          totalUnits: 5,
+          progressPercentage: 0,
+          status: 'not_started'
+        });
+      }
     } catch (error) {
       console.error('Error loading CEFR progress:', error);
+      // Set fallback progress on error
+      setCefrProgress({
+        cefrLevel,
+        completedUnits: 0,
+        totalUnits: 5,
+        progressPercentage: 0,
+        status: 'not_started'
+      });
     } finally {
       setLoadingCefrProgress(false);
     }
@@ -336,12 +358,16 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
                 <View 
                   style={[
                     styles.progressFill, 
-                    { width: cefrProgress ? `${cefrProgress.completionPercentage}%` : '0%' }
+                    { width: cefrProgress && typeof cefrProgress.progressPercentage === 'number' 
+                      ? `${Math.round(cefrProgress.progressPercentage)}%` 
+                      : '0%' }
                   ]} 
                 />
               </View>
               <Text style={styles.progressText}>
-                {cefrProgress ? `${Math.round(cefrProgress.completionPercentage)}%` : '0%'}
+                {cefrProgress && typeof cefrProgress.progressPercentage === 'number' 
+                  ? `${Math.round(cefrProgress.progressPercentage)}%` 
+                  : '0%'}
               </Text>
             </View>
           </View>

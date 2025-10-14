@@ -31,73 +31,9 @@ const RATE_LIMITS = {
   maxDelay: 30000,
 };
 
-// ❌ DEPRECATED: In-memory queue replaced by BullMQ (Issues #2-3)
-// This code is NO LONGER USED in production - kept for backward compatibility only
-// New queue-based flow: server.js → queueClient.enqueue() → BullMQ → worker.js
-// TODO: Remove this entire queue implementation in next cleanup PR
-// The functions below (processQueue, executeRequest) are not called by new endpoints
-let requestQueue = [];
-let isProcessing = false;
-let currentMinute = Math.floor(Date.now() / 60000);
-let requestsThisMinute = 0;
-let tokensThisMinute = 0;
-let circuitBreakerOpen = false;
-let circuitBreakerTimeout = null;
-
-// Start minute counter
-// ⚠️ STATEFUL CODE: Each instance resets its own counters independently
-// With horizontal scaling: Each instance tracks separately (not synchronized)
-setInterval(() => {
-  currentMinute = Math.floor(Date.now() / 60000);
-  requestsThisMinute = 0;
-  tokensThisMinute = 0;
-  console.log('🔄 Rate limiter: Minute reset', {
-    minute: currentMinute,
-    requests: requestsThisMinute,
-    tokens: tokensThisMinute
-  });
-}, 60000);
-
-// Rate limiting functions
-function canMakeRequest(estimatedTokens = 0) {
-  if (circuitBreakerOpen) {
-    console.log('🚫 Circuit breaker is open, rejecting request');
-    return false;
-  }
-
-  if (requestsThisMinute >= RATE_LIMITS.requestsPerMinute) {
-    console.log('🚫 Rate limit exceeded (requests per minute)');
-    return false;
-  }
-
-  if (tokensThisMinute + estimatedTokens >= RATE_LIMITS.tokensPerMinute) {
-    console.log('🚫 Token limit exceeded (tokens per minute)');
-    return false;
-  }
-
-  return true;
-}
-
-function updateUsage(tokens) {
-  requestsThisMinute++;
-  tokensThisMinute += tokens;
-  console.log('📊 Rate limiter usage updated', {
-    requests: requestsThisMinute,
-    tokens: tokensThisMinute,
-    totalTokens: tokens
-  });
-}
-
-function openCircuitBreaker() {
-  circuitBreakerOpen = true;
-  console.log('🚨 Circuit breaker opened - pausing all requests');
-  
-  // Close circuit breaker after 1 minute
-  circuitBreakerTimeout = setTimeout(() => {
-    circuitBreakerOpen = false;
-    console.log('✅ Circuit breaker closed - resuming requests');
-  }, 60000);
-}
+// ❌ DEPRECATED: All in-memory rate limiting and queue logic removed
+// Now using Redis-backed rate limiter from rateLimiter.js and BullMQ for queues
+// This ensures proper horizontal scaling and shared state across instances
 
 function calculateBackoffDelay(retryCount) {
   const exponentialDelay = Math.min(

@@ -2,8 +2,8 @@
 // This will be updated dynamically when the backend starts
 
 export const BACKEND_CONFIG = {
-  // Railway production backend
-  BASE_URL: 'https://unilingov1-production.up.railway.app',
+  // Auto-detected IP: 10.24.17.209
+  BASE_URL: 'http://10.24.17.209:3001',
   ENDPOINTS: {
     HEALTH: '/health'
   }

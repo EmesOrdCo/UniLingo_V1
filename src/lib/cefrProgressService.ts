@@ -23,13 +23,14 @@ export class CefrProgressService {
         .from('unit_progress')
         .select('*')
         .eq('user_id', userId)
-        .eq('cefr_level', cefrLevel)
-        .or('lesson_type.is.null,lesson_type.eq.cefr');
+        .eq('cefr_level', cefrLevel);
 
       if (progressError) {
         logger.error('Error fetching CEFR progress:', progressError);
         return null;
       }
+
+      logger.info(`CEFR Progress Query - User: ${userId}, Level: ${cefrLevel}, Results: ${userProgress?.length || 0}`);
 
       // For now, let's define the available CEFR units based on common structure
       // A1 typically has units: A1.1, A1.2, A1.3, A1.4, A1.5 (5 units)
@@ -47,10 +48,15 @@ export class CefrProgressService {
       const totalUnits = unitsPerLevel[cefrLevel] || 5;
 
       // Calculate completed units (units with status 'completed')
-      const completedUnits = userProgress?.filter(p => p.status === 'completed').length || 0;
+      const completedUnits = userProgress?.filter(p => p && p.status === 'completed').length || 0;
 
-      // Calculate progress percentage
-      const progressPercentage = totalUnits > 0 ? Math.round((completedUnits / totalUnits) * 100) : 0;
+      // Calculate progress percentage with better error handling
+      let progressPercentage = 0;
+      if (totalUnits > 0 && completedUnits >= 0) {
+        progressPercentage = Math.round((completedUnits / totalUnits) * 100);
+      }
+
+      logger.info(`CEFR Progress Calculation - Level: ${cefrLevel}, Completed: ${completedUnits}, Total: ${totalUnits}, Percentage: ${progressPercentage}%`);
 
       // Determine status
       let status: 'not_started' | 'in_progress' | 'completed' = 'not_started';
