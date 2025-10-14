@@ -252,14 +252,23 @@ export class PronunciationService {
       formData.append('audio', audioFile);
       formData.append('referenceText', referenceText);
 
-      // Send to backend
-      const response = await fetch(`${BACKEND_CONFIG.BASE_URL}/api/pronunciation-assess`, {
+      // Send to backend with timeout
+      const backendUrl = `${BACKEND_CONFIG.BASE_URL}/api/pronunciation-assess`;
+      logger.info('🌐 Backend URL:', backendUrl);
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+      
+      const response = await fetch(backendUrl, {
         method: 'POST',
         body: formData,
         headers: {
           'Accept': 'application/json',
         },
+        signal: controller.signal,
       });
+      
+      clearTimeout(timeoutId);
 
       const data = await response.json();
 
@@ -281,9 +290,30 @@ export class PronunciationService {
       };
     } catch (error) {
       logger.error('Pronunciation assessment error:', error);
+      
+      // Handle specific error types
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          return {
+            success: false,
+            error: 'Request timeout - pronunciation assessment took too long. Please try again.',
+          };
+        }
+        if (error.message.includes('timeout')) {
+          return {
+            success: false,
+            error: 'Request timeout - please check your connection and try again.',
+          };
+        }
+        return {
+          success: false,
+          error: error.message,
+        };
+      }
+      
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: 'Unknown error occurred during pronunciation assessment',
       };
     }
   }

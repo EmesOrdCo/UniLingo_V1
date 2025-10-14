@@ -205,11 +205,21 @@ class ResilientPronunciationService {
       pronunciationConfig.applyTo(recognizer);
       
       console.log(`[Pronunciation] Processing audio file: ${audioFilePath}`);
+      console.log(`[Pronunciation] Starting Azure Speech recognition with 30s timeout...`);
       
       // Perform recognition with pronunciation assessment
       const result = await new Promise((resolve, reject) => {
+        // Set up timeout to prevent hanging
+        const timeout = setTimeout(() => {
+          console.log(`[Pronunciation] ⏰ Timeout reached - Azure Speech Service did not respond within 30 seconds`);
+          recognizer.close();
+          reject(new Error('Speech recognition timeout - Azure Speech Service did not respond within 30 seconds'));
+        }, 30000); // 30 second timeout
+
         recognizer.recognizeOnceAsync(
           (result) => {
+            clearTimeout(timeout);
+            console.log(`[Pronunciation] ✅ Azure Speech Service responded with reason: ${result.reason}`);
             if (result.reason === sdk.ResultReason.RecognizedSpeech) {
               resolve(result);
             } else if (result.reason === sdk.ResultReason.NoMatch) {
@@ -217,8 +227,11 @@ class ResilientPronunciationService {
             } else {
               reject(new Error(`Speech recognition failed: ${result.reason}`));
             }
+            recognizer.close();
           },
           (error) => {
+            clearTimeout(timeout);
+            recognizer.close();
             reject(new Error(`Speech recognition error: ${error}`));
           }
         );

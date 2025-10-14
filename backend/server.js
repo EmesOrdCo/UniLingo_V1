@@ -21,6 +21,7 @@ const queueClient = require('./queueClient');
 const CircuitBreaker = require('./circuitBreaker');
 const notificationManager = require('./notifications');
 const profileController = require('./profileController');
+const sdk = require('microsoft-cognitiveservices-speech-sdk');
 
 // Initialize circuit breakers for monitoring (Issue #6)
 const openaiCircuitBreaker = new CircuitBreaker('openai');
@@ -43,6 +44,14 @@ const networkLogger = new NetworkLogger();
 const performanceMonitor = new PerformanceMonitor();
 const resilientPronunciationService = new ResilientPronunciationService();
 const fileCleanupManager = new FileCleanupManager();
+
+// Log Railway deployment info for debugging
+console.log('🚂 Railway Deployment Info:', {
+  serviceName: process.env.RAILWAY_SERVICE_NAME,
+  staticUrl: process.env.RAILWAY_STATIC_URL,
+  port: process.env.PORT,
+  nodeEnv: process.env.NODE_ENV
+});
 
 // Rate limiting configuration
 const generalLimiter = rateLimit({
@@ -1450,9 +1459,19 @@ app.get('/api/metrics', monitoringWhitelist, (req, res) => {
 app.get('/api/pronunciation/status', monitoringWhitelist, (req, res) => {
   try {
     const status = resilientPronunciationService.getStatus();
+    
+    // Also check Azure credentials
+    const azureConfig = {
+      hasSpeechKey: !!process.env.AZURE_SPEECH_KEY,
+      speechKeyLength: process.env.AZURE_SPEECH_KEY ? process.env.AZURE_SPEECH_KEY.length : 0,
+      hasSpeechRegion: !!process.env.AZURE_SPEECH_REGION,
+      speechRegion: process.env.AZURE_SPEECH_REGION
+    };
+    
     res.json({
       success: true,
       status: status,
+      azureConfig: azureConfig,
       timestamp: new Date().toISOString()
     });
   } catch (error) {
@@ -1460,6 +1479,73 @@ app.get('/api/pronunciation/status', monitoringWhitelist, (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to get pronunciation service status',
+      details: error.message
+    });
+  }
+});
+
+// Endpoint to get backend URL information
+app.get('/api/backend-info', (req, res) => {
+  try {
+    const backendInfo = {
+      railwayUrl: process.env.RAILWAY_STATIC_URL,
+      serviceName: process.env.RAILWAY_SERVICE_NAME,
+      port: process.env.PORT || 3001,
+      nodeEnv: process.env.NODE_ENV,
+      localIP: LOCAL_IP,
+      timestamp: new Date().toISOString()
+    };
+    
+    res.json({
+      success: true,
+      backendInfo: backendInfo
+    });
+  } catch (error) {
+    console.error('Error getting backend info:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get backend info',
+      details: error.message
+    });
+  }
+});
+
+// Test endpoint to verify pronunciation service is working
+app.post('/api/pronunciation/test', monitoringWhitelist, async (req, res) => {
+  try {
+    console.log('🧪 Pronunciation test endpoint called');
+    
+    // Check if we can create a speech recognizer (without actually processing audio)
+    const speechKey = process.env.AZURE_SPEECH_KEY;
+    const speechRegion = process.env.AZURE_SPEECH_REGION;
+    
+    if (!speechKey || !speechRegion) {
+      return res.status(500).json({
+        success: false,
+        error: 'Azure Speech Service credentials not configured',
+        details: 'Missing AZURE_SPEECH_KEY or AZURE_SPEECH_REGION'
+      });
+    }
+    
+    // Test speech config creation
+    const speechConfig = sdk.SpeechConfig.fromSubscription(speechKey, speechRegion);
+    speechConfig.speechRecognitionLanguage = 'en-US';
+    
+    res.json({
+      success: true,
+      message: 'Pronunciation service test successful',
+      azureConfig: {
+        hasCredentials: true,
+        region: speechRegion
+      },
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error('❌ Pronunciation test failed:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Pronunciation service test failed',
       details: error.message
     });
   }
@@ -2062,10 +2148,19 @@ const audioUpload = multer({
 });
 
 app.post('/api/pronunciation-assess', pronunciationLimiter, userRateLimit('pronunciation'), audioUpload.single('audio'), async (req, res) => {
+  const startTime = Date.now();
+  const requestId = Math.random().toString(36).substr(2, 9);
+  
   try {
-    console.log('\n🎤 Pronunciation assessment request received');
+    console.log(`\n🎤 [${requestId}] Pronunciation assessment request received`);
+    console.log(`🎤 [${requestId}] Request headers:`, {
+      'content-type': req.headers['content-type'],
+      'content-length': req.headers['content-length'],
+      'user-agent': req.headers['user-agent']?.substring(0, 50) + '...'
+    });
     
     if (!req.file) {
+      console.log(`🎤 [${requestId}] ❌ No audio file provided`);
       return res.status(400).json({ 
         error: 'No audio file uploaded',
         code: 'NO_AUDIO_FILE'
@@ -2081,15 +2176,17 @@ app.post('/api/pronunciation-assess', pronunciationLimiter, userRateLimit('pronu
       });
     }
     
-    console.log(`[Pronunciation] Audio file: ${req.file.path}`);
-    console.log(`[Pronunciation] Reference text: "${referenceText}"`);
-    console.log(`[Pronunciation] File size: ${(req.file.size / 1024).toFixed(2)} KB`);
+    console.log(`🎤 [${requestId}] Audio file: ${req.file.path}`);
+    console.log(`🎤 [${requestId}] Reference text: "${referenceText}"`);
+    console.log(`🎤 [${requestId}] File size: ${(req.file.size / 1024).toFixed(2)} KB`);
     
     // Perform pronunciation assessment with resilience
+    console.log(`🎤 [${requestId}] Starting pronunciation assessment...`);
     const assessmentResult = await resilientPronunciationService.assessPronunciationWithResilience(
       req.file.path,
       referenceText
     );
+    console.log(`🎤 [${requestId}] Assessment completed in ${Date.now() - startTime}ms`);
     
     if (!assessmentResult.success) {
       // Clean up uploaded file
@@ -2107,7 +2204,7 @@ app.post('/api/pronunciation-assess', pronunciationLimiter, userRateLimit('pronu
     // Clean up uploaded file
     await fileCleanupManager.safeCleanup(req.file.path);
     
-    console.log(`[Pronunciation] ✅ Assessment complete - Score: ${assessmentResult.result.pronunciationScore}/100`);
+    console.log(`🎤 [${requestId}] ✅ Assessment complete - Score: ${assessmentResult.result.pronunciationScore}/100`);
     
     res.json({
       success: true,
