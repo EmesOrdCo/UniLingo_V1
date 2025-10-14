@@ -6,8 +6,6 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
-  Dimensions,
-  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,8 +13,6 @@ import * as Haptics from 'expo-haptics';
 import PronunciationCheck from '../PronunciationCheck';
 import { PronunciationResult } from '../../lib/pronunciationService';
 import LeaveConfirmationModal from './LeaveConfirmationModal';
-
-const { width } = Dimensions.get('window');
 
 interface LessonConversationProps {
   vocabulary: any[];
@@ -30,20 +26,6 @@ interface LessonConversationProps {
   onClose: () => void;
 }
 
-interface RoleplayExercise {
-  type: 'speak';
-  keyword: string;
-  sentence: string;
-  vocabulary: any;
-}
-
-interface ExerciseState {
-  isActive: boolean;
-  exercise: RoleplayExercise | null;
-  isCompleted: boolean;
-  score: number;
-}
-
 export default function LessonConversation({
   vocabulary,
   conversationData,
@@ -55,8 +37,7 @@ export default function LessonConversation({
   const [conversationHistory, setConversationHistory] = useState<
     Array<{
       type: 'app' | 'user';
-      french: string;
-      english: string;
+      message: string;
     }>
   >([]);
   const [currentExchangeIndex, setCurrentExchangeIndex] = useState(0);
@@ -66,37 +47,23 @@ export default function LessonConversation({
   const [completed, setCompleted] = useState(false);
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   const [attemptKey, setAttemptKey] = useState(0);
-  const [lastResult, setLastResult] = useState<PronunciationResult | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [exerciseState, setExerciseState] = useState<ExerciseState>({
-    isActive: false,
-    exercise: null,
-    isCompleted: false,
-    score: 0,
-  });
-  const [exerciseCreatedForMessage, setExerciseCreatedForMessage] = useState<number>(-1);
 
   // Initialize with first Assistant message
   useEffect(() => {
-    console.log('🎭 LessonConversation - conversationData:', conversationData);
-    console.log('🎭 LessonConversation - vocabulary length:', vocabulary.length);
-    
     if (conversationData && conversationData.conversation && conversationData.conversation.length > 0) {
-      console.log('✅ LessonConversation - Initializing with conversation data');
-      const firstAssistantMsg = conversationData.conversation.find((msg) => msg.speaker === 'Assistant' || msg.speaker === 'Person A');
+      const firstAssistantMsg = conversationData.conversation.find(
+        (msg) => msg.speaker === 'Assistant' || msg.speaker === 'Person A'
+      );
       if (firstAssistantMsg) {
         setConversationHistory([
           {
             type: 'app',
-            french: firstAssistantMsg.message,
-            english: firstAssistantMsg.message,
+            message: firstAssistantMsg.message,
           },
         ]);
       }
-    } else {
-      console.log('⚠️ LessonConversation - No conversation data available');
     }
-  }, [conversationData, vocabulary]);
+  }, [conversationData]);
 
   // Auto-scroll to bottom when conversation history updates
   useEffect(() => {
@@ -105,7 +72,7 @@ export default function LessonConversation({
         scrollViewRef.current?.scrollToEnd({ animated: true });
       }, 100);
     }
-  }, [conversationHistory, exerciseState.isActive]);
+  }, [conversationHistory]);
 
   const getCurrentExchange = () => {
     if (!conversationData || !conversationData.conversation) {
@@ -122,58 +89,15 @@ export default function LessonConversation({
       const assistantMsg = assistantMessages[currentExchangeIndex] || assistantMessages[0];
 
       return {
-        appMessage: {
-          french: assistantMsg.message,
-          english: assistantMsg.message,
-        },
-        userMessage: {
-          french: userMsg.message,
-          english: userMsg.message,
-        },
+        appMessage: assistantMsg.message,
+        userMessage: userMsg.message,
       };
     }
 
     return null;
   };
 
-  const createSpeakExerciseForCurrentMessage = () => {
-    const currentExchange = getCurrentExchange();
-    if (!currentExchange) return;
-
-    const userMessage = currentExchange.userMessage.french;
-    const words = userMessage.split(/\s+/);
-    const targetWord = words[Math.floor(Math.random() * words.length)];
-
-    const matchingVocab =
-      vocabulary.find(
-        (v) =>
-          v.keywords?.toLowerCase().includes(targetWord.toLowerCase()) ||
-          v.english_term?.toLowerCase().includes(targetWord.toLowerCase())
-      ) || vocabulary[Math.floor(Math.random() * vocabulary.length)];
-
-    const exerciseWord = matchingVocab?.keywords || matchingVocab?.english_term || targetWord;
-
-    const exercise: RoleplayExercise = {
-      type: 'speak',
-      keyword: exerciseWord,
-      sentence: userMessage,
-      vocabulary: matchingVocab,
-    };
-
-    setExerciseState({
-      isActive: true,
-      exercise: exercise,
-      isCompleted: false,
-      score: 0,
-    });
-    setExerciseCreatedForMessage(currentExchangeIndex);
-    setShowResult(false);
-    setIsCorrect(false);
-    setAttemptKey((prev) => prev + 1);
-  };
-
-  const handlePronunciationResult = (result: PronunciationResult) => {
-    setLastResult(result);
+  const handlePronunciationComplete = (result: PronunciationResult) => {
     const pronunciationScore = result.assessment?.pronunciationScore || 0;
     const passed = pronunciationScore >= 60;
 
@@ -183,85 +107,88 @@ export default function LessonConversation({
     if (passed) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setScore((prev) => prev + 1);
+
+      // Auto-advance after correct answer
+      setTimeout(() => {
+        handleNextExchange();
+      }, 1500);
     } else {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
   };
 
-  const handleContinueAfterExercise = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-
+  const handleNextExchange = () => {
     const currentExchange = getCurrentExchange();
     if (!currentExchange) return;
 
+    // Add user message to history
     setConversationHistory((prev) => [
       ...prev,
       {
         type: 'user',
-        french: currentExchange.userMessage.french,
-        english: currentExchange.userMessage.english,
+        message: currentExchange.userMessage,
       },
     ]);
 
-    setExerciseState({
-      isActive: false,
-      exercise: null,
-      isCompleted: true,
-      score: exerciseState.score,
-    });
+    const nextIndex = currentExchangeIndex + 1;
+    const totalExchanges =
+      conversationData?.conversation.filter((msg) => msg.speaker === 'User').length || 0;
 
-    setTimeout(() => {
-      const nextExchange = currentExchangeIndex + 1;
-      const totalExchanges = conversationData?.conversation.filter((msg) => msg.speaker === 'User').length || 0;
+    if (nextIndex < totalExchanges) {
+      setCurrentExchangeIndex(nextIndex);
+      setShowResult(false);
+      setIsCorrect(false);
+      setAttemptKey((prev) => prev + 1);
 
-      if (nextExchange < totalExchanges) {
-        setCurrentExchangeIndex(nextExchange);
-        setShowResult(false);
-        setIsCorrect(false);
+      // Add next assistant message
+      const nextAssistantMsg = conversationData?.conversation.filter(
+        (msg) => msg.speaker === 'Assistant' || msg.speaker === 'Person A'
+      )[nextIndex];
 
-        const nextAssistantMsg = conversationData?.conversation.filter(
-          (msg) => msg.speaker === 'Assistant' || msg.speaker === 'Person A'
-        )[nextExchange];
-
-        if (nextAssistantMsg) {
+      if (nextAssistantMsg) {
+        setTimeout(() => {
           setConversationHistory((prev) => [
             ...prev,
             {
               type: 'app',
-              french: nextAssistantMsg.message,
-              english: nextAssistantMsg.message,
+              message: nextAssistantMsg.message,
             },
           ]);
-        }
-      } else {
-        setCompleted(true);
+        }, 500);
       }
-    }, 500);
+    } else {
+      setCompleted(true);
+    }
   };
 
   const handleRetry = () => {
+    setShowResult(false);
+    setAttemptKey((prev) => prev + 1);
+  };
+
+  const handleSkip = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    handleNextExchange();
+  };
+
+  const handleRetryLesson = () => {
     setConversationHistory([]);
     setCurrentExchangeIndex(0);
     setShowResult(false);
     setIsCorrect(false);
     setScore(0);
     setCompleted(false);
-    setExerciseState({
-      isActive: false,
-      exercise: null,
-      isCompleted: false,
-      score: 0,
-    });
-    setExerciseCreatedForMessage(-1);
+    setAttemptKey(0);
 
     if (conversationData && conversationData.conversation && conversationData.conversation.length > 0) {
-      const firstAssistantMsg = conversationData.conversation.find((msg) => msg.speaker === 'Assistant' || msg.speaker === 'Person A');
+      const firstAssistantMsg = conversationData.conversation.find(
+        (msg) => msg.speaker === 'Assistant' || msg.speaker === 'Person A'
+      );
       if (firstAssistantMsg) {
         setConversationHistory([
           {
             type: 'app',
-            french: firstAssistantMsg.message,
-            english: firstAssistantMsg.message,
+            message: firstAssistantMsg.message,
           },
         ]);
       }
@@ -277,34 +204,24 @@ export default function LessonConversation({
     setShowLeaveModal(true);
   };
 
-  const totalExchanges = conversationData?.conversation.filter((msg) => msg.speaker === 'User').length || 0;
-
-  // Show exercises when applicable
-  const showExercise =
-    !exerciseState.isActive &&
-    !completed &&
-    exerciseCreatedForMessage !== currentExchangeIndex &&
-    conversationHistory.length > 0 &&
-    currentExchangeIndex < totalExchanges;
+  const totalExchanges =
+    conversationData?.conversation.filter((msg) => msg.speaker === 'User').length || 0;
+  const currentExchange = getCurrentExchange();
 
   if (!conversationData || conversationData.conversation.length === 0) {
-    console.log('🔄 LessonConversation - Showing loading screen');
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
+      <SafeAreaView style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-            <Ionicons name="close" size={28} color="#1f2937" />
+          <TouchableOpacity onPress={handleClose} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color="#000000" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Conversation</Text>
-          <View style={styles.placeholder} />
+          <View style={styles.headerSpacer} />
         </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#6366f1" />
-          <Text style={styles.loadingText}>Preparing conversation...</Text>
-          <Text style={styles.loadingSubtext}>This may take a moment</Text>
+          <Text style={styles.loadingText}>Loading conversation...</Text>
         </View>
-        
-        {/* Leave Confirmation Modal */}
         <LeaveConfirmationModal visible={showLeaveModal} onLeave={onClose} onCancel={() => setShowLeaveModal(false)} />
       </SafeAreaView>
     );
@@ -314,13 +231,13 @@ export default function LessonConversation({
     const accuracyPercentage = totalExchanges > 0 ? Math.round((score / totalExchanges) * 100) : 0;
 
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
+      <SafeAreaView style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-            <Ionicons name="close" size={28} color="#1f2937" />
+          <TouchableOpacity onPress={handleClose} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color="#000000" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Conversation Complete!</Text>
-          <View style={styles.placeholder} />
+          <View style={styles.headerSpacer} />
         </View>
 
         <ScrollView style={styles.completionScrollView} showsVerticalScrollIndicator={false}>
@@ -349,7 +266,6 @@ export default function LessonConversation({
               </View>
             </View>
 
-            {/* Performance Message */}
             <View style={styles.performanceContainer}>
               <Text style={styles.performanceText}>
                 {score === totalExchanges
@@ -362,9 +278,8 @@ export default function LessonConversation({
               </Text>
             </View>
 
-            {/* Action Buttons */}
             <View style={styles.buttonContainer}>
-              <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
+              <TouchableOpacity style={styles.retryButton} onPress={handleRetryLesson}>
                 <Ionicons name="refresh" size={20} color="#6366f1" />
                 <Text style={styles.retryButtonText}>Retry</Text>
               </TouchableOpacity>
@@ -377,126 +292,130 @@ export default function LessonConversation({
           </View>
         </ScrollView>
 
-        {/* Leave Confirmation Modal */}
         <LeaveConfirmationModal visible={showLeaveModal} onLeave={onClose} onCancel={() => setShowLeaveModal(false)} />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
-          <Ionicons name="close" size={28} color="#1f2937" />
+        <TouchableOpacity onPress={handleClose} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color="#000000" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Conversation</Text>
-        <View style={styles.placeholder} />
+        <View style={styles.headerSpacer} />
       </View>
 
+      {/* Progress Bar */}
       <View style={styles.progressContainer}>
-        <Text style={styles.progressText}>
-          Exchange {currentExchangeIndex + 1} of {totalExchanges}
-        </Text>
-        <View style={styles.progressBar}>
-          <View style={[styles.progressFill, { width: `${((currentExchangeIndex + 1) / totalExchanges) * 100}%` }]} />
+        <View style={styles.progressSegments}>
+          {Array.from({ length: totalExchanges }).map((_, idx) => (
+            <View
+              key={idx}
+              style={[
+                styles.progressSegment,
+                idx < currentExchangeIndex && styles.progressSegmentCompleted,
+                idx === currentExchangeIndex && styles.progressSegmentActive,
+              ]}
+            />
+          ))}
         </View>
-        <Text style={styles.scoreText}>
-          Score: {score}/{totalExchanges}
-        </Text>
       </View>
 
-      <ScrollView ref={scrollViewRef} style={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.conversationContainer}>
-          {conversationHistory.map((message, index) => (
-            <View
-              key={index}
-              style={[
-                styles.messageBubble,
-                message.type === 'app' ? styles.appMessageBubble : styles.userMessageBubble,
-              ]}
-            >
-              <Text style={[styles.messageText, message.type === 'app' ? styles.appMessageText : styles.userMessageText]}>
-                {message.french}
-              </Text>
-            </View>
-          ))}
-
-          {/* Show exercise after conversation history */}
-          {showExercise && (
-            <View style={styles.exercisePrompt}>
-              <TouchableOpacity style={styles.startExerciseButton} onPress={createSpeakExerciseForCurrentMessage}>
-                <Ionicons name="mic" size={24} color="#ffffff" />
-                <Text style={styles.startExerciseText}>Pronounce to Continue</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
-          {/* Pronunciation Exercise */}
-          {exerciseState.isActive && exerciseState.exercise && (
-            <View style={styles.exerciseContainer}>
-              <View style={styles.exerciseHeader}>
-                <Ionicons name="mic" size={24} color="#6366f1" />
-                <Text style={styles.exerciseTitle}>Pronounce this word:</Text>
-              </View>
-
-              <View style={styles.wordCard}>
-                <Text style={styles.wordText}>{exerciseState.exercise.keyword}</Text>
-                <Text style={styles.sentenceText}>{exerciseState.exercise.sentence}</Text>
-              </View>
-
-              <PronunciationCheck
-                key={`pronunciation-${attemptKey}`}
-                word={exerciseState.exercise.keyword}
-                onResult={handlePronunciationResult}
-                disabled={showResult}
-                maxRecordingDuration={5000}
-              />
-
-              {showResult && lastResult && (
-                <View style={styles.resultCard}>
-                  <View style={[styles.resultHeader, isCorrect ? styles.correctResult : styles.incorrectResult]}>
-                    <Ionicons name={isCorrect ? 'checkmark-circle' : 'close-circle'} size={32} color={isCorrect ? '#10b981' : '#ef4444'} />
-                    <Text style={[styles.resultTitle, isCorrect ? styles.correctText : styles.incorrectText]}>
-                      {isCorrect ? 'Great pronunciation!' : 'Try again!'}
-                    </Text>
-                  </View>
-
-                  <View style={styles.scoreDetails}>
-                    <View style={styles.scoreRow}>
-                      <Text style={styles.scoreLabel}>Pronunciation Score:</Text>
-                      <Text style={styles.scoreValue}>{lastResult.assessment?.pronunciationScore || 0}%</Text>
-                    </View>
-                    <View style={styles.scoreRow}>
-                      <Text style={styles.scoreLabel}>Accuracy:</Text>
-                      <Text style={styles.scoreValue}>{lastResult.assessment?.accuracyScore || 0}%</Text>
-                    </View>
-                  </View>
-
-                  {isCorrect ? (
-                    <TouchableOpacity style={styles.continueExerciseButton} onPress={handleContinueAfterExercise}>
-                      <Text style={styles.continueExerciseText}>Continue</Text>
-                      <Ionicons name="arrow-forward" size={20} color="#ffffff" />
+      {/* Scrollable Chat History */}
+      <ScrollView ref={scrollViewRef} style={styles.chatScroll} contentContainerStyle={styles.chatContent}>
+        {conversationHistory.map((message, index) => (
+          <View key={index}>
+            {message.type === 'app' && (
+              <View style={styles.chatMessageLeft}>
+                <Text style={styles.chatSenderName}>Thomas</Text>
+                <View style={styles.chatBubbleThomas}>
+                  <Text style={styles.chatBubblePrimary}>{message.message}</Text>
+                  <View style={styles.chatBubbleActions}>
+                    <TouchableOpacity style={styles.chatActionIcon}>
+                      <Ionicons name="volume-high" size={16} color="rgba(255,255,255,0.8)" />
                     </TouchableOpacity>
-                  ) : (
-                    <TouchableOpacity
-                      style={styles.retryExerciseButton}
-                      onPress={() => {
-                        setShowResult(false);
-                        setAttemptKey((prev) => prev + 1);
-                      }}
-                    >
-                      <Ionicons name="refresh" size={20} color="#6366f1" />
-                      <Text style={styles.retryExerciseText}>Try Again</Text>
+                    <TouchableOpacity style={styles.chatActionIcon}>
+                      <Ionicons name="wifi" size={16} color="rgba(255,255,255,0.8)" />
                     </TouchableOpacity>
-                  )}
+                    <TouchableOpacity style={styles.chatActionIcon}>
+                      <Ionicons name="swap-horizontal" size={16} color="rgba(255,255,255,0.8)" />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.chatActionIcon}>
+                      <Ionicons name="stats-chart" size={16} color="rgba(255,255,255,0.8)" />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.chatActionIcon}>
+                      <Ionicons name="school" size={16} color="rgba(255,255,255,0.8)" />
+                    </TouchableOpacity>
+                  </View>
                 </View>
-              )}
-            </View>
-          )}
-        </View>
+              </View>
+            )}
+            {message.type === 'user' && (
+              <View style={styles.chatMessageRight}>
+                <View style={styles.chatBubbleUser}>
+                  <Text style={styles.chatBubbleUserPrimary}>{message.message}</Text>
+                  <View style={styles.chatBubbleActions}>
+                    <TouchableOpacity style={styles.chatActionIcon}>
+                      <Ionicons name="volume-high" size={16} color="rgba(255,255,255,0.8)" />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.chatActionIcon}>
+                      <Ionicons name="wifi" size={16} color="rgba(255,255,255,0.8)" />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.chatActionIcon}>
+                      <Ionicons name="swap-horizontal" size={16} color="rgba(255,255,255,0.8)" />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.chatActionIcon}>
+                      <Ionicons name="stats-chart" size={16} color="rgba(255,255,255,0.8)" />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.chatActionIcon}>
+                      <Ionicons name="school" size={16} color="rgba(255,255,255,0.8)" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            )}
+          </View>
+        ))}
       </ScrollView>
 
-      {/* Leave Confirmation Modal */}
+      {/* Pinned Bottom Section: Current Question + Answer Interface */}
+      {currentExchange && currentExchangeIndex < totalExchanges && (
+        <View style={styles.bottomPinnedSection}>
+          <Text style={styles.questionLabel}>SAY THIS PHRASE</Text>
+
+          <Text style={styles.currentPrompt}>{currentExchange.userMessage}</Text>
+
+          {!showResult && (
+            <PronunciationCheck
+              key={`${currentExchangeIndex}-${attemptKey}`}
+              word={currentExchange.userMessage}
+              onResult={handlePronunciationComplete}
+              maxRecordingDuration={8000}
+              showAlerts={false}
+              hideScoreRing={true}
+              hideWordDisplay={true}
+            />
+          )}
+
+          {showResult && !isCorrect && (
+            <View style={styles.feedbackIncorrectSection}>
+              <Text style={styles.feedbackIncorrect}>❌ Incorrect - Try again!</Text>
+              <View style={styles.retrySkipButtons}>
+                <TouchableOpacity style={styles.retryExerciseButton} onPress={handleRetry}>
+                  <Text style={styles.retryExerciseButtonText}>Retry</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
+                  <Text style={styles.skipButtonText}>Skip</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+          {showResult && isCorrect && <Text style={styles.feedbackCorrect}>✓ Correct!</Text>}
+        </View>
+      )}
+
       <LeaveConfirmationModal visible={showLeaveModal} onLeave={onClose} onCancel={() => setShowLeaveModal(false)} />
     </SafeAreaView>
   );
@@ -505,59 +424,188 @@ export default function LessonConversation({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f9fafb',
+    backgroundColor: '#f8fafc',
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8fafc',
     borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
+    borderBottomColor: '#e5e7eb',
   },
-  closeButton: {
-    padding: 8,
+  backButton: {
+    width: 40,
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#1f2937',
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#000000',
+    flex: 1,
+    textAlign: 'center',
   },
-  placeholder: {
-    width: 44,
+  headerSpacer: {
+    width: 40,
   },
   progressContainer: {
-    padding: 12,
-    backgroundColor: '#ffffff',
-    marginBottom: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: '#f8fafc',
   },
-  progressText: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginBottom: 8,
-    textAlign: 'center',
+  progressSegments: {
+    flexDirection: 'row',
+    gap: 4,
   },
-  progressBar: {
-    height: 8,
+  progressSegment: {
+    flex: 1,
+    height: 4,
     backgroundColor: '#e5e7eb',
-    borderRadius: 4,
-    overflow: 'hidden',
-    marginBottom: 8,
+    borderRadius: 2,
   },
-  progressFill: {
-    height: '100%',
+  progressSegmentCompleted: {
     backgroundColor: '#6366f1',
   },
-  scoreText: {
-    fontSize: 16,
+  progressSegmentActive: {
+    backgroundColor: '#6366f1',
+  },
+  chatScroll: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+  },
+  chatContent: {
+    padding: 16,
+    paddingBottom: 8,
+  },
+  chatMessageLeft: {
+    alignSelf: 'flex-start',
+    maxWidth: '85%',
+    marginBottom: 16,
+  },
+  chatMessageRight: {
+    alignSelf: 'flex-end',
+    maxWidth: '85%',
+    marginBottom: 16,
+  },
+  chatSenderName: {
+    fontSize: 14,
     fontWeight: '600',
     color: '#1f2937',
-    textAlign: 'center',
+    marginBottom: 4,
+    marginLeft: 4,
   },
-  content: {
+  chatBubbleThomas: {
+    backgroundColor: '#6366f1',
+    padding: 16,
+    borderRadius: 20,
+    borderBottomLeftRadius: 6,
+  },
+  chatBubbleUser: {
+    backgroundColor: '#a78bfa',
+    padding: 16,
+    borderRadius: 20,
+    borderBottomRightRadius: 6,
+  },
+  chatBubblePrimary: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#ffffff',
+    marginBottom: 4,
+    lineHeight: 22,
+  },
+  chatBubbleUserPrimary: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#ffffff',
+    marginBottom: 4,
+    lineHeight: 22,
+  },
+  chatBubbleActions: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  chatActionIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bottomPinnedSection: {
+    backgroundColor: '#f9fafb',
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+    paddingTop: 12,
+    paddingHorizontal: 12,
+    paddingBottom: 12,
+  },
+  questionLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#9ca3af',
+    textAlign: 'center',
+    letterSpacing: 0.8,
+    marginBottom: 8,
+  },
+  currentPrompt: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#000000',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  feedbackIncorrectSection: {
+    marginTop: 12,
+  },
+  feedbackIncorrect: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#ef4444',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  feedbackCorrect: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#10b981',
+    textAlign: 'center',
+    marginTop: 12,
+  },
+  retrySkipButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  retryExerciseButton: {
     flex: 1,
+    backgroundColor: '#ffffff',
+    borderWidth: 2,
+    borderColor: '#6366f1',
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  retryExerciseButtonText: {
+    color: '#6366f1',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  skipButton: {
+    flex: 1,
+    backgroundColor: '#f3f4f6',
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  skipButtonText: {
+    color: '#6b7280',
+    fontSize: 16,
+    fontWeight: '600',
   },
   loadingContainer: {
     flex: 1,
@@ -568,180 +616,6 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 16,
     color: '#6b7280',
-  },
-  loadingSubtext: {
-    marginTop: 8,
-    fontSize: 14,
-    color: '#9ca3af',
-    fontStyle: 'italic',
-  },
-  conversationContainer: {
-    padding: 16,
-  },
-  messageBubble: {
-    maxWidth: '80%',
-    padding: 12,
-    borderRadius: 16,
-    marginBottom: 12,
-  },
-  appMessageBubble: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#ffffff',
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-  },
-  userMessageBubble: {
-    alignSelf: 'flex-end',
-    backgroundColor: '#6366f1',
-  },
-  messageText: {
-    fontSize: 16,
-    lineHeight: 24,
-  },
-  appMessageText: {
-    color: '#1f2937',
-  },
-  userMessageText: {
-    color: '#ffffff',
-  },
-  exercisePrompt: {
-    marginTop: 8,
-    marginBottom: 16,
-    alignItems: 'center',
-  },
-  startExerciseButton: {
-    backgroundColor: '#6366f1',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    gap: 8,
-  },
-  startExerciseText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  exerciseContainer: {
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    padding: 20,
-    marginTop: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  exerciseHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 16,
-    gap: 8,
-  },
-  exerciseTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#1f2937',
-  },
-  wordCard: {
-    backgroundColor: '#f9fafb',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 20,
-  },
-  wordText: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#6366f1',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  sentenceText: {
-    fontSize: 14,
-    color: '#6b7280',
-    textAlign: 'center',
-    fontStyle: 'italic',
-  },
-  resultCard: {
-    marginTop: 20,
-  },
-  resultHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 16,
-    gap: 8,
-  },
-  correctResult: {
-    backgroundColor: '#d1fae5',
-  },
-  incorrectResult: {
-    backgroundColor: '#fee2e2',
-  },
-  resultTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  correctText: {
-    color: '#10b981',
-  },
-  incorrectText: {
-    color: '#ef4444',
-  },
-  scoreDetails: {
-    backgroundColor: '#f9fafb',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-  },
-  scoreRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  scoreLabel: {
-    fontSize: 14,
-    color: '#6b7280',
-  },
-  scoreValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1f2937',
-  },
-  continueExerciseButton: {
-    backgroundColor: '#6366f1',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: 12,
-    gap: 8,
-  },
-  continueExerciseText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  retryExerciseButton: {
-    backgroundColor: '#ffffff',
-    borderWidth: 2,
-    borderColor: '#6366f1',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: 12,
-    gap: 8,
-  },
-  retryExerciseText: {
-    color: '#6366f1',
-    fontSize: 16,
-    fontWeight: '600',
   },
   completionScrollView: {
     flex: 1,
@@ -863,4 +737,3 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
-
