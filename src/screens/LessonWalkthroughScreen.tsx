@@ -14,6 +14,7 @@ import LessonFlashcardQuiz from '../components/lesson/LessonFlashcardQuiz';
 import LessonFillInTheBlank from '../components/lesson/LessonFillInTheBlank';
 import LessonListen from '../components/lesson/LessonListen';
 import LessonSpeak from '../components/lesson/LessonSpeak';
+import LessonConversation from '../components/lesson/LessonConversation';
 
 type ExerciseStep = 'flow-preview' | 'flashcards' | 'flashcard-quiz' | 'fill-in-blank' | 'listen' | 'speak' | 'conversation' | 'completed';
 
@@ -191,13 +192,15 @@ export default function LessonWalkthroughScreen() {
       flashcardQuiz: 0,
       fillInBlank: 0,
       listen: 0,
-      speak: 0
+      speak: 0,
+      conversation: 0
     });
     setCompletedExercises(new Set());
     
     // Initialize progress in database
     try {
-      const maxPossibleScore = lessonVocabulary.length * 5; // 5 points per word across all exercises
+      // Calculate max possible score: vocabulary exercises (7 points per word) + conversation (~7 exchanges)
+      const maxPossibleScore = (lessonVocabulary.length * 7) + 7;
       await LessonService.updateLessonProgress(lessonId, user.id, {
         started_at: now.toISOString(),
         completed_at: undefined,
@@ -305,7 +308,8 @@ export default function LessonWalkthroughScreen() {
       flashcardQuiz: completedExerciseCount > 1 ? estimatedScorePerCompletedExercise : 0,
       fillInBlank: completedExerciseCount > 2 ? estimatedScorePerCompletedExercise : 0,
       listen: completedExerciseCount > 3 ? estimatedScorePerCompletedExercise : 0,
-      speak: completedExerciseCount > 4 ? estimatedScorePerCompletedExercise : 0
+      speak: completedExerciseCount > 4 ? estimatedScorePerCompletedExercise : 0,
+      conversation: completedExerciseCount > 5 ? estimatedScorePerCompletedExercise : 0
     };
     setExerciseScores(restoredScores);
     
@@ -368,15 +372,95 @@ export default function LessonWalkthroughScreen() {
     saveResumePosition('fill-in-blank', questionIndex);
   }, []);
 
-  // Handle conversation navigation - must be at top level to follow Rules of Hooks
+  // Conversation data state
+  const [conversationData, setConversationData] = useState<{
+    conversation: Array<{
+      speaker: string;
+      message: string;
+    }>;
+  } | null>(null);
+
+  // Load conversation data when lesson loads
   useEffect(() => {
-    if (currentStep === 'conversation' && lesson?.id) {
-      (navigation as any).navigate('ConversationLessonScreen', { 
-        lessonId: lesson.id, 
-        lessonTitle: lesson.title || 'Unknown'
-      });
+    console.log('🔍 Loading conversation data, chat_content exists:', !!lesson?.chat_content);
+    
+    if (lesson?.chat_content) {
+      try {
+        const parsedConversation = JSON.parse(lesson.chat_content);
+        console.log('✅ Parsed conversation data:', parsedConversation);
+        setConversationData(parsedConversation);
+      } catch (error) {
+        console.error('❌ Error parsing conversation data:', error);
+        // Create fallback conversation based on vocabulary
+        createFallbackConversation();
+      }
+    } else if (lesson && lessonVocabulary.length > 0) {
+      console.log('⚠️ No chat_content found, creating fallback conversation');
+      createFallbackConversation();
     }
-  }, [currentStep, lesson?.id, lesson?.title, navigation]);
+  }, [lesson?.chat_content, lesson, lessonVocabulary]);
+
+  const createFallbackConversation = () => {
+    // Create a conversation that includes ALL vocabulary words across 6-8 exchanges
+    const vocabTerms = lessonVocabulary.map(v => v.keywords || v.english_term);
+    const totalVocab = vocabTerms.length;
+    
+    // Determine number of exchanges based on vocabulary count
+    // Aim for 1-2 words per user response
+    const targetExchanges = Math.max(6, Math.min(8, Math.ceil(totalVocab / 1.5)));
+    const wordsPerExchange = Math.ceil(totalVocab / targetExchanges);
+    
+    const conversationMessages: Array<{ speaker: string; message: string }> = [];
+    
+    // Start with Assistant greeting
+    conversationMessages.push({
+      speaker: 'Assistant',
+      message: `Hello! Today we're going to practice important vocabulary. Let's have a conversation about ${lesson?.title || 'this topic'}.`
+    });
+    
+    // Create exchanges by distributing vocabulary
+    let vocabIndex = 0;
+    for (let i = 0; i < targetExchanges && vocabIndex < totalVocab; i++) {
+      // Get 1-2 vocabulary words for this exchange
+      const wordsForThisExchange = vocabTerms.slice(vocabIndex, vocabIndex + wordsPerExchange);
+      vocabIndex += wordsPerExchange;
+      
+      if (wordsForThisExchange.length > 0) {
+        // User response with vocabulary
+        const userMessage = wordsForThisExchange.length === 1
+          ? `I understand the importance of ${wordsForThisExchange[0]}.`
+          : `I'm learning about ${wordsForThisExchange.slice(0, -1).join(', ')} and ${wordsForThisExchange[wordsForThisExchange.length - 1]}.`;
+        
+        conversationMessages.push({
+          speaker: 'User',
+          message: userMessage
+        });
+        
+        // Assistant follow-up (unless it's the last exchange)
+        if (i < targetExchanges - 1 && vocabIndex < totalVocab) {
+          conversationMessages.push({
+            speaker: 'Assistant',
+            message: i % 2 === 0 
+              ? "That's great! Can you tell me more about what you've learned?"
+              : "Excellent! What else have you discovered?"
+          });
+        }
+      }
+    }
+    
+    // Final assistant message
+    conversationMessages.push({
+      speaker: 'Assistant',
+      message: "Wonderful! You've covered all the key vocabulary. Great job practicing!"
+    });
+    
+    const conversation = {
+      conversation: conversationMessages
+    };
+    
+    console.log(`🔄 Created fallback conversation with ${conversationMessages.length} messages covering ${totalVocab} vocabulary terms`);
+    setConversationData(conversation);
+  };
 
   const loadResumePosition = async () => {
     try {
@@ -482,15 +566,20 @@ export default function LessonWalkthroughScreen() {
       const accuracyPercentage = Math.round((score / maxScore) * 100);
       const timeSpentSeconds = (lessonProgress?.time_spent_seconds || 0) + 60; // Add 1 minute per exercise
 
+      // Calculate max possible score
+      // Flashcards (1) + Quiz (1) + Fill-in-Blank (2 rounds) + Listen (2 rounds) + Speak (1) + Conversation (varies)
+      // Conversation has 6-8 exchanges, so we estimate ~7 for max score calculation
+      const estimatedMaxScore = (lessonVocabulary.length * 7) + 7; // 7 points per vocab + ~7 conversation exchanges
+      
       // Update lesson progress
       await ProgressTrackingService.updateLessonProgress({
         lessonId,
         totalScore: totalScore,
-        maxPossibleScore: lessonVocabulary.length * 5,
+        maxPossibleScore: estimatedMaxScore,
         exercisesCompleted: newCompletedSet.size,
-        totalExercises: 5, // Total number of exercises
+        totalExercises: 6, // Total number of exercises (flashcards, quiz, fill-in-blank, listen, speak, conversation)
         timeSpentSeconds: timeSpentSeconds,
-        status: newCompletedSet.size >= 5 ? 'completed' : 'in_progress',
+        status: newCompletedSet.size >= 6 ? 'completed' : 'in_progress',
         completedExercises: completedExercisesArray, // Save which exercises are completed
       });
 
@@ -498,7 +587,7 @@ export default function LessonWalkthroughScreen() {
       setLessonProgress(prev => prev ? {
         ...prev,
         total_score: totalScore,
-        max_possible_score: lessonVocabulary.length * 5,
+        max_possible_score: estimatedMaxScore,
         completed_exercises: completedExercisesArray,
         time_spent_seconds: timeSpentSeconds
       } : null);
@@ -508,39 +597,12 @@ export default function LessonWalkthroughScreen() {
       console.error('❌ Error updating lesson progress:', error);
     }
 
-    // Determine next step
-    let nextStep: ExerciseStep;
-
-    switch (exerciseType) {
-      case 'flashcards':
-        nextStep = 'flashcard-quiz';
-        break;
-      case 'flashcard-quiz':
-        nextStep = 'fill-in-blank';
-        break;
-      case 'fill-in-blank':
-        nextStep = 'listen';
-        break;
-      case 'listen':
-        nextStep = 'speak';
-        break;
-      case 'speak':
-        nextStep = 'conversation';
-        break;
-      case 'conversation':
-        nextStep = 'completed';
-        break;
-      default:
-        return;
-    }
-
-    // Move to next step
+    // Return to flow preview after completing exercise
     setTimeout(() => {
-      setCurrentStep(nextStep);
-      setCurrentExercise(nextStep);
+      setCurrentStep('flow-preview');
       setIsTransitioning(false); // Clear transitioning flag
-      console.log(`🎯 Transitioning to ${nextStep} with question index 0`);
-    }, 1000);
+      console.log(`🎯 Exercise ${exerciseType} completed, returning to flow preview`);
+    }, 500);
   };
 
   const handleLessonComplete = async () => {
@@ -556,7 +618,8 @@ export default function LessonWalkthroughScreen() {
     console.log(`⏱️ Lesson completion timing: totalActiveTime=${totalActiveTime}s, isActive=${isActive}, sessionStartTime=${sessionStartTime}, finalActiveTime=${finalActiveTime}s`);
 
     const totalScore = Object.values(exerciseScores).reduce((sum, score) => sum + score, 0);
-    const maxPossibleScore = lessonVocabulary.length * 5; // 5 exercises
+    // Calculate max possible score: vocabulary exercises (7 points per word) + conversation (~7 exchanges)
+    const maxPossibleScore = (lessonVocabulary.length * 7) + (totalExchanges || 7);
     const accuracyPercentage = Math.round((totalScore / maxPossibleScore) * 100);
 
     // Stop active timing
@@ -644,13 +707,15 @@ export default function LessonWalkthroughScreen() {
       flashcardQuiz: 0,
       fillInBlank: 0,
       listen: 0,
-      speak: 0
+      speak: 0,
+      conversation: 0
     });
     setCompletedExercises(new Set());
     
     // Reset progress in database
     try {
-      const maxPossibleScore = lessonVocabulary.length * 5; // 5 points per word across all exercises
+      // Calculate max possible score: vocabulary exercises (7 points per word) + conversation (~7 exchanges)
+      const maxPossibleScore = (lessonVocabulary.length * 7) + 7;
       await LessonService.updateLessonProgress(lessonId, user.id, {
         started_at: now.toISOString(),
         completed_at: undefined,
@@ -985,8 +1050,8 @@ export default function LessonWalkthroughScreen() {
         vocabulary={lessonVocabulary}
         onComplete={(score) => handleExerciseComplete('flashcards', score, lessonVocabulary.length)}
         onClose={() => {
-          console.log('Flashcards close button pressed');
-          navigation.goBack();
+          console.log('Flashcards close button pressed - returning to flow preview');
+          setCurrentStep('flow-preview');
         }}
         onProgressUpdate={handleFlashcardsProgressUpdate}
         initialQuestionIndex={0}
@@ -1000,11 +1065,10 @@ export default function LessonWalkthroughScreen() {
         vocabulary={lessonVocabulary}
         onComplete={(score) => {
           handleExerciseComplete('flashcard-quiz', score, lessonVocabulary.length);
-          navigateToExercise('fill-in-blank');
         }}
         onClose={() => {
-          console.log('Flashcard quiz close button pressed');
-          navigation.goBack();
+          console.log('Flashcard quiz close button pressed - returning to flow preview');
+          setCurrentStep('flow-preview');
         }}
         onProgressUpdate={handleFlashcardQuizProgressUpdate}
         initialQuestionIndex={0}
@@ -1018,11 +1082,10 @@ export default function LessonWalkthroughScreen() {
         vocabulary={lessonVocabulary}
         onComplete={(score) => {
           handleExerciseComplete('fill-in-blank', score, lessonVocabulary.length);
-          navigateToExercise('listen');
         }}
         onClose={() => {
-          console.log('Fill in the blank close button pressed');
-          navigation.goBack();
+          console.log('Fill in the blank close button pressed - returning to flow preview');
+          setCurrentStep('flow-preview');
         }}
         onProgressUpdate={handleFillInBlankProgressUpdate}
         initialQuestionIndex={0}
@@ -1036,11 +1099,10 @@ export default function LessonWalkthroughScreen() {
         vocabulary={lessonVocabulary}
         onComplete={(score) => {
           handleExerciseComplete('listen', score, lessonVocabulary.length);
-          navigateToExercise('speak');
         }}
         onClose={() => {
-          console.log('Listen close button pressed');
-          navigation.goBack();
+          console.log('Listen close button pressed - returning to flow preview');
+          setCurrentStep('flow-preview');
         }}
         onProgressUpdate={(index) => {
           console.log(`Listen progress: question ${index + 1}/${lessonVocabulary.length}`);
@@ -1056,8 +1118,8 @@ export default function LessonWalkthroughScreen() {
         vocabulary={lessonVocabulary}
         onComplete={(score) => handleExerciseComplete('speak', score, lessonVocabulary.length)}
         onClose={() => {
-          console.log('Speak close button pressed');
-          navigation.goBack();
+          console.log('Speak close button pressed - returning to flow preview');
+          setCurrentStep('flow-preview');
         }}
         onProgressUpdate={(index) => {
           console.log(`Speak progress: question ${index + 1}/${lessonVocabulary.length}`);
@@ -1068,13 +1130,15 @@ export default function LessonWalkthroughScreen() {
   }
 
   if (currentStep === 'conversation') {
+    const totalExchanges = conversationData?.conversation.filter((msg) => msg.speaker === 'User').length || lessonVocabulary.length;
+    
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#6366f1" />
-          <Text style={styles.loadingText}>Loading conversation...</Text>
-        </View>
-      </SafeAreaView>
+      <LessonConversation
+        vocabulary={lessonVocabulary}
+        conversationData={conversationData}
+        onComplete={(score) => handleExerciseComplete('conversation', score, totalExchanges)}
+        onClose={() => setCurrentStep('flow-preview')}
+      />
     );
   }
 

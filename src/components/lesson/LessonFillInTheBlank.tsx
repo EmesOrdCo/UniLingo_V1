@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, TextInput, Dimensions, Scroll
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import LeaveConfirmationModal from './LeaveConfirmationModal';
 
 interface LessonFillInTheBlankProps {
   vocabulary: any[];
@@ -17,28 +18,47 @@ interface FillInTheBlankQuestion {
   sentence: string;
   blankWord: string;
   hint: string;
+  options?: string[]; // Multiple choice options for round 1
 }
 
 export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, onProgressUpdate, initialQuestionIndex = 0 }: LessonFillInTheBlankProps) {
   const [questions, setQuestions] = useState<FillInTheBlankQuestion[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(initialQuestionIndex);
   const [userAnswer, setUserAnswer] = useState('');
+  const [selectedOption, setSelectedOption] = useState<string | null>(null);
+  const [currentRound, setCurrentRound] = useState(1); // Track round: 1 = multiple choice, 2 = typing
+  const [round1Score, setRound1Score] = useState(0);
+  const [round2Score, setRound2Score] = useState(0);
   const [score, setScore] = useState(0);
   const [showResult, setShowResult] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
   const [gameComplete, setGameComplete] = useState(false);
   const [showHint, setShowHint] = useState(false);
+  const [showLeaveModal, setShowLeaveModal] = useState(false);
 
   // Generate questions from vocabulary
   React.useEffect(() => {
     const generatedQuestions: FillInTheBlankQuestion[] = vocabulary
       .filter(item => item && item.example_sentence_en && item.keywords)
-      .map(item => ({
-        id: item.id,
-        sentence: item.example_sentence_en,
-        blankWord: item.keywords,
-        hint: item.definition || `Translation: ${item.native_translation || 'N/A'}`
-      }))
+      .map((item, index, array) => {
+        // Generate 3 wrong options from other vocabulary items
+        const wrongOptions = array
+          .filter(v => v.id !== item.id && v.keywords)
+          .map(v => v.keywords)
+          .sort(() => Math.random() - 0.5)
+          .slice(0, 3);
+        
+        // Combine with correct answer and shuffle
+        const options = [item.keywords, ...wrongOptions].sort(() => Math.random() - 0.5);
+        
+        return {
+          id: item.id,
+          sentence: item.example_sentence_en,
+          blankWord: item.keywords,
+          hint: item.definition || `Translation: ${item.native_translation || 'N/A'}`,
+          options: options
+        };
+      })
       .slice(0, Math.min(10, vocabulary.length)); // Limit to 10 questions
 
     setQuestions(generatedQuestions);
@@ -50,6 +70,31 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
       onProgressUpdate(currentQuestionIndex);
     }
   }, [currentQuestionIndex]); // Removed onProgressUpdate from dependencies to prevent infinite loops
+
+  const handleClose = () => {
+    setShowLeaveModal(true);
+  };
+
+  const handleOptionSelect = (option: string) => {
+    const currentQuestion = questions[currentQuestionIndex];
+    const correctAnswer = currentQuestion?.blankWord || '';
+    const isAnswerCorrect = option === correctAnswer;
+    
+    setSelectedOption(option);
+    setIsCorrect(isAnswerCorrect);
+    
+    // Haptic feedback based on answer
+    if (isAnswerCorrect) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      if (currentRound === 1) {
+        setRound1Score(round1Score + 1);
+      }
+    } else {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    }
+    
+    setShowResult(true);
+  };
 
   const handleCheckAnswer = () => {
     if (!userAnswer.trim()) return;
@@ -68,7 +113,7 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
     // Haptic feedback based on answer
     if (isAnswerCorrect) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      setScore(score + 1);
+      setRound2Score(round2Score + 1);
     } else {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
@@ -81,25 +126,101 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     
     if (currentQuestionIndex < questions.length - 1) {
+      // Move to next question in current round
       setCurrentQuestionIndex(currentQuestionIndex + 1);
       setUserAnswer('');
+      setSelectedOption(null);
       setShowResult(false);
-      setShowHint(false); // Reset hint visibility for next question
+      setShowHint(false);
     } else {
-      setGameComplete(true);
-      onComplete(score);
+      // End of round
+      if (currentRound === 1) {
+        // Start round 2
+        setCurrentRound(2);
+        setCurrentQuestionIndex(0);
+        setUserAnswer('');
+        setSelectedOption(null);
+        setShowResult(false);
+        setShowHint(false);
+      } else {
+        // Both rounds complete
+        const totalScore = round1Score + round2Score;
+        setScore(totalScore);
+        setGameComplete(true);
+        // Don't auto-navigate, let user choose Retry or Continue
+      }
     }
+  };
+
+  const handleRetry = () => {
+    // Reset all state to restart the exercise
+    setCurrentQuestionIndex(0);
+    setUserAnswer('');
+    setSelectedOption(null);
+    setCurrentRound(1);
+    setRound1Score(0);
+    setRound2Score(0);
+    setScore(0);
+    setShowResult(false);
+    setIsCorrect(false);
+    setGameComplete(false);
+    setShowHint(false);
+    
+    // Regenerate questions with new shuffled options
+    const generatedQuestions: FillInTheBlankQuestion[] = vocabulary
+      .filter(item => item && item.example_sentence_en && item.keywords)
+      .map((item, index, array) => {
+        const wrongOptions = array
+          .filter(v => v.id !== item.id && v.keywords)
+          .map(v => v.keywords)
+          .sort(() => Math.random() - 0.5)
+          .slice(0, 3);
+        
+        const options = [item.keywords, ...wrongOptions].sort(() => Math.random() - 0.5);
+        
+        return {
+          id: item.id,
+          sentence: item.example_sentence_en,
+          blankWord: item.keywords,
+          hint: item.definition || `Translation: ${item.native_translation || 'N/A'}`,
+          options: options
+        };
+      })
+      .slice(0, Math.min(10, vocabulary.length));
+
+    setQuestions(generatedQuestions);
+  };
+
+  const handleContinue = () => {
+    const totalScore = round1Score + round2Score;
+    onComplete(totalScore);
+    onClose();
   };
 
   const handleSkip = () => {
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
       setUserAnswer('');
+      setSelectedOption(null);
       setShowResult(false);
-      setShowHint(false); // Reset hint visibility for next question
+      setShowHint(false);
     } else {
-      setGameComplete(true);
-      onComplete(score);
+      // End of round
+      if (currentRound === 1) {
+        // Start round 2
+        setCurrentRound(2);
+        setCurrentQuestionIndex(0);
+        setUserAnswer('');
+        setSelectedOption(null);
+        setShowResult(false);
+        setShowHint(false);
+      } else {
+        // Both rounds complete
+        const totalScore = round1Score + round2Score;
+        setScore(totalScore);
+        setGameComplete(true);
+        // Don't auto-navigate, let user choose Retry or Continue
+      }
     }
   };
 
@@ -109,10 +230,7 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
         <View style={styles.header}>
           <TouchableOpacity 
             style={styles.closeButton} 
-            onPress={() => {
-              console.log('Close button touched in LessonFillInTheBlank');
-              onClose();
-            }}
+            onPress={handleClose}
             activeOpacity={0.7}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
@@ -127,6 +245,13 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
             This lesson doesn't have enough example sentences to create fill-in-the-blank questions.
           </Text>
         </View>
+
+        {/* Leave Confirmation Modal */}
+        <LeaveConfirmationModal
+          visible={showLeaveModal}
+          onLeave={onClose}
+          onCancel={() => setShowLeaveModal(false)}
+        />
       </SafeAreaView>
     );
   }
@@ -137,10 +262,7 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
         <View style={styles.header}>
           <TouchableOpacity 
             style={styles.closeButton} 
-            onPress={() => {
-              console.log('Close button touched in LessonFillInTheBlank');
-              onClose();
-            }}
+            onPress={handleClose}
             activeOpacity={0.7}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
@@ -168,7 +290,7 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
                   <Ionicons name="checkmark-circle" size={24} color="#10b981" />
                 </View>
                 <Text style={styles.statValue}>{score}</Text>
-                <Text style={styles.statLabel}>Correct</Text>
+                <Text style={styles.statLabel}>Total Correct</Text>
               </View>
               
               <View style={styles.statDivider} />
@@ -177,7 +299,7 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
                 <View style={styles.statIconContainer}>
                   <Ionicons name="document-text" size={24} color="#6366f1" />
                 </View>
-                <Text style={styles.statValue}>{questions.length}</Text>
+                <Text style={styles.statValue}>{questions.length * 2}</Text>
                 <Text style={styles.statLabel}>Total</Text>
               </View>
               
@@ -187,34 +309,61 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
                 <View style={styles.statIconContainer}>
                   <Ionicons name="trending-up" size={24} color="#8b5cf6" />
                 </View>
-                <Text style={styles.statValue}>{Math.round((score / questions.length) * 100)}%</Text>
+                <Text style={styles.statValue}>{Math.round((score / (questions.length * 2)) * 100)}%</Text>
                 <Text style={styles.statLabel}>Accuracy</Text>
+              </View>
+            </View>
+            
+            {/* Round Breakdown */}
+            <View style={styles.roundBreakdown}>
+              <Text style={styles.roundBreakdownTitle}>Round Breakdown:</Text>
+              <View style={styles.roundStats}>
+                <View style={styles.roundStat}>
+                  <Text style={styles.roundStatLabel}>Round 1 (Multiple Choice)</Text>
+                  <Text style={styles.roundStatValue}>{round1Score} / {questions.length}</Text>
+                </View>
+                <View style={styles.roundStat}>
+                  <Text style={styles.roundStatLabel}>Round 2 (Type Answer)</Text>
+                  <Text style={styles.roundStatValue}>{round2Score} / {questions.length}</Text>
+                </View>
               </View>
             </View>
             
             {/* Performance Message */}
             <View style={styles.performanceContainer}>
               <Text style={styles.performanceText}>
-                {score === questions.length 
-                  ? "Perfect! You filled in every blank correctly! 🌟"
-                  : score >= questions.length * 0.8
+                {score === questions.length * 2
+                  ? "Perfect! You aced both rounds! 🌟"
+                  : score >= questions.length * 2 * 0.8
                   ? "Excellent! You're mastering vocabulary in context! 🎯"
-                  : score >= questions.length * 0.6
+                  : score >= questions.length * 2 * 0.6
                   ? "Great job! Keep practicing to improve! 💪"
                   : "Nice try! Practice makes perfect! 🚀"
                 }
               </Text>
             </View>
             
-            {/* Continue Button */}
-            <TouchableOpacity style={styles.completeButton} onPress={() => onComplete(score)}>
-              <View style={styles.completeButtonContent}>
+            {/* Action Buttons */}
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
+                <Ionicons name="refresh" size={20} color="#6366f1" />
+                <Text style={styles.retryButtonText}>Retry</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity style={styles.continueButton} onPress={handleContinue}>
+                <Text style={styles.continueButtonText}>Continue</Text>
                 <Ionicons name="arrow-forward" size={20} color="#ffffff" />
-                <Text style={styles.completeButtonText}>Continue to Next Exercise</Text>
-              </View>
-            </TouchableOpacity>
+              </TouchableOpacity>
+            </View>
           </View>
         </ScrollView>
+
+        {/* Leave Confirmation Modal */}
+        <LeaveConfirmationModal
+          visible={showLeaveModal}
+          onLeave={onClose}
+          onCancel={() => setShowLeaveModal(false)}
+        />
       </SafeAreaView>
     );
   }
@@ -234,10 +383,7 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.closeButton} 
-          onPress={() => {
-            console.log('Close button touched in LessonFillInTheBlank');
-            onClose();
-          }}
+          onPress={handleClose}
           activeOpacity={0.7}
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
@@ -252,14 +398,13 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
           <View style={[styles.progressFill, { width: `${progressPercentage}%` }]} />
         </View>
         <Text style={styles.progressText}>
-          {currentQuestionIndex + 1} of {questions.length}
+          Round {currentRound} - {currentQuestionIndex + 1} of {questions.length}
         </Text>
       </View>
 
-      <View style={styles.questionContainer}>
-        <Text style={styles.questionNumber}>Question {currentQuestionIndex + 1}</Text>
-        
-        <View style={styles.sentenceContainer}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        <View style={styles.questionContainer}>
+          <View style={styles.sentenceContainer}>
           <Text style={styles.sentenceText}>
             {createSentenceWithBlank(currentQuestion?.sentence || '', currentQuestion?.blankWord || '')}
           </Text>
@@ -284,28 +429,56 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
           </View>
         )}
 
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.textInput}
-            value={userAnswer}
-            onChangeText={setUserAnswer}
-            placeholder="Type your answer here..."
-            placeholderTextColor="#9ca3af"
-            autoCapitalize="none"
-            autoCorrect={false}
-            editable={!showResult}
-          />
-        </View>
+        {currentRound === 1 ? (
+          /* Round 1: Multiple Choice */
+          <View style={styles.optionsContainer}>
+            {currentQuestion?.options?.map((option, index) => (
+              <TouchableOpacity
+                key={index}
+                style={[
+                  styles.optionButton,
+                  selectedOption === option && styles.selectedOption,
+                  showResult && option === currentQuestion.blankWord && styles.correctOption,
+                  showResult && selectedOption === option && option !== currentQuestion.blankWord && styles.incorrectOption
+                ]}
+                onPress={() => !showResult && handleOptionSelect(option)}
+                disabled={showResult}
+              >
+                <Text style={[
+                  styles.optionText,
+                  selectedOption === option && styles.selectedOptionText,
+                  showResult && option === currentQuestion.blankWord && styles.correctOptionText,
+                  showResult && selectedOption === option && option !== currentQuestion.blankWord && styles.incorrectOptionText
+                ]}>
+                  {option}
+                </Text>
+                {showResult && option === currentQuestion.blankWord && (
+                  <Ionicons name="checkmark-circle" size={20} color="#10b981" />
+                )}
+                {showResult && selectedOption === option && option !== currentQuestion.blankWord && (
+                  <Ionicons name="close-circle" size={20} color="#ef4444" />
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+        ) : (
+          /* Round 2: Type Answer */
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.textInput}
+              value={userAnswer}
+              onChangeText={setUserAnswer}
+              placeholder="Type your answer here..."
+              placeholderTextColor="#9ca3af"
+              autoCapitalize="none"
+              autoCorrect={false}
+              editable={!showResult}
+            />
+          </View>
+        )}
 
         {showResult && (
           <View style={styles.resultContainer}>
-            <View style={[styles.resultIcon, { backgroundColor: isCorrect ? '#d1fae5' : '#fee2e2' }]}>
-              <Ionicons 
-                name={isCorrect ? 'checkmark' : 'close'} 
-                size={24} 
-                color={isCorrect ? '#10b981' : '#ef4444'} 
-              />
-            </View>
             <Text style={[styles.resultText, { color: isCorrect ? '#10b981' : '#ef4444' }]}>
               {isCorrect ? 'Correct!' : 'Incorrect'}
             </Text>
@@ -319,27 +492,37 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
 
         <View style={styles.buttonContainer}>
           {!showResult ? (
-            <>
-              <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
-                <Text style={styles.skipButtonText}>Skip</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.checkButton, { opacity: userAnswer.trim() ? 1 : 0.5 }]} 
-                onPress={handleCheckAnswer}
-                disabled={!userAnswer.trim()}
-              >
-                <Text style={styles.checkButtonText}>Check</Text>
-              </TouchableOpacity>
-            </>
+            currentRound === 1 ? null : (
+              <>
+                <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
+                  <Text style={styles.skipButtonText}>Skip</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.checkButton, { opacity: userAnswer.trim() ? 1 : 0.5 }]} 
+                  onPress={handleCheckAnswer}
+                  disabled={!userAnswer.trim()}
+                >
+                  <Text style={styles.checkButtonText}>Check</Text>
+                </TouchableOpacity>
+              </>
+            )
           ) : (
             <TouchableOpacity style={styles.nextButton} onPress={handleNextQuestion}>
               <Text style={styles.nextButtonText}>
-                {currentQuestionIndex < questions.length - 1 ? 'Next Question' : 'Finish'}
+                {currentQuestionIndex < questions.length - 1 ? 'Next Question' : currentRound === 1 ? 'Start Round 2' : 'Finish'}
               </Text>
             </TouchableOpacity>
           )}
         </View>
       </View>
+      </ScrollView>
+
+      {/* Leave Confirmation Modal */}
+      <LeaveConfirmationModal
+        visible={showLeaveModal}
+        onLeave={onClose}
+        onCancel={() => setShowLeaveModal(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -380,7 +563,7 @@ const styles = StyleSheet.create({
   },
   progressContainer: {
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 8,
     backgroundColor: '#ffffff',
     borderBottomWidth: 1,
     borderBottomColor: '#f1f5f9',
@@ -401,22 +584,27 @@ const styles = StyleSheet.create({
     color: '#64748b',
     textAlign: 'center',
   },
-  questionContainer: {
+  scrollView: {
     flex: 1,
-    padding: 20,
+  },
+  scrollContent: {
+    paddingBottom: 20,
+  },
+  questionContainer: {
+    padding: 12,
   },
   questionNumber: {
     fontSize: 18,
     fontWeight: '600',
     color: '#1e293b',
-    marginBottom: 24,
+    marginBottom: 12,
     textAlign: 'center',
   },
   sentenceContainer: {
     backgroundColor: '#ffffff',
     borderRadius: 16,
-    padding: 24,
-    marginBottom: 20,
+    padding: 16,
+    marginBottom: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -476,9 +664,52 @@ const styles = StyleSheet.create({
     borderColor: '#e2e8f0',
     textAlign: 'center',
   },
+  optionsContainer: {
+    gap: 12,
+    marginBottom: 8,
+  },
+  optionButton: {
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 2,
+    borderColor: '#e2e8f0',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  selectedOption: {
+    borderColor: '#6366f1',
+    backgroundColor: '#f8fafc',
+  },
+  correctOption: {
+    borderColor: '#10b981',
+    backgroundColor: '#f0fdf4',
+  },
+  incorrectOption: {
+    borderColor: '#ef4444',
+    backgroundColor: '#fef2f2',
+  },
+  optionText: {
+    fontSize: 16,
+    color: '#1e293b',
+    flex: 1,
+  },
+  selectedOptionText: {
+    color: '#6366f1',
+    fontWeight: '600',
+  },
+  correctOptionText: {
+    color: '#10b981',
+    fontWeight: '600',
+  },
+  incorrectOptionText: {
+    color: '#ef4444',
+    fontWeight: '600',
+  },
   resultContainer: {
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 8,
   },
   resultIcon: {
     width: 48,
@@ -657,6 +888,38 @@ const styles = StyleSheet.create({
     backgroundColor: '#e2e8f0',
     marginHorizontal: 16,
   },
+  roundBreakdown: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  roundBreakdownTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1e293b',
+    marginBottom: 12,
+  },
+  roundStats: {
+    gap: 12,
+  },
+  roundStat: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  roundStatLabel: {
+    fontSize: 14,
+    color: '#64748b',
+  },
+  roundStatValue: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1e293b',
+  },
   performanceContainer: {
     backgroundColor: '#f8fafc',
     borderRadius: 16,
@@ -672,27 +935,44 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     fontWeight: '500',
   },
-  completeButton: {
+  retryButton: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderWidth: 2,
+    borderColor: '#6366f1',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  retryButtonText: {
+    color: '#6366f1',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  continueButton: {
+    flex: 1,
     backgroundColor: '#6366f1',
-    borderRadius: 16,
-    paddingVertical: 18,
-    paddingHorizontal: 32,
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
     shadowColor: '#6366f1',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 4,
   },
-  completeButtonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  completeButtonText: {
+  continueButtonText: {
     color: '#ffffff',
-    fontSize: 18,
-    fontWeight: '700',
-    marginLeft: 8,
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 

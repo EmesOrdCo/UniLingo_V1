@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import LeaveConfirmationModal from './LeaveConfirmationModal';
 
 interface LessonFlashcardQuizProps {
   vocabulary: any[];
@@ -28,6 +29,7 @@ export default function LessonFlashcardQuiz({ vocabulary, onComplete, onClose, o
   const [showReview, setShowReview] = useState(false);
   const [userAnswers, setUserAnswers] = useState<string[]>([]);
   const [reviewFilter, setReviewFilter] = useState<'all' | 'correct' | 'incorrect'>('all');
+  const [showLeaveModal, setShowLeaveModal] = useState(false);
 
   useEffect(() => {
     generateQuestions();
@@ -109,8 +111,26 @@ export default function LessonFlashcardQuiz({ vocabulary, onComplete, onClose, o
     }, 1500);
   };
 
+  const handleClose = () => {
+    setShowLeaveModal(true);
+  };
+
   const handleReviewComplete = () => {
     onComplete(score);
+    onClose();
+  };
+
+  const handleRetry = () => {
+    // Reset quiz state
+    setCurrentQuestion(0);
+    setScore(0);
+    setSelectedAnswer(null);
+    setShowResult(false);
+    setShowReview(false);
+    setUserAnswers([]);
+    setReviewFilter('all');
+    // Regenerate questions for variety
+    generateQuestions();
   };
 
   const getFilteredQuestions = () => {
@@ -134,10 +154,7 @@ export default function LessonFlashcardQuiz({ vocabulary, onComplete, onClose, o
         <View style={styles.header}>
           <TouchableOpacity 
             style={styles.closeButton} 
-            onPress={() => {
-              console.log('Close button touched in LessonFlashcardQuiz');
-              onClose();
-            }}
+            onPress={handleClose}
             activeOpacity={0.7}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
@@ -225,10 +242,25 @@ export default function LessonFlashcardQuiz({ vocabulary, onComplete, onClose, o
             })}
           </View>
 
-          <TouchableOpacity style={styles.completeButton} onPress={handleReviewComplete}>
-            <Text style={styles.completeButtonText}>Continue to Next Exercise</Text>
-          </TouchableOpacity>
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
+              <Ionicons name="refresh" size={20} color="#6366f1" />
+              <Text style={styles.retryButtonText}>Retry</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.continueButton} onPress={handleReviewComplete}>
+              <Text style={styles.continueButtonText}>Continue</Text>
+              <Ionicons name="arrow-forward" size={20} color="#ffffff" />
+            </TouchableOpacity>
+          </View>
         </ScrollView>
+
+        {/* Leave Confirmation Modal */}
+        <LeaveConfirmationModal
+          visible={showLeaveModal}
+          onLeave={onClose}
+          onCancel={() => setShowLeaveModal(false)}
+        />
       </SafeAreaView>
     );
   }
@@ -237,7 +269,7 @@ export default function LessonFlashcardQuiz({ vocabulary, onComplete, onClose, o
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+          <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
             <Ionicons name="close" size={24} color="#64748b" />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Flashcard Quiz</Text>
@@ -246,6 +278,13 @@ export default function LessonFlashcardQuiz({ vocabulary, onComplete, onClose, o
         <View style={styles.loadingContainer}>
           <Text style={styles.loadingText}>Loading quiz...</Text>
         </View>
+
+        {/* Leave Confirmation Modal */}
+        <LeaveConfirmationModal
+          visible={showLeaveModal}
+          onLeave={onClose}
+          onCancel={() => setShowLeaveModal(false)}
+        />
       </SafeAreaView>
     );
   }
@@ -256,7 +295,7 @@ export default function LessonFlashcardQuiz({ vocabulary, onComplete, onClose, o
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+        <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
           <Ionicons name="close" size={24} color="#64748b" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Flashcard Quiz</Text>
@@ -319,6 +358,13 @@ export default function LessonFlashcardQuiz({ vocabulary, onComplete, onClose, o
           )}
         </View>
       </ScrollView>
+
+      {/* Leave Confirmation Modal */}
+      <LeaveConfirmationModal
+        visible={showLeaveModal}
+        onLeave={onClose}
+        onCancel={() => setShowLeaveModal(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -575,17 +621,44 @@ const styles = StyleSheet.create({
     backgroundColor: '#fef2f2',
     color: '#ef4444',
   },
-  completeButton: {
+  buttonContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+  },
+  retryButton: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#6366f1',
+    gap: 8,
+  },
+  retryButtonText: {
+    color: '#6366f1',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  continueButton: {
+    flex: 1,
     backgroundColor: '#6366f1',
     borderRadius: 12,
     paddingVertical: 16,
     paddingHorizontal: 24,
-    margin: 20,
+    flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
+    gap: 8,
   },
-  completeButtonText: {
+  continueButtonText: {
     color: '#ffffff',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
   },
 });

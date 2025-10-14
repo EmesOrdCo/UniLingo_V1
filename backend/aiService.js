@@ -1454,40 +1454,63 @@ Return ONLY the JSON array:`;
 
 Subject: ${subject}
 User's Native Language: ${nativeLanguage}
+Total Vocabulary Terms: ${lessonVocabulary.length}
 
-Lesson Vocabulary:
+Lesson Vocabulary (ALL must be included):
 ${lessonVocabulary.map(vocab => `- ${vocab.english_term}: ${vocab.definition}`).join('\n')}
 
-REQUIREMENTS:
-1. Create a casual but respectful conversation between two people
-2. Use MOST of the key vocabulary terms from the lesson (at least 70% of them)
-3. Make it approximately 45 seconds when read aloud
-4. Alternate between Person A and User responses
-5. Keep responses natural and conversational, not formal
-6. Include the vocabulary terms naturally in context
-7. Make it relevant to the subject matter
-8. Ensure the conversation flows logically
+CRITICAL REQUIREMENTS:
+1. Create a casual but respectful conversation between "Assistant" and "User"
+2. Include ALL ${lessonVocabulary.length} vocabulary terms - EVERY SINGLE ONE must appear at least once
+3. Create exactly 6-8 full exchanges (Assistant speaks, then User responds = 1 exchange)
+4. Distribute vocabulary evenly across ALL exchanges
+5. Start with Assistant greeting/introducing the topic
+6. Each User response should use 1-2 vocabulary terms naturally
+7. Keep responses conversational and natural, not forced
+8. Make the conversation flow logically and build on previous exchanges
+9. Ensure vocabulary is used in meaningful context, not just mentioned
+10. Make it relevant to the subject matter: ${subject}
+
+STRUCTURE GUIDE:
+- Exchange 1: Assistant introduces topic, User responds with 1-2 vocab terms
+- Exchange 2-7: Continue natural conversation, each User response uses 1-2 vocab terms
+- Exchange 8 (optional): Conclusion/summary if needed to cover all vocabulary
 
 FORMAT: Return a JSON object with this exact structure:
 {
   "conversation": [
     {
-      "speaker": "Person A",
-      "message": "Hello! I heard you're studying [vocabulary term]."
+      "speaker": "Assistant",
+      "message": "Hello! Let's talk about [topic]."
     },
     {
       "speaker": "User", 
-      "message": "Yes, I'm learning about [another vocabulary term]."
+      "message": "Great! I'm interested in learning about [vocabulary term]."
+    },
+    {
+      "speaker": "Assistant",
+      "message": "That's wonderful! Can you tell me about [related question]?"
+    },
+    {
+      "speaker": "User",
+      "message": "Sure! [Answer using vocabulary terms naturally]."
     }
   ]
 }
+
+VALIDATION CHECKLIST:
+✓ All ${lessonVocabulary.length} vocabulary terms are used
+✓ 6-8 full exchanges (12-16 total messages)
+✓ Conversation starts with Assistant
+✓ User responses contain the vocabulary to be practiced
+✓ Natural flow and context
 
 Return ONLY the JSON object, no explanations or markdown formatting.`;
 
     const messages = [
       {
         role: 'system',
-        content: 'You are an expert conversation designer for language learning. Create natural, engaging conversations that incorporate lesson vocabulary seamlessly. Return ONLY valid JSON with no explanations, markdown, or additional text.'
+        content: 'You are an expert conversation designer for language learning. Create natural, engaging conversations that incorporate ALL lesson vocabulary seamlessly. Ensure EVERY vocabulary term is used at least once across 6-8 exchanges. Return ONLY valid JSON with no explanations, markdown, or additional text.'
       },
       {
         role: 'user',
@@ -1497,6 +1520,7 @@ Return ONLY the JSON object, no explanations or markdown formatting.`;
 
     try {
       console.log('🎭 Generating conversation script...');
+      console.log(`📊 Vocabulary count: ${lessonVocabulary.length} terms`);
       
       // Estimate cost before making the API call
       const costEstimate = await this.estimateCost(userId, messages);
@@ -1510,7 +1534,7 @@ Return ONLY the JSON object, no explanations or markdown formatting.`;
         model: 'gpt-4o-mini',
         messages: messages,
         temperature: 0.7,
-        max_tokens: 1000,
+        max_tokens: 2000, // Increased for longer conversations
       });
 
       // Update rate limiting counters
