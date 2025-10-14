@@ -81,19 +81,12 @@ export default function FlashcardStudyScreen() {
   
   // Animation and gesture refs
   const slideAnim = useRef(new Animated.Value(0)).current;
+  const cardOpacity = useRef(new Animated.Value(1)).current;
   const lastTap = useRef<number | null>(null);
   const isAnimating = useRef(false);
-  const [showThumbsUp, setShowThumbsUp] = useState(false);
   
-  // Create multiple animated values for thumbs up (with scale for bubble effect)
-  const thumbsUpAnims = useRef([
-    { opacity: new Animated.Value(0), translateY: new Animated.Value(0), translateX: new Animated.Value(0), scale: new Animated.Value(0.5) },
-    { opacity: new Animated.Value(0), translateY: new Animated.Value(0), translateX: new Animated.Value(0), scale: new Animated.Value(0.5) },
-    { opacity: new Animated.Value(0), translateY: new Animated.Value(0), translateX: new Animated.Value(0), scale: new Animated.Value(0.5) },
-    { opacity: new Animated.Value(0), translateY: new Animated.Value(0), translateX: new Animated.Value(0), scale: new Animated.Value(0.5) },
-    { opacity: new Animated.Value(0), translateY: new Animated.Value(0), translateX: new Animated.Value(0), scale: new Animated.Value(0.5) },
-    { opacity: new Animated.Value(0), translateY: new Animated.Value(0), translateX: new Animated.Value(0), scale: new Animated.Value(0.5) },
-  ]).current;
+  // Card flash animation for correct answers
+  const cardFlashAnim = useRef(new Animated.Value(0)).current;
 
   // Animated values for floating background elements
   const animatedValue1 = useRef(new Animated.Value(0)).current;
@@ -152,66 +145,43 @@ export default function FlashcardStudyScreen() {
     }, 2600);
   };
 
-  // Trigger thumbs up animation
-  const triggerThumbsUpAnimation = () => {
-    setShowThumbsUp(true);
-    
-    // Reset all animations
-    thumbsUpAnims.forEach(anim => {
-      anim.opacity.setValue(0);
-      anim.translateY.setValue(0);
-      anim.translateX.setValue(0);
-      anim.scale.setValue(0.5);
-    });
-    
-    // Create bubble effect animations - start together, spread out as they rise
-    const animations = thumbsUpAnims.map((anim, index) => {
-      // Calculate horizontal spread that increases as bubbles rise
-      const horizontalSpread = (index - 2.5) * 60; // More spread than before
-      // Vary the height for each bubble
-      const maxHeight = -300 - (Math.random() * 100); // Random heights between -300 and -400
-      
-      return Animated.sequence([
-        Animated.delay(index * 50), // Quick stagger for bubble effect
-        Animated.parallel([
-          // Fade in quickly
-          Animated.timing(anim.opacity, {
-            toValue: 1,
-            duration: 150,
-            useNativeDriver: true,
-          }),
-          // Scale up as bubble rises (starts small, grows)
-          Animated.timing(anim.scale, {
-            toValue: 1 + (Math.random() * 0.3), // Vary sizes between 1.0 and 1.3
-            duration: 800,
-            useNativeDriver: true,
-          }),
-          // Float up
-          Animated.timing(anim.translateY, {
-            toValue: maxHeight,
-            duration: 1200 + (index * 100), // Varying speeds for organic feel
-            useNativeDriver: true,
-          }),
-          // Spread out horizontally as they rise (easing creates bubble spread effect)
-          Animated.timing(anim.translateX, {
-            toValue: horizontalSpread,
-            duration: 1200 + (index * 100),
-            useNativeDriver: true,
-          }),
-        ]),
-        // Fade out at the top
-        Animated.timing(anim.opacity, {
-          toValue: 0,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-      ]);
-    });
-    
-    Animated.parallel(animations).start(() => {
-      setShowThumbsUp(false);
-    });
+  // Reset card flash animation
+  const resetCardFlash = () => {
+    cardFlashAnim.setValue(0);
   };
+
+  // Trigger card flash animation
+  const triggerCardFlash = () => {
+    cardFlashAnim.setValue(0);
+    
+    Animated.sequence([
+      // Flash on
+      Animated.timing(cardFlashAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: false, // We need this for borderColor
+      }),
+      // Flash off
+      Animated.timing(cardFlashAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: false,
+      }),
+      // Second flash
+      Animated.timing(cardFlashAnim, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: false,
+      }),
+      // Final fade
+      Animated.timing(cardFlashAnim, {
+        toValue: 0,
+        duration: 400,
+        useNativeDriver: false,
+      }),
+    ]).start();
+  };
+
 
   // Handle tap (single or double)
   const handleTap = () => {
@@ -235,7 +205,7 @@ export default function FlashcardStudyScreen() {
     }
   };
 
-  // Animate card transition
+  // Animate card transition with smooth fade effect
   const animateCard = (direction: 'up' | 'down', callback: () => void) => {
     if (isAnimating.current) return;
     isAnimating.current = true;
@@ -243,22 +213,23 @@ export default function FlashcardStudyScreen() {
     // Light haptic feedback for card transition
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     
-    const toValue = direction === 'up' ? -50 : 50;
-    
-    Animated.sequence([
-      Animated.timing(slideAnim, {
-        toValue,
-        duration: 200,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 0,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
+    // Smooth transition: fade out, change content, fade back in
+    Animated.timing(cardOpacity, {
+      toValue: 0,
+      duration: 150,
+      useNativeDriver: true,
+    }).start(() => {
+      // Execute callback (change card content) while invisible
       callback();
-      isAnimating.current = false;
+      
+      // Fade back in smoothly
+      Animated.timing(cardOpacity, {
+        toValue: 1,
+        duration: 150,
+        useNativeDriver: true,
+      }).start(() => {
+        isAnimating.current = false;
+      });
     });
   };
 
@@ -266,6 +237,7 @@ export default function FlashcardStudyScreen() {
   const goToNextCard = () => {
     if (studySession.currentIndex < studySession.flashcards.length - 1) {
       animateCard('up', () => {
+        resetCardFlash(); // Reset flash animation for new card
         setStudySession(prev => ({
           ...prev,
           currentIndex: prev.currentIndex + 1,
@@ -332,7 +304,7 @@ export default function FlashcardStudyScreen() {
     // Haptic feedback based on answer
     if (answer === 'correct') {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      triggerThumbsUpAnimation();
+      triggerCardFlash();
     } else {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
@@ -361,6 +333,7 @@ export default function FlashcardStudyScreen() {
     if (studySession.currentIndex < studySession.flashcards.length - 1) {
       // Move to next card with animation
       animateCard('up', () => {
+        resetCardFlash(); // Reset flash animation for new card
         setStudySession(prev => ({
           ...prev,
           currentIndex: prev.currentIndex + 1,
@@ -689,36 +662,26 @@ export default function FlashcardStudyScreen() {
           style={[
             styles.studyContent,
             {
+              opacity: cardOpacity,
               transform: [{ translateY: slideAnim }]
             }
           ]}
           {...panResponder.panHandlers}
         >
-          {/* Thumbs Up Animation - Bubble Effect Behind Card */}
-          {showThumbsUp && (
-            <View style={styles.thumbsUpContainer}>
-              {thumbsUpAnims.map((anim, index) => (
-                <Animated.View
-                  key={index}
-                  style={[
-                    styles.thumbsUpIcon,
-                    {
-                      opacity: anim.opacity,
-                      transform: [
-                        { translateY: anim.translateY },
-                        { translateX: anim.translateX },
-                        { scale: anim.scale },
-                      ],
-                    },
-                  ]}
-                >
-                  <Ionicons name="thumbs-up" size={48} color="#10b981" />
-                </Animated.View>
-              ))}
-            </View>
-          )}
           
-          <View style={styles.flashcard}>
+          <Animated.View style={[
+            styles.flashcard,
+            {
+              borderColor: cardFlashAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: ['rgba(255, 255, 255, 0.95)', '#10b981'],
+              }),
+              borderWidth: cardFlashAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, 4],
+              }),
+            }
+          ]}>
             <View style={styles.flashcardContent}>
               <Text style={styles.flashcardText}>
                 {studySession.showAnswer 
@@ -752,7 +715,7 @@ export default function FlashcardStudyScreen() {
               )}
             </View>
             
-          </View>
+          </Animated.View>
           
           {studySession.showAnswer && (
             <View style={styles.answerButtons}>
@@ -774,6 +737,7 @@ export default function FlashcardStudyScreen() {
             </View>
           )}
         </Animated.View>
+        
         
         {/* Settings Modal */}
         <FlashcardSettingsModal
@@ -1247,21 +1211,6 @@ const styles = StyleSheet.create({
     padding: 20,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  thumbsUpContainer: {
-    position: 'absolute',
-    top: '50%',
-    left: '50%',
-    zIndex: 1,
-    pointerEvents: 'none',
-  },
-  thumbsUpIcon: {
-    position: 'absolute',
-    shadowColor: '#10b981',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 2,
   },
   flashcard: {
     backgroundColor: 'rgba(255, 255, 255, 0.95)',

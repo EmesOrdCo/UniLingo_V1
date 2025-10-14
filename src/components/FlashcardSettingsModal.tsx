@@ -8,7 +8,7 @@ import {
   Switch,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { VideoControls, VideoCategory } from './VideoControls';
+import { VideoCategory } from './VideoControls';
 
 interface FlashcardSettingsModalProps {
   visible: boolean;
@@ -96,42 +96,9 @@ export const FlashcardSettingsModal: React.FC<FlashcardSettingsModalProps> = ({
               />
             </View>
             
-            {/* Video Category Selection */}
+            {/* Video Audio Settings */}
             {videoCategory && (
               <View style={styles.videoCategorySection}>
-                <Text style={styles.categoryLabel}>Video Category:</Text>
-                <View style={styles.categoryButtons}>
-                  {[
-                    { key: 'minecraft', label: 'Minecraft', icon: 'cube' },
-                    { key: 'gta', label: 'GTA', icon: 'car' },
-                    { key: 'subway_surfers', label: 'Subway Surfers', icon: 'train' },
-                    { key: 'mix', label: 'Mix', icon: 'shuffle' },
-                  ].map((category) => (
-                    <TouchableOpacity
-                      key={category.key}
-                      style={[
-                        styles.categoryButton,
-                        videoCategory === category.key && styles.activeCategoryButton,
-                      ]}
-                      onPress={() => onCategoryChange(category.key as VideoCategory)}
-                    >
-                      <Ionicons
-                        name={category.icon as any}
-                        size={16}
-                        color={videoCategory === category.key ? '#ffffff' : '#6366f1'}
-                      />
-                      <Text
-                        style={[
-                          styles.categoryButtonText,
-                          videoCategory === category.key && styles.activeCategoryButtonText,
-                        ]}
-                      >
-                        {category.label}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-                
                 {/* Mute Toggle */}
                 <View style={styles.settingRow}>
                   <View style={styles.settingInfo}>
@@ -235,42 +202,5 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     borderTopWidth: 1,
     borderTopColor: '#e5e7eb',
-  },
-  categoryLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#374151',
-    marginBottom: 8,
-  },
-  categoryButtons: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 16,
-  },
-  categoryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: '#f3f4f6',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    minWidth: 80,
-    justifyContent: 'center',
-  },
-  activeCategoryButton: {
-    backgroundColor: '#6366f1',
-    borderColor: '#6366f1',
-  },
-  categoryButtonText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#6366f1',
-  },
-  activeCategoryButtonText: {
-    color: '#ffffff',
   },
 });
