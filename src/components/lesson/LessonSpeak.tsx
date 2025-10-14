@@ -89,43 +89,102 @@ export default function LessonSpeak({
       // Exercise complete - use total binary score (0 to vocabulary.length)
       const exerciseScore = totalScore; // Already binary: 0, 1, 2, 3, etc.
       setGameComplete(true);
-      onComplete(exerciseScore);
+      // Don't auto-navigate, let user choose Retry or Continue
     }
+  };
+
+  const handleRetry = () => {
+    // Reset all state to restart the exercise
+    setCurrentIndex(0);
+    setScores([]);
+    setTotalScore(0);
+    setCurrentWordPassed(false);
+    setGameComplete(false);
+  };
+
+  const handleContinue = () => {
+    onComplete(totalScore);
+    onClose();
   };
 
   if (gameComplete) {
     const passedWords = scores.filter(s => s === 1).length; // Count words with binary score of 1
     const totalWords = scores.length;
+    const accuracyPercentage = Math.round((passedWords / totalWords) * 100);
     
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.completionContainer}>
-          <View style={styles.completionIcon}>
-            <Ionicons name="checkmark-circle" size={80} color="#10b981" />
-          </View>
-          
-          <Text style={styles.completionTitle}>Speak Exercise Complete!</Text>
-          <Text style={styles.completionSubtitle}>
-            Great job practicing your pronunciation
-          </Text>
-          
-          <View style={styles.statsContainer}>
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>{passedWords}</Text>
-              <Text style={styles.statLabel}>Passed</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>{totalWords}</Text>
-              <Text style={styles.statLabel}>Total</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <Text style={styles.statValue}>{passedWords}</Text>
-              <Text style={styles.statLabel}>Score</Text>
-            </View>
-          </View>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
+            <Ionicons name="close" size={28} color="#1f2937" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Speak Exercise Complete!</Text>
+          <View style={styles.placeholder} />
         </View>
+
+        <ScrollView style={styles.completionScrollView} showsVerticalScrollIndicator={false}>
+          <View style={styles.completionContainer}>
+            <View style={styles.completionIcon}>
+              <Ionicons name="checkmark-circle" size={80} color="#10b981" />
+            </View>
+            
+            <Text style={styles.completionTitle}>🎉 Outstanding Work!</Text>
+            <Text style={styles.completionSubtitle}>
+              Great job practicing your pronunciation
+            </Text>
+            
+            <View style={styles.statsContainer}>
+              <View style={styles.statItem}>
+                <Text style={styles.statValue}>{passedWords}</Text>
+                <Text style={styles.statLabel}>Passed</Text>
+              </View>
+              <View style={styles.statDivider} />
+              <View style={styles.statItem}>
+                <Text style={styles.statValue}>{totalWords}</Text>
+                <Text style={styles.statLabel}>Total</Text>
+              </View>
+              <View style={styles.statDivider} />
+              <View style={styles.statItem}>
+                <Text style={styles.statValue}>{accuracyPercentage}%</Text>
+                <Text style={styles.statLabel}>Accuracy</Text>
+              </View>
+            </View>
+
+            {/* Performance Message */}
+            <View style={styles.performanceContainer}>
+              <Text style={styles.performanceText}>
+                {passedWords === totalWords
+                  ? "Perfect! You pronounced every word correctly! 🌟"
+                  : passedWords >= totalWords * 0.8
+                  ? "Excellent! You're mastering pronunciation! 🎯"
+                  : passedWords >= totalWords * 0.6
+                  ? "Great job! Keep practicing to improve! 💪"
+                  : "Nice try! Practice makes perfect! 🚀"
+                }
+              </Text>
+            </View>
+
+            {/* Action Buttons */}
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
+                <Ionicons name="refresh" size={20} color="#6366f1" />
+                <Text style={styles.retryButtonText}>Retry</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity style={styles.continueButton} onPress={handleContinue}>
+                <Text style={styles.continueButtonText}>Continue</Text>
+                <Ionicons name="arrow-forward" size={20} color="#ffffff" />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </ScrollView>
+
+        {/* Leave Confirmation Modal */}
+        <LeaveConfirmationModal
+          visible={showLeaveModal}
+          onLeave={onClose}
+          onCancel={() => setShowLeaveModal(false)}
+        />
       </SafeAreaView>
     );
   }
@@ -346,6 +405,70 @@ const styles = StyleSheet.create({
   statLabel: {
     fontSize: 14,
     color: '#6b7280',
+  },
+  completionScrollView: {
+    flex: 1,
+  },
+  performanceContainer: {
+    backgroundColor: '#f8fafc',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 32,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    width: '100%',
+  },
+  performanceText: {
+    fontSize: 16,
+    color: '#374151',
+    textAlign: 'center',
+    lineHeight: 24,
+    fontWeight: '500',
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 16,
+    width: '100%',
+  },
+  retryButton: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderWidth: 2,
+    borderColor: '#6366f1',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  retryButtonText: {
+    color: '#6366f1',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  continueButton: {
+    flex: 1,
+    backgroundColor: '#6366f1',
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    shadowColor: '#6366f1',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  continueButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 
