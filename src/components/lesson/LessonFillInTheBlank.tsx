@@ -147,9 +147,54 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
         const totalScore = round1Score + round2Score;
         setScore(totalScore);
         setGameComplete(true);
-        onComplete(totalScore);
+        // Don't auto-navigate, let user choose Retry or Continue
       }
     }
+  };
+
+  const handleRetry = () => {
+    // Reset all state to restart the exercise
+    setCurrentQuestionIndex(0);
+    setUserAnswer('');
+    setSelectedOption(null);
+    setCurrentRound(1);
+    setRound1Score(0);
+    setRound2Score(0);
+    setScore(0);
+    setShowResult(false);
+    setIsCorrect(false);
+    setGameComplete(false);
+    setShowHint(false);
+    
+    // Regenerate questions with new shuffled options
+    const generatedQuestions: FillInTheBlankQuestion[] = vocabulary
+      .filter(item => item && item.example_sentence_en && item.keywords)
+      .map((item, index, array) => {
+        const wrongOptions = array
+          .filter(v => v.id !== item.id && v.keywords)
+          .map(v => v.keywords)
+          .sort(() => Math.random() - 0.5)
+          .slice(0, 3);
+        
+        const options = [item.keywords, ...wrongOptions].sort(() => Math.random() - 0.5);
+        
+        return {
+          id: item.id,
+          sentence: item.example_sentence_en,
+          blankWord: item.keywords,
+          hint: item.definition || `Translation: ${item.native_translation || 'N/A'}`,
+          options: options
+        };
+      })
+      .slice(0, Math.min(10, vocabulary.length));
+
+    setQuestions(generatedQuestions);
+  };
+
+  const handleContinue = () => {
+    const totalScore = round1Score + round2Score;
+    onComplete(totalScore);
+    onClose();
   };
 
   const handleSkip = () => {
@@ -174,7 +219,7 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
         const totalScore = round1Score + round2Score;
         setScore(totalScore);
         setGameComplete(true);
-        onComplete(totalScore);
+        // Don't auto-navigate, let user choose Retry or Continue
       }
     }
   };
@@ -298,13 +343,18 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
               </Text>
             </View>
             
-            {/* Continue Button */}
-            <TouchableOpacity style={styles.completeButton} onPress={() => onComplete(score)}>
-              <View style={styles.completeButtonContent}>
+            {/* Action Buttons */}
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
+                <Ionicons name="refresh" size={20} color="#6366f1" />
+                <Text style={styles.retryButtonText}>Retry</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity style={styles.continueButton} onPress={handleContinue}>
+                <Text style={styles.continueButtonText}>Continue</Text>
                 <Ionicons name="arrow-forward" size={20} color="#ffffff" />
-                <Text style={styles.completeButtonText}>Continue to Next Exercise</Text>
-              </View>
-            </TouchableOpacity>
+              </TouchableOpacity>
+            </View>
           </View>
         </ScrollView>
 
@@ -885,27 +935,44 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     fontWeight: '500',
   },
-  completeButton: {
+  retryButton: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderWidth: 2,
+    borderColor: '#6366f1',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  retryButtonText: {
+    color: '#6366f1',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  continueButton: {
+    flex: 1,
     backgroundColor: '#6366f1',
-    borderRadius: 16,
-    paddingVertical: 18,
-    paddingHorizontal: 32,
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
     shadowColor: '#6366f1',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 4,
   },
-  completeButtonContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  completeButtonText: {
+  continueButtonText: {
     color: '#ffffff',
-    fontSize: 18,
-    fontWeight: '700',
-    marginLeft: 8,
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 
