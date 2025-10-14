@@ -563,7 +563,7 @@ const styles = StyleSheet.create({
   },
   progressContainer: {
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 8,
     backgroundColor: '#ffffff',
     borderBottomWidth: 1,
     borderBottomColor: '#f1f5f9',
@@ -591,20 +591,20 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   questionContainer: {
-    padding: 20,
+    padding: 12,
   },
   questionNumber: {
     fontSize: 18,
     fontWeight: '600',
     color: '#1e293b',
-    marginBottom: 24,
+    marginBottom: 12,
     textAlign: 'center',
   },
   sentenceContainer: {
     backgroundColor: '#ffffff',
     borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
+    padding: 16,
+    marginBottom: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -666,7 +666,7 @@ const styles = StyleSheet.create({
   },
   optionsContainer: {
     gap: 12,
-    marginBottom: 24,
+    marginBottom: 8,
   },
   optionButton: {
     backgroundColor: '#ffffff',
@@ -709,7 +709,7 @@ const styles = StyleSheet.create({
   },
   resultContainer: {
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 8,
   },
   resultIcon: {
     width: 48,

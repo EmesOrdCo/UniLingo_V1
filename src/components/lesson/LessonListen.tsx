@@ -573,9 +573,9 @@ const styles = StyleSheet.create({
     color: '#6b7280',
   },
   progressContainer: {
-    padding: 20,
+    padding: 12,
     backgroundColor: '#ffffff',
-    marginBottom: 20,
+    marginBottom: 8,
   },
   progressText: {
     fontSize: 14,
@@ -603,9 +603,9 @@ const styles = StyleSheet.create({
   audioCard: {
     backgroundColor: '#ffffff',
     borderRadius: 16,
-    padding: 24,
+    padding: 16,
     marginHorizontal: 20,
-    marginBottom: 20,
+    marginBottom: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -616,16 +616,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#6b7280',
     textAlign: 'center',
-    marginBottom: 24,
+    marginBottom: 12,
   },
   playButton: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 40,
+    paddingVertical: 20,
     paddingHorizontal: 24,
     backgroundColor: '#f0f4ff',
     borderRadius: 16,
-    marginBottom: 24,
+    marginBottom: 12,
   },
   playButtonActive: {
     backgroundColor: '#d1fae5',
@@ -637,7 +637,7 @@ const styles = StyleSheet.create({
     color: '#4b5563',
   },
   inputContainer: {
-    marginBottom: 20,
+    marginBottom: 8,
   },
   input: {
     backgroundColor: '#f9fafb',
@@ -651,7 +651,7 @@ const styles = StyleSheet.create({
   },
   optionsContainer: {
     gap: 12,
-    marginBottom: 20,
+    marginBottom: 8,
   },
   optionButton: {
     backgroundColor: '#ffffff',
@@ -694,7 +694,7 @@ const styles = StyleSheet.create({
   },
   resultContainer: {
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 8,
   },
   resultText: {
     fontSize: 18,
@@ -711,7 +711,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
-    marginTop: 20,
+    marginTop: 0,
   },
   nextButtonText: {
     color: '#ffffff',
