@@ -429,13 +429,6 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
 
         {showResult && (
           <View style={styles.resultContainer}>
-            <View style={[styles.resultIcon, { backgroundColor: isCorrect ? '#d1fae5' : '#fee2e2' }]}>
-              <Ionicons 
-                name={isCorrect ? 'checkmark' : 'close'} 
-                size={24} 
-                color={isCorrect ? '#10b981' : '#ef4444'} 
-              />
-            </View>
             <Text style={[styles.resultText, { color: isCorrect ? '#10b981' : '#ef4444' }]}>
               {isCorrect ? 'Correct!' : 'Incorrect'}
             </Text>
@@ -560,8 +553,8 @@ const styles = StyleSheet.create({
   sentenceContainer: {
     backgroundColor: '#ffffff',
     borderRadius: 16,
-    padding: 24,
-    marginBottom: 20,
+    padding: 20,
+    marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
