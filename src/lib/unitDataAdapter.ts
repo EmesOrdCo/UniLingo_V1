@@ -506,7 +506,7 @@ export class UnitDataAdapter {
           id: `exchange_${i + 1}`,
           speaker: speaker as 'user' | 'assistant',
           text: text,
-          translation: text, // Same text since it's English practice
+          translation: '', // Empty - will be populated with native language translation
           type: i === 0 ? 'greeting' : i === englishLines.length - 1 ? 'farewell' : 'response'
         });
       }

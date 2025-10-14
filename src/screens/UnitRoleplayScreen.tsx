@@ -163,10 +163,12 @@ export default function UnitRoleplayScreen() {
       const firstAssistantMsg = conversationData.conversation.find(msg => msg.speaker === 'Assistant');
       if (firstAssistantMsg) {
         console.log('✅ ROLEPLAY - Setting first message:', firstAssistantMsg.message.substring(0, 50));
+        // Get the translation from conversationExchanges
+        const firstAssistantExchange = conversationExchanges[0];
         setConversationHistory([{
           type: 'app',
           french: firstAssistantMsg.message,
-          english: firstAssistantMsg.message,
+          english: firstAssistantExchange?.translation || firstAssistantMsg.message,
         }]);
       }
     }
@@ -260,53 +262,46 @@ export default function UnitRoleplayScreen() {
 
   // Get current exchange data from conversation
   const getCurrentExchange = () => {
-    console.log('🔍 getCurrentExchange called:', {
-      hasConversationData: !!conversationData,
-      conversationLength: conversationData?.conversation?.length || 0,
-      currentExchangeIndex
-    });
-    
     if (!conversationData || !conversationData.conversation) {
-      console.log('⚠️ ROLEPLAY - No conversationData, using CONVERSATION fallback');
       return CONVERSATION[currentExchangeIndex] || CONVERSATION[0];
     }
 
     // Get the current question/response pair from conversation data
+    // We need to find the user message at the current index
     const userMessages = conversationData.conversation.filter(msg => msg.speaker === 'User');
-    const assistantMessages = conversationData.conversation.filter(msg => msg.speaker === 'Assistant');
-    
-    console.log('🔍 ROLEPLAY - Messages:', {
-      totalMessages: conversationData.conversation.length,
-      userMessagesCount: userMessages.length,
-      assistantMessagesCount: assistantMessages.length,
-      currentExchangeIndex
-    });
     
     if (currentExchangeIndex < userMessages.length) {
       const userMsg = userMessages[currentExchangeIndex];
+      const assistantMessages = conversationData.conversation.filter(msg => msg.speaker === 'Assistant');
       const assistantMsg = assistantMessages[currentExchangeIndex] || assistantMessages[0];
       
-      console.log('✅ ROLEPLAY - Current exchange:', {
-        assistantMsg: assistantMsg.message.substring(0, 50),
-        userMsg: userMsg.message.substring(0, 50)
-      });
+      // Get translations from the correct exchange indices
+      // currentExchangeIndex points to the assistant's turn, user's response is at currentExchangeIndex + 1
+      const assistantExchangeData = conversationExchanges[currentExchangeIndex];
+      const userExchangeData = conversationExchanges[currentExchangeIndex + 1];
       
-      // Find the corresponding exchange data to get native language translations
-      const exchangeData = conversationExchanges[currentExchangeIndex];
+      console.log('🔍 ROLEPLAY - Translation debug:', {
+        currentExchangeIndex,
+        assistantExchangeData: assistantExchangeData,
+        userExchangeData: userExchangeData,
+        userMsg: userMsg.message,
+        assistantMsg: assistantMsg.message,
+        assistantTranslation: assistantExchangeData?.translation,
+        userTranslation: userExchangeData?.translation
+      });
       
       return {
         appMessage: {
           french: assistantMsg.message,
-          english: exchangeData?.translation || assistantMsg.message
+          english: assistantExchangeData?.translation || assistantMsg.message
         },
         userMessage: {
           french: userMsg.message,
-          english: exchangeData?.translation || userMsg.message
+          english: userExchangeData?.translation || userMsg.message
         }
       };
     }
     
-    console.log('⚠️ ROLEPLAY - Index out of range, using CONVERSATION fallback');
     return CONVERSATION[currentExchangeIndex] || CONVERSATION[0];
   };
 
@@ -369,10 +364,12 @@ export default function UnitRoleplayScreen() {
           const assistantMessages = conversationData.conversation.filter(msg => msg.speaker === 'Assistant');
           const nextAssistantMsg = assistantMessages[currentExchangeIndex + 1];
           if (nextAssistantMsg) {
+            // Get the translation from conversationExchanges
+            const nextAssistantExchange = conversationExchanges[(currentExchangeIndex + 1) * 2]; // Assistant messages are at even indices
             newHistory.push({
               type: 'app' as const,
               french: nextAssistantMsg.message,
-              english: nextAssistantMsg.message,
+              english: nextAssistantExchange?.translation || nextAssistantMsg.message,
             });
           }
         }
@@ -420,10 +417,12 @@ export default function UnitRoleplayScreen() {
       const assistantMessages = conversationData.conversation.filter(msg => msg.speaker === 'Assistant');
       const nextAssistantMsg = assistantMessages[currentExchangeIndex + 1];
       if (nextAssistantMsg) {
+        // Get the translation from conversationExchanges
+        const nextAssistantExchange = conversationExchanges[(currentExchangeIndex + 1) * 2]; // Assistant messages are at even indices
         newHistory.push({
           type: 'app' as const,
           french: nextAssistantMsg.message,
-          english: nextAssistantMsg.message,
+          english: nextAssistantExchange?.translation || nextAssistantMsg.message,
         });
       }
     }
@@ -1366,10 +1365,6 @@ const styles = StyleSheet.create({
   },
   conversationScrollView: {
     flex: 1,
-  },
-  conversationContent: {
-    padding: 20,
-    paddingBottom: 100,
   },
   messageContainer: {
     marginBottom: 16,
