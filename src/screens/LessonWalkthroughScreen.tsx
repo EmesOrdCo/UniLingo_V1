@@ -197,7 +197,7 @@ export default function LessonWalkthroughScreen() {
     
     // Initialize progress in database
     try {
-      const maxPossibleScore = lessonVocabulary.length * 6; // 6 points per word across all exercises (Fill-in-Blank has 2 rounds)
+      const maxPossibleScore = lessonVocabulary.length * 7; // 7 points per word across all exercises (Fill-in-Blank and Listen have 2 rounds each)
       await LessonService.updateLessonProgress(lessonId, user.id, {
         started_at: now.toISOString(),
         completed_at: undefined,
@@ -486,7 +486,7 @@ export default function LessonWalkthroughScreen() {
       await ProgressTrackingService.updateLessonProgress({
         lessonId,
         totalScore: totalScore,
-        maxPossibleScore: lessonVocabulary.length * 6,
+        maxPossibleScore: lessonVocabulary.length * 7,
         exercisesCompleted: newCompletedSet.size,
         totalExercises: 5, // Total number of exercises
         timeSpentSeconds: timeSpentSeconds,
@@ -529,7 +529,7 @@ export default function LessonWalkthroughScreen() {
     console.log(`⏱️ Lesson completion timing: totalActiveTime=${totalActiveTime}s, isActive=${isActive}, sessionStartTime=${sessionStartTime}, finalActiveTime=${finalActiveTime}s`);
 
     const totalScore = Object.values(exerciseScores).reduce((sum, score) => sum + score, 0);
-    const maxPossibleScore = lessonVocabulary.length * 6; // 6 total points (Fill-in-Blank has 2 rounds)
+    const maxPossibleScore = lessonVocabulary.length * 7; // 7 total points (Fill-in-Blank and Listen have 2 rounds each)
     const accuracyPercentage = Math.round((totalScore / maxPossibleScore) * 100);
 
     // Stop active timing
@@ -623,7 +623,7 @@ export default function LessonWalkthroughScreen() {
     
     // Reset progress in database
     try {
-      const maxPossibleScore = lessonVocabulary.length * 6; // 6 points per word across all exercises (Fill-in-Blank has 2 rounds)
+      const maxPossibleScore = lessonVocabulary.length * 7; // 7 points per word across all exercises (Fill-in-Blank and Listen have 2 rounds each)
       await LessonService.updateLessonProgress(lessonId, user.id, {
         started_at: now.toISOString(),
         completed_at: undefined,
