@@ -398,16 +398,64 @@ export default function LessonWalkthroughScreen() {
   }, [lesson?.chat_content, lesson, lessonVocabulary]);
 
   const createFallbackConversation = () => {
-    // Create a simple conversation using vocabulary
+    // Create a conversation that includes ALL vocabulary words across 6-8 exchanges
+    const vocabTerms = lessonVocabulary.map(v => v.keywords || v.english_term);
+    const totalVocab = vocabTerms.length;
+    
+    // Determine number of exchanges based on vocabulary count
+    // Aim for 1-2 words per user response
+    const targetExchanges = Math.max(6, Math.min(8, Math.ceil(totalVocab / 1.5)));
+    const wordsPerExchange = Math.ceil(totalVocab / targetExchanges);
+    
+    const conversationMessages: Array<{ speaker: string; message: string }> = [];
+    
+    // Start with Assistant greeting
+    conversationMessages.push({
+      speaker: 'Assistant',
+      message: `Hello! Today we're going to practice important vocabulary. Let's have a conversation about ${lesson?.title || 'this topic'}.`
+    });
+    
+    // Create exchanges by distributing vocabulary
+    let vocabIndex = 0;
+    for (let i = 0; i < targetExchanges && vocabIndex < totalVocab; i++) {
+      // Get 1-2 vocabulary words for this exchange
+      const wordsForThisExchange = vocabTerms.slice(vocabIndex, vocabIndex + wordsPerExchange);
+      vocabIndex += wordsPerExchange;
+      
+      if (wordsForThisExchange.length > 0) {
+        // User response with vocabulary
+        const userMessage = wordsForThisExchange.length === 1
+          ? `I understand the importance of ${wordsForThisExchange[0]}.`
+          : `I'm learning about ${wordsForThisExchange.slice(0, -1).join(', ')} and ${wordsForThisExchange[wordsForThisExchange.length - 1]}.`;
+        
+        conversationMessages.push({
+          speaker: 'User',
+          message: userMessage
+        });
+        
+        // Assistant follow-up (unless it's the last exchange)
+        if (i < targetExchanges - 1 && vocabIndex < totalVocab) {
+          conversationMessages.push({
+            speaker: 'Assistant',
+            message: i % 2 === 0 
+              ? "That's great! Can you tell me more about what you've learned?"
+              : "Excellent! What else have you discovered?"
+          });
+        }
+      }
+    }
+    
+    // Final assistant message
+    conversationMessages.push({
+      speaker: 'Assistant',
+      message: "Wonderful! You've covered all the key vocabulary. Great job practicing!"
+    });
+    
     const conversation = {
-      conversation: [
-        { speaker: 'Assistant', message: `Let's practice using these words: ${lessonVocabulary.slice(0, 3).map(v => v.keywords || v.english_term).join(', ')}` },
-        { speaker: 'User', message: `I'd like to learn about ${lessonVocabulary[0]?.keywords || 'this topic'}` },
-        { speaker: 'Assistant', message: 'Great! Let me help you with that.' },
-        { speaker: 'User', message: 'Thank you for your help!' },
-      ]
+      conversation: conversationMessages
     };
-    console.log('🔄 Created fallback conversation:', conversation);
+    
+    console.log(`🔄 Created fallback conversation with ${conversationMessages.length} messages covering ${totalVocab} vocabulary terms`);
     setConversationData(conversation);
   };
 
