@@ -352,12 +352,9 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
         </Text>
       </View>
 
-      <View style={styles.questionContainer}>
-        <Text style={styles.questionNumber}>
-          {currentRound === 1 ? 'Round 1: Multiple Choice' : 'Round 2: Type Your Answer'}
-        </Text>
-        
-        <View style={styles.sentenceContainer}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        <View style={styles.questionContainer}>
+          <View style={styles.sentenceContainer}>
           <Text style={styles.sentenceText}>
             {createSentenceWithBlank(currentQuestion?.sentence || '', currentQuestion?.blankWord || '')}
           </Text>
@@ -475,6 +472,7 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
           )}
         </View>
       </View>
+      </ScrollView>
 
       {/* Leave Confirmation Modal */}
       <LeaveConfirmationModal
@@ -543,8 +541,13 @@ const styles = StyleSheet.create({
     color: '#64748b',
     textAlign: 'center',
   },
-  questionContainer: {
+  scrollView: {
     flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 20,
+  },
+  questionContainer: {
     padding: 20,
   },
   questionNumber: {
