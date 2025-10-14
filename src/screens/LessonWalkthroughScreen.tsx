@@ -379,15 +379,37 @@ export default function LessonWalkthroughScreen() {
 
   // Load conversation data when lesson loads
   useEffect(() => {
+    console.log('🔍 Loading conversation data, chat_content exists:', !!lesson?.chat_content);
+    
     if (lesson?.chat_content) {
       try {
         const parsedConversation = JSON.parse(lesson.chat_content);
+        console.log('✅ Parsed conversation data:', parsedConversation);
         setConversationData(parsedConversation);
       } catch (error) {
-        console.error('Error parsing conversation data:', error);
+        console.error('❌ Error parsing conversation data:', error);
+        // Create fallback conversation based on vocabulary
+        createFallbackConversation();
       }
+    } else if (lesson && lessonVocabulary.length > 0) {
+      console.log('⚠️ No chat_content found, creating fallback conversation');
+      createFallbackConversation();
     }
-  }, [lesson?.chat_content]);
+  }, [lesson?.chat_content, lesson, lessonVocabulary]);
+
+  const createFallbackConversation = () => {
+    // Create a simple conversation using vocabulary
+    const conversation = {
+      conversation: [
+        { speaker: 'Assistant', message: `Let's practice using these words: ${lessonVocabulary.slice(0, 3).map(v => v.keywords || v.english_term).join(', ')}` },
+        { speaker: 'User', message: `I'd like to learn about ${lessonVocabulary[0]?.keywords || 'this topic'}` },
+        { speaker: 'Assistant', message: 'Great! Let me help you with that.' },
+        { speaker: 'User', message: 'Thank you for your help!' },
+      ]
+    };
+    console.log('🔄 Created fallback conversation:', conversation);
+    setConversationData(conversation);
+  };
 
   const loadResumePosition = async () => {
     try {

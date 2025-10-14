@@ -78,7 +78,11 @@ export default function LessonConversation({
 
   // Initialize with first Assistant message
   useEffect(() => {
+    console.log('🎭 LessonConversation - conversationData:', conversationData);
+    console.log('🎭 LessonConversation - vocabulary length:', vocabulary.length);
+    
     if (conversationData && conversationData.conversation && conversationData.conversation.length > 0) {
+      console.log('✅ LessonConversation - Initializing with conversation data');
       const firstAssistantMsg = conversationData.conversation.find((msg) => msg.speaker === 'Assistant' || msg.speaker === 'Person A');
       if (firstAssistantMsg) {
         setConversationHistory([
@@ -89,8 +93,10 @@ export default function LessonConversation({
           },
         ]);
       }
+    } else {
+      console.log('⚠️ LessonConversation - No conversation data available');
     }
-  }, [conversationData]);
+  }, [conversationData, vocabulary]);
 
   // Auto-scroll to bottom when conversation history updates
   useEffect(() => {
@@ -282,12 +288,24 @@ export default function LessonConversation({
     currentExchangeIndex < totalExchanges;
 
   if (!conversationData || conversationData.conversation.length === 0) {
+    console.log('🔄 LessonConversation - Showing loading screen');
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
+            <Ionicons name="close" size={28} color="#1f2937" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Conversation</Text>
+          <View style={styles.placeholder} />
+        </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#6366f1" />
-          <Text style={styles.loadingText}>Loading conversation...</Text>
+          <Text style={styles.loadingText}>Preparing conversation...</Text>
+          <Text style={styles.loadingSubtext}>This may take a moment</Text>
         </View>
+        
+        {/* Leave Confirmation Modal */}
+        <LeaveConfirmationModal visible={showLeaveModal} onLeave={onClose} onCancel={() => setShowLeaveModal(false)} />
       </SafeAreaView>
     );
   }
@@ -550,6 +568,12 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 16,
     color: '#6b7280',
+  },
+  loadingSubtext: {
+    marginTop: 8,
+    fontSize: 14,
+    color: '#9ca3af',
+    fontStyle: 'italic',
   },
   conversationContainer: {
     padding: 16,
