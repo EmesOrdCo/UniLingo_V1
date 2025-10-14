@@ -238,7 +238,7 @@ export default function DailyChallengeBox({ refreshTrigger }: DailyChallengeBoxP
         };
       case 'Memory Match':
         return {
-          pairCount: 6,
+          cardCount: 12, // 12 cards = 6 pairs
           difficulty: 'all',
           selectedTopic: 'All Topics'
         };

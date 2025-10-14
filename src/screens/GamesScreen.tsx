@@ -991,7 +991,14 @@ export default function GamesScreen({ route }: { route?: any }) {
       }
       
       setCurrentGame('Memory Match');
-      const gameData = GameDataService.generateMemoryMatchQuestions(filteredFlashcards, options.cardCount / 2);
+      
+      // Ensure cardCount is valid, default to 6 pairs (12 cards) if not provided
+      const cardCount = options.cardCount || 12;
+      const pairCount = Math.floor(cardCount / 2);
+      
+      console.log('🎮 Memory Match - Card count:', cardCount, 'Pair count:', pairCount);
+      
+      const gameData = GameDataService.generateMemoryMatchQuestions(filteredFlashcards, pairCount);
       setGameData(gameData);
       setShowGameModal(true);
     } catch (error) {
