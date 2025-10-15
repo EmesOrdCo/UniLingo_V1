@@ -10,8 +10,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import * as Speech from 'expo-speech';
 import * as Haptics from 'expo-haptics';
+import { VoiceService } from '../../lib/voiceService';
 import LeaveConfirmationModal from './LeaveConfirmationModal';
 
 interface LessonListenProps {
@@ -87,50 +87,46 @@ export default function LessonListen({
   const playAudio = async () => {
     if (isPlaying || !currentVocab) return;
     
+    // Use keywords (AI-generated lessons) or english_term (general vocab)
+    const textToSpeak = currentVocab.keywords || currentVocab.english_term || currentVocab.term;
+    
+    if (!textToSpeak || textToSpeak === 'undefined') {
+      console.error('🔊 No valid text to speak! Vocab:', currentVocab);
+      return;
+    }
+    
     try {
       setIsPlaying(true);
-      // Use keywords (AI-generated lessons) or english_term (general vocab)
-      const textToSpeak = currentVocab.keywords || currentVocab.english_term || currentVocab.term;
+      console.log('🔊 Playing audio for personal lesson:', textToSpeak);
       
-      console.log('🔊 Playing audio for:', textToSpeak);
-      
-      if (!textToSpeak || textToSpeak === 'undefined') {
-        console.error('🔊 No valid text to speak! Vocab:', currentVocab);
-        setIsPlaying(false);
-        return;
-      }
-      
-      // Stop any currently playing speech
-      Speech.stop();
-      
-      await Speech.speak(textToSpeak, {
+      // Use AWS Polly for personal lessons (higher quality TTS)
+      await VoiceService.textToSpeech(textToSpeak, {
         language: 'en-US',
-        pitch: 1.0,
         rate: 0.8,
+        pitch: 1.0,
         volume: 1.0,
-        onDone: () => {
-          console.log('🔊 Audio playback completed');
-          setIsPlaying(false);
-        },
-        onStopped: () => {
-          console.log('🔊 Audio playback stopped');
-          setIsPlaying(false);
-        },
-        onError: (error) => {
-          console.error('🔊 Audio playback error:', error);
-          setIsPlaying(false);
-        },
       });
       
-      // Fallback: Reset playing state after 5 seconds max
-      setTimeout(() => {
-        if (isPlaying) {
-          console.log('🔊 Audio playback timeout - resetting state');
-          setIsPlaying(false);
-        }
-      }, 5000);
+      console.log('✅ AWS Polly TTS completed for personal lesson');
+      setIsPlaying(false);
+      
     } catch (error) {
-      console.error('Error playing audio:', error);
+      console.error('❌ AWS Polly TTS error for personal lesson:', error);
+      console.log('🔄 Falling back to Expo Speech for personal lesson');
+      
+      // Fallback to Expo Speech if Polly fails
+      try {
+        await VoiceService.textToSpeechExpo(textToSpeak, {
+          language: 'en-US',
+          rate: 0.8,
+          pitch: 1.0,
+          volume: 1.0,
+        });
+        console.log('✅ Expo Speech fallback completed for personal lesson');
+      } catch (fallbackError) {
+        console.error('❌ Expo Speech fallback also failed:', fallbackError);
+      }
+      
       setIsPlaying(false);
     }
   };
