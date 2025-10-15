@@ -260,7 +260,7 @@ export class UnitDataAdapter {
         german_script: script.german_lesson_script,
         spanish_script: script.spanish_lesson_script,
         hindi_script: script.hindi_lesson_script,
-        mandarin_script: script.mandarin_lesson_script,
+        mandarin_script: script['chinese(simplified)_lesson_script'],
       };
 
       logger.info(`✅ Found lesson script for ${subjectName} (${cefrLevel})`);
@@ -353,9 +353,21 @@ export class UnitDataAdapter {
       // Combine English and native language exchanges
       const exchanges = englishExchanges.map((englishExchange, index) => {
         const nativeExchange = nativeExchanges[index];
+        const translation = nativeExchange ? nativeExchange.text : englishExchange.text;
+        
+        // Debug logging for first few exchanges
+        if (index < 3) {
+          logger.info(`🔍 Exchange ${index} debug:`, {
+            englishText: englishExchange.text,
+            nativeText: nativeExchange?.text || 'No native text',
+            finalTranslation: translation,
+            hasNativeExchange: !!nativeExchange
+          });
+        }
+        
         return {
           ...englishExchange,
-          translation: nativeExchange ? nativeExchange.text : englishExchange.text // Use native translation if available
+          translation: translation // Use native translation if available
         };
       });
       
@@ -378,7 +390,24 @@ export class UnitDataAdapter {
       'Chinese (Simplified)': lessonScript.mandarin_script,
       'Hindi': lessonScript.hindi_script,
     };
-    return languageMap[nativeLanguage] || null;
+    
+    // Debug logging
+    logger.info(`🔍 getNativeLanguageScript debug:`, {
+      nativeLanguage,
+      availableLanguages: Object.keys(languageMap),
+      hasMandarinScript: !!lessonScript.mandarin_script,
+      mandarinScriptLength: lessonScript.mandarin_script?.length || 0,
+      mandarinScriptPreview: lessonScript.mandarin_script?.substring(0, 100) || 'No content'
+    });
+    
+    const result = languageMap[nativeLanguage] || null;
+    logger.info(`🔍 getNativeLanguageScript result:`, {
+      found: !!result,
+      resultLength: result?.length || 0,
+      resultPreview: result?.substring(0, 100) || 'No content'
+    });
+    
+    return result;
   }
 
   /**
@@ -389,7 +418,7 @@ export class UnitDataAdapter {
       'French': vocab.french_translation,
       'Spanish': vocab.spanish_translation,
       'German': vocab.german_translation,
-      'Chinese (Simplified)': vocab.mandarin_translation,
+      'Chinese (Simplified)': vocab.chinese_simplified_translation,
       'Hindi': vocab.hindi_translation,
     };
     return languageMap[nativeLanguage] || vocab.english_translation || '';
@@ -403,7 +432,7 @@ export class UnitDataAdapter {
       'French': vocab.example_sentence_french,
       'Spanish': vocab.example_sentence_spanish,
       'German': vocab.example_sentence_german,
-      'Chinese (Simplified)': vocab.example_sentence_mandarin,
+      'Chinese (Simplified)': vocab.example_sentence_chinese_simplified,
       'Hindi': vocab.example_sentence_hindi,
     };
     return languageMap[nativeLanguage] || vocab.example_sentence_english || '';

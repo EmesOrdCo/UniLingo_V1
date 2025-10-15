@@ -9,13 +9,13 @@ export interface SubjectVocabulary {
   french_translation?: string;
   spanish_translation?: string;
   german_translation?: string;
-  mandarin_translation?: string;
+  chinese_simplified_translation?: string;
   hindi_translation?: string;
   example_sentence_english?: string;
   example_sentence_french?: string;
   example_sentence_spanish?: string;
   example_sentence_german?: string;
-  example_sentence_mandarin?: string;
+  example_sentence_chinese_simplified?: string;
   example_sentence_hindi?: string;
   image_url?: string;
 }
@@ -28,7 +28,7 @@ export interface SubjectLessonScript {
   french_lesson_script?: string;
   spanish_lesson_script?: string;
   german_lesson_script?: string;
-  mandarin_lesson_script?: string;
+  'chinese(simplified)_lesson_script'?: string;
   hindi_lesson_script?: string;
 }
 
@@ -105,7 +105,7 @@ export class SubjectLessonService {
       'French': lessonScript.french_lesson_script || '',
       'Spanish': lessonScript.spanish_lesson_script || '',
       'German': lessonScript.german_lesson_script || '',
-      'Chinese (Simplified)': lessonScript.mandarin_lesson_script || '',
+      'Chinese (Simplified)': lessonScript['chinese(simplified)_lesson_script'] || '',
       'Hindi': lessonScript.hindi_lesson_script || '',
       'English': lessonScript.english_lesson_script || '',
     };
@@ -121,7 +121,7 @@ export class SubjectLessonService {
       'French': vocab.french_translation || vocab.english_translation,
       'Spanish': vocab.spanish_translation || vocab.english_translation,
       'German': vocab.german_translation || vocab.english_translation,
-      'Chinese (Simplified)': vocab.mandarin_translation || vocab.english_translation,
+      'Chinese (Simplified)': vocab.chinese_simplified_translation || vocab.english_translation,
       'Hindi': vocab.hindi_translation || vocab.english_translation,
     };
 
@@ -141,7 +141,7 @@ export class SubjectLessonService {
       'French': vocab.example_sentence_french || englishSentence,
       'Spanish': vocab.example_sentence_spanish || englishSentence,
       'German': vocab.example_sentence_german || englishSentence,
-      'Chinese (Simplified)': vocab.example_sentence_mandarin || englishSentence,
+      'Chinese (Simplified)': vocab.example_sentence_chinese_simplified || englishSentence,
       'Hindi': vocab.example_sentence_hindi || englishSentence,
     };
 
@@ -162,7 +162,7 @@ export class SubjectLessonService {
     english_term: string;
     keywords: string;  // Added for flashcard compatibility
     native_translation: string;
-    example_sentence_en: string;
+    example_sentence_target: string;
     example_sentence_native: string;
     definition?: string;  // Made optional since we don't have real definitions
   }> {
@@ -173,7 +173,7 @@ export class SubjectLessonService {
         english_term: vocab.english_translation,
         keywords: vocab.english_translation,  // Added for flashcard compatibility
         native_translation: this.getTranslation(vocab, nativeLanguage),
-        example_sentence_en: examples.english,
+        example_sentence_target: examples.english,
         example_sentence_native: examples.native,
         // Removed definition since we don't have real definitions in the database
       };
