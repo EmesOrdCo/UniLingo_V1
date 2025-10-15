@@ -2273,6 +2273,326 @@ app.get('/health', (req, res) => {
 // ============================================
 setupSimpleAudioRoutes(app, { aiLimiter, generalLimiter });
 
+// ============================================
+// AWS Polly TTS Endpoint
+// ============================================
+const PollyTTSService = require('./pollyTTS');
+console.log('🔧 Loading hybridAudioLessonUsageService...');
+const hybridAudioLessonUsageService = require('./hybridAudioLessonUsageService'); // Added for hybrid usage tracking
+console.log('✅ hybridAudioLessonUsageService loaded successfully');
+
+// Rate limiter for TTS requests
+const ttsLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 50, // Limit each IP to 50 TTS requests per minute
+  message: {
+    error: 'Too many TTS requests. Please wait a moment before trying again.',
+    code: 'TTS_RATE_LIMIT_EXCEEDED'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+app.post('/api/polly/synthesize', ttsLimiter, async (req, res) => {
+  const startTime = Date.now();
+  const requestId = Math.random().toString(36).substr(2, 9);
+  const clientIP = req.ip || req.connection.remoteAddress || 'unknown';
+  
+  try {
+    console.log(`\n🔊 [${requestId}] TTS synthesis request received`);
+    console.log(`🔊 [${requestId}] Client IP: ${clientIP}`);
+    
+    // Validate request body
+    const { text, voiceId, languageCode, engine, rate, pitch, volume } = req.body;
+    
+    if (!text || text.trim().length === 0) {
+      return res.status(400).json({
+        error: 'Text is required for speech synthesis',
+        code: 'MISSING_TEXT'
+      });
+    }
+
+    if (text.length > 3000) {
+      return res.status(400).json({
+        error: 'Text too long. Maximum 3000 characters allowed.',
+        code: 'TEXT_TOO_LONG',
+        maxLength: 3000,
+        currentLength: text.length
+      });
+    }
+
+    // Check rate limiting
+    try {
+      PollyTTSService.checkRateLimit(clientIP);
+    } catch (rateLimitError) {
+      return res.status(429).json({
+        error: rateLimitError.message,
+        code: 'RATE_LIMIT_EXCEEDED'
+      });
+    }
+
+    console.log(`🔊 [${requestId}] Processing TTS request:`, {
+      textLength: text.length,
+      voiceId: voiceId || 'Joanna',
+      languageCode: languageCode || 'en-US',
+      engine: engine || 'standard',
+      rate: rate || 1.0,
+      pitch: pitch || 1.0
+    });
+
+    // Generate speech
+    const result = await PollyTTSService.synthesizeSpeech({
+      text,
+      voiceId,
+      languageCode,
+      engine,
+      rate,
+      pitch,
+      volume
+    });
+
+    const processingTime = Date.now() - startTime;
+    console.log(`🔊 [${requestId}] TTS synthesis completed in ${processingTime}ms`);
+
+    // Set response headers
+    res.set({
+      'Content-Type': result.contentType,
+      'Content-Length': result.audioBuffer.length,
+      'Cache-Control': result.fromCache ? 'public, max-age=3600' : 'no-cache',
+      'X-Processing-Time': `${processingTime}ms`,
+      'X-From-Cache': result.fromCache.toString(),
+      'X-Request-ID': requestId
+    });
+
+    // Send audio data
+    res.send(result.audioBuffer);
+
+  } catch (error) {
+    const processingTime = Date.now() - startTime;
+    console.error(`🔊 [${requestId}] TTS synthesis failed after ${processingTime}ms:`, error);
+
+    // Handle specific AWS errors
+    if (error.name === 'ValidationException') {
+      return res.status(400).json({
+        error: 'Invalid request parameters',
+        code: 'VALIDATION_ERROR',
+        details: error.message
+      });
+    }
+
+    if (error.name === 'InvalidParameterException') {
+      return res.status(400).json({
+        error: 'Invalid voice or language parameters',
+        code: 'INVALID_PARAMETERS',
+        details: error.message
+      });
+    }
+
+    if (error.name === 'TextLengthExceededException') {
+      return res.status(400).json({
+        error: 'Text is too long for synthesis',
+        code: 'TEXT_TOO_LONG',
+        details: error.message
+      });
+    }
+
+    // Generic error response
+    res.status(500).json({
+      error: 'Speech synthesis failed',
+      code: 'SYNTHESIS_ERROR',
+      details: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error',
+      requestId
+    });
+  }
+});
+
+// TTS service statistics endpoint (for monitoring)
+app.get('/api/polly/stats', async (req, res) => {
+  try {
+    const stats = PollyTTSService.getStats();
+    res.json({
+      success: true,
+      stats,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error getting TTS stats:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get TTS statistics',
+      details: error.message
+    });
+  }
+});
+
+// Clear TTS cache endpoint (for monitoring)
+app.post('/api/polly/clear-cache', async (req, res) => {
+  try {
+    PollyTTSService.clearCache();
+    res.json({
+      success: true,
+      message: 'TTS cache cleared successfully',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error clearing TTS cache:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to clear TTS cache',
+      details: error.message
+    });
+  }
+});
+
+// ============================================
+// Audio Lesson Usage Tracking Endpoints
+// ============================================
+console.log('🔧 Registering audio lesson usage tracking endpoints...');
+
+// Get user's current audio lesson usage
+app.get('/api/audio-lessons/usage/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { month } = req.query;
+    
+    console.log(`📊 Getting audio lesson usage for user: ${userId}`);
+    
+    const usage = await hybridAudioLessonUsageService.getUserUsage(userId);
+    
+    res.json({
+      success: true,
+      usage,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error getting audio lesson usage:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get audio lesson usage',
+      details: error.message
+    });
+  }
+});
+
+// Check if user can create audio lesson
+app.get('/api/audio-lessons/can-create/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    console.log(`🔍 Checking if user ${userId} can create audio lesson`);
+    
+    const canCreate = await hybridAudioLessonUsageService.canCreateAudioLesson(userId);
+    const usage = await hybridAudioLessonUsageService.getUserUsage(userId);
+    
+    res.json({
+      success: true,
+      canCreate,
+      usage,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error checking audio lesson creation:', error);
+    
+    // Handle specific error codes
+    if (error.code === 'MONTHLY_LIMIT_EXCEEDED') {
+      res.status(429).json({
+        success: false,
+        error: error.message,
+        code: error.code,
+        details: error.details
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        error: 'Failed to check audio lesson creation',
+        details: error.message
+      });
+    }
+  }
+});
+
+// Get user's audio lesson usage history
+app.get('/api/audio-lessons/usage-history/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { months = 6 } = req.query;
+    
+    console.log(`📊 Getting usage history for user: ${userId}, ${months} months`);
+    
+    const history = await hybridAudioLessonUsageService.getUserUsageHistory(userId, parseInt(months));
+    
+    res.json({
+      success: true,
+      history,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error getting usage history:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get usage history',
+      details: error.message
+    });
+  }
+});
+
+// Get usage statistics (admin only)
+app.get('/api/audio-lessons/stats', monitoringWhitelist, async (req, res) => {
+  try {
+    const { month } = req.query;
+    
+    console.log(`📊 Getting usage statistics for month: ${month || 'current'}`);
+    
+    const stats = await hybridAudioLessonUsageService.getUsageStats(month);
+    
+    res.json({
+      success: true,
+      stats,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error getting usage statistics:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get usage statistics',
+      details: error.message
+    });
+  }
+});
+
+// Reset user's usage (admin only)
+app.post('/api/audio-lessons/reset-usage/:userId', monitoringWhitelist, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { month } = req.body;
+    
+    if (!month) {
+      return res.status(400).json({
+        success: false,
+        error: 'Month parameter is required (YYYY-MM format)'
+      });
+    }
+    
+    console.log(`🔄 Resetting usage for user: ${userId}, month: ${month}`);
+    
+    const result = await hybridAudioLessonUsageService.resetUserUsage(userId);
+    
+    res.json({
+      success: true,
+      message: 'User usage reset successfully',
+      result,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error resetting user usage:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to reset user usage',
+      details: error.message
+    });
+  }
+});
+
 // Error handling middleware
 app.use((error, req, res, next) => {
   if (error instanceof multer.MulterError) {
