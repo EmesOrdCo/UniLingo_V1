@@ -618,7 +618,7 @@ class AIService {
             keywords: vocab.english_term,
             definition: vocab.definition,
             native_translation: vocab.native_translation,
-            example_sentence_en: vocab.example_sentence_en,
+            example_sentence_target: vocab.example_sentence_target,
             example_sentence_native: vocab.example_sentence_native
           }));
 
@@ -914,7 +914,7 @@ STRICT REQUIREMENTS:
 - The english_term field MUST exactly match a keyword from the lists above
 
 Format:
-[{"topicName": "Topic Name", "vocabulary": [{"english_term": "EXACT keyword from list", "definition": "meaning", "native_translation": "translation", "example_sentence_en": "example", "example_sentence_native": "translated example"}]}]
+[{"topicName": "Topic Name", "vocabulary": [{"english_term": "EXACT keyword from list", "definition": "meaning", "native_translation": "translation", "example_sentence_target": "example", "example_sentence_native": "translated example"}]}]
 
 Return ONLY the JSON array:`;
 

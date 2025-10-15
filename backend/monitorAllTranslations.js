@@ -11,7 +11,7 @@ async function monitorTranslations() {
   try {
     const { data: stats, error } = await supabase
       .from('lesson_scripts')
-      .select('english_lesson_script, french_lesson_script, spanish_lesson_script, german_lesson_script, mandarin_lesson_script, hindi_lesson_script')
+      .select('english_lesson_script, french_lesson_script, spanish_lesson_script, german_lesson_script, chinese_simplified_lesson_script, hindi_lesson_script')
       .not('english_lesson_script', 'is', null);
 
     if (error) {
@@ -29,7 +29,7 @@ async function monitorTranslations() {
       { name: 'French', column: 'french_lesson_script', flag: '🇫🇷' },
       { name: 'Spanish', column: 'spanish_lesson_script', flag: '🇪🇸' },
       { name: 'German', column: 'german_lesson_script', flag: '🇩🇪' },
-      { name: 'Mandarin', column: 'mandarin_lesson_script', flag: '🇨🇳' },
+      { name: 'Chinese (Simplified)', column: 'chinese_simplified_lesson_script', flag: '🇨🇳' },
       { name: 'Hindi', column: 'hindi_lesson_script', flag: '🇮🇳' }
     ];
     
@@ -61,7 +61,7 @@ async function monitorTranslations() {
       record.french_lesson_script && 
       record.spanish_lesson_script && 
       record.german_lesson_script &&
-      record.mandarin_lesson_script &&
+      record.chinese_simplified_lesson_script &&
       record.hindi_lesson_script
     );
     
@@ -74,8 +74,8 @@ async function monitorTranslations() {
       console.log(sampleRecord.spanish_lesson_script.substring(0, 100) + '...');
       console.log(`\n🇩🇪 German:`);
       console.log(sampleRecord.german_lesson_script.substring(0, 100) + '...');
-      console.log(`\n🇨🇳 Mandarin:`);
-      console.log(sampleRecord.mandarin_lesson_script.substring(0, 100) + '...');
+      console.log(`\n🇨🇳 Chinese (Simplified):`);
+      console.log(sampleRecord.chinese_simplified_lesson_script.substring(0, 100) + '...');
       console.log(`\n🇮🇳 Hindi:`);
       console.log(sampleRecord.hindi_lesson_script.substring(0, 100) + '...');
     }

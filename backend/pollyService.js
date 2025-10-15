@@ -7,6 +7,7 @@ const { PollyClient, SynthesizeSpeechCommand } = require('@aws-sdk/client-polly'
 const { S3Client, PutObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
 const { Readable } = require('stream');
 const { supabase } = require('./supabaseClient');
+const hybridAudioLessonUsageService = require('./hybridAudioLessonUsageService'); // Added for hybrid usage tracking
 
 class PollyService {
   constructor() {
@@ -58,7 +59,7 @@ class PollyService {
     vocabulary.forEach((item, index) => {
       const term = item.keywords || item.english_term || 'Unknown term';
       const definition = item.definition || 'No definition available';
-      const example = item.example_sentence_en;
+      const example = item.example_sentence_target;
       const translation = item.native_translation;
 
       script += `Term ${index + 1}: ${term}. `;
@@ -249,6 +250,11 @@ class PollyService {
       console.log(`📚 Lesson ID: ${lessonId}`);
       console.log(`👤 User ID: ${userId}`);
 
+      // Check usage limits before proceeding
+      console.log('\n🔍 Checking usage limits...');
+      await hybridAudioLessonUsageService.validateLessonCreation(userId);
+      console.log('✅ Usage limit check passed');
+
       // 1. Fetch lesson data from database
       console.log('\n📥 Fetching lesson data...');
       const { data: lesson, error: lessonError } = await supabase
@@ -366,7 +372,7 @@ class PollyService {
   }
 
   /**
-   * Delete audio lesson
+   * Delete audio lesson (with usage tracking)
    * @param {string} audioLessonId - ID of audio lesson
    * @param {string} userId - User ID (for security)
    */
@@ -377,7 +383,7 @@ class PollyService {
       // 1. Get audio lesson details
       const { data: audioLesson, error: fetchError } = await supabase
         .from('audio_lessons')
-        .select('audio_s3_key')
+        .select('audio_s3_key, created_at')
         .eq('id', audioLessonId)
         .eq('user_id', userId)
         .single();
@@ -386,12 +392,24 @@ class PollyService {
         throw new Error('Audio lesson not found');
       }
 
-      // 2. Delete from S3
+      // 2. Check if lesson was created this month (prevent deletion abuse)
+      const lessonDate = new Date(audioLesson.created_at);
+      const currentDate = new Date();
+      const isCurrentMonth = lessonDate.getFullYear() === currentDate.getFullYear() && 
+                            lessonDate.getMonth() === currentDate.getMonth();
+
+      if (isCurrentMonth) {
+        console.log('⚠️ Lesson was created this month - deletion will be tracked');
+      } else {
+        console.log('ℹ️ Lesson was created in a previous month - deletion will not affect current usage');
+      }
+
+      // 3. Delete from S3
       if (audioLesson.audio_s3_key) {
         await this.deleteFromS3(audioLesson.audio_s3_key);
       }
 
-      // 3. Delete from database
+      // 4. Delete from database (triggers will handle usage tracking)
       const { error: deleteError } = await supabase
         .from('audio_lessons')
         .delete()

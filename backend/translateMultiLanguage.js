@@ -46,7 +46,7 @@ class MultiLanguageTranslator {
         alphabet: 'latin'
       },
       mandarin: {
-        column: 'mandarin_lesson_script',
+        column: 'chinese_simplified_lesson_script',
         name: 'Mandarin Chinese',
         code: 'zh',
         greeting: '你好！',
@@ -327,7 +327,7 @@ Return ONLY the translated ${langConfig.name} script with the same format. Do no
     try {
       const { data: stats, error } = await supabase
         .from('lesson_scripts')
-        .select('english_lesson_script, french_lesson_script, spanish_lesson_script, german_lesson_script, mandarin_lesson_script, hindi_lesson_script')
+        .select('english_lesson_script, french_lesson_script, spanish_lesson_script, german_lesson_script, chinese_simplified_lesson_script, hindi_lesson_script')
         .not('english_lesson_script', 'is', null);
 
       if (error) {

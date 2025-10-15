@@ -87,7 +87,7 @@ After French translation is complete, you can extend this script to translate to
 
 - German (`german_lesson_script`)
 - Spanish (`spanish_lesson_script`)
-- Mandarin (`mandarin_lesson_script`)
+- Chinese (Simplified) (`chinese_simplified_lesson_script`)
 - Hindi (`hindi_lesson_script`)
 
 Simply modify the script to target different columns and update the language in the translation prompt.
