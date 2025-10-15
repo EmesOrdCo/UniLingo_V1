@@ -293,7 +293,7 @@ export default function DailyChallengeBox({ refreshTrigger }: DailyChallengeBoxP
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          <Ionicons name="trophy" size={20} color="#8b5cf6" />
+          <Ionicons name="trophy" size={20} color="#6366f1" />
           <Text style={styles.headerTitle}>Daily Challenge</Text>
         </View>
         {isCompleted && (
@@ -316,13 +316,13 @@ export default function DailyChallengeBox({ refreshTrigger }: DailyChallengeBoxP
         <>
           {/* Challenge Card */}
           <TouchableOpacity 
-            style={[styles.challengeCard, { borderLeftColor: '#8b5cf6' }]}
+            style={[styles.challengeCard, { borderLeftColor: '#6366f1' }]}
             onPress={handleChallengePress}
             disabled={isCompleted || isLaunching}
           >
             <View style={styles.challengeContent}>
               <View style={styles.challengeLeft}>
-                <View style={[styles.iconContainer, { backgroundColor: '#8b5cf6' }]}>
+                <View style={[styles.iconContainer, { backgroundColor: '#6366f1' }]}>
                   <Ionicons 
                     name={getGameIcon(challenge.game_type)} 
                     size={24} 
@@ -351,7 +351,7 @@ export default function DailyChallengeBox({ refreshTrigger }: DailyChallengeBoxP
                     <Ionicons 
                       name={isLaunching ? "hourglass" : "play"} 
                       size={16} 
-                      color="#8b5cf6" 
+                      color="#6366f1" 
                     />
                   </View>
                 )}
@@ -458,11 +458,11 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#f3e8ff',
+    backgroundColor: '#f0f4ff',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: '#8b5cf6',
+    borderColor: '#6366f1',
   },
   completedBadge: {
     flexDirection: 'row',
