@@ -22,6 +22,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { UnitDataAdapter, UnitWriteExercise, UnitConversationExchange } from '../lib/unitDataAdapter';
 import { logger } from '../lib/logger';
 import { getAppropriateSpeechLanguage, getTargetLanguageSpeechCode, getNativeLanguageSpeechCode } from '../lib/languageService';
+import { VoiceService } from '../lib/voiceService';
 import * as Speech from 'expo-speech';
 import * as Haptics from 'expo-haptics';
 
@@ -51,25 +52,24 @@ interface ExerciseState {
   score: number;
 }
 
-// Hardcoded conversation dialogue
+// Fallback conversation dialogue (used when no database data is available)
 const CONVERSATION = [
   {
     appMessage: { french: 'Bonjour !', english: 'Hello / Good morning!' },
     userMessage: { french: 'Salut, ça va ?', english: 'Hi, how are you?' },
     type: 'choice' as const,
-    wrongOption: 'tout'
+    wrongOption: 'Goodbye' // Will be overridden by dynamic generation
   },
   {
     appMessage: { french: 'Ça va, merci. Et toi ?', english: "I'm fine, thanks. And you?" },
     userMessage: { french: 'Bien, merci. Bonjour !', english: 'Good, thanks. Hello!' },
     type: 'choice' as const,
-    wrongOption: 'revoir'
+    wrongOption: 'No' // Will be overridden by dynamic generation
   },
   {
     appMessage: { french: 'Bon après-midi !', english: 'Good afternoon!' },
     userMessage: { french: 'Merci, bon après-midi à toi aussi.', english: 'Thanks, good afternoon to you too.' },
-    type: 'choice' as const,
-    wrongOption: 'Au revoir !'
+    type: 'scramble' as const,
   },
   {
     appMessage: { french: 'Bonsoir !', english: 'Good evening!' },
@@ -288,6 +288,59 @@ export default function UnitWriteScreen() {
   };
 
   // Get current exchange data from conversation
+  // Generate contextually relevant wrong options for multiple choice questions
+  const generateWrongOptions = (correctAnswer: string, currentIndex: number): string => {
+    try {
+      // Get all user messages from the conversation for context
+      const userMessages = conversationData?.conversation?.filter(msg => msg.speaker === 'User') || [];
+      const assistantMessages = conversationData?.conversation?.filter(msg => msg.speaker === 'Assistant') || [];
+      
+      // Create a pool of potential wrong options
+      const wrongOptionsPool: string[] = [];
+      
+      // Add other user responses from the conversation
+      userMessages.forEach((msg, index) => {
+        if (index !== currentIndex && msg.message) {
+          // Extract key phrases from other responses
+          const words = msg.message.split(' ').filter(word => 
+            word.length > 2 && 
+            !['the', 'and', 'or', 'but', 'is', 'are', 'was', 'were', 'have', 'has', 'had'].includes(word.toLowerCase())
+          );
+          wrongOptionsPool.push(...words.slice(0, 2)); // Take first 2 meaningful words
+        }
+      });
+      
+      // Add common greeting/response words from vocabulary
+      if (vocabulary.length > 0) {
+        const vocabWords = vocabulary
+          .map(v => v.keywords || v.english_term || v.term)
+          .filter(word => word && word !== correctAnswer && word.length > 2)
+          .slice(0, 5);
+        wrongOptionsPool.push(...vocabWords);
+      }
+      
+      // Add some common incorrect responses
+      const commonWrongOptions = [
+        'No', 'Yes', 'Maybe', 'Sorry', 'Thanks', 'Please', 'Excuse me',
+        'Goodbye', 'See you', 'Later', 'Tomorrow', 'Yesterday', 'Today',
+        'Fine', 'Okay', 'Sure', 'Alright', 'Great', 'Bad', 'Tired'
+      ];
+      wrongOptionsPool.push(...commonWrongOptions);
+      
+      // Filter out the correct answer and get unique options
+      const uniqueOptions = [...new Set(wrongOptionsPool)]
+        .filter(option => option !== correctAnswer && option.length > 0);
+      
+      // Shuffle and return a random wrong option
+      const shuffled = uniqueOptions.sort(() => Math.random() - 0.5);
+      return shuffled[0] || 'No'; // Fallback to 'No' if no options found
+      
+    } catch (error) {
+      console.error('Error generating wrong options:', error);
+      return 'No'; // Fallback
+    }
+  };
+
   const getCurrentExchange = () => {
     if (!conversationData || !conversationData.conversation) {
       return CONVERSATION[currentExchangeIndex] || CONVERSATION[0];
@@ -305,6 +358,10 @@ export default function UnitWriteScreen() {
       // Find the corresponding exchange data to get native language translations
       const exchangeData = conversationExchanges[currentExchangeIndex];
       
+      // Generate dynamic wrong option for multiple choice questions
+      const correctAnswer = userMsg.message;
+      const dynamicWrongOption = currentExchangeIndex < 2 ? generateWrongOptions(correctAnswer, currentExchangeIndex) : undefined;
+      
       return {
         appMessage: {
           french: assistantMsg.message,
@@ -315,11 +372,21 @@ export default function UnitWriteScreen() {
           english: exchangeData?.translation || userMsg.message
         },
         type: currentExchangeIndex < 2 ? 'choice' as const : 'scramble' as const,
-        wrongOption: currentExchangeIndex < 2 ? (currentExchangeIndex === 0 ? 'No' : 'Goodbye') : undefined
+        wrongOption: dynamicWrongOption
       };
     }
     
-    return CONVERSATION[currentExchangeIndex] || CONVERSATION[0];
+    // For fallback conversation, also generate dynamic wrong options
+    const fallbackExchange = CONVERSATION[currentExchangeIndex] || CONVERSATION[0];
+    if (fallbackExchange.type === 'choice' && currentExchangeIndex < 2) {
+      const correctAnswer = fallbackExchange.userMessage.english;
+      const dynamicWrongOption = generateWrongOptions(correctAnswer, currentExchangeIndex);
+      return {
+        ...fallbackExchange,
+        wrongOption: dynamicWrongOption
+      };
+    }
+    return fallbackExchange;
   };
 
   const currentExchange = getCurrentExchange();
@@ -562,45 +629,19 @@ export default function UnitWriteScreen() {
     
     setIsPlayingAudio(true);
     try {
-      // Stop any current speech
-      Speech.stop();
-      
-      console.log('🎤 Using language code:', languageCode);
-      
-      // Configure speech options with language
-      const options = {
+      // Use Expo Speech directly for dashboard exercises
+      await VoiceService.textToSpeechExpo(text, {
         language: languageCode,
-        pitch: 1.0,
         rate: speed,
+        pitch: 1.0,
         volume: 0.8,
-        onStart: () => {
-          console.log('🎤 Speech started');
-        },
-        onDone: () => {
-          console.log('🎤 Speech finished');
-          setIsPlayingAudio(false);
-        },
-        onStopped: () => {
-          console.log('🎤 Speech stopped');
-          setIsPlayingAudio(false);
-        },
-        onError: (error: any) => {
-          console.error('🎤 Speech error:', error);
-          setIsPlayingAudio(false);
-          Alert.alert(
-            'Audio Unavailable',
-            'Audio playback is currently unavailable. Please try again later.',
-            [{ text: 'OK' }]
-          );
-        }
-      };
+      });
       
-      console.log('🎤 Speaking text with options:', options);
-      // Speak the text
-      Speech.speak(text, options);
+      console.log('✅ Expo Speech TTS completed');
+      setIsPlayingAudio(false);
       
     } catch (error) {
-      console.error('Error playing audio:', error);
+      console.error('❌ TTS error:', error);
       setIsPlayingAudio(false);
       Alert.alert(
         'Audio Unavailable',

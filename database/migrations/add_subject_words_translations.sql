@@ -6,7 +6,7 @@ ALTER TABLE subject_words
 ADD COLUMN IF NOT EXISTS french_translation TEXT,
 ADD COLUMN IF NOT EXISTS spanish_translation TEXT,
 ADD COLUMN IF NOT EXISTS german_translation TEXT,
-ADD COLUMN IF NOT EXISTS mandarin_translation TEXT,
+ADD COLUMN IF NOT EXISTS chinese_simplified_translation TEXT,
 ADD COLUMN IF NOT EXISTS hindi_translation TEXT;
 
 -- Add example sentence columns for all languages
@@ -15,14 +15,14 @@ ADD COLUMN IF NOT EXISTS example_sentence_english TEXT,
 ADD COLUMN IF NOT EXISTS example_sentence_french TEXT,
 ADD COLUMN IF NOT EXISTS example_sentence_spanish TEXT,
 ADD COLUMN IF NOT EXISTS example_sentence_german TEXT,
-ADD COLUMN IF NOT EXISTS example_sentence_mandarin TEXT,
+ADD COLUMN IF NOT EXISTS example_sentence_chinese_simplified TEXT,
 ADD COLUMN IF NOT EXISTS example_sentence_hindi TEXT;
 
 -- Create indexes for the translation columns for faster searches
 CREATE INDEX IF NOT EXISTS idx_subject_words_french ON subject_words(french_translation);
 CREATE INDEX IF NOT EXISTS idx_subject_words_spanish ON subject_words(spanish_translation);
 CREATE INDEX IF NOT EXISTS idx_subject_words_german ON subject_words(german_translation);
-CREATE INDEX IF NOT EXISTS idx_subject_words_mandarin ON subject_words(mandarin_translation);
+CREATE INDEX IF NOT EXISTS idx_subject_words_chinese_simplified ON subject_words(chinese_simplified_translation);
 CREATE INDEX IF NOT EXISTS idx_subject_words_hindi ON subject_words(hindi_translation);
 
 -- Drop existing view if it exists
@@ -36,13 +36,13 @@ SELECT
   french_translation,
   spanish_translation,
   german_translation,
-  mandarin_translation,
+  chinese_simplified_translation,
   hindi_translation,
   example_sentence_english,
   example_sentence_french,
   example_sentence_spanish,
   example_sentence_german,
-  example_sentence_mandarin,
+  example_sentence_chinese_simplified,
   example_sentence_hindi,
   subject,
   created_at
@@ -68,7 +68,7 @@ BEGIN
       WHEN 'french' THEN COALESCE(sw.french_translation, sw.word_phrase)
       WHEN 'spanish' THEN COALESCE(sw.spanish_translation, sw.word_phrase)
       WHEN 'german' THEN COALESCE(sw.german_translation, sw.word_phrase)
-      WHEN 'mandarin' THEN COALESCE(sw.mandarin_translation, sw.word_phrase)
+      WHEN 'chinese_simplified' THEN COALESCE(sw.chinese_simplified_translation, sw.word_phrase)
       WHEN 'hindi' THEN COALESCE(sw.hindi_translation, sw.word_phrase)
       ELSE sw.word_phrase
     END,
@@ -77,7 +77,7 @@ BEGIN
       WHEN 'french' THEN COALESCE(sw.example_sentence_french, sw.example_sentence_english)
       WHEN 'spanish' THEN COALESCE(sw.example_sentence_spanish, sw.example_sentence_english)
       WHEN 'german' THEN COALESCE(sw.example_sentence_german, sw.example_sentence_english)
-      WHEN 'mandarin' THEN COALESCE(sw.example_sentence_mandarin, sw.example_sentence_english)
+      WHEN 'chinese_simplified' THEN COALESCE(sw.example_sentence_chinese_simplified, sw.example_sentence_english)
       WHEN 'hindi' THEN COALESCE(sw.example_sentence_hindi, sw.example_sentence_english)
       ELSE sw.example_sentence_english
     END,
@@ -100,7 +100,7 @@ RETURNS TABLE (
   french_translation TEXT,
   spanish_translation TEXT,
   german_translation TEXT,
-  mandarin_translation TEXT,
+  chinese_simplified_translation TEXT,
   hindi_translation TEXT,
   subject TEXT,
   matched_language TEXT
@@ -113,7 +113,7 @@ BEGIN
     sw.french_translation,
     sw.spanish_translation,
     sw.german_translation,
-    sw.mandarin_translation,
+    sw.chinese_simplified_translation,
     sw.hindi_translation,
     sw.subject,
     CASE 
@@ -121,7 +121,7 @@ BEGIN
       WHEN sw.french_translation ILIKE '%' || p_search_term || '%' THEN 'french'
       WHEN sw.spanish_translation ILIKE '%' || p_search_term || '%' THEN 'spanish'
       WHEN sw.german_translation ILIKE '%' || p_search_term || '%' THEN 'german'
-      WHEN sw.mandarin_translation LIKE '%' || p_search_term || '%' THEN 'mandarin'
+      WHEN sw.chinese_simplified_translation LIKE '%' || p_search_term || '%' THEN 'chinese_simplified'
       WHEN sw.hindi_translation LIKE '%' || p_search_term || '%' THEN 'hindi'
       ELSE 'unknown'
     END as matched_language
@@ -133,7 +133,7 @@ BEGIN
       OR sw.french_translation ILIKE '%' || p_search_term || '%'
       OR sw.spanish_translation ILIKE '%' || p_search_term || '%'
       OR sw.german_translation ILIKE '%' || p_search_term || '%'
-      OR sw.mandarin_translation LIKE '%' || p_search_term || '%'
+      OR sw.chinese_simplified_translation LIKE '%' || p_search_term || '%'
       OR sw.hindi_translation LIKE '%' || p_search_term || '%'
     )
   ORDER BY sw.word_phrase;
@@ -146,7 +146,7 @@ CREATE OR REPLACE FUNCTION update_word_translations(
   p_french TEXT DEFAULT NULL,
   p_spanish TEXT DEFAULT NULL,
   p_german TEXT DEFAULT NULL,
-  p_mandarin TEXT DEFAULT NULL,
+  p_chinese_simplified TEXT DEFAULT NULL,
   p_hindi TEXT DEFAULT NULL,
   p_example_english TEXT DEFAULT NULL,
   p_example_french TEXT DEFAULT NULL,
@@ -162,13 +162,13 @@ BEGIN
     french_translation = COALESCE(p_french, french_translation),
     spanish_translation = COALESCE(p_spanish, spanish_translation),
     german_translation = COALESCE(p_german, german_translation),
-    mandarin_translation = COALESCE(p_mandarin, mandarin_translation),
+    chinese_simplified_translation = COALESCE(p_chinese_simplified, chinese_simplified_translation),
     hindi_translation = COALESCE(p_hindi, hindi_translation),
     example_sentence_english = COALESCE(p_example_english, example_sentence_english),
     example_sentence_french = COALESCE(p_example_french, example_sentence_french),
     example_sentence_spanish = COALESCE(p_example_spanish, example_sentence_spanish),
     example_sentence_german = COALESCE(p_example_german, example_sentence_german),
-    example_sentence_mandarin = COALESCE(p_example_mandarin, example_sentence_mandarin),
+    example_sentence_chinese_simplified = COALESCE(p_example_chinese_simplified, example_sentence_chinese_simplified),
     example_sentence_hindi = COALESCE(p_example_hindi, example_sentence_hindi)
   WHERE id = p_word_id;
   
@@ -209,13 +209,13 @@ $$ LANGUAGE plpgsql;
 --   french_translation, 
 --   spanish_translation, 
 --   german_translation, 
---   mandarin_translation, 
+--   chinese_simplified_translation, 
 --   hindi_translation,
 --   example_sentence_english,
 --   example_sentence_french,
 --   example_sentence_spanish,
 --   example_sentence_german,
---   example_sentence_mandarin,
+--   example_sentence_chinese_simplified,
 --   example_sentence_hindi,
 --   subject
 -- ) VALUES (

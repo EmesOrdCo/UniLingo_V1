@@ -1,5 +1,6 @@
 import * as Speech from 'expo-speech';
 import { ENV } from './envConfig';
+import AWSPollyService from './awsPollyService';
 
 export interface VoiceServiceConfig {
   language?: string;
@@ -59,7 +60,46 @@ export class VoiceService {
   }
 
   /**
-   * Convert text to speech using OpenAI TTS API
+   * Convert text to speech using Expo Speech directly (for dashboard exercises)
+   */
+  static async textToSpeechExpo(
+    text: string,
+    config: VoiceServiceConfig = {}
+  ): Promise<void> {
+    try {
+      if (this.isSpeaking) {
+        await this.stopSpeaking();
+      }
+
+      this.isSpeaking = true;
+
+      console.log('🔊 VoiceService: Starting Expo Speech TTS');
+      
+      await Speech.speak(text, {
+        language: config.language || 'en-US',
+        rate: config.rate || 1.0,
+        pitch: config.pitch || 1.0,
+        volume: config.volume || 1.0,
+        onDone: () => {
+          this.isSpeaking = false;
+          console.log('✅ VoiceService: Expo Speech TTS completed');
+        },
+        onError: (speechError: any) => {
+          console.error('❌ Expo Speech error:', speechError);
+          this.isSpeaking = false;
+          throw speechError;
+        },
+      });
+
+    } catch (error) {
+      console.error('❌ VoiceService: Expo Speech TTS failed:', error);
+      this.isSpeaking = false;
+      throw error;
+    }
+  }
+
+  /**
+   * Convert text to speech using AWS Polly
    */
   static async textToSpeech(
     text: string,
@@ -72,51 +112,42 @@ export class VoiceService {
 
       this.isSpeaking = true;
 
-      const apiKey = ENV.OPENAI_API_KEY;
-      if (!apiKey) {
-        throw new Error('OpenAI API key not configured');
-      }
-
-      const response = await fetch('https://api.openai.com/v1/audio/speech', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'tts-1',
-          input: text,
-          voice: 'alloy', // Options: alloy, echo, fable, onyx, nova, shimmer
-          speed: config.rate || 1.0,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(`TTS API error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`);
-      }
-
-      const audioBlob = await response.blob();
-      const audioUrl = URL.createObjectURL(audioBlob);
+      console.log('🔊 VoiceService: Starting AWS Polly TTS');
       
-      // Play the audio using expo-speech as a fallback
-      // In a real implementation, you'd use expo-av to play the audio blob
-      await Speech.speak(text, {
-        rate: config.rate || 1.0,
-        pitch: config.pitch || 1.0,
-        volume: config.volume || 1.0,
-        onDone: () => {
-          this.isSpeaking = false;
-        },
-        onError: (error: any) => {
-          console.error('❌ Speech error:', error);
-          this.isSpeaking = false;
-        },
+      // Use AWS Polly service
+      await AWSPollyService.textToSpeech(text, {
+        language: config.language,
+        rate: config.rate,
+        pitch: config.pitch,
+        volume: config.volume,
       });
-    } catch (error) {
-      console.error('❌ Text to speech error:', error);
+
       this.isSpeaking = false;
-      throw error;
+      console.log('✅ VoiceService: AWS Polly TTS completed');
+
+    } catch (error) {
+      console.error('❌ VoiceService: AWS Polly TTS failed, falling back to Expo Speech:', error);
+      
+      // Fallback to Expo Speech
+      try {
+        await Speech.speak(text, {
+          language: config.language || 'en-US',
+          rate: config.rate || 1.0,
+          pitch: config.pitch || 1.0,
+          volume: config.volume || 1.0,
+          onDone: () => {
+            this.isSpeaking = false;
+          },
+          onError: (speechError: any) => {
+            console.error('❌ Expo Speech fallback error:', speechError);
+            this.isSpeaking = false;
+          },
+        });
+      } catch (fallbackError) {
+        console.error('❌ Both AWS Polly and Expo Speech failed:', fallbackError);
+        this.isSpeaking = false;
+        throw fallbackError;
+      }
     }
   }
 
@@ -185,8 +216,14 @@ export class VoiceService {
   static async stopSpeaking(): Promise<void> {
     try {
       if (this.isSpeaking) {
-        await Speech.stop();
+        // Stop AWS Polly speech
+        await AWSPollyService.stopSpeaking();
+        
+        // Stop Expo Speech as fallback
+        Speech.stop();
+        
         this.isSpeaking = false;
+        console.log('🛑 Speech stopped');
       }
     } catch (error) {
       console.error('❌ Stop speaking error:', error);

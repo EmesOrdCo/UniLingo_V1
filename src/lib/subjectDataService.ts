@@ -16,13 +16,13 @@ export interface SubjectWordsData {
   french_translation?: string;
   spanish_translation?: string;
   german_translation?: string;
-  mandarin_translation?: string;
+  chinese_simplified_translation?: string;
   hindi_translation?: string;
   example_sentence_english?: string;
   example_sentence_french?: string;
   example_sentence_spanish?: string;
   example_sentence_german?: string;
-  example_sentence_mandarin?: string;
+  example_sentence_chinese_simplified?: string;
   example_sentence_hindi?: string;
   cefr_level?: string;
 }

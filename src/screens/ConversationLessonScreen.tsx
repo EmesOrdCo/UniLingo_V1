@@ -12,7 +12,8 @@ import {
   Animated,
   TextInput,
   KeyboardAvoidingView,
-  Platform
+  Platform,
+  Share
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -21,6 +22,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { LessonService, Lesson, LessonVocabulary } from '../lib/lessonService';
 import { XPService } from '../lib/xpService';
 import { PronunciationService } from '../lib/pronunciationService';
+import { VoiceService } from '../lib/voiceService';
+import * as Speech from 'expo-speech';
 import { logger } from '../lib/logger';
 
 const { width } = Dimensions.get('window');
@@ -85,6 +88,11 @@ export default function ConversationLessonScreen() {
   // Speak exercise state
   const [isRecording, setIsRecording] = useState(false);
   const [recordingResult, setRecordingResult] = useState<any>(null);
+  
+  // 5-button functionality state
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  const [showTranslation, setShowTranslation] = useState(false);
+  const [hiddenMessages, setHiddenMessages] = useState<Set<number>>(new Set());
   
   const navigation = useNavigation();
   const route = useRoute();
@@ -472,12 +480,14 @@ export default function ConversationLessonScreen() {
           setExerciseCreatedForMessage(currentMessageIndex); // Mark this message as processed
           console.log('🔍 JUST SET exerciseCreatedForMessage to:', currentMessageIndex);
           
+          console.log('🎯 DEEP DIVE: Creating exercise:', exercise);
           setExerciseState({
             isActive: true,
             exercise,
             isCompleted: false,
             score: 0
           });
+          console.log('🎯 DEEP DIVE: Exercise state set to active');
           
           // Initialize scramble if it's a sentence scramble exercise
           if (exercise.type === 'sentence-scramble') {
@@ -824,6 +834,90 @@ export default function ConversationLessonScreen() {
     }
   }, [exerciseState.exercise, handleExerciseComplete]);
 
+  // 5-button functionality handlers
+  const handleAudioPlay = async (text: string, languageCode: string, speed: number) => {
+    if (isPlayingAudio) return;
+    
+    console.log('🎤 Starting speech:', { text, languageCode, speed });
+    
+    setIsPlayingAudio(true);
+    try {
+      // Use Expo Speech directly for personal lessons
+      await VoiceService.textToSpeechExpo(text, {
+        language: languageCode,
+        rate: speed,
+        pitch: 1.0,
+        volume: 0.8,
+      });
+      
+      console.log('✅ Expo Speech TTS completed');
+      setIsPlayingAudio(false);
+      
+    } catch (error) {
+      console.error('❌ TTS error:', error);
+      setIsPlayingAudio(false);
+      Alert.alert(
+        'Audio Unavailable',
+        'Audio playback is currently unavailable. Please try again later.',
+        [{ text: 'OK' }]
+      );
+    }
+  };
+
+  const handleNormalSpeedPlay = (text: string, languageCode: string) => {
+    console.log('🔊 Normal speed play button pressed:', text);
+    handleAudioPlay(text, languageCode, 1.0);
+  };
+
+  const handleSlowSpeedPlay = (text: string, languageCode: string) => {
+    handleAudioPlay(text, languageCode, 0.7);
+  };
+
+  const handleToggleTranslation = () => {
+    console.log('🔄 Translation toggle button pressed');
+    setShowTranslation(!showTranslation);
+  };
+
+  const handleToggleHideMessage = (messageIndex: number) => {
+    console.log('👁️ Hide message button pressed for index:', messageIndex);
+    const newHiddenMessages = new Set(hiddenMessages);
+    if (newHiddenMessages.has(messageIndex)) {
+      newHiddenMessages.delete(messageIndex);
+    } else {
+      newHiddenMessages.add(messageIndex);
+    }
+    setHiddenMessages(newHiddenMessages);
+  };
+
+  const handleShowLearningResources = (text: string) => {
+    // Show modal with learning resources
+    Alert.alert(
+      'Learning Resources',
+      `Grammar and vocabulary help for: "${text}"`,
+      [
+        { text: 'Grammar Help', onPress: () => console.log('Show grammar') },
+        { text: 'Vocabulary', onPress: () => console.log('Show vocabulary') },
+        { text: 'Practice', onPress: () => console.log('Show practice') },
+        { text: 'Cancel', style: 'cancel' }
+      ]
+    );
+  };
+
+  // Helper function to get speech language code
+  const getSpeechLanguageCode = (language: string): string => {
+    const languageMap: { [key: string]: string } = {
+      'en': 'en-US',
+      'en-US': 'en-US',
+      'en-GB': 'en-GB',
+      'fr': 'fr-FR',
+      'es': 'es-ES',
+      'de': 'de-DE',
+      'zh': 'zh-CN',
+      'hi': 'hi-IN',
+    };
+    return languageMap[language] || 'en-US';
+  };
+
   const handleConversationComplete = async () => {
     if (!user) return;
     
@@ -863,6 +957,7 @@ export default function ConversationLessonScreen() {
   };
 
   const renderMessage = React.useCallback((message: ConversationMessage, index: number) => {
+    console.log('🎨 Rendering message:', index, message.speaker, message.message);
     const isUser = message.speaker === 'User';
     const isCurrentMessage = index === currentMessageIndex;
     const isCurrentlyTyping = isCurrentMessage && isTypingAnimation;
@@ -873,10 +968,22 @@ export default function ConversationLessonScreen() {
       ? index < currentMessageIndex || (index === currentMessageIndex && (isTypingAnimation || userMessageCompleted))  // User messages show after sent OR while typing OR just completed
       : index <= currentMessageIndex; // Person A messages show up to current
     
+    console.log('👁️ Message visibility check:', {
+      index,
+      isUser,
+      currentMessageIndex,
+      isTypingAnimation,
+      userMessageCompleted,
+      isVisible
+    });
+    
     // Don't render messages that haven't been reached yet
     if (!isVisible) {
+      console.log('❌ Message not visible, skipping render');
       return null;
     }
+    
+    console.log('✅ Message is visible, rendering with buttons');
     
     // Determine what text to show
     let displayText = message.message;
@@ -899,13 +1006,91 @@ export default function ConversationLessonScreen() {
             isUser ? styles.userMessageBubble : styles.otherMessageBubble
           ]}
         >
-          <Text style={[
-            styles.messageText,
-            isUser ? styles.userMessageText : styles.otherMessageText
-          ]}>
-            {displayText}
-            {isCurrentlyTyping && <Text style={styles.cursor}>|</Text>}
-          </Text>
+          {!hiddenMessages.has(index) && (
+            <Text style={[
+              styles.messageText,
+              isUser ? styles.userMessageText : styles.otherMessageText
+            ]}>
+              {displayText}
+              {isCurrentlyTyping && <Text style={styles.cursor}>|</Text>}
+            </Text>
+          )}
+          {hiddenMessages.has(index) && (
+            <Text style={[
+              styles.messageText,
+              isUser ? styles.userMessageText : styles.otherMessageText
+            ]}>
+              ••••••••
+            </Text>
+          )}
+          
+          {/* 5-button functionality */}
+          {console.log('🔧 About to render 5 buttons for message:', index)}
+          <View style={styles.messageActions}>
+            <TouchableOpacity 
+              style={[styles.messageActionIcon, { backgroundColor: 'red' }]}
+              onPress={() => {
+                console.log('🔊 RED TEST BUTTON PRESSED!', displayText);
+                Alert.alert('RED BUTTON TEST', 'Red button was pressed!');
+              }}
+            >
+              <Text style={{ color: 'white', fontSize: 12 }}>TEST</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.messageActionIcon, isPlayingAudio && styles.messageActionIconActive]}
+              onPress={() => {
+                console.log('🔊 TEST BUTTON PRESSED!', displayText);
+                Alert.alert('Test', 'Button pressed!');
+                // For target language text, use target language voice (English)
+                handleNormalSpeedPlay(displayText, getSpeechLanguageCode('en-GB'));
+              }}
+            >
+              <Ionicons 
+                name="volume-high" 
+                size={16} 
+                color={isPlayingAudio ? "#ffffff" : "rgba(255,255,255,0.8)"} 
+              />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.messageActionIcon, isPlayingAudio && styles.messageActionIconActive]}
+              onPress={() => {
+                // For target language text, use target language voice (English)
+                handleSlowSpeedPlay(displayText, getSpeechLanguageCode('en-GB'));
+              }}
+            >
+              <Ionicons 
+                name="time" 
+                size={16} 
+                color={isPlayingAudio ? "#ffffff" : "rgba(255,255,255,0.8)"} 
+              />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.messageActionIcon}
+              onPress={() => handleToggleTranslation()}
+            >
+              <Ionicons 
+                name="swap-horizontal" 
+                size={16} 
+                color="rgba(255,255,255,0.8)" 
+              />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.messageActionIcon}
+              onPress={() => handleToggleHideMessage(index)}
+            >
+              <Ionicons 
+                name={hiddenMessages.has(index) ? "eye-off" : "eye"} 
+                size={16} 
+                color="rgba(255,255,255,0.8)" 
+              />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.messageActionIcon}
+              onPress={() => handleShowLearningResources(displayText)}
+            >
+              <Ionicons name="school" size={16} color="rgba(255,255,255,0.8)" />
+            </TouchableOpacity>
+          </View>
         </View>
         <Text style={[
           styles.speakerLabel,
@@ -915,18 +1100,15 @@ export default function ConversationLessonScreen() {
         </Text>
       </View>
     );
-  }, [currentMessageIndex, isTypingAnimation, typingText, userMessageCompleted]);
+  }, [currentMessageIndex, isTypingAnimation, typingText, userMessageCompleted, hiddenMessages, showTranslation, isPlayingAudio]);
 
   // Render conversation exercise component
   const renderConversationExercise = () => {
-    // console.log('🎨 Exercise render check:', exerciseState);
     if (!exerciseState.isActive || !exerciseState.exercise) {
-      // console.log('❌ Exercise not rendering - isActive:', exerciseState.isActive, 'exercise:', exerciseState.exercise);
       return null;
     }
 
     const { exercise } = exerciseState;
-    // console.log('✅ Rendering exercise:', exercise.type);
 
     switch (exercise.type) {
       case 'flashcard-quiz':
@@ -996,6 +1178,74 @@ export default function ConversationLessonScreen() {
                   ));
                 })()}
               </View>
+              
+              {/* 5-button functionality for exercise */}
+              {console.log('🔧 DEEP DIVE: About to render 5 buttons for flashcard-quiz exercise')}
+              <View style={styles.exerciseActions}>
+                <TouchableOpacity 
+                  style={[styles.exerciseActionIcon, isPlayingAudio && styles.exerciseActionIconActive]}
+                  onPress={() => {
+                    console.log('🔊 DEEP DIVE: TEST BUTTON PRESSED!', exercise.sentence);
+                    Alert.alert('DEEP DIVE TEST', 'Button pressed!');
+                    handleNormalSpeedPlay(exercise.sentence, getSpeechLanguageCode('en-GB'));
+                  }}
+                >
+                  <Ionicons 
+                    name="volume-high" 
+                    size={16} 
+                    color={isPlayingAudio ? "#ffffff" : "rgba(255,255,255,0.8)"} 
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.exerciseActionIcon, isPlayingAudio && styles.exerciseActionIconActive]}
+                  onPress={() => {
+                    console.log('⏰ Exercise slow audio button pressed:', exercise.sentence);
+                    handleSlowSpeedPlay(exercise.sentence, getSpeechLanguageCode('en-GB'));
+                  }}
+                >
+                  <Ionicons 
+                    name="time" 
+                    size={16} 
+                    color={isPlayingAudio ? "#ffffff" : "rgba(255,255,255,0.8)"} 
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.exerciseActionIcon}
+                  onPress={() => {
+                    console.log('🔄 Exercise translation toggle pressed');
+                    handleToggleTranslation();
+                  }}
+                >
+                  <Ionicons 
+                    name="swap-horizontal" 
+                    size={16} 
+                    color="rgba(255,255,255,0.8)" 
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.exerciseActionIcon}
+                  onPress={() => {
+                    console.log('👁️ Exercise hide button pressed');
+                    // For exercise, we can hide the sentence
+                    Alert.alert('Hide Exercise', 'This will hide the exercise sentence');
+                  }}
+                >
+                  <Ionicons 
+                    name="eye" 
+                    size={16} 
+                    color="rgba(255,255,255,0.8)" 
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.exerciseActionIcon}
+                  onPress={() => {
+                    console.log('🎓 Exercise learning resources pressed');
+                    handleShowLearningResources(exercise.sentence);
+                  }}
+                >
+                  <Ionicons name="school" size={16} color="rgba(255,255,255,0.8)" />
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         );
@@ -1060,6 +1310,71 @@ export default function ConversationLessonScreen() {
                   disabled={!fillBlankAnswer.trim()}
                 >
                   <Text style={styles.integratedButtonText}>Check Answer</Text>
+                </TouchableOpacity>
+              </View>
+              
+              {/* 5-button functionality for exercise */}
+              <View style={styles.exerciseActions}>
+                <TouchableOpacity 
+                  style={[styles.exerciseActionIcon, isPlayingAudio && styles.exerciseActionIconActive]}
+                  onPress={() => {
+                    console.log('🔊 Fill-blank exercise audio button pressed:', exercise.sentence);
+                    handleNormalSpeedPlay(exercise.sentence, getSpeechLanguageCode('en-GB'));
+                  }}
+                >
+                  <Ionicons 
+                    name="volume-high" 
+                    size={16} 
+                    color={isPlayingAudio ? "#ffffff" : "rgba(255,255,255,0.8)"} 
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.exerciseActionIcon, isPlayingAudio && styles.exerciseActionIconActive]}
+                  onPress={() => {
+                    console.log('⏰ Fill-blank exercise slow audio button pressed:', exercise.sentence);
+                    handleSlowSpeedPlay(exercise.sentence, getSpeechLanguageCode('en-GB'));
+                  }}
+                >
+                  <Ionicons 
+                    name="time" 
+                    size={16} 
+                    color={isPlayingAudio ? "#ffffff" : "rgba(255,255,255,0.8)"} 
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.exerciseActionIcon}
+                  onPress={() => {
+                    console.log('🔄 Fill-blank exercise translation toggle pressed');
+                    handleToggleTranslation();
+                  }}
+                >
+                  <Ionicons 
+                    name="swap-horizontal" 
+                    size={16} 
+                    color="rgba(255,255,255,0.8)" 
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.exerciseActionIcon}
+                  onPress={() => {
+                    console.log('👁️ Fill-blank exercise hide button pressed');
+                    Alert.alert('Hide Exercise', 'This will hide the exercise sentence');
+                  }}
+                >
+                  <Ionicons 
+                    name="eye" 
+                    size={16} 
+                    color="rgba(255,255,255,0.8)" 
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.exerciseActionIcon}
+                  onPress={() => {
+                    console.log('🎓 Fill-blank exercise learning resources pressed');
+                    handleShowLearningResources(exercise.sentence);
+                  }}
+                >
+                  <Ionicons name="school" size={16} color="rgba(255,255,255,0.8)" />
                 </TouchableOpacity>
               </View>
             </View>
@@ -1286,13 +1601,13 @@ export default function ConversationLessonScreen() {
         )}
       </ScrollView>
 
+      {/* Exercise overlay - render before action container */}
+      {renderConversationExercise()}
+      
       {/* Action Button */}
       <View style={styles.actionContainer}>
         {renderActionButton()}
         </View>
-        
-        {/* Exercise overlay */}
-        {renderConversationExercise()}
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -1538,6 +1853,8 @@ const styles = StyleSheet.create({
     marginTop: 20,
     borderRadius: 16,
     marginHorizontal: 20,
+    position: 'relative',
+    zIndex: 1000,
   },
   integratedExerciseTitle: {
     fontSize: 16,
@@ -2217,5 +2534,45 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 14,
     fontWeight: '600',
+  },
+  
+  // 5-button functionality styles
+  messageActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 8,
+    gap: 8,
+  },
+  messageActionIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  messageActionIconActive: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  
+  // Exercise 5-button functionality styles
+  exerciseActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 12,
+    gap: 8,
+  },
+  exerciseActionIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  exerciseActionIconActive: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
   },
 });

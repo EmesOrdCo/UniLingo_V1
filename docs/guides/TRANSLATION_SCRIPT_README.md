@@ -69,7 +69,7 @@ node translate_subject_words.js
     french_translation: 'bonjour',
     spanish_translation: 'hola',
     german_translation: 'hallo',
-    mandarin_translation: '你好',
+    chinese_simplified_translation: '你好',
     hindi_translation: 'नमस्ते'
   }
 

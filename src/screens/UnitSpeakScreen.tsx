@@ -17,7 +17,8 @@ import { PronunciationResult } from '../lib/pronunciationService';
 import { UnitDataAdapter, UnitVocabularyItem, UnitSentence } from '../lib/unitDataAdapter';
 import { logger } from '../lib/logger';
 
-// Hardcoded vocabulary for "Saying Hello"
+// TODO: Move to database or configuration file
+// Hardcoded vocabulary for "Saying Hello" - should be loaded from database
 const VOCABULARY = [
   { french: 'salut', english: 'hi' },
   { french: 'bonjour', english: 'hello' },
@@ -28,7 +29,8 @@ const VOCABULARY = [
   { french: 'bonjour', english: 'good morning' }, // Using bonjour again for good morning
 ];
 
-// Hardcoded sentences
+// TODO: Move to database or configuration file
+// Hardcoded sentences - should be loaded from database
 const SENTENCES = [
   { french: 'Salut, comment ça va ?', english: 'Hi, how are you?' },
   { french: "Bonjour, je m'appelle Marie.", english: 'Hello, my name is Marie.' },

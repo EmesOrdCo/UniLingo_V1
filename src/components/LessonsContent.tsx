@@ -4,10 +4,21 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { LessonService, Lesson, LessonProgress } from '../lib/lessonService';
+import { logger } from '../lib/logger';
 
-export default function LessonsContent() {
-  const [lessons, setLessons] = useState<(Lesson & { vocab_count: number; progress?: LessonProgress })[]>([]);
-  const [loadingLessons, setLoadingLessons] = useState(true);
+// Type definitions for better type safety
+interface LessonWithProgress extends Lesson {
+  vocab_count: number;
+  progress?: LessonProgress;
+}
+
+interface LessonsContentProps {
+  // Add any props if needed in the future
+}
+
+export default function LessonsContent(props: LessonsContentProps = {}) {
+  const [lessons, setLessons] = useState<LessonWithProgress[]>([]);
+  const [loadingLessons, setLoadingLessons] = useState<boolean>(true);
   
   const navigation = useNavigation();
   const { user } = useAuth();
@@ -29,9 +40,9 @@ export default function LessonsContent() {
       setLoadingLessons(true);
       const userLessons = await LessonService.getUserLessonsWithProgress(user.id);
       setLessons(userLessons);
-      console.log(`✅ Fetched ${userLessons.length} lessons for user`);
+      logger.logDebug(`✅ Fetched ${userLessons.length} lessons for user`);
     } catch (error) {
-      console.error('❌ Error fetching user lessons:', error);
+      logger.logError('❌ Error fetching user lessons:', error);
       setLessons([]);
     } finally {
       setLoadingLessons(false);

@@ -22,6 +22,7 @@ import { UserFlashcardService } from '../lib/userFlashcardService';
 import { ProgressTrackingService } from '../lib/progressTrackingService';
 import { XPService } from '../lib/xpService';
 import { supabase } from '../lib/supabase';
+import { VoiceService } from '../lib/voiceService';
 import ConsistentHeader from '../components/ConsistentHeader';
 
 
@@ -685,7 +686,7 @@ export default function FlashcardsScreen() {
 
   
 
-   // Play audio pronunciation
+   // Play audio pronunciation using AWS Polly
    const playPronunciation = async (text: string) => {
     console.log('🔊 Playing pronunciation for:', text);
     console.log('🌐 Platform:', Platform.OS);
@@ -704,57 +705,24 @@ export default function FlashcardsScreen() {
     setIsAudioPlaying(true);
     console.log('🎵 Set audio playing to true');
     
-    if (Platform.OS === 'web') {
-      // Use Web Speech API for web
-      if ('speechSynthesis' in window) {
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'en-US';
-        utterance.rate = 0.8;
-        
-        utterance.onend = () => {
-          console.log('✅ Web speech ended');
-          setIsAudioPlaying(false);
-        };
-        utterance.onerror = (event) => {
-          console.error('❌ Web speech error:', event);
-          setIsAudioPlaying(false);
-        };
-        
-        speechSynthesis.speak(utterance);
-        console.log('🎤 Started web speech synthesis');
-      } else {
-        console.log('❌ Web speech synthesis not available');
-        setIsAudioPlaying(false);
-      }
-    } else {
-             // Use expo-speech for mobile
-       try {
-         console.log('🎤 Starting mobile speech with text:', text);
-         
-         Speech.speak(text, {
-           language: 'en-US',
-           rate: 0.7, // Slightly slower for clarity
-           pitch: 1.0,
-           volume: 1.0,
-           onDone: () => {
-             console.log('✅ Mobile speech done');
-             setIsAudioPlaying(false);
-           },
-           onError: (error) => {
-             console.error('❌ Mobile speech error:', error);
-             setIsAudioPlaying(false);
-           },
-           onStopped: () => {
-             console.log('🛑 Mobile speech stopped');
-             setIsAudioPlaying(false);
-           },
-         });
-         console.log('🎤 Started mobile speech');
-       } catch (error) {
-         console.error('❌ Error starting mobile speech:', error);
-         Alert.alert('Audio Error', 'Failed to play pronunciation audio.');
-         setIsAudioPlaying(false);
-       }
+    try {
+      // Use Expo Speech directly for dashboard exercises
+      const userLanguage = profile?.target_language || 'en-US';
+      
+      await VoiceService.textToSpeechExpo(text, {
+        language: userLanguage,
+        rate: 0.8, // Slightly slower for clarity
+        pitch: 1.0,
+        volume: 1.0,
+      });
+      
+      console.log('✅ Expo Speech TTS completed');
+      setIsAudioPlaying(false);
+      
+    } catch (error) {
+      console.error('❌ TTS error:', error);
+      Alert.alert('Audio Error', 'Failed to play pronunciation audio.');
+      setIsAudioPlaying(false);
     }
   };
 

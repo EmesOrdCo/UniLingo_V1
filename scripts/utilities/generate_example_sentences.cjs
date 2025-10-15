@@ -163,7 +163,7 @@ async function updateDatabaseRecord(wordId, englishSentence, translations) {
         example_sentence_spanish: translations.spanish,
         example_sentence_german: translations.german,
         example_sentence_hindi: translations.hindi,
-        example_sentence_mandarin: translations.mandarin,
+        example_sentence_chinese_simplified: translations.chinese_simplified,
       })
       .eq('id', wordId);
 

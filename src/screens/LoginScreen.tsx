@@ -36,16 +36,26 @@ export default function LoginScreen() {
       return;
     }
 
-    // Basic email validation
+    // Enhanced email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       setErrorMessage('Please enter a valid email address');
       return;
     }
 
+    // Password validation
+    if (password.length < 6) {
+      setErrorMessage('Password must be at least 6 characters long');
+      return;
+    }
+
+    // Sanitize inputs
+    const sanitizedEmail = email.trim().toLowerCase();
+    const sanitizedPassword = password.trim();
+
     setLoading(true);
     try {
-      const { error } = await signIn(email, password);
+      const { error } = await signIn(sanitizedEmail, sanitizedPassword);
       
       if (error) {
         

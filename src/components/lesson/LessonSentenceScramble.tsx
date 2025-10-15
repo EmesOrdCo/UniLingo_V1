@@ -49,8 +49,8 @@ export default function LessonSentenceScramble({ vocabulary, onComplete, onClose
     const scrambleQuestions: ScrambleQuestion[] = [];
     
     vocabulary.forEach((vocab) => {
-      // Handle both lesson vocabulary (example_sentence_en) and user flashcards (example)
-      const exampleSentence = vocab.example_sentence_en || vocab.example;
+      // Handle both lesson vocabulary (example_sentence_target) and user flashcards (example)
+      const exampleSentence = vocab.example_sentence_target || vocab.example;
       if (exampleSentence) {
         scrambleQuestions.push({
           sentence: exampleSentence,

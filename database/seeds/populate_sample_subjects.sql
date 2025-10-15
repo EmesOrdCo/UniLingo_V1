@@ -11,13 +11,13 @@ INSERT INTO subject_words (
   french_translation, 
   spanish_translation, 
   german_translation, 
-  mandarin_translation, 
+  chinese_simplified_translation, 
   hindi_translation,
   example_sentence_english,
   example_sentence_french,
   example_sentence_spanish,
   example_sentence_german,
-  example_sentence_mandarin,
+  example_sentence_chinese_simplified,
   example_sentence_hindi,
   cefr_level
 ) VALUES 
@@ -78,7 +78,7 @@ INSERT INTO lesson_scripts (
   french_lesson_script,
   german_lesson_script,
   spanish_lesson_script,
-  mandarin_lesson_script,
+  chinese_simplified_lesson_script,
   hindi_lesson_script,
   cefr_level
 ) VALUES 

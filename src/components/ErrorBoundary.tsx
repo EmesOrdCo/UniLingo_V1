@@ -1,5 +1,6 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { logger } from '../lib/logger';
 
 interface Props {
   children: ReactNode;
@@ -21,11 +22,12 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    // Log error safely in development only
-    if (__DEV__) {
-      console.error('ErrorBoundary caught an error:', error, errorInfo);
-    }
-    // In production, silently handle the error to prevent crashes
+    // Log error using centralized logger
+    logger.logError('ErrorBoundary caught an error:', error, errorInfo);
+    
+    // Log additional context for debugging
+    logger.logError('Error stack:', error.stack);
+    logger.logError('Component stack:', errorInfo.componentStack);
   }
 
   handleRetry = () => {

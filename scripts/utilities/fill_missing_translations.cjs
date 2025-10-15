@@ -75,7 +75,7 @@ async function getEntriesNeedingTranslations() {
     // Fetch all entries (Supabase defaults to 1000, so we need to specify a higher limit)
     const { data, error } = await supabase
       .from('subject_words')
-      .select('id, english_translation, subject, example_sentence_english, example_sentence_french, example_sentence_spanish, example_sentence_german, example_sentence_hindi, example_sentence_mandarin')
+      .select('id, english_translation, subject, example_sentence_english, example_sentence_french, example_sentence_spanish, example_sentence_german, example_sentence_hindi, example_sentence_chinese_simplified')
       .not('example_sentence_english', 'is', null)
       .order('id')
       .limit(10000);
@@ -91,7 +91,7 @@ async function getEntriesNeedingTranslations() {
       !entry.example_sentence_spanish || (typeof entry.example_sentence_spanish === 'string' && entry.example_sentence_spanish.trim() === '') ||
       !entry.example_sentence_german || (typeof entry.example_sentence_german === 'string' && entry.example_sentence_german.trim() === '') ||
       !entry.example_sentence_hindi || (typeof entry.example_sentence_hindi === 'string' && entry.example_sentence_hindi.trim() === '') ||
-      !entry.example_sentence_mandarin || (typeof entry.example_sentence_mandarin === 'string' && entry.example_sentence_mandarin.trim() === '')
+      !entry.example_sentence_chinese_simplified || (typeof entry.example_sentence_chinese_simplified === 'string' && entry.example_sentence_chinese_simplified.trim() === '')
     );
 
     return incomplete;
@@ -115,7 +115,7 @@ async function processEntry(entry) {
   if (!entry.example_sentence_spanish || (typeof entry.example_sentence_spanish === 'string' && entry.example_sentence_spanish.trim() === '')) missingLanguages.push({ name: 'Spanish', field: 'example_sentence_spanish' });
   if (!entry.example_sentence_german || (typeof entry.example_sentence_german === 'string' && entry.example_sentence_german.trim() === '')) missingLanguages.push({ name: 'German', field: 'example_sentence_german' });
   if (!entry.example_sentence_hindi || (typeof entry.example_sentence_hindi === 'string' && entry.example_sentence_hindi.trim() === '')) missingLanguages.push({ name: 'Hindi', field: 'example_sentence_hindi' });
-  if (!entry.example_sentence_mandarin || (typeof entry.example_sentence_mandarin === 'string' && entry.example_sentence_mandarin.trim() === '')) missingLanguages.push({ name: 'Mandarin', field: 'example_sentence_mandarin' });
+  if (!entry.example_sentence_chinese_simplified || (typeof entry.example_sentence_chinese_simplified === 'string' && entry.example_sentence_chinese_simplified.trim() === '')) missingLanguages.push({ name: 'Chinese (Simplified)', field: 'example_sentence_chinese_simplified' });
   
   console.log(`   Missing: ${missingLanguages.map(l => l.name).join(', ')}`);
   console.log(`   English: "${entry.example_sentence_english}"`);

@@ -32,15 +32,29 @@ export default function LessonFlashcardQuiz({ vocabulary, onComplete, onClose, o
   const [showLeaveModal, setShowLeaveModal] = useState(false);
 
   useEffect(() => {
-    generateQuestions();
+    try {
+      generateQuestions();
+    } catch (error) {
+      console.error('Error generating questions:', error);
+    }
+    return () => {
+      // Cleanup function for vocabulary changes
+    };
   }, [vocabulary]);
 
   // Update progress when question index changes
   useEffect(() => {
-    if (onProgressUpdate) {
-      onProgressUpdate(currentQuestion);
+    try {
+      if (onProgressUpdate) {
+        onProgressUpdate(currentQuestion);
+      }
+    } catch (error) {
+      console.error('Error updating progress:', error);
     }
-  }, [currentQuestion]); // Removed onProgressUpdate from dependencies to prevent infinite loops
+    return () => {
+      // Cleanup function for progress updates
+    };
+  }, [currentQuestion, onProgressUpdate]); // Added onProgressUpdate back with proper memoization
 
   const generateQuestions = () => {
     const quizQuestions: QuizQuestion[] = [];

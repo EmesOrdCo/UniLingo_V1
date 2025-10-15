@@ -45,7 +45,7 @@ async function checkAllTranslations() {
       { name: 'Spanish', field: 'spanish_translation' },
       { name: 'German', field: 'german_translation' },
       { name: 'Hindi', field: 'hindi_translation' },
-      { name: 'Mandarin', field: 'mandarin_translation' }
+      { name: 'Chinese (Simplified)', field: 'chinese_simplified_translation' }
     ];
     
     const results = {};
@@ -79,7 +79,7 @@ async function checkAllTranslations() {
     // Find entries with missing translations
     const { data: allEntries, error: allError } = await supabase
       .from('subject_words')
-      .select('id, english_translation, french_translation, spanish_translation, german_translation, hindi_translation, mandarin_translation, subject')
+      .select('id, english_translation, french_translation, spanish_translation, german_translation, hindi_translation, chinese_simplified_translation, subject')
       .limit(10000);
     
     if (allError) {
@@ -99,7 +99,7 @@ async function checkAllTranslations() {
       const hasSpanish = !!entry.spanish_translation;
       const hasGerman = !!entry.german_translation;
       const hasHindi = !!entry.hindi_translation;
-      const hasMandarin = !!entry.mandarin_translation;
+      const hasMandarin = !!entry.chinese_simplified_translation;
       
       if (!hasEnglish) {
         noEnglish++;
@@ -191,7 +191,7 @@ async function checkAllTranslations() {
     // Sample some entries to show what the data looks like
     const { data: sampleEntries, error: sampleError } = await supabase
       .from('subject_words')
-      .select('id, english_translation, french_translation, spanish_translation, german_translation, hindi_translation, mandarin_translation, subject')
+      .select('id, english_translation, french_translation, spanish_translation, german_translation, hindi_translation, chinese_simplified_translation, subject')
       .not('french_translation', 'is', null)
       .limit(5);
     
@@ -203,7 +203,7 @@ async function checkAllTranslations() {
         console.log(`   🇪🇸 Spanish: ${entry.spanish_translation || 'N/A'}`);
         console.log(`   🇩🇪 German: ${entry.german_translation || 'N/A'}`);
         console.log(`   🇮🇳 Hindi: ${entry.hindi_translation || 'N/A'}`);
-        console.log(`   🇨🇳 Mandarin: ${entry.mandarin_translation || 'N/A'}`);
+        console.log(`   🇨🇳 Chinese (Simplified): ${entry.chinese_simplified_translation || 'N/A'}`);
         console.log('');
       });
     }

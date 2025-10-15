@@ -30,7 +30,7 @@ async function verifyCompletion() {
       { name: 'Spanish', field: 'example_sentence_spanish' },
       { name: 'German', field: 'example_sentence_german' },
       { name: 'Hindi', field: 'example_sentence_hindi' },
-      { name: 'Mandarin', field: 'example_sentence_mandarin' }
+      { name: 'Chinese (Simplified)', field: 'example_sentence_chinese_simplified' }
     ];
     
     const results = {};
@@ -71,7 +71,7 @@ async function verifyCompletion() {
     // Check for entries missing ANY translation
     const { data: allEntries, error: allError } = await supabase
       .from('subject_words')
-      .select('id, english_translation, subject, example_sentence_english, example_sentence_french, example_sentence_spanish, example_sentence_german, example_sentence_hindi, example_sentence_mandarin');
+      .select('id, english_translation, subject, example_sentence_english, example_sentence_french, example_sentence_spanish, example_sentence_german, example_sentence_hindi, example_sentence_chinese_simplified');
     
     if (allError) {
       console.error('❌ Error fetching all entries:', allError);
@@ -90,7 +90,7 @@ async function verifyCompletion() {
       const hasSpanish = !!entry.example_sentence_spanish;
       const hasGerman = !!entry.example_sentence_german;
       const hasHindi = !!entry.example_sentence_hindi;
-      const hasMandarin = !!entry.example_sentence_mandarin;
+      const hasMandarin = !!entry.example_sentence_chinese_simplified;
       
       const allLanguages = hasEnglish && hasFrench && hasSpanish && hasGerman && hasHindi && hasMandarin;
       const someLanguages = hasEnglish || hasFrench || hasSpanish || hasGerman || hasHindi || hasMandarin;

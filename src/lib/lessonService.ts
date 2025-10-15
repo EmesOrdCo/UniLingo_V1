@@ -30,7 +30,7 @@ export interface LessonVocabulary {
   english_term: string;
   definition: string;
   native_translation: string;
-  example_sentence_en: string;
+  example_sentence_target: string;
   example_sentence_native: string;
   keywords?: string | string[]; // Keywords for conversation exercises
   created_at: string;
@@ -637,7 +637,7 @@ Subject: ${subject}
 Language: ${nativeLanguage}
 
 Format:
-[{"topicName": "Topic Name", "vocabulary": [{"english_term": "word", "definition": "meaning", "native_translation": "translation", "example_sentence_en": "example", "example_sentence_native": "translated example"}]}]
+[{"topicName": "Topic Name", "vocabulary": [{"english_term": "word", "definition": "meaning", "native_translation": "translation", "example_sentence_target": "example", "example_sentence_native": "translated example"}]}]
 
 Return ONLY the JSON array:`;
 
@@ -735,7 +735,7 @@ Subject: ${subject}
 Language: ${nativeLanguage}
 
 Format:
-[{"english_term": "word", "definition": "meaning", "native_translation": "translation", "example_sentence_en": "example", "example_sentence_native": "translated example"}]
+[{"english_term": "word", "definition": "meaning", "native_translation": "translation", "example_sentence_target": "example", "example_sentence_native": "translated example"}]
 
 Return ONLY the JSON array:`;
         
@@ -866,7 +866,7 @@ Return ONLY the JSON array:`;
             keywords: vocab.english_term,
             definition: vocab.definition,
             native_translation: vocab.native_translation,
-            example_sentence_en: vocab.example_sentence_en,
+            example_sentence_target: vocab.example_sentence_target,
             example_sentence_native: vocab.example_sentence_native
           }));
 

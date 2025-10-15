@@ -395,7 +395,7 @@ export class EnhancedProgressService {
         .select(`
           *,
           lesson_progress!inner(user_id),
-          lesson_vocabulary!inner(english_term, definition, native_translation, example_sentence_en)
+          lesson_vocabulary!inner(english_term, definition, native_translation, example_sentence_target)
         `)
         .eq('lesson_progress.user_id', userId)
         .eq('lesson_progress.lesson_id', lessonId);
@@ -415,7 +415,7 @@ export class EnhancedProgressService {
             english_term: vocab.english_term,
             definition: vocab.definition,
             native_translation: vocab.native_translation,
-            example_sentence_en: vocab.example_sentence_en,
+            example_sentence_target: vocab.example_sentence_target,
             retention_score: 0,
             correct_attempts: 0,
             incorrect_attempts: 0

@@ -95,7 +95,7 @@ async function main() {
       { name: 'Spanish', field: 'example_sentence_spanish' },
       { name: 'German', field: 'example_sentence_german' },
       { name: 'Hindi', field: 'example_sentence_hindi' },
-      { name: 'Mandarin', field: 'example_sentence_mandarin' }
+      { name: 'Chinese (Simplified)', field: 'example_sentence_chinese_simplified' }
     ];
     
     let totalFilled = 0;

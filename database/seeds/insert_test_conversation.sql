@@ -42,7 +42,7 @@ VALUES (
 
 -- Get the lesson ID (you'll need to replace this with the actual generated ID)
 -- Then create vocabulary items
-INSERT INTO lesson_vocabulary (id, lesson_id, keywords, definition, native_translation, example_sentence_en, example_sentence_native, chat_content, created_at)
+INSERT INTO lesson_vocabulary (id, lesson_id, keywords, definition, native_translation, example_sentence_target, example_sentence_native, chat_content, created_at)
 VALUES 
 (
     gen_random_uuid(),

@@ -17,7 +17,7 @@ async function quickCheck() {
       'spanish_translation',
       'german_translation',
       'hindi_translation',
-      'mandarin_translation'
+      'chinese_simplified_translation'
     ];
     
     console.log('Checking each translation column...\n');

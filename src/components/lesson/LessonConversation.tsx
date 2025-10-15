@@ -6,12 +6,15 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import PronunciationCheck from '../PronunciationCheck';
 import { PronunciationResult } from '../../lib/pronunciationService';
+import { VoiceService } from '../../lib/voiceService';
+import * as Speech from 'expo-speech';
 import LeaveConfirmationModal from './LeaveConfirmationModal';
 
 interface LessonConversationProps {
@@ -47,6 +50,11 @@ export default function LessonConversation({
   const [completed, setCompleted] = useState(false);
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   const [attemptKey, setAttemptKey] = useState(0);
+  
+  // 5-button functionality state
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  const [showTranslation, setShowTranslation] = useState(false);
+  const [hiddenMessages, setHiddenMessages] = useState<Set<number>>(new Set());
 
   // Initialize with first Assistant message
   useEffect(() => {
@@ -115,6 +123,87 @@ export default function LessonConversation({
     } else {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
+  };
+
+  // 5-button functionality handlers
+  const handleAudioPlay = async (text: string, languageCode: string, speed: number) => {
+    if (isPlayingAudio) return;
+    
+    console.log('🎤 Starting AWS Polly speech for personal lesson:', { text, languageCode, speed });
+    
+    setIsPlayingAudio(true);
+    try {
+      // Use AWS Polly for personal lessons
+      await VoiceService.textToSpeech(text, {
+        language: languageCode,
+        rate: speed,
+        pitch: 1.0,
+        volume: 0.8,
+      });
+      
+      console.log('✅ AWS Polly TTS completed for personal lesson');
+      setIsPlayingAudio(false);
+      
+    } catch (error) {
+      console.error('❌ AWS Polly TTS error for personal lesson:', error);
+      setIsPlayingAudio(false);
+      Alert.alert(
+        'Audio Unavailable',
+        'Audio playback is currently unavailable. Please try again later.',
+        [{ text: 'OK' }]
+      );
+    }
+  };
+
+  const handleNormalSpeedPlay = (text: string, languageCode: string) => {
+    handleAudioPlay(text, languageCode, 1.0);
+  };
+
+  const handleSlowSpeedPlay = (text: string, languageCode: string) => {
+    handleAudioPlay(text, languageCode, 0.7);
+  };
+
+  const handleToggleTranslation = () => {
+    setShowTranslation(!showTranslation);
+  };
+
+  const handleToggleHideMessage = (messageIndex: number) => {
+    const newHiddenMessages = new Set(hiddenMessages);
+    if (newHiddenMessages.has(messageIndex)) {
+      newHiddenMessages.delete(messageIndex);
+    } else {
+      newHiddenMessages.add(messageIndex);
+    }
+    setHiddenMessages(newHiddenMessages);
+  };
+
+  const handleShowLearningResources = (text: string) => {
+    // Show modal with learning resources
+    Alert.alert(
+      'Learning Resources',
+      `Grammar and vocabulary help for: "${text}"`,
+      [
+        { text: 'Grammar Help', onPress: () => console.log('Show grammar') },
+        { text: 'Vocabulary', onPress: () => console.log('Show vocabulary') },
+        { text: 'Practice', onPress: () => console.log('Show practice') },
+        { text: 'Cancel', style: 'cancel' }
+      ]
+    );
+  };
+
+  // Helper function to get speech language code
+  const getSpeechLanguageCode = (language: string): string => {
+    const languageMap: { [key: string]: string } = {
+      'en': 'en-US',
+      'en-US': 'en-US',
+      'en-GB': 'en-GB',
+      'fr': 'fr-FR',
+      'es': 'es-ES',
+      'de': 'de-DE',
+      'zh': 'zh-CN',
+      'hi': 'hi-IN',
+    };
+    return languageMap[language] || 'en-US';
   };
 
   const handleNextExchange = () => {
@@ -333,19 +422,56 @@ export default function LessonConversation({
                 <View style={styles.chatBubbleThomas}>
                   <Text style={styles.chatBubblePrimary}>{message.message}</Text>
                   <View style={styles.chatBubbleActions}>
-                    <TouchableOpacity style={styles.chatActionIcon}>
-                      <Ionicons name="volume-high" size={16} color="rgba(255,255,255,0.8)" />
+                    <TouchableOpacity 
+                      style={[styles.chatActionIcon, isPlayingAudio && styles.chatActionIconActive]}
+                      onPress={() => {
+                        // For target language text, use target language voice (English)
+                        handleNormalSpeedPlay(message.message, getSpeechLanguageCode('en-GB'));
+                      }}
+                    >
+                      <Ionicons 
+                        name="volume-high" 
+                        size={16} 
+                        color={isPlayingAudio ? "#ffffff" : "rgba(255,255,255,0.8)"} 
+                      />
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.chatActionIcon}>
-                      <Ionicons name="wifi" size={16} color="rgba(255,255,255,0.8)" />
+                    <TouchableOpacity 
+                      style={[styles.chatActionIcon, isPlayingAudio && styles.chatActionIconActive]}
+                      onPress={() => {
+                        // For target language text, use target language voice (English)
+                        handleSlowSpeedPlay(message.message, getSpeechLanguageCode('en-GB'));
+                      }}
+                    >
+                      <Ionicons 
+                        name="time" 
+                        size={16} 
+                        color={isPlayingAudio ? "#ffffff" : "rgba(255,255,255,0.8)"} 
+                      />
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.chatActionIcon}>
-                      <Ionicons name="swap-horizontal" size={16} color="rgba(255,255,255,0.8)" />
+                    <TouchableOpacity 
+                      style={styles.chatActionIcon}
+                      onPress={() => handleToggleTranslation()}
+                    >
+                      <Ionicons 
+                        name="swap-horizontal" 
+                        size={16} 
+                        color="rgba(255,255,255,0.8)" 
+                      />
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.chatActionIcon}>
-                      <Ionicons name="stats-chart" size={16} color="rgba(255,255,255,0.8)" />
+                    <TouchableOpacity 
+                      style={styles.chatActionIcon}
+                      onPress={() => handleToggleHideMessage(index)}
+                    >
+                      <Ionicons 
+                        name={hiddenMessages.has(index) ? "eye-off" : "eye"} 
+                        size={16} 
+                        color="rgba(255,255,255,0.8)" 
+                      />
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.chatActionIcon}>
+                    <TouchableOpacity 
+                      style={styles.chatActionIcon}
+                      onPress={() => handleShowLearningResources(message.message)}
+                    >
                       <Ionicons name="school" size={16} color="rgba(255,255,255,0.8)" />
                     </TouchableOpacity>
                   </View>
@@ -536,6 +662,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  chatActionIconActive: {
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
   },
   bottomPinnedSection: {
     backgroundColor: '#f9fafb',

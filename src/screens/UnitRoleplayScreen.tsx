@@ -23,6 +23,7 @@ import { PronunciationResult } from '../lib/pronunciationService';
 import { UnitDataAdapter, UnitConversationExchange } from '../lib/unitDataAdapter';
 import { logger } from '../lib/logger';
 import { getAppropriateSpeechLanguage, getTargetLanguageSpeechCode, getNativeLanguageSpeechCode } from '../lib/languageService';
+import { VoiceService } from '../lib/voiceService';
 import * as Speech from 'expo-speech';
 import * as Haptics from 'expo-haptics';
 
@@ -497,45 +498,19 @@ export default function UnitRoleplayScreen() {
     
     setIsPlayingAudio(true);
     try {
-      // Stop any current speech
-      Speech.stop();
-      
-      console.log('🎤 Using language code:', languageCode);
-      
-      // Configure speech options with language
-      const options = {
+      // Use Expo Speech directly for dashboard exercises
+      await VoiceService.textToSpeechExpo(text, {
         language: languageCode,
-        pitch: 1.0,
         rate: speed,
+        pitch: 1.0,
         volume: 0.8,
-        onStart: () => {
-          console.log('🎤 Speech started');
-        },
-        onDone: () => {
-          console.log('🎤 Speech finished');
-          setIsPlayingAudio(false);
-        },
-        onStopped: () => {
-          console.log('🎤 Speech stopped');
-          setIsPlayingAudio(false);
-        },
-        onError: (error: any) => {
-          console.error('🎤 Speech error:', error);
-          setIsPlayingAudio(false);
-          Alert.alert(
-            'Audio Unavailable',
-            'Audio playback is currently unavailable. Please try again later.',
-            [{ text: 'OK' }]
-          );
-        }
-      };
+      });
       
-      console.log('🎤 Speaking text with options:', options);
-      // Speak the text
-      Speech.speak(text, options);
+      console.log('✅ Expo Speech TTS completed');
+      setIsPlayingAudio(false);
       
     } catch (error) {
-      console.error('Error playing audio:', error);
+      console.error('❌ TTS error:', error);
       setIsPlayingAudio(false);
       Alert.alert(
         'Audio Unavailable',

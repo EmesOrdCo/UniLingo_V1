@@ -21,7 +21,7 @@ const languages = {
   french_translation: 'French',
   spanish_translation: 'Spanish',
   german_translation: 'German',
-  mandarin_translation: 'Mandarin Chinese (Simplified)',
+  chinese_simplified_translation: 'Chinese (Simplified)',
   hindi_translation: 'Hindi',
 };
 
@@ -77,7 +77,7 @@ async function translateAllWords() {
     const { data: words, error: fetchError } = await supabase
       .from('subject_words')
       .select('id, english_translation, subject')
-      .or('french_translation.is.null,spanish_translation.is.null,german_translation.is.null,mandarin_translation.is.null,hindi_translation.is.null');
+      .or('french_translation.is.null,spanish_translation.is.null,german_translation.is.null,chinese_simplified_translation.is.null,hindi_translation.is.null');
 
     if (fetchError) {
       throw new Error(`Error fetching words: ${fetchError.message}`);

@@ -1,9 +1,11 @@
 /**
- * AWS Polly Text-to-Speech Service for Frontend
- * Replaces Expo Speech with AWS Polly for better voice quality and language support
+ * AWS Polly Text-to-Speech Service for React Native
+ * Uses expo-av for audio playback instead of web browser APIs
  */
 
 import { ENV } from './envConfig';
+import { Audio } from 'expo-av';
+import { logDebug } from './logger';
 
 export interface PollyVoiceConfig {
   voiceId: string;
@@ -20,7 +22,7 @@ export interface PollyServiceConfig {
 
 export class AWSPollyService {
   private static isSpeaking = false;
-  private static currentAudio: HTMLAudioElement | null = null;
+  private static currentSound: Audio.Sound | null = null;
 
   // Voice mapping for different languages (Standard voices for cost efficiency)
   private static readonly VOICE_MAPPING: Record<string, PollyVoiceConfig> = {
@@ -104,6 +106,43 @@ export class AWSPollyService {
   };
 
   /**
+   * Convert ArrayBuffer to base64 string (React Native compatible)
+   */
+  private static arrayBufferToBase64(buffer: ArrayBuffer): string {
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    for (let i = 0; i < bytes.byteLength; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    // Use a simple base64 encoding that works in React Native
+    return this.btoa(binary);
+  }
+
+  /**
+   * Simple base64 encoding for React Native (replaces btoa)
+   */
+  private static btoa(str: string): string {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+    let result = '';
+    let i = 0;
+    
+    while (i < str.length) {
+      const a = str.charCodeAt(i++);
+      const b = i < str.length ? str.charCodeAt(i++) : 0;
+      const c = i < str.length ? str.charCodeAt(i++) : 0;
+      
+      const bitmap = (a << 16) | (b << 8) | c;
+      
+      result += chars.charAt((bitmap >> 18) & 63);
+      result += chars.charAt((bitmap >> 12) & 63);
+      result += i - 2 < str.length ? chars.charAt((bitmap >> 6) & 63) : '=';
+      result += i - 1 < str.length ? chars.charAt(bitmap & 63) : '=';
+    }
+    
+    return result;
+  }
+
+  /**
    * Get voice configuration for a given language
    */
   private static getVoiceConfig(language?: string): PollyVoiceConfig {
@@ -154,7 +193,7 @@ export class AWSPollyService {
         volume: config.volume || 1.0,
       };
 
-      console.log('🔊 Requesting TTS from backend:', {
+      logDebug('🔊 Requesting TTS from backend:', {
         text: text.substring(0, 50) + (text.length > 50 ? '...' : ''),
         voiceId: voiceConfig.voiceId,
         languageCode: voiceConfig.languageCode,
@@ -174,133 +213,108 @@ export class AWSPollyService {
         throw new Error(`Polly API error: ${response.status} - ${errorData.error || 'Unknown error'}`);
       }
 
-      // Get audio data
-      const audioBlob = await response.blob();
-      const audioUrl = URL.createObjectURL(audioBlob);
-
-      // Play audio
-      await this.playAudio(audioUrl);
-
-      // Clean up URL after playing
-      setTimeout(() => {
-        URL.revokeObjectURL(audioUrl);
-      }, 10000); // Clean up after 10 seconds
+      // Get audio data directly from response for React Native
+      const audioArrayBuffer = await response.arrayBuffer();
+      const audioData = new Uint8Array(audioArrayBuffer);
+      
+      // Convert to base64 for data URI
+      const base64Audio = this.arrayBufferToBase64(audioArrayBuffer);
+      const audioUri = `data:audio/mp3;base64,${base64Audio}`;
+      
+      logDebug('🎵 Audio converted to data URI for playback');
+      
+      // Play audio directly using expo-av
+      await this.playAudio(audioUri);
 
     } catch (error) {
       console.error('❌ AWS Polly TTS error:', error);
       this.isSpeaking = false;
-      
-      // Fallback to browser speech synthesis if available
-      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-        console.log('🔄 Falling back to browser speech synthesis');
-        await this.fallbackToBrowserTTS(text, config);
-      } else {
-        throw error;
-      }
+      throw error;
     }
   }
 
   /**
-   * Play audio from URL
+   * Play audio from URI using expo-av
    */
-  private static async playAudio(audioUrl: string): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const audio = new Audio(audioUrl);
-      this.currentAudio = audio;
+  private static async playAudio(audioUri: string): Promise<void> {
+    try {
+      logDebug('🎵 Starting audio playback with expo-av');
+      
+      // Create and load the sound
+      const { sound } = await Audio.Sound.createAsync(
+        { uri: audioUri },
+        { shouldPlay: true, volume: 1.0 }
+      );
+      
+      this.currentSound = sound;
 
-      audio.onended = () => {
-        console.log('✅ Audio playback completed');
-        this.isSpeaking = false;
-        this.currentAudio = null;
-        resolve();
-      };
-
-      audio.onerror = (error) => {
-        console.error('❌ Audio playback error:', error);
-        this.isSpeaking = false;
-        this.currentAudio = null;
-        reject(error);
-      };
-
-      audio.oncanplaythrough = () => {
-        console.log('🎵 Starting audio playback');
-        audio.play().catch(reject);
-      };
-
-      // Timeout fallback
-      setTimeout(() => {
-        if (this.isSpeaking) {
-          console.warn('⚠️ Audio playback timeout');
+      // Set up playback status listener
+      sound.setOnPlaybackStatusUpdate((status) => {
+        if (status.isLoaded) {
+          if (status.didJustFinish) {
+            logDebug('✅ Audio playback completed');
+            this.isSpeaking = false;
+            this.currentSound = null;
+            sound.unloadAsync();
+          }
+        } else if (status.error) {
+          console.error('❌ Audio playback error:', status.error);
           this.isSpeaking = false;
-          this.currentAudio = null;
-          resolve();
+          this.currentSound = null;
+          sound.unloadAsync();
         }
-      }, 30000); // 30 second timeout
-    });
+      });
+
+      // Wait for playback to complete
+      return new Promise((resolve, reject) => {
+        const checkStatus = () => {
+          if (!this.isSpeaking) {
+            resolve();
+          } else {
+            setTimeout(checkStatus, 100);
+          }
+        };
+        
+        // Start checking after a short delay
+        setTimeout(checkStatus, 100);
+        
+        // Timeout fallback
+        setTimeout(() => {
+          if (this.isSpeaking) {
+            console.warn('⚠️ Audio playback timeout');
+            this.isSpeaking = false;
+            if (this.currentSound) {
+              this.currentSound.unloadAsync();
+              this.currentSound = null;
+            }
+            resolve();
+          }
+        }, 30000); // 30 second timeout
+      });
+
+    } catch (error) {
+      console.error('❌ Error creating audio sound:', error);
+      this.isSpeaking = false;
+      this.currentSound = null;
+      throw error;
+    }
   }
 
-  /**
-   * Fallback to browser speech synthesis
-   */
-  private static async fallbackToBrowserTTS(
-    text: string,
-    config: PollyServiceConfig = {}
-  ): Promise<void> {
-    return new Promise((resolve, reject) => {
-      try {
-        const utterance = new SpeechSynthesisUtterance(text);
-        
-        // Set language
-        const voiceConfig = this.getVoiceConfig(config.language);
-        utterance.lang = voiceConfig.languageCode;
-        
-        // Set speech parameters
-        utterance.rate = config.rate || 1.0;
-        utterance.pitch = config.pitch || 1.0;
-        utterance.volume = config.volume || 1.0;
-
-        utterance.onend = () => {
-          console.log('✅ Browser TTS completed');
-          this.isSpeaking = false;
-          resolve();
-        };
-
-        utterance.onerror = (event) => {
-          console.error('❌ Browser TTS error:', event);
-          this.isSpeaking = false;
-          reject(new Error('Browser TTS failed'));
-        };
-
-        console.log('🎤 Starting browser TTS fallback');
-        speechSynthesis.speak(utterance);
-
-      } catch (error) {
-        console.error('❌ Browser TTS setup error:', error);
-        this.isSpeaking = false;
-        reject(error);
-      }
-    });
-  }
 
   /**
    * Stop current speech
    */
   static async stopSpeaking(): Promise<void> {
     try {
-      // Stop current audio if playing
-      if (this.currentAudio) {
-        this.currentAudio.pause();
-        this.currentAudio.currentTime = 0;
-        this.currentAudio = null;
-      }
-
-      // Stop browser speech synthesis
-      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-        speechSynthesis.cancel();
+      // Stop current sound if playing
+      if (this.currentSound) {
+        await this.currentSound.stopAsync();
+        await this.currentSound.unloadAsync();
+        this.currentSound = null;
       }
 
       this.isSpeaking = false;
-      console.log('🛑 Speech stopped');
+      logDebug('🛑 Speech stopped');
     } catch (error) {
       console.error('❌ Error stopping speech:', error);
     }

@@ -39,7 +39,7 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
   // Generate questions from vocabulary
   React.useEffect(() => {
     const generatedQuestions: FillInTheBlankQuestion[] = vocabulary
-      .filter(item => item && item.example_sentence_en && item.keywords)
+      .filter(item => item && item.example_sentence_target && item.keywords)
       .map((item, index, array) => {
         // Generate 3 wrong options from other vocabulary items
         const wrongOptions = array
@@ -53,7 +53,7 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
         
         return {
           id: item.id,
-          sentence: item.example_sentence_en,
+          sentence: item.example_sentence_target,
           blankWord: item.keywords,
           hint: item.definition || `Translation: ${item.native_translation || 'N/A'}`,
           options: options
@@ -168,7 +168,7 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
     
     // Regenerate questions with new shuffled options
     const generatedQuestions: FillInTheBlankQuestion[] = vocabulary
-      .filter(item => item && item.example_sentence_en && item.keywords)
+      .filter(item => item && item.example_sentence_target && item.keywords)
       .map((item, index, array) => {
         const wrongOptions = array
           .filter(v => v.id !== item.id && v.keywords)
@@ -180,7 +180,7 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
         
         return {
           id: item.id,
-          sentence: item.example_sentence_en,
+          sentence: item.example_sentence_target,
           blankWord: item.keywords,
           hint: item.definition || `Translation: ${item.native_translation || 'N/A'}`,
           options: options

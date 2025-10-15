@@ -148,8 +148,8 @@ export default function LessonFlashcards({ vocabulary, onComplete, onClose, onPr
               {currentCard?.definition && (
                 <Text style={styles.definitionText}>Definition: {currentCard.definition}</Text>
               )}
-              {currentCard?.example_sentence_en && (
-                <Text style={styles.exampleText}>Example: {currentCard.example_sentence_en}</Text>
+              {currentCard?.example_sentence_target && (
+                <Text style={styles.exampleText}>Example: {currentCard.example_sentence_target}</Text>
               )}
               <View style={styles.flipHint}>
                 <Ionicons name="sync" size={16} color="#64748b" />

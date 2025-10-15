@@ -47,7 +47,7 @@ export default function LessonSpeak({
 
   const currentVocab = vocabulary[currentIndex];
   const currentWord = currentVocab?.keywords || currentVocab?.english_term || currentVocab?.term || '';
-  const currentSentence = currentVocab?.example_sentence_en || currentVocab?.example;
+  const currentSentence = currentVocab?.example_sentence_target || currentVocab?.example;
   
   console.log('🎤 Current vocab for speaking:', currentVocab);
   console.log('🎤 Word to pronounce:', currentWord);

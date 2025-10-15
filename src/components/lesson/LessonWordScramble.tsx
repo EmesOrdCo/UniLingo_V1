@@ -30,6 +30,9 @@ export default function LessonWordScramble({ vocabulary, onComplete, onClose, on
 
   useEffect(() => {
     generateQuestions();
+    return () => {
+      // Cleanup function for vocabulary changes
+    };
   }, [vocabulary]);
 
   // Update progress when question index changes
@@ -37,12 +40,18 @@ export default function LessonWordScramble({ vocabulary, onComplete, onClose, on
     if (onProgressUpdate) {
       onProgressUpdate(currentQuestionIndex);
     }
-  }, [currentQuestionIndex]); // Removed onProgressUpdate from dependencies to prevent infinite loops
+    return () => {
+      // Cleanup function for progress updates
+    };
+  }, [currentQuestionIndex, onProgressUpdate]); // Added onProgressUpdate back with proper memoization
 
   useEffect(() => {
     if (questions.length > 0) {
       generateScrambledWord();
     }
+    return () => {
+      // Cleanup function for question changes
+    };
   }, [currentQuestionIndex, questions]);
 
   const generateQuestions = () => {
@@ -254,7 +263,7 @@ export default function LessonWordScramble({ vocabulary, onComplete, onClose, on
         <TouchableOpacity 
           style={styles.closeButton} 
           onPress={() => {
-            console.log('Close button touched in LessonWordScramble');
+            logger.logDebug('Close button touched in LessonWordScramble');
             onClose();
           }}
           activeOpacity={0.7}

@@ -116,7 +116,7 @@ async function main() {
       { name: 'Spanish', field: 'spanish_translation' },
       { name: 'German', field: 'german_translation' },
       { name: 'Hindi', field: 'hindi_translation' },
-      { name: 'Mandarin', field: 'mandarin_translation' }
+      { name: 'Chinese (Simplified)', field: 'chinese_simplified_translation' }
     ];
     
     let totalFilled = 0;

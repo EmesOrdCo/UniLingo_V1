@@ -131,13 +131,13 @@ CREATE TABLE subject_words (
   french_translation TEXT,
   spanish_translation TEXT,
   german_translation TEXT,
-  mandarin_translation TEXT,
+  chinese_simplified_translation TEXT,
   hindi_translation TEXT,
   example_sentence_english TEXT,
   example_sentence_french TEXT,
   example_sentence_spanish TEXT,
   example_sentence_german TEXT,
-  example_sentence_mandarin TEXT,
+  example_sentence_chinese_simplified TEXT,
   example_sentence_hindi TEXT
 );
 ```
@@ -152,7 +152,7 @@ CREATE TABLE lesson_scripts (
   french_lesson_script TEXT,
   spanish_lesson_script TEXT,
   german_lesson_script TEXT,
-  mandarin_lesson_script TEXT,
+  chinese_simplified_lesson_script TEXT,
   hindi_lesson_script TEXT
 );
 ```

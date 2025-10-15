@@ -32,14 +32,14 @@ async function comprehensiveVerification() {
       { name: 'Spanish Keyword', field: 'spanish_translation', type: 'keyword' },
       { name: 'German Keyword', field: 'german_translation', type: 'keyword' },
       { name: 'Hindi Keyword', field: 'hindi_translation', type: 'keyword' },
-      { name: 'Mandarin Keyword', field: 'mandarin_translation', type: 'keyword' },
+      { name: 'Chinese (Simplified) Keyword', field: 'chinese_simplified_translation', type: 'keyword' },
       // Example sentences
       { name: 'English Example', field: 'example_sentence_english', type: 'example' },
       { name: 'French Example', field: 'example_sentence_french', type: 'example' },
       { name: 'Spanish Example', field: 'example_sentence_spanish', type: 'example' },
       { name: 'German Example', field: 'example_sentence_german', type: 'example' },
       { name: 'Hindi Example', field: 'example_sentence_hindi', type: 'example' },
-      { name: 'Mandarin Example', field: 'example_sentence_mandarin', type: 'example' },
+      { name: 'Chinese (Simplified) Example', field: 'example_sentence_chinese_simplified', type: 'example' },
     ];
     
     const results = {};
@@ -114,7 +114,7 @@ async function comprehensiveVerification() {
       
       const { data: allEntries, error: allError } = await supabase
         .from('subject_words')
-        .select('id, english_translation, french_translation, spanish_translation, german_translation, hindi_translation, mandarin_translation, example_sentence_english, example_sentence_french, example_sentence_spanish, example_sentence_german, example_sentence_hindi, example_sentence_mandarin, subject')
+        .select('id, english_translation, french_translation, spanish_translation, german_translation, hindi_translation, chinese_simplified_translation, example_sentence_english, example_sentence_french, example_sentence_spanish, example_sentence_german, example_sentence_hindi, example_sentence_chinese_simplified, subject')
         .limit(10000);
       
       if (!allError) {
@@ -124,13 +124,13 @@ async function comprehensiveVerification() {
                  !entry.spanish_translation ||
                  !entry.german_translation ||
                  !entry.hindi_translation ||
-                 !entry.mandarin_translation ||
+                 !entry.chinese_simplified_translation ||
                  !entry.example_sentence_english ||
                  !entry.example_sentence_french ||
                  !entry.example_sentence_spanish ||
                  !entry.example_sentence_german ||
                  !entry.example_sentence_hindi ||
-                 !entry.example_sentence_mandarin;
+                 !entry.example_sentence_chinese_simplified;
         });
         
         if (incomplete.length > 0) {
@@ -142,13 +142,13 @@ async function comprehensiveVerification() {
             if (!entry.spanish_translation) missing.push('Spanish keyword');
             if (!entry.german_translation) missing.push('German keyword');
             if (!entry.hindi_translation) missing.push('Hindi keyword');
-            if (!entry.mandarin_translation) missing.push('Mandarin keyword');
+            if (!entry.chinese_simplified_translation) missing.push('Chinese (Simplified) keyword');
             if (!entry.example_sentence_english) missing.push('English example');
             if (!entry.example_sentence_french) missing.push('French example');
             if (!entry.example_sentence_spanish) missing.push('Spanish example');
             if (!entry.example_sentence_german) missing.push('German example');
             if (!entry.example_sentence_hindi) missing.push('Hindi example');
-            if (!entry.example_sentence_mandarin) missing.push('Mandarin example');
+            if (!entry.example_sentence_chinese_simplified) missing.push('Chinese (Simplified) example');
             
             console.log(`${idx + 1}. ID ${entry.id}: "${entry.english_translation || 'N/A'}" (${entry.subject})`);
             console.log(`   Missing: ${missing.join(', ')}\n`);

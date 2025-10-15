@@ -9,6 +9,7 @@ import {
   Dimensions,
   Modal,
   TextInput,
+  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,6 +25,7 @@ import AudioLessonProgressModal from '../components/AudioLessonProgressModal';
 import { ImageUploadService, ImageUploadProgress } from '../lib/imageUploadService';
 import ImagePreviewModal from '../components/ImagePreviewModal';
 import ImageProcessingModal from '../components/ImageProcessingModal';
+import HybridAudioLessonUsageService, { AudioLessonUsage } from '../lib/hybridAudioLessonUsageService';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -54,16 +56,48 @@ export default function AudioRecapScreen() {
     message: 'Ready to select images',
   });
 
+  // Audio lesson usage tracking
+  const [usage, setUsage] = useState<AudioLessonUsage | null>(null);
+  const [loadingUsage, setLoadingUsage] = useState(false);
+  const [usageExpanded, setUsageExpanded] = useState(false);
+  const [usageAnimation] = useState(new Animated.Value(0));
+
   // Get user's language preferences from profile
   const nativeLanguage = profile?.native_language || 'English';
   const targetLanguage = profile?.target_language || 'English';
 
-  // Load user's audio lessons when user changes
+  // Load user's audio lessons and usage when user changes
   useEffect(() => {
     if (user?.id) {
       loadAudioLessons(user.id);
+      loadUsageData(user.id);
     }
   }, [user?.id]);
+
+  // Load usage data
+  const loadUsageData = async (userId: string) => {
+    try {
+      setLoadingUsage(true);
+      const usageData = await HybridAudioLessonUsageService.getUserUsage(userId);
+      setUsage(usageData);
+    } catch (error) {
+      console.error('Error loading usage data:', error);
+    } finally {
+      setLoadingUsage(false);
+    }
+  };
+
+  // Handle usage box expansion
+  const toggleUsageExpansion = () => {
+    const newExpanded = !usageExpanded;
+    setUsageExpanded(newExpanded);
+    
+    Animated.timing(usageAnimation, {
+      toValue: newExpanded ? 1 : 0,
+      duration: 300,
+      useNativeDriver: false,
+    }).start();
+  };
 
   // Load user's audio lessons
   const loadAudioLessons = async (userId: string) => {
@@ -78,6 +112,30 @@ export default function AudioRecapScreen() {
   const handleCreateAudioLesson = async () => {
     if (!user) {
       Alert.alert('Error', 'Please log in to create audio lessons');
+      return;
+    }
+
+    // Check usage limits before allowing file selection
+    try {
+      const { canCreate, usage: currentUsage } = await HybridAudioLessonUsageService.canCreateAudioLesson(user.id);
+      
+      if (!canCreate) {
+        Alert.alert(
+          'Monthly Limit Reached',
+          `You have reached your monthly limit of ${HybridAudioLessonUsageService.getMonthlyLimit()} audio lessons.\n\n` +
+          `Current usage: ${currentUsage.current_usage}/${HybridAudioLessonUsageService.getMonthlyLimit()}\n` +
+          `Month: ${HybridAudioLessonUsageService.formatMonthYear(HybridAudioLessonUsageService.getCurrentMonth())}\n\n` +
+          `Your limit will reset next month.`,
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+
+      // Update usage display
+      setUsage(currentUsage);
+    } catch (error) {
+      console.error('Error checking usage limits:', error);
+      Alert.alert('Error', 'Failed to check usage limits. Please try again.');
       return;
     }
 
@@ -556,7 +614,7 @@ export default function AudioRecapScreen() {
           </View>
         </View>
 
-        <View style={styles.bottomSpacing} />
+        <View style={[styles.bottomSpacing, { paddingBottom: usage ? 60 : 20 }]} />
       </ScrollView>
 
       {/* Lesson Name Modal */}
@@ -632,6 +690,83 @@ export default function AudioRecapScreen() {
         visible={showImageProcessingModal}
         progress={imageProgress}
       />
+
+      {/* Expandable Usage Box */}
+      {usage && (
+        <View style={styles.usageBoxContainer}>
+          <TouchableOpacity
+            style={styles.usageBoxHeader}
+            onPress={toggleUsageExpansion}
+          >
+            <View style={styles.usageBoxHeaderContent}>
+              <Ionicons name="analytics-outline" size={16} color="#8b5cf6" />
+              <Text style={styles.usageBoxTitle}>Monthly Usage</Text>
+              <Text style={styles.usageBoxSummary}>
+                {usage.total_usage || 0}/{HybridAudioLessonUsageService.getMonthlyLimit()}
+              </Text>
+            </View>
+            <Ionicons 
+              name={usageExpanded ? "chevron-down" : "chevron-up"} 
+              size={16} 
+              color="#9ca3af" 
+            />
+          </TouchableOpacity>
+          
+          <Animated.View 
+            style={[
+              styles.usageBoxContent,
+              {
+                maxHeight: usageAnimation.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0, 200],
+                }),
+                opacity: usageAnimation,
+              }
+            ]}
+          >
+              <View style={styles.usageBoxStats}>
+                <View style={styles.usageBoxStat}>
+                  <Text style={styles.usageBoxNumber}>{usage.total_usage || 0}</Text>
+                  <Text style={styles.usageBoxLabel}>Used</Text>
+                </View>
+                <View style={styles.usageBoxDivider} />
+                <View style={styles.usageBoxStat}>
+                  <Text style={styles.usageBoxNumber}>{usage.remaining_lessons || 0}</Text>
+                  <Text style={styles.usageBoxLabel}>Remaining</Text>
+                </View>
+                <View style={styles.usageBoxDivider} />
+                <View style={styles.usageBoxStat}>
+                  <Text style={styles.usageBoxNumber}>{HybridAudioLessonUsageService.getMonthlyLimit()}</Text>
+                  <Text style={styles.usageBoxLabel}>Limit</Text>
+                </View>
+              </View>
+              
+              <View style={styles.usageBoxProgress}>
+                <View style={styles.usageBoxProgressBar}>
+                  <View 
+                    style={[
+                      styles.usageBoxProgressFill, 
+                      { 
+                        width: `${HybridAudioLessonUsageService.getUsagePercentage(usage)}%`,
+                        backgroundColor: HybridAudioLessonUsageService.getUsageStatusColor(usage)
+                      }
+                    ]} 
+                  />
+                </View>
+                <Text style={[
+                  styles.usageBoxStatus,
+                  { color: HybridAudioLessonUsageService.getUsageStatusColor(usage) }
+                ]}>
+                  {HybridAudioLessonUsageService.getUsageStatusText(usage)}
+                </Text>
+              </View>
+              
+              <Text style={styles.usageBoxMonth}>
+                {HybridAudioLessonUsageService.formatMonthYear(HybridAudioLessonUsageService.getCurrentMonth())}
+              </Text>
+          </Animated.View>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -939,6 +1074,175 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#e2e8f0',
+    textAlign: 'center',
+  },
+  // Usage Display Styles
+  usageSection: {
+    marginBottom: 24,
+  },
+  usageHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  usageTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#e2e8f0',
+    marginLeft: 8,
+  },
+  usageCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  usageStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  usageStat: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  usageNumber: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#ffffff',
+    marginBottom: 4,
+  },
+  usageLabel: {
+    fontSize: 12,
+    color: '#94a3b8',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  usageDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    marginHorizontal: 16,
+  },
+  usageProgress: {
+    marginBottom: 12,
+  },
+  usageProgressBar: {
+    height: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginBottom: 8,
+  },
+  usageProgressFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  usageStatus: {
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  usageMonth: {
+    fontSize: 12,
+    color: '#94a3b8',
+    textAlign: 'center',
+  },
+  
+  // Expandable Usage Box Styles
+  usageBoxContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#1a1a1a',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+  },
+  usageBoxHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  usageBoxHeaderContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  usageBoxTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#ffffff',
+    marginLeft: 8,
+    flex: 1,
+  },
+  usageBoxSummary: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#8b5cf6',
+    marginRight: 8,
+  },
+  usageBoxContent: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.1)',
+    overflow: 'hidden',
+  },
+  usageBoxStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  usageBoxStat: {
+    alignItems: 'center',
+  },
+  usageBoxNumber: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#ffffff',
+  },
+  usageBoxLabel: {
+    fontSize: 12,
+    color: '#94a3b8',
+    marginTop: 2,
+  },
+  usageBoxDivider: {
+    width: 1,
+    height: 30,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    marginHorizontal: 12,
+  },
+  usageBoxProgress: {
+    marginBottom: 8,
+  },
+  usageBoxProgressBar: {
+    height: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 3,
+    overflow: 'hidden',
+    marginBottom: 6,
+  },
+  usageBoxProgressFill: {
+    height: '100%',
+    borderRadius: 3,
+  },
+  usageBoxStatus: {
+    fontSize: 12,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  usageBoxMonth: {
+    fontSize: 11,
+    color: '#94a3b8',
     textAlign: 'center',
   },
 });
