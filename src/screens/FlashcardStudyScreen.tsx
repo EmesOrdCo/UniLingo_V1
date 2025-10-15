@@ -640,22 +640,21 @@ export default function FlashcardStudyScreen() {
           <View style={styles.progressBar}>
             <View style={[styles.progressFill, { width: `${progress}%` }]} />
           </View>
-          
           {/* Gesture Hints */}
-            <View style={styles.gestureHintsContainer}>
-              <View style={styles.gestureHintItem}>
-                <Ionicons name="refresh" size={16} color="#6366f1" />
-                <Text style={styles.gestureHintText}>Tap to flip</Text>
-              </View>
-              <View style={styles.gestureHintItem}>
-                <Ionicons name="swap-vertical" size={16} color="#6366f1" />
-                <Text style={styles.gestureHintText}>Swipe</Text>
-              </View>
-              <View style={styles.gestureHintItem}>
-                <Ionicons name="checkmark-circle" size={16} color="#10b981" />
-                <Text style={styles.gestureHintText}>2x = ✓</Text>
-              </View>
+          <View style={styles.gestureHintsContainer}>
+            <View style={styles.gestureHintItem}>
+              <Ionicons name="refresh" size={16} color="#6366f1" />
+              <Text style={styles.gestureHintText}>Tap to flip</Text>
             </View>
+            <View style={styles.gestureHintItem}>
+              <Ionicons name="swap-vertical" size={16} color="#6366f1" />
+              <Text style={styles.gestureHintText}>Swipe</Text>
+            </View>
+            <View style={styles.gestureHintItem}>
+              <Ionicons name="checkmark-circle" size={16} color="#10b981" />
+              <Text style={styles.gestureHintText}>2x = ✓</Text>
+            </View>
+          </View>
         </View>
 
         <Animated.View 
@@ -1018,7 +1017,7 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    height: 60, // Just cover the header area
+    height: 80, // Cover just the main header area
     backgroundColor: '#ffffff', // Solid white
     zIndex: 999,
   },
@@ -1136,9 +1135,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#ffffff',
     paddingHorizontal: 20,
     paddingTop: 20,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(226, 232, 240, 0.3)',
+    paddingBottom: 4,
+    borderBottomWidth: 0,
+    borderBottomColor: 'transparent',
     zIndex: 1000,
     elevation: 20,
     shadowColor: '#6366f1',
@@ -1150,7 +1149,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   backButton: {
     padding: 8,
@@ -1177,9 +1176,10 @@ const styles = StyleSheet.create({
   },
   progressBar: {
     height: 4,
-    backgroundColor: '#e2e8f0',
+    backgroundColor: '#ffffff',
     borderRadius: 2,
     overflow: 'hidden',
+    marginBottom: 0,
   },
   progressFill: {
     height: '100%',
@@ -1190,8 +1190,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-evenly',
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: 6,
     paddingHorizontal: 16,
+    backgroundColor: '#ffffff',
+    marginTop: 0,
+    marginBottom: 0,
   },
   gestureHintItem: {
     flexDirection: 'row',
