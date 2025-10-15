@@ -37,10 +37,40 @@ export interface LessonScript {
   german_script?: string;
   spanish_script?: string;
   hindi_script?: string;
-  mandarin_script?: string;
+  'chinese(simplified)_script'?: string;
 }
 
 export class UnitDataAdapter {
+  /**
+   * Convert language code to full language name for translation mapping
+   */
+  private static getLanguageNameFromCode(languageCode: string): string {
+    const languageMap: { [key: string]: string } = {
+      'fr': 'French',
+      'es': 'Spanish', 
+      'de': 'German',
+      'zh': 'Chinese (Simplified)',
+      'zh-tw': 'Chinese (Traditional)',
+      'hi': 'Hindi',
+      'it': 'Italian',
+      'pt': 'Portuguese',
+      'sv': 'Swedish',
+      'tr': 'Turkish',
+      'ja': 'Japanese',
+      'ko': 'Korean',
+      'ar': 'Arabic',
+      'ru': 'Russian',
+      'nl': 'Dutch',
+      'da': 'Danish',
+      'fi': 'Finnish',
+      'pl': 'Polish',
+      'th': 'Thai',
+      'vi': 'Vietnamese',
+    };
+    
+    return languageMap[languageCode] || languageCode; // Return the code if no mapping found
+  }
+
   /**
    * Get vocabulary data in the format expected by UnitWordsScreen
    */
@@ -48,7 +78,11 @@ export class UnitDataAdapter {
     try {
       logger.info(`🔄 Converting database data to Unit vocabulary format for: ${subjectName}`);
       
-      const lessonData = await SubjectLessonService.getSubjectLesson(subjectName, nativeLanguage);
+      // Convert language code to full language name
+      const languageName = this.getLanguageNameFromCode(nativeLanguage);
+      logger.info(`🌍 Language mapping: ${nativeLanguage} -> ${languageName}`);
+      
+      const lessonData = await SubjectLessonService.getSubjectLesson(subjectName, languageName);
       
       if (!lessonData.vocabulary || lessonData.vocabulary.length === 0) {
         logger.warn(`⚠️ No vocabulary found for subject: ${subjectName}`);
@@ -58,7 +92,7 @@ export class UnitDataAdapter {
       // Convert to Unit format
       const unitVocabulary: UnitVocabularyItem[] = lessonData.vocabulary.map(vocab => ({
         english: vocab.english_translation,
-        french: this.getTranslation(vocab, nativeLanguage),
+        french: this.getTranslation(vocab, languageName),
         image_url: vocab.image_url
       }));
 
@@ -77,7 +111,10 @@ export class UnitDataAdapter {
     try {
       logger.info(`🔄 Converting database data to Unit sentences format for: ${subjectName}`);
       
-      const lessonData = await SubjectLessonService.getSubjectLesson(subjectName, nativeLanguage);
+      // Convert language code to full language name
+      const languageName = this.getLanguageNameFromCode(nativeLanguage);
+      
+      const lessonData = await SubjectLessonService.getSubjectLesson(subjectName, languageName);
       
       if (!lessonData.vocabulary || lessonData.vocabulary.length === 0) {
         logger.warn(`⚠️ No vocabulary found for subject: ${subjectName}`);
@@ -86,17 +123,17 @@ export class UnitDataAdapter {
 
       // Convert vocabulary to sentences using example sentences
       const unitSentences: UnitSentence[] = lessonData.vocabulary
-        .filter(vocab => vocab.example_sentence_english && this.getExampleSentence(vocab, nativeLanguage))
+        .filter(vocab => vocab.example_sentence_english && this.getExampleSentence(vocab, languageName))
         .map(vocab => ({
           english: vocab.example_sentence_english!,
-          french: this.getExampleSentence(vocab, nativeLanguage)!
+          french: this.getExampleSentence(vocab, languageName)!
         }));
 
       // If no example sentences, create simple sentences from vocabulary
       if (unitSentences.length === 0) {
         const fallbackSentences = lessonData.vocabulary.slice(0, 7).map(vocab => ({
           english: `This is ${vocab.english_translation}`,
-          french: `Ceci est ${this.getTranslation(vocab, nativeLanguage)}`
+          french: `Ceci est ${this.getTranslation(vocab, languageName)}`
         }));
         unitSentences.push(...fallbackSentences);
       }
@@ -116,7 +153,10 @@ export class UnitDataAdapter {
     try {
       logger.info(`🔄 Converting database data to Unit conversation format for: ${subjectName}`);
       
-      const lessonData = await SubjectLessonService.getSubjectLesson(subjectName, nativeLanguage);
+      // Convert language code to full language name
+      const languageName = this.getLanguageNameFromCode(nativeLanguage);
+      
+      const lessonData = await SubjectLessonService.getSubjectLesson(subjectName, languageName);
       
       if (!lessonData.vocabulary || lessonData.vocabulary.length === 0) {
         logger.warn(`⚠️ No vocabulary found for subject: ${subjectName}`);
@@ -260,7 +300,7 @@ export class UnitDataAdapter {
         german_script: script.german_lesson_script,
         spanish_script: script.spanish_lesson_script,
         hindi_script: script.hindi_lesson_script,
-        mandarin_script: script['chinese(simplified)_lesson_script'],
+        'chinese(simplified)_script': script['chinese(simplified)_lesson_script'],
       };
 
       logger.info(`✅ Found lesson script for ${subjectName} (${cefrLevel})`);
@@ -387,7 +427,7 @@ export class UnitDataAdapter {
       'French': lessonScript.french_script,
       'Spanish': lessonScript.spanish_script,
       'German': lessonScript.german_script,
-      'Chinese (Simplified)': lessonScript.mandarin_script,
+      'Chinese (Simplified)': lessonScript['chinese(simplified)_script'],
       'Hindi': lessonScript.hindi_script,
     };
     
@@ -395,9 +435,9 @@ export class UnitDataAdapter {
     logger.info(`🔍 getNativeLanguageScript debug:`, {
       nativeLanguage,
       availableLanguages: Object.keys(languageMap),
-      hasMandarinScript: !!lessonScript.mandarin_script,
-      mandarinScriptLength: lessonScript.mandarin_script?.length || 0,
-      mandarinScriptPreview: lessonScript.mandarin_script?.substring(0, 100) || 'No content'
+      hasChineseScript: !!lessonScript['chinese(simplified)_script'],
+      chineseScriptLength: lessonScript['chinese(simplified)_script']?.length || 0,
+      chineseScriptPreview: lessonScript['chinese(simplified)_script']?.substring(0, 100) || 'No content'
     });
     
     const result = languageMap[nativeLanguage] || null;
@@ -418,10 +458,28 @@ export class UnitDataAdapter {
       'French': vocab.french_translation,
       'Spanish': vocab.spanish_translation,
       'German': vocab.german_translation,
-      'Chinese (Simplified)': vocab.chinese_simplified_translation,
+      'Chinese (Simplified)': vocab['chinese(simplified)_translation'],
       'Hindi': vocab.hindi_translation,
     };
-    return languageMap[nativeLanguage] || vocab.english_translation || '';
+    
+    const translation = languageMap[nativeLanguage];
+    
+    // Debug logging to identify translation issues
+    logger.info(`🔍 Translation debug for "${vocab.english_translation}":`, {
+      nativeLanguage,
+      hasTranslation: !!translation,
+      translationValue: translation,
+      fallbackToEnglish: !translation,
+      availableTranslations: {
+        french: !!vocab.french_translation,
+        spanish: !!vocab.spanish_translation,
+        german: !!vocab.german_translation,
+        chinese_simplified: !!vocab['chinese(simplified)_translation'],
+        hindi: !!vocab.hindi_translation,
+      }
+    });
+    
+    return translation || vocab.english_translation || '';
   }
 
   /**
@@ -432,7 +490,7 @@ export class UnitDataAdapter {
       'French': vocab.example_sentence_french,
       'Spanish': vocab.example_sentence_spanish,
       'German': vocab.example_sentence_german,
-      'Chinese (Simplified)': vocab.example_sentence_chinese_simplified,
+      'Chinese (Simplified)': vocab['example_sentence_chinese(simplified)'],
       'Hindi': vocab.example_sentence_hindi,
     };
     return languageMap[nativeLanguage] || vocab.example_sentence_english || '';
@@ -446,7 +504,7 @@ export class UnitDataAdapter {
       'French': lessonScript.french_script,
       'Spanish': lessonScript.spanish_script || '',
       'German': lessonScript.german_script || '',
-      'Chinese (Simplified)': lessonScript.mandarin_script || '',
+      'Chinese (Simplified)': lessonScript['chinese(simplified)_script'] || '',
       'Hindi': lessonScript.hindi_script || '',
     };
     const script = languageMap[nativeLanguage];
@@ -460,7 +518,7 @@ export class UnitDataAdapter {
         french: !!lessonScript.french_script,
         spanish: !!lessonScript.spanish_script,
         german: !!lessonScript.german_script,
-        mandarin: !!lessonScript.mandarin_script,
+        chinese_simplified: !!lessonScript['chinese(simplified)_script'],
         hindi: !!lessonScript.hindi_script,
       }
     });

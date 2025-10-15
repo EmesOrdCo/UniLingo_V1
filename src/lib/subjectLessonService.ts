@@ -9,13 +9,13 @@ export interface SubjectVocabulary {
   french_translation?: string;
   spanish_translation?: string;
   german_translation?: string;
-  chinese_simplified_translation?: string;
+  'chinese(simplified)_translation'?: string;
   hindi_translation?: string;
   example_sentence_english?: string;
   example_sentence_french?: string;
   example_sentence_spanish?: string;
   example_sentence_german?: string;
-  example_sentence_chinese_simplified?: string;
+  'example_sentence_chinese(simplified)'?: string;
   example_sentence_hindi?: string;
   image_url?: string;
 }
@@ -121,7 +121,7 @@ export class SubjectLessonService {
       'French': vocab.french_translation || vocab.english_translation,
       'Spanish': vocab.spanish_translation || vocab.english_translation,
       'German': vocab.german_translation || vocab.english_translation,
-      'Chinese (Simplified)': vocab.chinese_simplified_translation || vocab.english_translation,
+      'Chinese (Simplified)': vocab['chinese(simplified)_translation'] || vocab.english_translation,
       'Hindi': vocab.hindi_translation || vocab.english_translation,
     };
 
@@ -141,7 +141,7 @@ export class SubjectLessonService {
       'French': vocab.example_sentence_french || englishSentence,
       'Spanish': vocab.example_sentence_spanish || englishSentence,
       'German': vocab.example_sentence_german || englishSentence,
-      'Chinese (Simplified)': vocab.example_sentence_chinese_simplified || englishSentence,
+      'Chinese (Simplified)': vocab['example_sentence_chinese(simplified)'] || englishSentence,
       'Hindi': vocab.example_sentence_hindi || englishSentence,
     };
 
