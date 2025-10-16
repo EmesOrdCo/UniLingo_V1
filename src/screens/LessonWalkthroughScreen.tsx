@@ -48,7 +48,7 @@ export default function LessonWalkthroughScreen() {
 
   const navigation = useNavigation();
   const route = useRoute();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { lessonId, lessonTitle } = route.params as RouteParams;
 
   // Use refs for timing values to prevent infinite loops
