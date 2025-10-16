@@ -96,6 +96,25 @@ export default function FlashcardStudyScreen() {
   const animatedValue4 = useRef(new Animated.Value(0)).current;
   const animatedValue5 = useRef(new Animated.Value(0)).current;
   const animatedValue6 = useRef(new Animated.Value(0)).current;
+  const animatedValue7 = useRef(new Animated.Value(0)).current;
+  const animatedValue8 = useRef(new Animated.Value(0)).current;
+  const animatedValue9 = useRef(new Animated.Value(0)).current;
+  const animatedValue10 = useRef(new Animated.Value(0)).current;
+  const animatedValue11 = useRef(new Animated.Value(0)).current;
+  const animatedValue12 = useRef(new Animated.Value(0)).current;
+  const animatedValue13 = useRef(new Animated.Value(0)).current;
+  const animatedValue14 = useRef(new Animated.Value(0)).current;
+  const animatedValue15 = useRef(new Animated.Value(0)).current;
+  const animatedValue16 = useRef(new Animated.Value(0)).current;
+  const animatedValue17 = useRef(new Animated.Value(0)).current;
+  const animatedValue18 = useRef(new Animated.Value(0)).current;
+  const animatedValue19 = useRef(new Animated.Value(0)).current;
+  const animatedValue20 = useRef(new Animated.Value(0)).current;
+  const animatedValue21 = useRef(new Animated.Value(0)).current;
+  const animatedValue22 = useRef(new Animated.Value(0)).current;
+  const animatedValue23 = useRef(new Animated.Value(0)).current;
+  const animatedValue24 = useRef(new Animated.Value(0)).current;
+  const animatedValue25 = useRef(new Animated.Value(0)).current;
 
   // Start background animations
   const startBackgroundAnimations = () => {
@@ -144,6 +163,82 @@ export default function FlashcardStudyScreen() {
     setTimeout(() => {
       createFloatingAnimation(animatedValue6, 3800, 0).start();
     }, 2600);
+    
+    setTimeout(() => {
+      createFloatingAnimation(animatedValue7, 4200, 0).start();
+    }, 3100);
+    
+    setTimeout(() => {
+      createFloatingAnimation(animatedValue8, 3600, 0).start();
+    }, 3600);
+    
+    setTimeout(() => {
+      createFloatingAnimation(animatedValue9, 4800, 0).start();
+    }, 4100);
+    
+    setTimeout(() => {
+      createFloatingAnimation(animatedValue10, 3400, 0).start();
+    }, 4600);
+    
+    setTimeout(() => {
+      createFloatingAnimation(animatedValue11, 4100, 0).start();
+    }, 5100);
+    
+    setTimeout(() => {
+      createFloatingAnimation(animatedValue12, 3700, 0).start();
+    }, 5600);
+    
+    setTimeout(() => {
+      createFloatingAnimation(animatedValue13, 4300, 0).start();
+    }, 6100);
+    
+    setTimeout(() => {
+      createFloatingAnimation(animatedValue14, 3900, 0).start();
+    }, 6600);
+    
+    setTimeout(() => {
+      createFloatingAnimation(animatedValue15, 4600, 0).start();
+    }, 7100);
+    
+    setTimeout(() => {
+      createFloatingAnimation(animatedValue16, 3500, 0).start();
+    }, 7600);
+    
+    setTimeout(() => {
+      createFloatingAnimation(animatedValue17, 4400, 0).start();
+    }, 8100);
+    
+    setTimeout(() => {
+      createFloatingAnimation(animatedValue18, 3800, 0).start();
+    }, 8600);
+    
+    setTimeout(() => {
+      createFloatingAnimation(animatedValue19, 4200, 0).start();
+    }, 9100);
+    
+    setTimeout(() => {
+      createFloatingAnimation(animatedValue20, 3600, 0).start();
+    }, 9600);
+    
+    setTimeout(() => {
+      createFloatingAnimation(animatedValue21, 4000, 0).start();
+    }, 10100);
+    
+    setTimeout(() => {
+      createFloatingAnimation(animatedValue22, 4500, 0).start();
+    }, 10600);
+    
+    setTimeout(() => {
+      createFloatingAnimation(animatedValue23, 3800, 0).start();
+    }, 11100);
+    
+    setTimeout(() => {
+      createFloatingAnimation(animatedValue24, 4100, 0).start();
+    }, 11600);
+    
+    setTimeout(() => {
+      createFloatingAnimation(animatedValue25, 3700, 0).start();
+    }, 12100);
   };
 
   // Reset card flash animation
@@ -584,6 +679,339 @@ export default function FlashcardStudyScreen() {
               }
             ]} 
           />
+          
+          {/* Additional background elements */}
+          <Animated.View 
+            style={[
+              styles.decorativeCircle5,
+              {
+                transform: [
+                  { translateY: animatedValue7.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, -16],
+                  })},
+                  { translateX: animatedValue7.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, 12],
+                  })}
+                ]
+              }
+            ]} 
+          />
+          <Animated.View 
+            style={[
+              styles.floatingTriangle1,
+              {
+                transform: [
+                  { translateY: animatedValue8.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, 11],
+                  })},
+                  { translateX: animatedValue8.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, -7],
+                  })}
+                ]
+              }
+            ]} 
+          />
+          <Animated.View 
+            style={[
+              styles.decorativeCircle6,
+              {
+                transform: [
+                  { translateY: animatedValue9.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, -13],
+                  })},
+                  { translateX: animatedValue9.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, 8],
+                  })}
+                ]
+              }
+            ]} 
+          />
+          <Animated.View 
+            style={[
+              styles.floatingHexagon1,
+              {
+                transform: [
+                  { translateY: animatedValue10.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, 17],
+                  })},
+                  { translateX: animatedValue10.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, -11],
+                  })}
+                ]
+              }
+            ]} 
+          />
+          <Animated.View 
+            style={[
+              styles.decorativeCircle7,
+              {
+                transform: [
+                  { translateY: animatedValue11.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, -9],
+                  })},
+                  { translateX: animatedValue11.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, 15],
+                  })}
+                ]
+              }
+            ]} 
+          />
+          <Animated.View 
+            style={[
+              styles.floatingStar1,
+              {
+                transform: [
+                  { translateY: animatedValue12.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, 12],
+                  })},
+                  { translateX: animatedValue12.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, -6],
+                  })}
+                ]
+              }
+            ]} 
+          />
+          
+          {/* Additional elements to fill sparse areas */}
+          <Animated.View 
+            style={[
+              styles.decorativeCircle8,
+              {
+                transform: [
+                  { translateY: animatedValue13.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, -14],
+                  })},
+                  { translateX: animatedValue13.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, 9],
+                  })}
+                ]
+              }
+            ]} 
+          />
+          <Animated.View 
+            style={[
+              styles.floatingSquare1,
+              {
+                transform: [
+                  { translateY: animatedValue14.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, 13],
+                  })},
+                  { translateX: animatedValue14.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, -8],
+                  })}
+                ]
+              }
+            ]} 
+          />
+          <Animated.View 
+            style={[
+              styles.decorativeCircle9,
+              {
+                transform: [
+                  { translateY: animatedValue15.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, -11],
+                  })},
+                  { translateX: animatedValue15.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, 7],
+                  })}
+                ]
+              }
+            ]} 
+          />
+          <Animated.View 
+            style={[
+              styles.floatingTriangle2,
+              {
+                transform: [
+                  { translateY: animatedValue16.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, 15],
+                  })},
+                  { translateX: animatedValue16.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, -10],
+                  })}
+                ]
+              }
+            ]} 
+          />
+          <Animated.View 
+            style={[
+              styles.decorativeCircle10,
+              {
+                transform: [
+                  { translateY: animatedValue17.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, -8],
+                  })},
+                  { translateX: animatedValue17.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, 11],
+                  })}
+                ]
+              }
+            ]} 
+          />
+          <Animated.View 
+            style={[
+              styles.floatingDiamond3,
+              {
+                transform: [
+                  { translateY: animatedValue18.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, 10],
+                  })},
+                  { translateX: animatedValue18.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, -5],
+                  })}
+                ]
+              }
+            ]} 
+          />
+          
+          {/* Additional elements for top-left and bottom-left areas */}
+          <Animated.View 
+            style={[
+              styles.decorativeCircle11,
+              {
+                transform: [
+                  { translateY: animatedValue19.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, -12],
+                  })},
+                  { translateX: animatedValue19.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, 6],
+                  })}
+                ]
+              }
+            ]} 
+          />
+          <Animated.View 
+            style={[
+              styles.floatingSquare2,
+              {
+                transform: [
+                  { translateY: animatedValue20.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, 14],
+                  })},
+                  { translateX: animatedValue20.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, -7],
+                  })}
+                ]
+              }
+            ]} 
+          />
+          
+          {/* More elements for the sparse top-left area */}
+          <Animated.View 
+            style={[
+              styles.decorativeCircle12,
+              {
+                transform: [
+                  { translateY: animatedValue21.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, -10],
+                  })},
+                  { translateX: animatedValue21.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, 8],
+                  })}
+                ]
+              }
+            ]} 
+          />
+          <Animated.View 
+            style={[
+              styles.floatingTriangle3,
+              {
+                transform: [
+                  { translateY: animatedValue22.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, 12],
+                  })},
+                  { translateX: animatedValue22.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, -4],
+                  })}
+                ]
+              }
+            ]} 
+          />
+          
+          {/* Elements to the right of the large white circle on the left */}
+          <Animated.View 
+            style={[
+              styles.decorativeCircle13,
+              {
+                transform: [
+                  { translateY: animatedValue23.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, -9],
+                  })},
+                  { translateX: animatedValue23.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, 5],
+                  })}
+                ]
+              }
+            ]} 
+          />
+          <Animated.View 
+            style={[
+              styles.floatingSquare3,
+              {
+                transform: [
+                  { translateY: animatedValue24.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, 11],
+                  })},
+                  { translateX: animatedValue24.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, -6],
+                  })}
+                ]
+              }
+            ]} 
+          />
+          <Animated.View 
+            style={[
+              styles.decorativeCircle14,
+              {
+                transform: [
+                  { translateY: animatedValue25.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, -13],
+                  })},
+                  { translateX: animatedValue25.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, 7],
+                  })}
+                ]
+              }
+            ]} 
+          />
         </View>
         
         <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -663,22 +1091,24 @@ export default function FlashcardStudyScreen() {
                 {currentCard.pronunciation && (
                   <Text style={styles.pronunciation}>{currentCard.pronunciation}</Text>
                 )}
-                <TouchableOpacity 
-                  style={[styles.audioButton, isAudioPlaying && styles.audioButtonPlaying]} 
-                  onPress={() => {
-                    // Play the word that's currently being shown
-                    const textToSpeak = studySession.showAnswer 
-                      ? (studySession.showNativeLanguage ? currentCard.front : currentCard.back)
-                      : (studySession.showNativeLanguage ? currentCard.back : currentCard.front);
-                    playPronunciation(textToSpeak);
-                  }}
-                >
-                  <Ionicons 
-                    name="volume-high" 
-                    size={20} 
-                    color={isAudioPlaying ? "#64748b" : "#6366f1"} 
-                  />
-                </TouchableOpacity>
+                {((!studySession.showAnswer && !studySession.showNativeLanguage) || (studySession.showAnswer && studySession.showNativeLanguage)) && (
+                  <TouchableOpacity 
+                    style={[styles.audioButton, isAudioPlaying && styles.audioButtonPlaying]} 
+                    onPress={() => {
+                      // Play the word that's currently being shown (target language only)
+                      const textToSpeak = studySession.showAnswer 
+                        ? (studySession.showNativeLanguage ? currentCard.front : currentCard.back)
+                        : (studySession.showNativeLanguage ? currentCard.back : currentCard.front);
+                      playPronunciation(textToSpeak);
+                    }}
+                  >
+                    <Ionicons 
+                      name="volume-high" 
+                      size={20} 
+                      color={isAudioPlaying ? "#64748b" : "#6366f1"} 
+                    />
+                  </TouchableOpacity>
+                )}
               </View>
               {currentCard.example && studySession.showAnswer && (
                 <Text style={styles.example}>Example: {currentCard.example}</Text>
@@ -1099,6 +1529,305 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.4,
     shadowRadius: 8,
+    elevation: 0,
+  },
+  // Additional background elements
+  decorativeCircle5: {
+    position: 'absolute',
+    top: '15%',
+    right: '20%',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(139, 92, 246, 0.12)',
+    shadowColor: '#8b5cf6',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 0,
+  },
+  floatingTriangle1: {
+    position: 'absolute',
+    top: '60%',
+    left: '15%',
+    width: 0,
+    height: 0,
+    backgroundColor: 'transparent',
+    borderStyle: 'solid',
+    borderLeftWidth: 12,
+    borderRightWidth: 12,
+    borderBottomWidth: 20,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderBottomColor: 'rgba(16, 185, 129, 0.18)',
+    transform: [{ rotate: '0deg' }],
+    shadowColor: '#10b981',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    elevation: 0,
+  },
+  decorativeCircle6: {
+    position: 'absolute',
+    bottom: '20%',
+    right: '15%',
+    width: 35,
+    height: 35,
+    borderRadius: 17.5,
+    backgroundColor: 'rgba(245, 158, 11, 0.14)',
+    shadowColor: '#f59e0b',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.35,
+    shadowRadius: 14,
+    elevation: 0,
+  },
+  floatingHexagon1: {
+    position: 'absolute',
+    top: '25%',
+    left: '70%',
+    width: 30,
+    height: 30,
+    backgroundColor: 'rgba(239, 68, 68, 0.16)',
+    transform: [{ rotate: '45deg' }],
+    shadowColor: '#ef4444',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.3,
+    shadowRadius: 11,
+    elevation: 0,
+  },
+  decorativeCircle7: {
+    position: 'absolute',
+    bottom: '45%',
+    left: '80%',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(168, 85, 247, 0.13)',
+    shadowColor: '#a855f7',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.32,
+    shadowRadius: 13,
+    elevation: 0,
+  },
+  floatingStar1: {
+    position: 'absolute',
+    top: '70%',
+    right: '35%',
+    width: 25,
+    height: 25,
+    backgroundColor: 'rgba(34, 197, 94, 0.15)',
+    transform: [{ rotate: '45deg' }],
+    shadowColor: '#22c55e',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.4,
+    shadowRadius: 9,
+    elevation: 0,
+  },
+  // Additional elements to fill sparse areas
+  decorativeCircle8: {
+    position: 'absolute',
+    top: '8%',
+    left: '25%',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(59, 130, 246, 0.14)',
+    shadowColor: '#3b82f6',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 0,
+  },
+  floatingSquare1: {
+    position: 'absolute',
+    top: '45%',
+    left: '8%',
+    width: 22,
+    height: 22,
+    backgroundColor: 'rgba(236, 72, 153, 0.16)',
+    transform: [{ rotate: '15deg' }],
+    shadowColor: '#ec4899',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 0,
+  },
+  decorativeCircle9: {
+    position: 'absolute',
+    top: '40%',
+    right: '25%',
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: 'rgba(251, 191, 36, 0.13)',
+    shadowColor: '#fbbf24',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.32,
+    shadowRadius: 9,
+    elevation: 0,
+  },
+  floatingTriangle2: {
+    position: 'absolute',
+    bottom: '30%',
+    left: '25%',
+    width: 0,
+    height: 0,
+    backgroundColor: 'transparent',
+    borderStyle: 'solid',
+    borderLeftWidth: 10,
+    borderRightWidth: 10,
+    borderBottomWidth: 18,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderBottomColor: 'rgba(99, 102, 241, 0.17)',
+    transform: [{ rotate: '30deg' }],
+    shadowColor: '#6366f1',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.4,
+    shadowRadius: 11,
+    elevation: 0,
+  },
+  decorativeCircle10: {
+    position: 'absolute',
+    bottom: '15%',
+    right: '45%',
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(14, 165, 233, 0.15)',
+    shadowColor: '#0ea5e9',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.33,
+    shadowRadius: 12,
+    elevation: 0,
+  },
+  floatingDiamond3: {
+    position: 'absolute',
+    top: '55%',
+    right: '10%',
+    width: 0,
+    height: 0,
+    backgroundColor: 'transparent',
+    borderStyle: 'solid',
+    borderLeftWidth: 8,
+    borderRightWidth: 8,
+    borderBottomWidth: 14,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderBottomColor: 'rgba(168, 85, 247, 0.18)',
+    transform: [{ rotate: '60deg' }],
+    shadowColor: '#a855f7',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.38,
+    shadowRadius: 10,
+    elevation: 0,
+  },
+  // Additional elements for top-left and bottom-left areas
+  decorativeCircle11: {
+    position: 'absolute',
+    top: '12%',
+    left: '15%',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(249, 115, 22, 0.14)',
+    shadowColor: '#f97316',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.3,
+    shadowRadius: 9,
+    elevation: 0,
+  },
+  floatingSquare2: {
+    position: 'absolute',
+    bottom: '25%',
+    left: '12%',
+    width: 20,
+    height: 20,
+    backgroundColor: 'rgba(6, 182, 212, 0.16)',
+    transform: [{ rotate: '25deg' }],
+    shadowColor: '#06b6d4',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.35,
+    shadowRadius: 7,
+    elevation: 0,
+  },
+  // More elements for the sparse top-left area
+  decorativeCircle12: {
+    position: 'absolute',
+    top: '5%',
+    left: '35%',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(147, 51, 234, 0.15)',
+    shadowColor: '#9333ea',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 0,
+  },
+  floatingTriangle3: {
+    position: 'absolute',
+    top: '20%',
+    left: '5%',
+    width: 0,
+    height: 0,
+    backgroundColor: 'transparent',
+    borderStyle: 'solid',
+    borderLeftWidth: 9,
+    borderRightWidth: 9,
+    borderBottomWidth: 16,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderBottomColor: 'rgba(34, 197, 94, 0.17)',
+    transform: [{ rotate: '45deg' }],
+    shadowColor: '#22c55e',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.4,
+    shadowRadius: 9,
+    elevation: 0,
+  },
+  // Elements to the right of the large white circle on the left
+  decorativeCircle13: {
+    position: 'absolute',
+    top: '35%',
+    left: '45%',
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: 'rgba(239, 68, 68, 0.14)',
+    shadowColor: '#ef4444',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 0,
+  },
+  floatingSquare3: {
+    position: 'absolute',
+    top: '50%',
+    left: '40%',
+    width: 18,
+    height: 18,
+    backgroundColor: 'rgba(168, 85, 247, 0.16)',
+    transform: [{ rotate: '20deg' }],
+    shadowColor: '#a855f7',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
+    elevation: 0,
+  },
+  decorativeCircle14: {
+    position: 'absolute',
+    top: '65%',
+    left: '38%',
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    shadowColor: '#10b981',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.32,
+    shadowRadius: 7,
     elevation: 0,
   },
   // Flashcard Study Session Styles
