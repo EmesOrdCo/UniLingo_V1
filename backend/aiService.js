@@ -35,6 +35,14 @@ const RATE_LIMITS = {
 // Now using Redis-backed rate limiter from rateLimiter.js and BullMQ for queues
 // This ensures proper horizontal scaling and shared state across instances
 
+// Legacy variables for backward compatibility (will be removed in future version)
+let requestQueue = [];
+let isProcessing = false;
+let circuitBreakerOpen = false;
+let requestsThisMinute = 0;
+let tokensThisMinute = 0;
+let currentMinute = 0;
+
 function calculateBackoffDelay(retryCount) {
   const exponentialDelay = Math.min(
     RATE_LIMITS.baseDelay * Math.pow(2, retryCount),
