@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Animated, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '../../contexts/AuthContext';
+import { VocabularyInterpretationService, InterpretedVocabulary } from '../../lib/vocabularyInterpretationService';
 import LeaveConfirmationModal from './LeaveConfirmationModal';
 
 interface LessonFlashcardsProps {
@@ -20,6 +22,7 @@ export default function LessonFlashcards({ vocabulary, onComplete, onClose, onPr
   const [viewedCards, setViewedCards] = useState<Set<number>>(new Set());
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   const flipAnimation = useRef(new Animated.Value(0)).current;
+  const { profile } = useAuth();
 
   // Safety check for vocabulary data
   if (!vocabulary || vocabulary.length === 0) {
@@ -33,7 +36,17 @@ export default function LessonFlashcards({ vocabulary, onComplete, onClose, onPr
     );
   }
 
-  const currentCard = vocabulary[currentIndex];
+  // Get user's language pair
+  const languagePair = {
+    native: profile?.native_language || 'English',
+    target: profile?.target_language || 'English'
+  };
+
+  // Interpret vocabulary based on language pair
+  const interpretedVocabulary = VocabularyInterpretationService.interpretVocabularyList(vocabulary, languagePair);
+  const languageDirection = VocabularyInterpretationService.getLanguageDirection(languagePair);
+  
+  const currentCard = interpretedVocabulary[currentIndex];
 
   // Update progress when card index changes
   useEffect(() => {
@@ -63,13 +76,13 @@ export default function LessonFlashcards({ vocabulary, onComplete, onClose, onPr
   };
 
   const nextCard = () => {
-    if (currentIndex < vocabulary.length - 1) {
+    if (currentIndex < interpretedVocabulary.length - 1) {
       setCurrentIndex(currentIndex + 1);
       setIsFlipped(false);
       flipAnimation.setValue(0);
     } else {
       // All cards viewed
-      onComplete(vocabulary.length);
+      onComplete(interpretedVocabulary.length);
     }
   };
 
@@ -99,7 +112,7 @@ export default function LessonFlashcards({ vocabulary, onComplete, onClose, onPr
     transform: [{ rotateY: backInterpolate }],
   };
 
-  const progressPercentage = ((currentIndex + 1) / vocabulary.length) * 100;
+  const progressPercentage = ((currentIndex + 1) / interpretedVocabulary.length) * 100;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -123,7 +136,7 @@ export default function LessonFlashcards({ vocabulary, onComplete, onClose, onPr
           <View style={[styles.progressFill, { width: `${progressPercentage}%` }]} />
         </View>
         <Text style={styles.progressText}>
-          {currentIndex + 1} of {vocabulary.length}
+          {currentIndex + 1} of {interpretedVocabulary.length}
         </Text>
       </View>
 
@@ -132,8 +145,8 @@ export default function LessonFlashcards({ vocabulary, onComplete, onClose, onPr
         <TouchableOpacity style={styles.card} onPress={flipCard} activeOpacity={0.9}>
           <Animated.View style={[styles.cardFace, styles.cardFront, frontAnimatedStyle]}>
             <View style={styles.cardContent}>
-              <Text style={styles.cardTitle}>Term</Text>
-              <Text style={styles.cardText}>{currentCard?.keywords || 'No term available'}</Text>
+              <Text style={styles.cardTitle}>{languageDirection.targetLanguageName} Term</Text>
+              <Text style={styles.cardText}>{currentCard?.frontTerm || 'No term available'}</Text>
               <View style={styles.flipHint}>
                 <Ionicons name="sync" size={16} color="#64748b" />
                 <Text style={styles.flipHintText}>Tap to flip</Text>
@@ -143,13 +156,13 @@ export default function LessonFlashcards({ vocabulary, onComplete, onClose, onPr
 
           <Animated.View style={[styles.cardFace, styles.cardBack, backAnimatedStyle]}>
             <View style={styles.cardContent}>
-              <Text style={styles.cardTitle}>Translation</Text>
-              <Text style={styles.cardText}>{currentCard?.native_translation || 'No translation available'}</Text>
+              <Text style={styles.cardTitle}>{languageDirection.nativeLanguageName} Translation</Text>
+              <Text style={styles.cardText}>{currentCard?.backTerm || 'No translation available'}</Text>
               {currentCard?.definition && (
                 <Text style={styles.definitionText}>Definition: {currentCard.definition}</Text>
               )}
-              {currentCard?.example_sentence_target && (
-                <Text style={styles.exampleText}>Example: {currentCard.example_sentence_target}</Text>
+              {currentCard?.frontExample && (
+                <Text style={styles.exampleText}>Example: {currentCard.frontExample}</Text>
               )}
               <View style={styles.flipHint}>
                 <Ionicons name="sync" size={16} color="#64748b" />

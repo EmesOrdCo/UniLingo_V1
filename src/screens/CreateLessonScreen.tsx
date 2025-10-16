@@ -57,9 +57,10 @@ export default function CreateLessonScreen() {
   // Source name for lessons
   const [sourceName, setSourceName] = useState('');
 
-  // Get user's subject and native language from profile
+  // Get user's subject and languages from profile
   const userSubject = profile?.subjects?.[0] || 'General';
   const userNativeLanguage = profile?.native_language || 'English';
+  const userTargetLanguage = profile?.target_language || 'English';
   
   // Use user's subject automatically
   const selectedSubject = userSubject;
@@ -190,6 +191,7 @@ export default function CreateLessonScreen() {
           'AI Selection', // Use AI Selection mode for automatic topic detection
           user?.id || '',
           userNativeLanguage || 'English',
+          userTargetLanguage || 'English', // Pass target language
           sourceName || file.name // Use custom source name if provided, otherwise filename
         );
         

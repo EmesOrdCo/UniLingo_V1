@@ -62,8 +62,9 @@ async function processQueue() {
 
     const request = requestQueue[0];
     
-    if (!canMakeRequest()) {
-      // Wait until we can make a request
+    // Check if we can make the request (simplified rate limiting)
+    if (requestQueue.length > 10) {
+      // Wait if queue is too long
       await new Promise(resolve => setTimeout(resolve, 1000));
       continue;
     }
@@ -109,14 +110,9 @@ async function executeRequest(executeFn, priority = 0, estimatedTokens = 0) {
       retryCount: 0
     };
 
-    if (canMakeRequest(estimatedTokens)) {
-      // Can execute immediately
-      requestQueue.unshift(request);
-    } else {
-      // Add to queue
-      requestQueue.push(request);
-      console.log(`📋 Request ${request.id} queued (priority: ${priority})`);
-    }
+    // Simplified rate limiting - just add to queue
+    requestQueue.push(request);
+    console.log(`📋 Request ${request.id} queued (priority: ${priority})`);
 
     // Start processing if not already running
     processQueue();
@@ -560,7 +556,7 @@ class AIService {
     }
   }
 
-  static async generateLesson(content, subject, topic, userId, nativeLanguage = 'English', sourceFileName = 'Unknown Source') {
+  static async generateLesson(content, subject, topic, userId, nativeLanguage = 'English', targetLanguage = 'English', sourceFileName = 'Unknown Source') {
     // Backend lesson generation now matches frontend LessonService.createLessonFromPDF exactly
     // Step 1: extractKeywordsFromPDF
     // Step 2: groupKeywordsIntoTopic  
@@ -587,7 +583,7 @@ class AIService {
       console.log(`📚 Topics created: ${topics.length} (proportional to ${keywords.length} keywords)`);
       
       // Step 3: Generate vocabulary from topics
-      const topicVocabulary = await this.generateVocabularyFromTopics(topics, subject, nativeLanguage, userId);
+      const topicVocabulary = await this.generateVocabularyFromTopics(topics, subject, nativeLanguage, targetLanguage, userId);
 
       // Step 4: Create separate lesson for each topic
       const createdLessons = [];
@@ -613,14 +609,32 @@ class AIService {
 
         // Store vocabulary for this lesson
         if (topic.vocabulary && topic.vocabulary.length > 0) {
-          const vocabularyWithLessonId = topic.vocabulary.map(vocab => ({
-            lesson_id: lesson.id,
-            keywords: vocab.english_term,
-            definition: vocab.definition,
-            native_translation: vocab.native_translation,
-            example_sentence_target: vocab.example_sentence_target,
-            example_sentence_native: vocab.example_sentence_native
-          }));
+          // Determine the language direction for mapping
+          const isEnglishTarget = targetLanguage === 'English' || targetLanguage === 'en-GB';
+          
+          const vocabularyWithLessonId = topic.vocabulary.map(vocab => {
+            if (isEnglishTarget) {
+              // English target language (current behavior)
+              return {
+                lesson_id: lesson.id,
+                keywords: vocab.english_term || vocab.target_term,
+                definition: vocab.definition,
+                native_translation: vocab.native_translation,
+                example_sentence_target: vocab.example_sentence_target,
+                example_sentence_native: vocab.example_sentence_native
+              };
+            } else {
+              // Non-English target language (reverse direction)
+              return {
+                lesson_id: lesson.id,
+                keywords: vocab.target_term || vocab.english_term,
+                definition: vocab.definition,
+                native_translation: vocab.target_translation || vocab.native_translation,
+                example_sentence_target: vocab.example_sentence_target_language || vocab.example_sentence_target,
+                example_sentence_native: vocab.example_sentence_native
+              };
+            }
+          });
 
           const { error: vocabError } = await supabase
             .from('lesson_vocabulary')
@@ -638,6 +652,7 @@ class AIService {
                 topic.vocabulary, 
                 subject, 
                 nativeLanguage, 
+                targetLanguage,
                 userId
               );
               
@@ -898,23 +913,31 @@ Requirements:
   }
 
   // Step 3: Generate vocabulary from topics (matches frontend generateVocabularyFromTopics)
-  static async generateVocabularyFromTopics(topics, subject, nativeLanguage, userId) {
+  static async generateVocabularyFromTopics(topics, subject, nativeLanguage, targetLanguage, userId) {
+    // Determine the language direction
+    const isEnglishTarget = targetLanguage === 'English' || targetLanguage === 'en-GB';
+    const targetTermField = isEnglishTarget ? 'english_term' : 'target_term';
+    const targetTranslationField = isEnglishTarget ? 'native_translation' : 'target_translation';
+    const targetExampleField = isEnglishTarget ? 'example_sentence_target' : 'example_sentence_target_language';
+    const nativeExampleField = isEnglishTarget ? 'example_sentence_native' : 'example_sentence_native';
+
     const prompt = `CRITICAL INSTRUCTION: You MUST ONLY create vocabulary entries for the EXACT keywords provided below. DO NOT add any additional terms or words that are not in the keyword list.
 
 Create vocabulary entries for ONLY these specific keywords. Return ONLY a JSON array:
 
 Topics: ${topics.map(topic => `${topic.topicName}: ${topic.keywords.join(', ')}`).join('\n')}
 Subject: ${subject}
-Language: ${nativeLanguage}
+Native Language: ${nativeLanguage}
+Target Language: ${targetLanguage}
 
 STRICT REQUIREMENTS:
 - ONLY use keywords that appear in the topic lists above
 - DO NOT invent, add, or suggest any additional vocabulary terms
 - Each keyword must become ONE vocabulary entry
-- The english_term field MUST exactly match a keyword from the lists above
+- The ${targetTermField} field MUST exactly match a keyword from the lists above
 
 Format:
-[{"topicName": "Topic Name", "vocabulary": [{"english_term": "EXACT keyword from list", "definition": "meaning", "native_translation": "translation", "example_sentence_target": "example", "example_sentence_native": "translated example"}]}]
+[{"topicName": "Topic Name", "vocabulary": [{"${targetTermField}": "EXACT keyword from list", "definition": "meaning", "${targetTranslationField}": "translation", "${targetExampleField}": "example in ${targetLanguage}", "${nativeExampleField}": "translated example in ${nativeLanguage}"}]}]
 
 Return ONLY the JSON array:`;
 
@@ -1449,15 +1472,29 @@ Return ONLY the JSON array:`;
   /**
    * Generate conversation script for lesson vocabulary
    */
-  static async generateConversationScript(lessonVocabulary, subject, nativeLanguage, userId) {
+  static async generateConversationScript(lessonVocabulary, subject, nativeLanguage, targetLanguage, userId) {
+    // Determine the language direction for conversation
+    const isEnglishTarget = targetLanguage === 'English' || targetLanguage === 'en-GB';
+    const targetLanguageName = isEnglishTarget ? 'English' : targetLanguage;
+    
+    // Get vocabulary terms based on language direction
+    const vocabularyTerms = lessonVocabulary.map(vocab => {
+      if (isEnglishTarget) {
+        return `- ${vocab.english_term || vocab.target_term}: ${vocab.definition}`;
+      } else {
+        return `- ${vocab.target_term || vocab.english_term}: ${vocab.definition}`;
+      }
+    }).join('\n');
+
     const prompt = `Create a natural 2-way conversation script based on the lesson vocabulary provided below.
 
 Subject: ${subject}
 User's Native Language: ${nativeLanguage}
+Target Language: ${targetLanguageName}
 Total Vocabulary Terms: ${lessonVocabulary.length}
 
 Lesson Vocabulary (ALL must be included):
-${lessonVocabulary.map(vocab => `- ${vocab.english_term}: ${vocab.definition}`).join('\n')}
+${vocabularyTerms}
 
 CRITICAL REQUIREMENTS:
 1. Create a casual but respectful conversation between "Assistant" and "User"
@@ -1465,7 +1502,7 @@ CRITICAL REQUIREMENTS:
 3. Create exactly 6-8 full exchanges (Assistant speaks, then User responds = 1 exchange)
 4. Distribute vocabulary evenly across ALL exchanges
 5. Start with Assistant greeting/introducing the topic
-6. Each User response should use 1-2 vocabulary terms naturally
+6. Each User response should use 1-2 vocabulary terms naturally in ${targetLanguageName}
 7. Keep responses conversational and natural, not forced
 8. Make the conversation flow logically and build on previous exchanges
 9. Ensure vocabulary is used in meaningful context, not just mentioned
@@ -1524,10 +1561,10 @@ Return ONLY the JSON object, no explanations or markdown formatting.`;
       
       // Estimate cost before making the API call
       const costEstimate = await this.estimateCost(userId, messages);
-      console.log(`💰 Estimated cost: $${costEstimate.toFixed(4)}`);
+      console.log(`💰 Estimated cost: $${costEstimate.estimatedCost.toFixed(4)}`);
 
-      if (!await this.canMakeRequest(costEstimate)) {
-        throw new Error('Rate limit exceeded or insufficient quota');
+      if (!costEstimate.canProceed) {
+        throw new Error(this.getCostExceededMessage(costEstimate));
       }
 
       const response = await openai.chat.completions.create({

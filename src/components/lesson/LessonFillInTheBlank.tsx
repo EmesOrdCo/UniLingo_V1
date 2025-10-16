@@ -3,6 +3,8 @@ import { View, Text, TouchableOpacity, StyleSheet, TextInput, Dimensions, Scroll
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { useAuth } from '../../contexts/AuthContext';
+import { VocabularyInterpretationService, InterpretedVocabulary } from '../../lib/vocabularyInterpretationService';
 import LeaveConfirmationModal from './LeaveConfirmationModal';
 
 interface LessonFillInTheBlankProps {
@@ -35,20 +37,31 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
   const [gameComplete, setGameComplete] = useState(false);
   const [showHint, setShowHint] = useState(false);
   const [showLeaveModal, setShowLeaveModal] = useState(false);
+  const { profile } = useAuth();
+
+  // Get user's language pair
+  const languagePair = {
+    native: profile?.native_language || 'English',
+    target: profile?.target_language || 'English'
+  };
+
+  // Interpret vocabulary based on language pair
+  const interpretedVocabulary = VocabularyInterpretationService.interpretVocabularyList(vocabulary, languagePair);
+  const languageDirection = VocabularyInterpretationService.getLanguageDirection(languagePair);
 
   // Generate questions from vocabulary
   React.useEffect(() => {
-    const generatedQuestions: FillInTheBlankQuestion[] = vocabulary
-      .filter(item => item && item.example_sentence_target && item.keywords)
+    const generatedQuestions: FillInTheBlankQuestion[] = interpretedVocabulary
+      .filter(item => item && item.frontExample && item.frontTerm)
       .map((item, index, array) => {
         // Generate wrong options ensuring uniqueness
         const wrongOptions = [];
-        const usedAnswers = new Set([item.keywords]);
+        const usedAnswers = new Set([item.frontTerm]);
         
         // Get all possible wrong answers (excluding current item)
         const possibleWrongAnswers = array
-          .filter(v => v.id !== item.id && v.keywords)
-          .map(v => v.keywords)
+          .filter(v => v !== item && v.frontTerm)
+          .map(v => v.frontTerm)
           .sort(() => Math.random() - 0.5);
         
         // Add unique wrong answers until we have 3
@@ -71,20 +84,20 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
         }
         
         // Combine with correct answer and shuffle
-        const options = [item.keywords, ...wrongOptions].sort(() => Math.random() - 0.5);
+        const options = [item.frontTerm, ...wrongOptions].sort(() => Math.random() - 0.5);
         
         return {
-          id: item.id,
-          sentence: item.example_sentence_target,
-          blankWord: item.keywords,
-          hint: item.definition || `Translation: ${item.native_translation || 'N/A'}`,
+          id: index.toString(), // Use index as ID since we're working with interpreted vocabulary
+          sentence: item.frontExample,
+          blankWord: item.frontTerm,
+          hint: item.definition || `Translation: ${item.backTerm || 'N/A'}`,
           options: options
         };
       })
-      .slice(0, Math.min(10, vocabulary.length)); // Limit to 10 questions
+      .slice(0, Math.min(10, interpretedVocabulary.length)); // Limit to 10 questions
 
     setQuestions(generatedQuestions);
-  }, [vocabulary]);
+  }, [interpretedVocabulary]);
 
   // Update progress when question index changes
   React.useEffect(() => {

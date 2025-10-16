@@ -21,9 +21,9 @@ export function LanguagesScreen() {
     if (!nativeLanguage) {
       setNativeLanguage('en-GB');
     }
-    // Hard code target language as English
+    // Set default target language (not hard-coded to English anymore)
     if (!targetLanguage) {
-      setTargetLanguage('en-GB');
+      setTargetLanguage('es'); // Default to Spanish as example
     }
   }, [nativeLanguage, setNativeLanguage, targetLanguage, setTargetLanguage]);
 
@@ -71,14 +71,14 @@ export function LanguagesScreen() {
     leftEmoji: lang.flagEmoji,
   }));
 
-  // Filter to only show English as the target language (hard coded)
+  // Show all languages except the selected native language as target options
   const targetLanguageOptions = languageOptions
-    .filter((lang: any) => lang.code === 'en-GB')
+    .filter((lang: any) => lang.code !== nativeLanguage) // Exclude native language
     .map((lang: any) => ({
       id: lang.code,
       title: lang.label,
       leftEmoji: lang.flagEmoji,
-      disabled: true, // Disable interaction
+      disabled: false, // Enable selection
     }));
 
   return (
@@ -112,8 +112,8 @@ export function LanguagesScreen() {
           <OptionGrid
             options={targetLanguageOptions}
             selectedIds={targetLanguage ? [targetLanguage] : []}
-            onSelectionChange={() => {}} // Disabled - hard coded to English
-            accessibilityLabel="Target language is set to English"
+            onSelectionChange={handleTargetLanguageChange} // Enable selection
+            accessibilityLabel="Select the language you want to learn"
           />
         </View>
       </View>

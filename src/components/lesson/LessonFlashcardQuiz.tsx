@@ -3,6 +3,8 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { useAuth } from '../../contexts/AuthContext';
+import { VocabularyInterpretationService, InterpretedVocabulary } from '../../lib/vocabularyInterpretationService';
 import LeaveConfirmationModal from './LeaveConfirmationModal';
 
 interface LessonFlashcardQuizProps {
@@ -30,6 +32,17 @@ export default function LessonFlashcardQuiz({ vocabulary, onComplete, onClose, o
   const [userAnswers, setUserAnswers] = useState<string[]>([]);
   const [reviewFilter, setReviewFilter] = useState<'all' | 'correct' | 'incorrect'>('all');
   const [showLeaveModal, setShowLeaveModal] = useState(false);
+  const { profile } = useAuth();
+
+  // Get user's language pair
+  const languagePair = {
+    native: profile?.native_language || 'English',
+    target: profile?.target_language || 'English'
+  };
+
+  // Interpret vocabulary based on language pair
+  const interpretedVocabulary = VocabularyInterpretationService.interpretVocabularyList(vocabulary, languagePair);
+  const languageDirection = VocabularyInterpretationService.getLanguageDirection(languagePair);
 
   useEffect(() => {
     try {
@@ -59,21 +72,21 @@ export default function LessonFlashcardQuiz({ vocabulary, onComplete, onClose, o
   const generateQuestions = () => {
     const quizQuestions: QuizQuestion[] = [];
     
-    vocabulary.forEach((vocab) => {
+    interpretedVocabulary.forEach((vocab) => {
       // Safety check to ensure vocab exists and has required properties
-      if (!vocab || !vocab.keywords || !vocab.native_translation) {
+      if (!vocab || !vocab.frontTerm || !vocab.backTerm) {
         console.warn('Skipping invalid vocabulary item:', vocab);
         return;
       }
       
       // Create translation question only
-      const translationOptions = [vocab.native_translation];
-      const usedAnswers = new Set([vocab.native_translation]);
+      const translationOptions = [vocab.backTerm];
+      const usedAnswers = new Set([vocab.backTerm]);
       
       // Get all possible wrong answers (excluding current item)
-      const possibleWrongAnswers = vocabulary
-        .filter(v => v.id !== vocab.id && v.native_translation)
-        .map(v => v.native_translation)
+      const possibleWrongAnswers = interpretedVocabulary
+        .filter(v => v !== vocab && v.backTerm)
+        .map(v => v.backTerm)
         .sort(() => Math.random() - 0.5);
       
       // Add unique wrong answers until we have 3
@@ -98,8 +111,8 @@ export default function LessonFlashcardQuiz({ vocabulary, onComplete, onClose, o
       const shuffledTranslationOptions = translationOptions.sort(() => Math.random() - 0.5);
       
       quizQuestions.push({
-        question: `What is the translation of "${vocab.keywords}"?`,
-        correctAnswer: vocab.native_translation,
+        question: `What is the ${languageDirection.nativeLanguageName.toLowerCase()} translation of "${vocab.frontTerm}"?`,
+        correctAnswer: vocab.backTerm,
         options: shuffledTranslationOptions,
         type: 'translation'
       });

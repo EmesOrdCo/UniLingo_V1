@@ -3,6 +3,8 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { useAuth } from '../../contexts/AuthContext';
+import { VocabularyInterpretationService, InterpretedVocabulary } from '../../lib/vocabularyInterpretationService';
 
 interface LessonSentenceScrambleProps {
   vocabulary: any[];
@@ -27,10 +29,21 @@ export default function LessonSentenceScramble({ vocabulary, onComplete, onClose
   const [showResult, setShowResult] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
   const [gameComplete, setGameComplete] = useState(false);
+  const { profile } = useAuth();
+
+  // Get user's language pair
+  const languagePair = {
+    native: profile?.native_language || 'English',
+    target: profile?.target_language || 'English'
+  };
+
+  // Interpret vocabulary based on language pair
+  const interpretedVocabulary = VocabularyInterpretationService.interpretVocabularyList(vocabulary, languagePair);
+  const languageDirection = VocabularyInterpretationService.getLanguageDirection(languagePair);
 
   useEffect(() => {
     generateQuestions();
-  }, [vocabulary]);
+  }, [interpretedVocabulary]);
 
   // Update progress when question index changes
   useEffect(() => {
@@ -48,9 +61,9 @@ export default function LessonSentenceScramble({ vocabulary, onComplete, onClose
   const generateQuestions = () => {
     const scrambleQuestions: ScrambleQuestion[] = [];
     
-    vocabulary.forEach((vocab) => {
-      // Handle both lesson vocabulary (example_sentence_target) and user flashcards (example)
-      const exampleSentence = vocab.example_sentence_target || vocab.example;
+    interpretedVocabulary.forEach((vocab) => {
+      // Use the front example (target language example)
+      const exampleSentence = vocab.frontExample;
       if (exampleSentence) {
         scrambleQuestions.push({
           sentence: exampleSentence,

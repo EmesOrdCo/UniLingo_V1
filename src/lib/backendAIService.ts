@@ -4,6 +4,7 @@ export interface BackendAIResponse {
   success: boolean;
   flashcards?: any[];
   lesson?: any;
+  lessons?: any[];
   tokenUsage?: number;
   error?: string;
 }
@@ -81,6 +82,7 @@ class BackendAIService {
     topic: string,
     userId: string,
     nativeLanguage: string = 'English',
+    targetLanguage?: string,
     sourceFileName?: string
   ): Promise<BackendAIResponse> {
     try {
@@ -97,6 +99,7 @@ class BackendAIService {
           topic,
           userId,
           nativeLanguage,
+          targetLanguage,
           sourceFileName,
         }),
       });
