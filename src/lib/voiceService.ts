@@ -1,6 +1,6 @@
 import * as Speech from 'expo-speech';
 import { ENV } from './envConfig';
-import AWSPollyService from './awsPollyService';
+import { AWSPollyService } from './awsPollyService';
 
 export interface VoiceServiceConfig {
   language?: string;
