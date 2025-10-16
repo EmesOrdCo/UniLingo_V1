@@ -17,6 +17,7 @@ export const VideoBackground: React.FC<VideoBackgroundProps> = ({ category, isMu
   const [isLoading, setIsLoading] = useState(false);
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const videoRef = useRef<Video>(null);
+  const videoStartTimeout = useRef<NodeJS.Timeout | null>(null);
 
   // Get videos from Supabase Storage based on category using direct URLs
   const fetchVideos = async (selectedCategory: string) => {
@@ -46,24 +47,14 @@ export const VideoBackground: React.FC<VideoBackgroundProps> = ({ category, isMu
           'GTA/GTA_5.mp4',
           'GTA/GTA_6.mp4',
           'GTA/GTA_7.mp4',
-          'GTA/GTA_8.mp4',
-          'GTA/GTA_9.mp4',
-          'GTA/GTA_10.mp4',
-          'GTA/GTA_11.mp4',
-          'GTA/GTA_12.mp4'
+          'GTA/GTA_8.mp4'
         ],
         'subway_surfers': [
           'Subway_Surfers/SubwaySurfer_1.mp4',
           'Subway_Surfers/SubwaySurfer_2.mp4',
           'Subway_Surfers/SubwaySurfer_3.mp4',
           'Subway_Surfers/SubwaySurfer_4.mp4',
-          'Subway_Surfers/SubwaySurfer_5.mp4',
-          'Subway_Surfers/SubwaySurfer_6.mp4',
-          'Subway_Surfers/SubwaySurfer_7.mp4',
-          'Subway_Surfers/SubwaySurfer_8.mp4',
-          'Subway_Surfers/SubwaySurfer_9.mp4',
-          'Subway_Surfers/SubwaySurfer_10.mp4',
-          'Subway_Surfers/SubwaySurfer_11.mp4'
+          'Subway_Surfers/SubwaySurfer_5.mp4'
         ]
       };
       
@@ -119,10 +110,22 @@ export const VideoBackground: React.FC<VideoBackgroundProps> = ({ category, isMu
   const selectRandomVideo = () => {
     if (videos.length === 0) return;
     
+    // Clear any existing timeout
+    if (videoStartTimeout.current) {
+      clearTimeout(videoStartTimeout.current);
+      videoStartTimeout.current = null;
+    }
+    
     const randomIndex = Math.floor(Math.random() * videos.length);
     const newVideo = videos[randomIndex];
     setCurrentVideo(newVideo);
     console.log(`🎲 Selected random video: ${newVideo.split('/').pop()}`);
+    
+    // Set a timeout to detect if video gets stuck on first frame
+    videoStartTimeout.current = setTimeout(() => {
+      console.log('⏰ Video timeout - appears to be stuck on first frame, moving to next video');
+      fadeToNextVideo();
+    }, 5000); // 5 second timeout
   };
 
   // Select initial video when videos are loaded OR switch immediately when category changes
@@ -132,11 +135,32 @@ export const VideoBackground: React.FC<VideoBackgroundProps> = ({ category, isMu
     }
   }, [videos]);
 
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (videoStartTimeout.current) {
+        clearTimeout(videoStartTimeout.current);
+      }
+    };
+  }, []);
+
   // Handle video end - select next random video
   const handlePlaybackStatusUpdate = (status: any) => {
-    if (status.isLoaded && status.didJustFinish) {
-      console.log('🎬 Video finished, selecting next random video');
-      fadeToNextVideo();
+    if (status.isLoaded) {
+      if (status.didJustFinish) {
+        console.log('🎬 Video finished, selecting next random video');
+        fadeToNextVideo();
+      } else if (status.isPlaying === false && status.positionMillis > 0) {
+        // Video is loaded but not playing (might be paused or stuck)
+        console.log('🎬 Video appears to be stuck, attempting to restart');
+        if (videoRef.current) {
+          videoRef.current.playAsync().catch(error => {
+            console.error('❌ Error restarting stuck video:', error);
+            // If restart fails, move to next video
+            setTimeout(() => fadeToNextVideo(), 1000);
+          });
+        }
+      }
     }
   };
 
@@ -176,11 +200,41 @@ export const VideoBackground: React.FC<VideoBackgroundProps> = ({ category, isMu
           resizeMode={ResizeMode.COVER}
           onPlaybackStatusUpdate={handlePlaybackStatusUpdate}
           onLoadStart={() => setIsLoading(true)}
-          onLoad={() => setIsLoading(false)}
+          onLoad={() => {
+            setIsLoading(false);
+            console.log('🎬 Video loaded successfully');
+            // Force play to prevent freezing on first frame
+            if (videoRef.current) {
+              videoRef.current.playAsync().then(() => {
+                // Clear timeout since video started successfully
+                if (videoStartTimeout.current) {
+                  clearTimeout(videoStartTimeout.current);
+                  videoStartTimeout.current = null;
+                }
+                console.log('✅ Video playback started successfully');
+              }).catch(error => {
+                console.error('❌ Error starting video playback:', error);
+                // Try next video if current one fails to start
+                setTimeout(() => fadeToNextVideo(), 1000);
+              });
+            }
+          }}
           onError={(error) => {
             console.error('❌ Video playback error:', error);
             // Try next video on error
             setTimeout(() => fadeToNextVideo(), 1000);
+          }}
+          // Add these props to prevent freezing
+          useNativeControls={false}
+          progressUpdateIntervalMillis={1000}
+          // Ensure video starts playing immediately
+          onReadyForDisplay={() => {
+            console.log('🎬 Video ready for display');
+            if (videoRef.current) {
+              videoRef.current.playAsync().catch(error => {
+                console.error('❌ Error playing video on ready:', error);
+              });
+            }
           }}
         />
       </Animated.View>

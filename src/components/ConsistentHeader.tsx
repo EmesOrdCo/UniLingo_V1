@@ -109,8 +109,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingTop: 16,
+    paddingBottom: 40,
     backgroundColor: '#ffffff',
+    borderBottomWidth: 0,
+    borderBottomColor: 'transparent',
   },
   headerLeft: {
     flex: 1,

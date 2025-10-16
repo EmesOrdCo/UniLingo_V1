@@ -134,6 +134,46 @@ export class AWSPollyService {
   }
 
   /**
+   * Convert language name to proper language code
+   */
+  static getLanguageCodeFromName(languageName: string): string {
+    const languageMap: { [key: string]: string } = {
+      'English': 'en-US',
+      'Spanish': 'es-ES', 
+      'French': 'fr-FR',
+      'German': 'de-DE',
+      'Italian': 'it-IT',
+      'Portuguese': 'pt-BR',
+      'Japanese': 'ja-JP',
+      'Korean': 'ko-KR',
+      'Chinese (Simplified)': 'zh-CN',
+      'Chinese (Traditional)': 'zh-TW',
+      'Arabic': 'ar-SA',
+      'Hindi': 'hi-IN',
+      'Russian': 'ru-RU',
+      'Dutch': 'nl-NL',
+      'Swedish': 'sv-SE',
+      'Norwegian': 'nb-NO',
+      'Danish': 'da-DK',
+      'Finnish': 'fi-FI',
+      'Polish': 'pl-PL',
+      'Turkish': 'tr-TR',
+      'Czech': 'cs-CZ',
+      'Romanian': 'ro-RO',
+      'Hungarian': 'hu-HU',
+      'Greek': 'el-GR',
+      'Hebrew': 'he-IL',
+      'Thai': 'th-TH',
+      'Vietnamese': 'vi-VN',
+      'Indonesian': 'id-ID',
+      'Malay': 'ms-MY',
+      'Filipino': 'fil-PH'
+    };
+    
+    return languageMap[languageName] || 'en-US'; // Default to en-US
+  }
+
+  /**
    * Get appropriate voice for user's language
    */
   static getVoiceForLanguage(languageCode: string): string {

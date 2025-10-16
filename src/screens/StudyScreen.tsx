@@ -177,7 +177,7 @@ export default function StudyScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#ffffff',
   },
   header: {
     flexDirection: 'row',
@@ -195,7 +195,9 @@ const styles = StyleSheet.create({
   backButtonContainer: {
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#ffffff',
+    marginTop: 0,
+    marginBottom: 0,
   },
   backButtonText: {
     color: '#6366f1',
@@ -214,7 +216,7 @@ const styles = StyleSheet.create({
   progressContainer: {
     paddingHorizontal: 20,
     paddingVertical: 15,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#ffffff',
   },
   progressText: {
     fontSize: 14,

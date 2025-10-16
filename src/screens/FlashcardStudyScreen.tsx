@@ -429,15 +429,20 @@ export default function FlashcardStudyScreen() {
     console.log('🎵 Set audio playing to true');
     
     try {
-      // Get user's language for voice selection
-      const userLanguage = profile?.target_language || 'en-US';
-      const voiceId = AWSPollyService.getVoiceForLanguage(userLanguage);
+      // Get user's target language from profile and convert to proper language code
+      const userLanguageName = profile?.target_language;
+      if (!userLanguageName) {
+        throw new Error('User target language not found in profile');
+      }
       
-      console.log('🎤 Using AWS Polly with voice:', voiceId, 'for language:', userLanguage);
+      const languageCode = AWSPollyService.getLanguageCodeFromName(userLanguageName);
+      const voiceId = AWSPollyService.getVoiceForLanguage(languageCode);
+      
+      console.log('🎤 Using AWS Polly with voice:', voiceId, 'for language:', languageCode, '(from user target language:', userLanguageName, ')');
       
       await AWSPollyService.playSpeech(text, {
         voiceId,
-        languageCode: userLanguage,
+        languageCode: languageCode,
         engine: 'standard', // Use standard engine for cost efficiency
         rate: 0.9, // Slightly slower for clarity
         pitch: 1.0,

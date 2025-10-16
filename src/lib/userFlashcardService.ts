@@ -314,7 +314,7 @@ export class UserFlashcardService {
   // Get native language options
   static getNativeLanguageOptions(): string[] {
     return [
-      'Chinese (Mandarin)',
+      'Chinese (Simplified)',
       'Chinese (Cantonese)',
       'Spanish',
       'French',

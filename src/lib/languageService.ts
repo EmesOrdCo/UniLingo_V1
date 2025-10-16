@@ -27,7 +27,7 @@ export function getSpeechLanguageCode(databaseLanguageCode: string | null | unde
     'pt': 'pt',       // Portuguese -> Portuguese
     'sv': 'sv',       // Swedish -> Swedish
     'tr': 'tr',       // Turkish -> Turkish
-    'zh': 'zh',       // Chinese/Mandarin -> Chinese
+    'zh': 'zh',       // Chinese (Simplified) -> Chinese
   };
 
   return languageMap[databaseLanguageCode] || 'en';
