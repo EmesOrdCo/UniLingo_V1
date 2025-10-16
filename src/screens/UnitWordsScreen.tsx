@@ -15,6 +15,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { UnitDataAdapter, UnitVocabularyItem } from '../lib/unitDataAdapter';
 import { logger } from '../lib/logger';
+import * as Speech from 'expo-speech';
 
 export default function UnitWordsScreen() {
   const navigation = useNavigation();
@@ -226,6 +227,24 @@ export default function UnitWordsScreen() {
     setShowExitModal(false);
   };
 
+  const handleSpeakWord = (word: string) => {
+    try {
+      // Stop any currently speaking text
+      Speech.stop();
+      
+      // Speak the word with appropriate language settings
+      Speech.speak(word, {
+        language: 'en-US', // English language
+        pitch: 1.0,
+        rate: 0.8,
+      });
+      
+      logger.info(`🔊 Speaking word: ${word}`);
+    } catch (error) {
+      logger.error('Error speaking word:', error);
+    }
+  };
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -262,10 +281,13 @@ export default function UnitWordsScreen() {
             {vocabulary.map((word, index) => (
               <View key={index} style={styles.wordCard}>
                 <View style={styles.wordTextContainer}>
-                  <Text style={styles.wordEnglish}>{word.french}</Text>
-                  <Text style={styles.wordFrench}>{word.english}</Text>
+                  <Text style={styles.wordEnglish}>{word.english}</Text>
+                  <Text style={styles.wordFrench}>{word.french}</Text>
                 </View>
-                <TouchableOpacity style={styles.audioButton}>
+                <TouchableOpacity 
+                  style={styles.audioButton}
+                  onPress={() => handleSpeakWord(word.english)}
+                >
                   <Ionicons name="volume-high" size={24} color="#6366f1" />
                 </TouchableOpacity>
               </View>

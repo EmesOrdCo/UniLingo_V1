@@ -112,53 +112,53 @@ export default function UnitListenScreen() {
     
     // First: Words - multiple choice
     for (let i = 0; i < vocabulary.length; i++) {
-      const correctAnswer = vocabulary[i].french;
+      const correctAnswer = vocabulary[i].english; // Target language text
       const wrongAnswers = vocabulary
         .filter((_, idx) => idx !== i)
-        .map(v => v.french)
+        .map(v => v.english) // Target language text
         .sort(() => Math.random() - 0.5)
         .slice(0, 1);
       
       questions.push({
         type: 'word-choice' as const,
-        audio: vocabulary[i].french,
+        audio: vocabulary[i].english, // Target language text
         correctAnswer,
         options: [correctAnswer, ...wrongAnswers].sort(() => Math.random() - 0.5),
-        translation: vocabulary[i].english,
+        translation: vocabulary[i].french, // Native language translation
       });
     }
     
     // Next: Sentences - multiple choice
     for (let i = 0; i < sentences.length; i++) {
-      const correctAnswer = sentences[i].french;
+      const correctAnswer = sentences[i].english; // Target language text
       const wrongAnswers = sentences
         .filter((_, idx) => idx !== i)
-        .map(v => v.french)
+        .map(v => v.english) // Target language text
         .sort(() => Math.random() - 0.5)
         .slice(0, 1);
       
       questions.push({
         type: 'sentence-choice' as const,
-        audio: sentences[i].french,
+        audio: sentences[i].english, // Target language text
         correctAnswer,
         options: [correctAnswer, ...wrongAnswers].sort(() => Math.random() - 0.5),
-        translation: sentences[i].english,
+        translation: sentences[i].french, // Native language translation
       });
     }
     
     // Last: Sentence scramble
     const scrambleSentences = [...sentences, ...sentences, ...sentences].slice(0, Math.max(7, vocabulary.length));
     for (let i = 0; i < scrambleSentences.length; i++) {
-      const words = scrambleSentences[i].french.split(' ');
+      const words = scrambleSentences[i].english.split(' '); // Split target language text
       const scrambled = [...words].sort(() => Math.random() - 0.5);
       
       questions.push({
         type: 'scramble' as const,
-        audio: scrambleSentences[i].french,
-        correctAnswer: scrambleSentences[i].french,
+        audio: scrambleSentences[i].english, // Target language text
+        correctAnswer: scrambleSentences[i].english, // Target language text
         words: words,
         scrambled: scrambled,
-        translation: scrambleSentences[i].english,
+        translation: scrambleSentences[i].french, // Native language translation
       });
     }
     
@@ -192,13 +192,48 @@ export default function UnitListenScreen() {
     
     try {
       setIsPlaying(true);
+      
+      // Determine the correct language code based on user's target language
+      const getLanguageCode = (targetLanguage: string) => {
+        const languageMap: { [key: string]: string } = {
+          'English': 'en-US',
+          'French': 'fr-FR',
+          'Spanish': 'es-ES',
+          'German': 'de-DE',
+          'Italian': 'it-IT',
+          'Portuguese': 'pt-PT',
+          'Chinese (Simplified)': 'zh-CN',
+          'Chinese (Traditional)': 'zh-TW',
+          'Japanese': 'ja-JP',
+          'Korean': 'ko-KR',
+          'Arabic': 'ar-SA',
+          'Russian': 'ru-RU',
+          'Dutch': 'nl-NL',
+          'Danish': 'da-DK',
+          'Finnish': 'fi-FI',
+          'Polish': 'pl-PL',
+          'Thai': 'th-TH',
+          'Vietnamese': 'vi-VN',
+        };
+        return languageMap[targetLanguage] || 'en-US'; // Default to English
+      };
+      
+      // The question.audio contains the target language text
+      // We need to determine what language the user is learning (target language)
+      const userTargetLanguage = profile?.target_language || 'English';
+      const languageCode = getLanguageCode(userTargetLanguage);
+      
       await Speech.speak(question.audio, {
-        language: 'fr-FR',
+        language: languageCode,
         rate: speed,
+        pitch: 1.0,
       });
+      
+      logger.info(`🔊 Speaking: ${question.audio} in ${languageCode}`);
       setTimeout(() => setIsPlaying(false), 2000);
     } catch (error) {
       console.error('Error playing audio:', error);
+      logger.error('Error playing audio:', error);
       setIsPlaying(false);
     }
   };
@@ -469,9 +504,6 @@ export default function UnitListenScreen() {
           >
             <Ionicons name="play" size={48} color="#6366f1" />
           </TouchableOpacity>
-          {question.type !== 'scramble' && (
-            <Text style={styles.translationText}>{question.translation}</Text>
-          )}
         </View>
 
         {/* Multiple Choice Options */}
@@ -698,11 +730,6 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: '#6366f1',
     marginBottom: 16,
-  },
-  translationText: {
-    fontSize: 16,
-    color: '#6b7280',
-    textAlign: 'center',
   },
   optionsContainer: {
     gap: 12,
