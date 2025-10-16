@@ -282,7 +282,7 @@ class AIService {
       });
 
       const content = response.choices[0]?.message?.content || '';
-      updateUsage(response.usage?.total_tokens || 0);
+      // Note: Token usage is now tracked via database calls below
 
       // Record token usage in user's database entry
       if (response.usage && userId) {
@@ -556,7 +556,7 @@ class AIService {
       console.error('Flashcard generation error:', error);
       
       if (error?.status === 429) {
-        openCircuitBreaker();
+        // Circuit breaker is handled automatically by the openaiCircuitBreaker
         throw new Error('Rate limit exceeded. Please try again in a moment.');
       }
       
@@ -698,7 +698,7 @@ class AIService {
       console.error('Lesson generation error:', error);
       
       if (error?.status === 429) {
-        openCircuitBreaker();
+        // Circuit breaker is handled automatically by the openaiCircuitBreaker
         throw new Error('Rate limit exceeded. Please try again in a moment.');
       }
       
@@ -760,7 +760,7 @@ Content: ${content}`;
       );
 
       const content = response.choices[0]?.message?.content || '';
-      updateUsage(response.usage?.total_tokens || 0);
+      // Note: Token usage is now tracked via database calls below
 
       // Record token usage in user's database entry
       if (response.usage && userId) {
@@ -870,7 +870,7 @@ Requirements:
       );
 
       const content = response.choices[0]?.message?.content || '';
-      updateUsage(response.usage?.total_tokens || 0);
+      // Note: Token usage is now tracked via database calls below
 
       // Record token usage in user's database entry
       if (response.usage && userId) {
@@ -984,7 +984,7 @@ Return ONLY the JSON array:`;
       );
 
       const content = response.choices[0]?.message?.content || '';
-      updateUsage(response.usage?.total_tokens || 0);
+      // Note: Token usage is now tracked via database calls below
 
       // Record token usage in user's database entry
       if (response.usage && userId) {
@@ -1582,8 +1582,7 @@ Return ONLY the JSON object, no explanations or markdown formatting.`;
         max_tokens: 2000, // Increased for longer conversations
       });
 
-      // Update rate limiting counters
-      this.updateRateLimitCounters(costEstimate);
+      // Note: Rate limiting is now handled by Redis-backed rate limiter
 
       const content = response.choices[0]?.message?.content?.trim();
       
