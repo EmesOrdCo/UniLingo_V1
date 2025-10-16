@@ -807,7 +807,7 @@ app.post('/api/test-processing', async (req, res) => {
 // Returns immediately with job ID, processes in background worker
 app.post('/api/ai/generate-flashcards', aiLimiter, userRateLimit('ai'), async (req, res) => {
   try {
-    const { content, subject, topic, userId, nativeLanguage, showNativeLanguage } = req.body;
+    const { content, subject, topic, userId, nativeLanguage, targetLanguage } = req.body;
     
     // Validate required fields
     if (!content || !subject || !topic || !userId) {
@@ -834,7 +834,7 @@ app.post('/api/ai/generate-flashcards', aiLimiter, userRateLimit('ai'), async (r
     console.log(`📚 Topic: ${topic}`);
     console.log(`👤 User: ${userId}`);
     console.log(`🌍 Native Language: ${nativeLanguage || 'English'}`);
-    console.log(`🔄 Show Native Language: ${showNativeLanguage || false}`);
+    console.log(`🎯 Target Language: ${targetLanguage || 'English'}`);
     console.log(`📄 Content length: ${content.length} characters`);
     console.log('🤖'.repeat(20) + '\n');
 
@@ -845,7 +845,7 @@ app.post('/api/ai/generate-flashcards', aiLimiter, userRateLimit('ai'), async (r
       topic,
       userId,
       nativeLanguage: nativeLanguage || 'English',
-      showNativeLanguage: showNativeLanguage || false
+      targetLanguage: targetLanguage || 'English'
     });
     
     console.log(`✅ Job enqueued successfully: ${jobId}`);

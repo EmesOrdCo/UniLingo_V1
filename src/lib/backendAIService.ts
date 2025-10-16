@@ -38,7 +38,7 @@ class BackendAIService {
     topic: string,
     userId: string,
     nativeLanguage: string = 'English',
-    showNativeLanguage: boolean = false
+    targetLanguage: string = 'English'
   ): Promise<BackendAIResponse> {
     try {
       console.log('🤖 Requesting flashcard generation from backend...');
@@ -54,7 +54,7 @@ class BackendAIService {
           topic,
           userId,
           nativeLanguage,
-          showNativeLanguage,
+          targetLanguage,
         }),
       });
 

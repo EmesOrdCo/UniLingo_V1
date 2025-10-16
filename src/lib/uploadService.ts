@@ -187,7 +187,7 @@ export class UploadService {
     subject: string,
     topic: string,
     nativeLanguage: string,
-    showNativeLanguage: boolean = false,
+    targetLanguage: string = 'English',
     onProgress?: (progress: UploadProgress) => void,
     abortSignal?: AbortSignal,
     isCancelled?: () => boolean,
@@ -221,7 +221,7 @@ export class UploadService {
           topic, 
           userId, 
           nativeLanguage, 
-          showNativeLanguage
+          targetLanguage
         );
         
         if (backendResult.success && backendResult.flashcards) {

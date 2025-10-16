@@ -157,7 +157,7 @@ async function processJob(job) {
  * @returns {Object} - Flashcard generation result
  */
 async function handleGenerateFlashcards(job) {
-  const { content, subject, topic, userId, nativeLanguage, showNativeLanguage } = job.data;
+  const { content, subject, topic, userId, nativeLanguage, targetLanguage } = job.data;
 
   console.log(`🤖 Processing flashcard generation...`);
   console.log(`   Subject: ${subject}`);
@@ -180,7 +180,7 @@ async function handleGenerateFlashcards(job) {
           topic,
           userId,
           nativeLanguage || 'English',
-          showNativeLanguage || false
+          targetLanguage || 'English'
         );
       }, {
         maxAttempts: 3,

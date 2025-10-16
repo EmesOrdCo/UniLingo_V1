@@ -129,7 +129,7 @@ async function executeRequest(executeFn, priority = 0, estimatedTokens = 0) {
 
 // AI Service functions
 class AIService {
-  static async generateFlashcards(content, subject, topic, userId, nativeLanguage = 'English', showNativeLanguage = false) {
+  static async generateFlashcards(content, subject, topic, userId, nativeLanguage = 'English', targetLanguage = 'English') {
     // Match frontend prompt structure exactly
     let prompt;
     
@@ -140,6 +140,7 @@ class AIService {
         
         Subject: ${subject}
         User's Native Language: ${nativeLanguage}
+        Target Language: ${targetLanguage}
         
         Text content:
         ${content}
@@ -148,7 +149,12 @@ class AIService {
         
         Focus on extracting ALL important ${subject} terminology, concepts, and vocabulary from this content.
         
-        CRITICAL INSTRUCTION: You MUST create terminology flashcards with English terms on the front and ${nativeLanguage} translations on the back. DO NOT put English definitions on the back.
+        CRITICAL INSTRUCTION: You MUST create terminology flashcards based on the learning direction:
+        ${targetLanguage === 'English' || targetLanguage === 'en-GB' ? 
+          `- Front: ${targetLanguage} terms/concepts (what the user is learning)
+           - Back: ${nativeLanguage} translations (user's native language)` :
+          `- Front: ${targetLanguage} terms/concepts (what the user is learning)  
+           - Back: ${nativeLanguage} translations (user's native language)`}
         
         EXAMPLE SENTENCE GUIDELINES:
         - MANDATORY: Every flashcard MUST have an example sentence
@@ -163,12 +169,12 @@ class AIService {
         Generate flashcards in the following JSON format:
         [
           {
-            "front": "English terminology or concept",
-            "back": "${nativeLanguage} translation ONLY (no English)",
+            "front": "${targetLanguage === 'English' || targetLanguage === 'en-GB' ? 'English terminology or concept' : targetLanguage + ' terminology or concept'}",
+            "back": "${nativeLanguage} translation ONLY (no ${targetLanguage})",
             "topic": "Detected topic name based on content analysis",
             "difficulty": "beginner|intermediate|expert",
-            "example": "MANDATORY: Example sentence in English that MUST contain the front term",
-            "pronunciation": "Optional pronunciation guide for English term",
+            "example": "MANDATORY: Example sentence in ${targetLanguage === 'English' || targetLanguage === 'en-GB' ? 'English' : targetLanguage} that MUST contain the front term",
+            "pronunciation": "Optional pronunciation guide for ${targetLanguage === 'English' || targetLanguage === 'en-GB' ? 'English' : targetLanguage} term",
           }
         ]
         
@@ -179,9 +185,9 @@ class AIService {
         - CRITICAL: Each topic MUST have at least 5 flashcards - NO EXCEPTIONS
         - If you cannot create 5+ flashcards for a topic, merge it with another topic
         - Focus on KEY TERMINOLOGY and IMPORTANT CONCEPTS from the text
-        - Front: English term/concept (e.g., "Cardiology", "Inflammation", "Surgical removal")
-        - Back: ${nativeLanguage} translation of the English term
-        - Example: MUST include a clear, simple example sentence in English that demonstrates how the term is used in context. The example MUST contain the exact front term. Keep the sentence straightforward with the target term being the main focus, but prioritize relevance over simplicity
+        - Front: ${targetLanguage === 'English' || targetLanguage === 'en-GB' ? 'English' : targetLanguage} term/concept (e.g., "Cardiology", "Inflammation", "Surgical removal")
+        - Back: ${nativeLanguage} translation of the ${targetLanguage === 'English' || targetLanguage === 'en-GB' ? 'English' : targetLanguage} term
+        - Example: MUST include a clear, simple example sentence in ${targetLanguage === 'English' || targetLanguage === 'en-GB' ? 'English' : targetLanguage} that demonstrates how the term is used in context. The example MUST contain the exact front term. Keep the sentence straightforward with the target term being the main focus, but prioritize relevance over simplicity
         - Vary difficulty levels appropriately for each topic
         - Make cards suitable for language learning and terminology study
         - Ensure accuracy and educational value
@@ -195,13 +201,19 @@ class AIService {
         Subject: ${subject}
         Topic: ${topic}
         User's Native Language: ${nativeLanguage}
+        Target Language: ${targetLanguage}
         
         Text content:
         ${content}
         
         Focus on extracting ALL important ${subject} terminology, concepts, and vocabulary from this content.
         
-        CRITICAL INSTRUCTION: You MUST create terminology flashcards with English terms on the front and ${nativeLanguage} translations on the back. DO NOT put English definitions on the back.
+        CRITICAL INSTRUCTION: You MUST create terminology flashcards based on the learning direction:
+        ${targetLanguage === 'English' || targetLanguage === 'en-GB' ? 
+          `- Front: ${targetLanguage} terms/concepts (what the user is learning)
+           - Back: ${nativeLanguage} translations (user's native language)` :
+          `- Front: ${targetLanguage} terms/concepts (what the user is learning)  
+           - Back: ${nativeLanguage} translations (user's native language)`}
         
         EXAMPLE SENTENCE GUIDELINES:
         - MANDATORY: Every flashcard MUST have an example sentence
@@ -216,30 +228,30 @@ class AIService {
         Generate flashcards in the following JSON format:
         [
           {
-            "front": "English terminology or concept",
-            "back": "${nativeLanguage} translation ONLY (no English)",
+            "front": "${targetLanguage === 'English' || targetLanguage === 'en-GB' ? 'English terminology or concept' : targetLanguage + ' terminology or concept'}",
+            "back": "${nativeLanguage} translation ONLY (no ${targetLanguage})",
             "topic": "${topic}",
             "difficulty": "beginner|intermediate|expert",
-            "example": "MANDATORY: Example sentence in English that MUST contain the front term",
-            "pronunciation": "Optional pronunciation guide for English term",
+            "example": "MANDATORY: Example sentence in ${targetLanguage === 'English' || targetLanguage === 'en-GB' ? 'English' : targetLanguage} that MUST contain the front term",
+            "pronunciation": "Optional pronunciation guide for ${targetLanguage === 'English' || targetLanguage === 'en-GB' ? 'English' : targetLanguage} term",
           }
         ]
         
         Guidelines:
         - Create MINIMUM 10 and MAXIMUM 40 flashcards depending on content length and complexity
         - Focus on KEY TERMINOLOGY and IMPORTANT CONCEPTS from the text
-        - Front: English term/concept (e.g., "Cardiology", "Inflammation", "Surgical removal")
-        - Back: ${nativeLanguage} translation of the English term
-        - Example: MUST include a clear, simple example sentence in English that demonstrates how the term is used in context. The example MUST contain the exact front term. Keep the sentence straightforward with the target term being the main focus, but prioritize relevance over simplicity
+        - Front: ${targetLanguage === 'English' || targetLanguage === 'en-GB' ? 'English' : targetLanguage} term/concept (e.g., "Cardiology", "Inflammation", "Surgical removal")
+        - Back: ${nativeLanguage} translation of the ${targetLanguage === 'English' || targetLanguage === 'en-GB' ? 'English' : targetLanguage} term
+        - Example: MUST include a clear, simple example sentence in ${targetLanguage === 'English' || targetLanguage === 'en-GB' ? 'English' : targetLanguage} that demonstrates how the term is used in context. The example MUST contain the exact front term. Keep the sentence straightforward with the target term being the main focus, but prioritize relevance over simplicity
         - Vary difficulty levels appropriately
         - Make cards suitable for language learning and terminology study
         - Ensure accuracy and educational value
       `;
     }
 
-    const systemPrompt = showNativeLanguage 
-      ? `You are an expert language learning content creator. You MUST create terminology flashcards with ${nativeLanguage} terms on the front and English translations on the back. NEVER put ${nativeLanguage} definitions on the back - only English translations. ALWAYS include simple, relevant example sentences in ${nativeLanguage} that demonstrate how each term is used in context. Each example sentence MUST contain the exact front term. Keep examples straightforward with the target term as the main focus, but prioritize relevance over simplicity.`
-      : `You are an expert language learning content creator. You MUST create terminology flashcards with English terms on the front and ${nativeLanguage} translations on the back. NEVER put English definitions on the back - only ${nativeLanguage} translations. ALWAYS include simple, relevant example sentences in English that demonstrate how each term is used in context. Each example sentence MUST contain the exact front term. Keep examples straightforward with the target term as the main focus, but prioritize relevance over simplicity.`;
+    const systemPrompt = targetLanguage === 'English' || targetLanguage === 'en-GB'
+      ? `You are an expert language learning content creator. You MUST create terminology flashcards with ${targetLanguage} terms on the front and ${nativeLanguage} translations on the back. NEVER put ${targetLanguage} definitions on the back - only ${nativeLanguage} translations. ALWAYS include simple, relevant example sentences in ${targetLanguage} that demonstrate how each term is used in context. Each example sentence MUST contain the exact front term. Keep examples straightforward with the target term as the main focus, but prioritize relevance over simplicity.`
+      : `You are an expert language learning content creator. You MUST create terminology flashcards with ${targetLanguage} terms on the front and ${nativeLanguage} translations on the back. NEVER put ${targetLanguage} definitions on the back - only ${nativeLanguage} translations. ALWAYS include simple, relevant example sentences in ${targetLanguage} that demonstrate how each term is used in context. Each example sentence MUST contain the exact front term. Keep examples straightforward with the target term as the main focus, but prioritize relevance over simplicity.`;
 
     const messages = [
       {

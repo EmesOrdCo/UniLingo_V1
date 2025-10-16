@@ -613,12 +613,14 @@ export default function UploadScreen() {
         }));
       }, 5000); // Update every 5 seconds
       
+      const userTargetLanguage = profile?.target_language || 'English';
+      
       const flashcards = await UploadService.generateFlashcards(
         extractedText,
         userSubject,
         topic,
         userNativeLanguage,
-        false,
+        userTargetLanguage,
         (progressUpdate) => {
           // Check if cancelled before updating progress
           if (isCancelled) {
