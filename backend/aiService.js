@@ -633,12 +633,13 @@ class AIService {
               };
             } else {
               // Non-English target language (reverse direction)
+              // The AI generates example_sentence_target_language for non-English targets
               return {
                 lesson_id: lesson.id,
                 keywords: vocab.target_term || vocab.english_term,
                 definition: vocab.definition,
                 native_translation: vocab.target_translation || vocab.native_translation,
-                example_sentence_target: vocab.example_sentence_target_language || vocab.example_sentence_target,
+                example_sentence_target: vocab.example_sentence_target_language,
                 example_sentence_native: vocab.example_sentence_native
               };
             }

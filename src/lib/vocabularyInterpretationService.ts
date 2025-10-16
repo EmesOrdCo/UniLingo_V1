@@ -27,24 +27,27 @@ export class VocabularyInterpretationService {
     
     if (isEnglishTarget) {
       // English target language (current behavior)
+      // Use keywords field as it contains the actual target term
+      const targetTerm = typeof vocab.keywords === 'string' ? vocab.keywords : (vocab.english_term || '');
       return {
-        frontTerm: vocab.english_term,
+        frontTerm: targetTerm,
         backTerm: vocab.native_translation,
         frontExample: vocab.example_sentence_target,
         backExample: vocab.example_sentence_native,
         definition: vocab.definition,
-        keywords: typeof vocab.keywords === 'string' ? vocab.keywords : vocab.english_term
+        keywords: targetTerm
       };
     } else {
       // Non-English target language (reverse direction)
       // Map the existing fields to the reverse direction
+      const targetTerm = typeof vocab.keywords === 'string' ? vocab.keywords : (vocab.english_term || '');
       return {
         frontTerm: vocab.native_translation, // Native language becomes the term to learn
-        backTerm: vocab.english_term, // English becomes the translation
+        backTerm: targetTerm, // Keywords field becomes the translation
         frontExample: vocab.example_sentence_native, // Native example becomes the target example
         backExample: vocab.example_sentence_target, // English example becomes the native example
         definition: vocab.definition,
-        keywords: vocab.native_translation || (typeof vocab.keywords === 'string' ? vocab.keywords : '')
+        keywords: vocab.native_translation
       };
     }
   }
