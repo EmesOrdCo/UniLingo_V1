@@ -87,7 +87,8 @@ export class AWSPollyService {
       const result = await this.synthesizeSpeech(text, options);
       
       // Create audio blob and play it
-      const audioBlob = new Blob([result.audioBuffer], { type: result.contentType });
+      const audioData = new Uint8Array(result.audioBuffer);
+      const audioBlob = new Blob([audioData], { type: result.contentType });
       const audioUrl = URL.createObjectURL(audioBlob);
       
       const audio = new Audio(audioUrl);
