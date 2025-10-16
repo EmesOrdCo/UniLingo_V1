@@ -84,31 +84,75 @@ export class AWSPollyService {
    */
   static async playSpeech(text: string, options: PollyOptions = {}): Promise<void> {
     try {
-      const result = await this.synthesizeSpeech(text, options);
-      
-      // Create audio blob and play it
-      const audioData = new Uint8Array(result.audioBuffer);
-      const audioBlob = new Blob([audioData], { type: result.contentType });
-      const audioUrl = URL.createObjectURL(audioBlob);
-      
-      const audio = new Audio(audioUrl);
-      
-      return new Promise((resolve, reject) => {
-        audio.onended = () => {
-          URL.revokeObjectURL(audioUrl);
-          resolve();
-        };
+      // Check if we're in a web environment
+      if (typeof window !== 'undefined' && typeof Blob !== 'undefined' && typeof Audio !== 'undefined') {
+        // Web environment - use AWS Polly with Blob approach
+        const result = await this.synthesizeSpeech(text, options);
         
-        audio.onerror = (error) => {
-          URL.revokeObjectURL(audioUrl);
-          reject(new Error(`Audio playback failed: ${error}`));
-        };
+        let audioData: Uint8Array;
         
-        audio.play().catch(reject);
-      });
+        if (result.audioBuffer instanceof ArrayBuffer) {
+          audioData = new Uint8Array(result.audioBuffer);
+        } else if (result.audioBuffer instanceof Uint8Array) {
+          audioData = result.audioBuffer;
+        } else {
+          // Convert to Uint8Array if it's something else
+          audioData = new Uint8Array(result.audioBuffer);
+        }
+        
+        // Create audio blob and play it
+        const audioBlob = new Blob([audioData], { type: result.contentType });
+        const audioUrl = URL.createObjectURL(audioBlob);
+        
+        const audio = new Audio(audioUrl);
+        
+        return new Promise((resolve, reject) => {
+          audio.onended = () => {
+            URL.revokeObjectURL(audioUrl);
+            resolve();
+          };
+          
+          audio.onerror = (error) => {
+            URL.revokeObjectURL(audioUrl);
+            reject(new Error(`Audio playback failed: ${error}`));
+          };
+          
+          audio.play().catch(reject);
+        });
+      } else {
+        // React Native environment - fall back to Expo Speech
+        logger.info('🌐 React Native environment detected, falling back to Expo Speech');
+        
+        // Import Expo Speech dynamically
+        const { default: Speech } = await import('expo-speech');
+        
+        // Get language code for Expo Speech
+        const languageCode = options.languageCode || 'en-US';
+        
+        return new Promise((resolve, reject) => {
+          Speech.speak(text, {
+            language: languageCode,
+            rate: options.rate || 0.9,
+            pitch: options.pitch || 1.0,
+            volume: options.volume || 1.0,
+            onDone: () => {
+              logger.info('✅ Expo Speech completed');
+              resolve();
+            },
+            onError: (error) => {
+              logger.error('❌ Expo Speech error:', error);
+              reject(new Error(`Expo Speech failed: ${error}`));
+            },
+            onStopped: () => {
+              logger.info('🛑 Expo Speech stopped');
+              resolve();
+            }
+          });
+        });
+      }
 
     } catch (error) {
-      logger.error('❌ AWS Polly speech playback error:', error);
+      logger.error('❌ Speech playback error:', error);
       throw error;
     }
   }
