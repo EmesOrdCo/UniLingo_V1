@@ -1,41 +1,121 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useAuth } from '../contexts/AuthContext';
 import { useNavigation } from '@react-navigation/native';
+import { useAuth } from '../contexts/AuthContext';
+import { useSelectedUnit } from '../contexts/SelectedUnitContext';
 import { DailyChallengeService, DailyChallenge } from '../lib/dailyChallengeService';
 import { UserFlashcardService } from '../lib/userFlashcardService';
 
 interface DailyChallengeSectionProps {
-  onPlay: (gameType: string) => void;
+  refreshTrigger?: number;
 }
 
-const DailyChallengeSection: React.FC<DailyChallengeSectionProps> = ({ onPlay }) => {
-  const [challenge, setChallenge] = useState<DailyChallenge | null>(null);
-  const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
-  const navigation = useNavigation();
+// Define all available challenges
+const DAILY_CHALLENGES = [
+  {
+    id: 'flashcard_quiz',
+    title: 'Flashcard Quiz',
+    description: 'Test your vocabulary knowledge',
+    icon: 'card' as const,
+    color: '#8b5cf6',
+    type: 'game'
+  },
+  {
+    id: 'gravity_game',
+    title: 'Gravity Defense',
+    description: 'Destroy meteors with correct answers',
+    icon: 'planet' as const,
+    color: '#8b5cf6',
+    type: 'game'
+  },
+  {
+    id: 'hangman',
+    title: 'Hangman Challenge',
+    description: 'Guess the word letter by letter',
+    icon: 'help-circle' as const,
+    color: '#8b5cf6',
+    type: 'game'
+  },
+  {
+    id: 'memory_match',
+    title: 'Memory Match',
+    description: 'Match vocabulary pairs',
+    icon: 'grid' as const,
+    color: '#8b5cf6',
+    type: 'game'
+  },
+  {
+    id: 'sentence_scramble',
+    title: 'Sentence Scramble',
+    description: 'Unscramble the sentences',
+    icon: 'shuffle' as const,
+    color: '#8b5cf6',
+    type: 'game'
+  },
+  {
+    id: 'speed_challenge',
+    title: 'Speed Challenge',
+    description: 'Answer as fast as you can',
+    icon: 'flash' as const,
+    color: '#8b5cf6',
+    type: 'game'
+  },
+  {
+    id: 'type_what_you_hear',
+    title: 'Type What You Hear',
+    description: 'Listen and type the words',
+    icon: 'headset' as const,
+    color: '#8b5cf6',
+    type: 'game'
+  },
+  {
+    id: 'word_scramble',
+    title: 'Word Scramble',
+    description: 'Unscramble the vocabulary',
+    icon: 'text' as const,
+    color: '#8b5cf6',
+    type: 'game'
+  },
+  {
+    id: 'daily_vocab',
+    title: 'Daily Vocabulary',
+    description: 'Learn new words today',
+    icon: 'book' as const,
+    color: '#8b5cf6',
+    type: 'vocab'
+  }
+];
 
+export default function DailyChallengeSection({ refreshTrigger }: DailyChallengeSectionProps) {
+  const [challenge, setChallenge] = useState<DailyChallenge | null>(null);
+  const [isCompleted, setIsCompleted] = useState(false);
+  const [isLaunching, setIsLaunching] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const navigation = useNavigation();
+  const { user } = useAuth();
+  const { selectedUnit } = useSelectedUnit();
+
+  // Load today's challenge
   useEffect(() => {
-    loadTodaysChallenge();
-  }, [user]);
+    if (user?.id) {
+      loadTodaysChallenge();
+    }
+  }, [user?.id, refreshTrigger]);
 
   const loadTodaysChallenge = async () => {
-    if (!user) {
-      setLoading(false);
-      return;
-    }
+    if (!user?.id) return;
 
     try {
       setLoading(true);
       let todaysChallenge = await DailyChallengeService.getTodaysChallenge(user.id);
       
-      // Create challenge if it doesn't exist
       if (!todaysChallenge) {
         todaysChallenge = await DailyChallengeService.createTodaysChallenge(user.id);
       }
       
       setChallenge(todaysChallenge);
+      setIsCompleted(todaysChallenge.completed || false);
     } catch (error) {
       console.error('Error loading daily challenge:', error);
     } finally {
@@ -43,183 +123,249 @@ const DailyChallengeSection: React.FC<DailyChallengeSectionProps> = ({ onPlay })
     }
   };
 
-  const handlePlay = async () => {
-    if (challenge && !challenge.completed) {
-      // Check if user has flashcards
-      try {
-        const flashcards = await UserFlashcardService.getUserFlashcards();
-        if (flashcards.length === 0) {
-          Alert.alert(
-            'No Flashcards Available',
-            'Games require flashcards to work. Please create some flashcards first by going to the Flashcards section and adding vocabulary words.',
-            [
-              {
-                text: 'Go to Flashcards',
-                onPress: () => navigation.navigate('Flashcards' as never)
-              },
-              {
-                text: 'OK',
-                style: 'cancel'
-              }
-            ]
-          );
-          return;
-        }
-      } catch (error) {
-        console.error('Error checking flashcards:', error);
+  const getGameIcon = (gameType: string) => {
+    const challenge = DAILY_CHALLENGES.find(c => c.id === gameType);
+    return challenge?.icon || 'game-controller';
+  };
+
+  const handleChallengePress = async () => {
+    if (!challenge || isCompleted || isLaunching) return;
+
+    // Check if user has flashcards
+    try {
+      const flashcards = await UserFlashcardService.getUserFlashcards();
+      
+      if (flashcards.length === 0) {
         Alert.alert(
-          'Error',
-          'Unable to check flashcards. Please try again.',
-          [{ text: 'OK' }]
+          'No Flashcards Available',
+          'Games require flashcards to work. Please create some flashcards first by going to the Flashcards section and adding vocabulary words.',
+          [
+            {
+              text: 'Go to Flashcards',
+              onPress: () => navigation.navigate('Flashcards' as never)
+            },
+            {
+              text: 'OK',
+              style: 'cancel'
+            }
+          ]
         );
         return;
       }
-      
-      onPlay(challenge.game_type);
+    } catch (error) {
+      console.error('Error checking flashcards:', error);
+      Alert.alert(
+        'Error',
+        'Unable to check flashcards. Please try again.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    setIsLaunching(true);
+
+    try {
+      // Navigate to games screen with the challenge game
+      navigation.navigate('Games' as never, {
+        launchGame: challenge.game_type,
+        fromChallenge: true
+      } as never);
+    } catch (error) {
+      console.error('Error launching challenge:', error);
+      Alert.alert(
+        'Error',
+        'Unable to launch the challenge. Please try again.',
+        [{ text: 'OK' }]
+      );
+    } finally {
+      setIsLaunching(false);
     }
   };
 
-  // Don't show if loading
+  // Don't render anything if loading or no challenge
   if (loading || !challenge) {
     return null;
   }
 
-  // Show completion state if completed
-  if (challenge.completed) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.heroCarousel}>
-          <View style={styles.completedBackgroundGradient}>
-            <View style={styles.content}>
-              <View style={styles.textContent}>
-                <Text style={styles.subtitle}>+{challenge.xp_reward} XP earned!</Text>
-                <Text style={styles.title}>✅ Daily Challenge Complete</Text>
-                <Text style={styles.subtitle}>{challenge.game_type}</Text>
-                <View style={styles.completedBadge}>
-                  <Ionicons name="checkmark-circle" size={16} color="#10b981" />
-                  <Text style={styles.completedText}>Completed</Text>
-                </View>
-              </View>
-              <View style={styles.iconContainer}>
-                <Ionicons name="trophy" size={36} color="#6366f1" />
-              </View>
-            </View>
-          </View>
-        </View>
-      </View>
-    );
-  }
-
   return (
     <View style={styles.container}>
-      <View style={styles.heroCarousel}>
-        <View style={styles.backgroundGradient}>
-          <View style={styles.content}>
-            <View style={styles.textContent}>
-              <Text style={styles.title}>Daily game challenge</Text>
-              <Text style={styles.description}>Play today's featured game to earn bonus XP!</Text>
-              <TouchableOpacity style={styles.ctaButton} onPress={handlePlay}>
-                <Text style={styles.ctaButtonText}>Play now</Text>
-              </TouchableOpacity>
+      {/* Section Title - matches GameStatsSection aesthetic */}
+      <View style={styles.sectionTitleContainer}>
+        <Ionicons name="trophy" size={24} color="#6366f1" />
+        <Text style={styles.standardSectionTitle}>Daily Challenge</Text>
+      </View>
+
+      {/* Challenge Card */}
+      <TouchableOpacity 
+        style={[styles.challengeCard, { borderLeftColor: '#6366f1' }]}
+        onPress={handleChallengePress}
+        disabled={isCompleted || isLaunching}
+      >
+        <View style={styles.challengeContent}>
+          <View style={styles.challengeLeft}>
+            <View style={[styles.iconContainer, { backgroundColor: '#6366f1' }]}>
+              <Ionicons 
+                name={getGameIcon(challenge.game_type)} 
+                size={24} 
+                color="#ffffff" 
+              />
             </View>
-            <View style={styles.iconContainer}>
-              <Ionicons name="flame" size={36} color="#6366f1" />
+            <View style={styles.challengeInfo}>
+              <Text style={styles.challengeTitle}>{challenge.game_type}</Text>
+              <Text style={styles.challengeDescription}>
+                {isCompleted 
+                  ? `Completed! +${challenge.xp_reward} XP earned`
+                  : `Complete to earn ${challenge.xp_reward} bonus XP`
+                }
+              </Text>
             </View>
           </View>
+          
+          <View style={styles.challengeRight}>
+            {isCompleted ? (
+              <View style={styles.completedBadge}>
+                <Ionicons name="checkmark-circle" size={20} color="#10b981" />
+                <Text style={styles.completedText}>Done!</Text>
+              </View>
+            ) : (
+              <View style={styles.playButton}>
+                <Ionicons 
+                  name={isLaunching ? "hourglass" : "play"} 
+                  size={16} 
+                  color="#6366f1" 
+                />
+              </View>
+            )}
+          </View>
         </View>
-      </View>
+
+        {/* Progress indicator */}
+        {!isCompleted && (
+          <View style={styles.progressContainer}>
+            <View style={styles.progressBar}>
+              <View style={[styles.progressFill, { backgroundColor: '#8b5cf6', width: '0%' }]} />
+            </View>
+            <Text style={styles.progressText}>
+              {isLaunching ? 'Launching challenge...' : "Start today's challenge"}
+            </Text>
+          </View>
+        )}
+      </TouchableOpacity>
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: 16,
     marginBottom: 24,
+    marginTop: 20,
   },
-  heroCarousel: {
-    height: 180,
-    width: '100%',
-    overflow: 'hidden',
-    borderRadius: 24,
+  sectionTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 16,
+  },
+  standardSectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1e293b',
+    letterSpacing: -0.3,
+  },
+  challengeCard: {
+    backgroundColor: '#f8fafc',
+    borderRadius: 16,
+    padding: 16,
+    borderLeftWidth: 4,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.1,
-    shadowRadius: 35,
-    elevation: 10,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
   },
-  backgroundGradient: {
-    flex: 1,
-    backgroundColor: '#f0f4ff',
-  },
-  completedBackgroundGradient: {
-    flex: 1,
-    backgroundColor: '#10b981',
-  },
-  content: {
-    flex: 1,
+  challengeContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 24,
-    paddingVertical: 16,
   },
-  textContent: {
+  challengeLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
     flex: 1,
+    gap: 12,
   },
-  subtitle: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.9)',
-    marginBottom: 4,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#000000',
-    marginBottom: 12,
-  },
-  description: {
-    fontSize: 16,
-    color: '#374151',
-    marginBottom: 20,
-    lineHeight: 22,
-  },
-  ctaButton: {
-    backgroundColor: '#6366f1',
-    paddingHorizontal: 80,
-    paddingVertical: 12,
-    borderRadius: 20,
-    alignSelf: 'flex-start',
+  iconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
   },
-  ctaButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#ffffff',
+  challengeInfo: {
+    flex: 1,
   },
-  iconContainer: {
-    paddingRight: 8,
+  challengeTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1f2937',
+    marginBottom: 2,
+  },
+  challengeDescription: {
+    fontSize: 14,
+    color: '#6b7280',
+    lineHeight: 18,
+  },
+  challengeRight: {
+    alignItems: 'center',
+  },
+  playButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#f0f4ff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#6366f1',
   },
   completedBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    alignSelf: 'flex-start',
-    marginTop: 8,
+    gap: 4,
+    backgroundColor: '#ecfdf5',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
   },
   completedText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#ffffff',
+    color: '#065f46',
+  },
+  progressContainer: {
+    marginTop: 12,
+  },
+  progressBar: {
+    height: 4,
+    backgroundColor: '#e5e7eb',
+    borderRadius: 2,
+    marginBottom: 4,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 2,
+  },
+  progressText: {
+    fontSize: 12,
+    color: '#6b7280',
+    fontWeight: '500',
   },
 });
-
-export default DailyChallengeSection;

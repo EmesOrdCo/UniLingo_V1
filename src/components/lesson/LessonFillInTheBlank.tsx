@@ -41,12 +41,34 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
     const generatedQuestions: FillInTheBlankQuestion[] = vocabulary
       .filter(item => item && item.example_sentence_target && item.keywords)
       .map((item, index, array) => {
-        // Generate 3 wrong options from other vocabulary items
-        const wrongOptions = array
+        // Generate wrong options ensuring uniqueness
+        const wrongOptions = [];
+        const usedAnswers = new Set([item.keywords]);
+        
+        // Get all possible wrong answers (excluding current item)
+        const possibleWrongAnswers = array
           .filter(v => v.id !== item.id && v.keywords)
           .map(v => v.keywords)
-          .sort(() => Math.random() - 0.5)
-          .slice(0, 3);
+          .sort(() => Math.random() - 0.5);
+        
+        // Add unique wrong answers until we have 3
+        for (const answer of possibleWrongAnswers) {
+          if (wrongOptions.length >= 3) break;
+          if (!usedAnswers.has(answer)) {
+            wrongOptions.push(answer);
+            usedAnswers.add(answer);
+          }
+        }
+        
+        // If we still don't have enough unique answers, add generic ones
+        const genericAnswers = ['Not sure', 'Maybe', 'Possibly'];
+        for (const generic of genericAnswers) {
+          if (wrongOptions.length >= 3) break;
+          if (!usedAnswers.has(generic)) {
+            wrongOptions.push(generic);
+            usedAnswers.add(generic);
+          }
+        }
         
         // Combine with correct answer and shuffle
         const options = [item.keywords, ...wrongOptions].sort(() => Math.random() - 0.5);

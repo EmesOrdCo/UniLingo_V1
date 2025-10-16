@@ -68,13 +68,33 @@ export default function LessonFlashcardQuiz({ vocabulary, onComplete, onClose, o
       
       // Create translation question only
       const translationOptions = [vocab.native_translation];
-      const otherTranslations = vocabulary
+      const usedAnswers = new Set([vocab.native_translation]);
+      
+      // Get all possible wrong answers (excluding current item)
+      const possibleWrongAnswers = vocabulary
         .filter(v => v.id !== vocab.id && v.native_translation)
         .map(v => v.native_translation)
-        .sort(() => Math.random() - 0.5)
-        .slice(0, 3);
+        .sort(() => Math.random() - 0.5);
       
-      translationOptions.push(...otherTranslations);
+      // Add unique wrong answers until we have 3
+      for (const answer of possibleWrongAnswers) {
+        if (translationOptions.length >= 4) break;
+        if (!usedAnswers.has(answer)) {
+          translationOptions.push(answer);
+          usedAnswers.add(answer);
+        }
+      }
+      
+      // If we still don't have enough unique answers, add generic ones
+      const genericAnswers = ['Not sure', 'Maybe', 'Possibly'];
+      for (const generic of genericAnswers) {
+        if (translationOptions.length >= 4) break;
+        if (!usedAnswers.has(generic)) {
+          translationOptions.push(generic);
+          usedAnswers.add(generic);
+        }
+      }
+      
       const shuffledTranslationOptions = translationOptions.sort(() => Math.random() - 0.5);
       
       quizQuestions.push({

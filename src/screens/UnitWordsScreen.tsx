@@ -91,11 +91,35 @@ export default function UnitWordsScreen() {
     for (let i = 0; i < vocabulary.length; i++) {
       const correctAnswer = vocabulary[i].french;
       const correctImageUrl = vocabulary[i].image_url;
-      const wrongAnswers = vocabulary
+      
+      // Generate wrong answers ensuring uniqueness
+      const wrongAnswers = [];
+      const usedAnswers = new Set([correctAnswer]);
+      
+      // Get all possible wrong answers (excluding current item)
+      const possibleWrongAnswers = vocabulary
         .filter((_, idx) => idx !== i)
         .map(v => ({ text: v.french, image_url: v.image_url }))
-        .sort(() => Math.random() - 0.5)
-        .slice(0, 3);
+        .sort(() => Math.random() - 0.5);
+      
+      // Add unique wrong answers until we have 3
+      for (const answer of possibleWrongAnswers) {
+        if (wrongAnswers.length >= 3) break;
+        if (!usedAnswers.has(answer.text)) {
+          wrongAnswers.push(answer);
+          usedAnswers.add(answer.text);
+        }
+      }
+      
+      // If we still don't have enough unique answers, add generic ones
+      const genericAnswers = ['Not sure', 'Maybe', 'Possibly'];
+      for (const generic of genericAnswers) {
+        if (wrongAnswers.length >= 3) break;
+        if (!usedAnswers.has(generic)) {
+          wrongAnswers.push({ text: generic, image_url: null });
+          usedAnswers.add(generic);
+        }
+      }
       
       const allOptions = [
         { text: correctAnswer, image_url: correctImageUrl },
@@ -114,11 +138,35 @@ export default function UnitWordsScreen() {
     // Second half: French → English
     for (let i = 0; i < vocabulary.length; i++) {
       const correctAnswer = vocabulary[i].english;
-      const wrongAnswers = vocabulary
+      
+      // Generate wrong answers ensuring uniqueness
+      const wrongAnswers = [];
+      const usedAnswers = new Set([correctAnswer]);
+      
+      // Get all possible wrong answers (excluding current item)
+      const possibleWrongAnswers = vocabulary
         .filter((_, idx) => idx !== i)
         .map(v => v.english)
-        .sort(() => Math.random() - 0.5)
-        .slice(0, 3);
+        .sort(() => Math.random() - 0.5);
+      
+      // Add unique wrong answers until we have 3
+      for (const answer of possibleWrongAnswers) {
+        if (wrongAnswers.length >= 3) break;
+        if (!usedAnswers.has(answer)) {
+          wrongAnswers.push(answer);
+          usedAnswers.add(answer);
+        }
+      }
+      
+      // If we still don't have enough unique answers, add generic ones
+      const genericAnswers = ['Not sure', 'Maybe', 'Possibly'];
+      for (const generic of genericAnswers) {
+        if (wrongAnswers.length >= 3) break;
+        if (!usedAnswers.has(generic)) {
+          wrongAnswers.push(generic);
+          usedAnswers.add(generic);
+        }
+      }
       
       questions.push({
         question: vocabulary[i].french,

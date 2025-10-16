@@ -49,7 +49,7 @@ import { FlashcardService } from '../lib/flashcardService';
 import { GameStatisticsService } from '../lib/gameStatisticsService';
 import { supabase } from '../lib/supabase';
 import ConsistentHeader from '../components/ConsistentHeader';
-import DailyChallengeBox from '../components/DailyChallengeBox';
+import DailyChallengeSection from '../components/DailyChallengeSection';
 import FavouritesSection from '../components/FavouritesSection';
 import HorizontalGamesSection from '../components/HorizontalGamesSection';
 import GameStatsSection from '../components/GameStatsSection';
@@ -1700,8 +1700,8 @@ export default function GamesScreen({ route }: { route?: any }) {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        {/* Daily Challenge Box */}
-        <DailyChallengeBox 
+        {/* Daily Challenge Section */}
+        <DailyChallengeSection 
           refreshTrigger={refreshTrigger}
         />
         

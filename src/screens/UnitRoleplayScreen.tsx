@@ -180,14 +180,15 @@ export default function UnitRoleplayScreen() {
       setLoading(true);
       logger.info(`🎭 Loading conversation and vocabulary for subject: ${subjectName} (${cefrLevel})`);
       
-      const nativeLanguage = profile?.native_language || 'French';
+      const targetLanguage = profile?.target_language || 'English';
       
       // Load vocabulary for exercise creation
-      const vocabData = await UnitDataAdapter.getUnitVocabulary(subjectName, nativeLanguage);
+      const vocabData = await UnitDataAdapter.getUnitVocabulary(subjectName, targetLanguage);
       setVocabulary(vocabData);
       
       // Load conversation exchanges
-      const exchanges = await UnitDataAdapter.getUnitConversationFromScript(subjectName, cefrLevel, nativeLanguage);
+      const nativeLanguage = profile?.native_language || 'English';
+      const exchanges = await UnitDataAdapter.getUnitConversationFromScript(subjectName, cefrLevel, targetLanguage, nativeLanguage);
       
       console.log('🔍 ROLEPLAY - Loaded exchanges:', {
         count: exchanges.length,
@@ -202,8 +203,8 @@ export default function UnitRoleplayScreen() {
         setConversationExchanges(CONVERSATION.map((item, index) => ({
           id: `exchange_${index + 1}`,
           speaker: index % 2 === 0 ? 'user' : 'assistant',
-          text: item.userMessage.french,
-          translation: item.userMessage.english,
+          text: item.userMessage.french, // Target language text
+          translation: item.userMessage.english, // Native language translation
           type: index === 0 ? 'greeting' : index === CONVERSATION.length - 1 ? 'farewell' : 'response'
         })));
         

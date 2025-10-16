@@ -210,9 +210,31 @@ export class UnitDataAdapter {
   }
 
   /**
+   * Get the target language script from lesson script based on target language
+   */
+  private static getTargetLanguageScript(lessonScript: LessonScript, targetLanguage: string): string | null {
+    const targetLang = targetLanguage.toLowerCase();
+    
+    if (targetLang.includes('chinese') || targetLang.includes('zh') || targetLang.includes('mandarin')) {
+      return lessonScript['chinese(simplified)_script'] || null;
+    } else if (targetLang.includes('spanish') || targetLang.includes('es')) {
+      return lessonScript.spanish_script || null;
+    } else if (targetLang.includes('french') || targetLang.includes('fr')) {
+      return lessonScript.french_script || null;
+    } else if (targetLang.includes('german') || targetLang.includes('de')) {
+      return lessonScript.german_script || null;
+    } else if (targetLang.includes('hindi') || targetLang.includes('hi')) {
+      return lessonScript.hindi_script || null;
+    } else {
+      // Default to English
+      return lessonScript.english_script || null;
+    }
+  }
+
+  /**
    * Get lesson script for Write and Roleplay exercises
    */
-  static async getLessonScript(subjectName: string, cefrLevel: string = 'A1', nativeLanguage: string = 'French'): Promise<LessonScript | null> {
+  static async getLessonScript(subjectName: string, cefrLevel: string = 'A1', targetLanguage: string = 'English'): Promise<LessonScript | null> {
     try {
       logger.info(`🔄 Fetching lesson script for: ${subjectName} (${cefrLevel})`);
       
@@ -314,47 +336,79 @@ export class UnitDataAdapter {
   /**
    * Get writing exercises from lesson script for UnitWriteScreen
    */
-  static async getUnitWriteExercises(subjectName: string, cefrLevel: string = 'A1', nativeLanguage: string = 'French'): Promise<UnitWriteExercise[]> {
+  static async getUnitWriteExercises(subjectName: string, cefrLevel: string = 'A1', targetLanguage: string = 'English', nativeLanguage: string = 'English'): Promise<UnitWriteExercise[]> {
     try {
-      logger.info(`🔄 Converting lesson script to Unit write exercises format for: ${subjectName}`);
+      logger.info(`🔄 Converting lesson script to Unit write exercises format for: ${subjectName} (target: ${targetLanguage})`);
       
-      const lessonScript = await this.getLessonScript(subjectName, cefrLevel, nativeLanguage);
+      const lessonScript = await this.getLessonScript(subjectName, cefrLevel, targetLanguage);
       
       if (!lessonScript) {
         logger.warn(`⚠️ No lesson script found for subject: ${subjectName}`);
         return [];
       }
 
-      // For Write exercises, we want the user to write in English (target language)
-      // So we use english_lesson_script as the target and create scrambled English sentences
-      const englishScript = lessonScript.english_script;
+      // Get the target language script and native language script
+      const targetScript = this.getTargetLanguageScript(lessonScript, targetLanguage);
+      const nativeScript = this.getTargetLanguageScript(lessonScript, nativeLanguage);
 
       logger.info(`🔍 Write exercises debug for ${subjectName}:`, {
-        englishScript: englishScript,
-        englishScriptLength: englishScript?.length || 0,
-        hasEnglishScript: !!englishScript,
+        targetLanguage,
+        nativeLanguage,
+        targetScript: targetScript,
+        nativeScript: nativeScript,
+        targetScriptLength: targetScript?.length || 0,
+        nativeScriptLength: nativeScript?.length || 0,
+        hasTargetScript: !!targetScript,
+        hasNativeScript: !!nativeScript,
         lessonScriptKeys: Object.keys(lessonScript)
       });
 
-      if (!englishScript) {
-        logger.warn(`⚠️ No English script content found for ${subjectName}`);
+      if (!targetScript) {
+        logger.warn(`⚠️ No ${targetLanguage} script content found for ${subjectName}`);
         return [];
       }
 
-      // Split English script into sentences and create exercises
-      const englishSentences = englishScript
+      if (!nativeScript) {
+        logger.warn(`⚠️ No ${nativeLanguage} script content found for ${subjectName}`);
+        return [];
+      }
+
+      // Split both scripts into sentences
+      const targetSentences = targetScript
         .split(/[.!?]+/)
         .map(s => s.trim())
         .filter(s => s.length > 0);
       
-      const exercises: UnitWriteExercise[] = englishSentences.map((sentence, index) => ({
-        id: `exercise_${index + 1}`,
-        french: sentence, // For Write exercises, both fields are the same English text
-        english: sentence, // User needs to unscramble English sentences
-        type: 'scramble' as const
-      }));
+      const nativeSentences = nativeScript
+        .split(/[.!?]+/)
+        .map(s => s.trim())
+        .filter(s => s.length > 0);
+      
+      // Ensure both arrays have the same length and proper alignment
+      const minLength = Math.min(targetSentences.length, nativeSentences.length);
+      
+      const exercises: UnitWriteExercise[] = targetSentences.slice(0, minLength).map((sentence, index) => {
+        const nativeTranslation = nativeSentences[index];
+        
+        // Debug logging for first few exercises
+        if (index < 3) {
+          logger.info(`🔍 Write exercise ${index} debug:`, {
+            targetSentence: sentence,
+            nativeTranslation: nativeTranslation,
+            targetIndex: index,
+            nativeIndex: index
+          });
+        }
+        
+        return {
+          id: `exercise_${index + 1}`,
+          french: sentence, // Target language text
+          english: nativeTranslation || sentence, // Native language translation from same index
+          type: 'scramble' as const
+        };
+      });
 
-      logger.info(`✅ Converted ${exercises.length} write exercises from lesson script`);
+      logger.info(`✅ Converted ${exercises.length} write exercises from ${targetLanguage} lesson script`);
       return exercises;
     } catch (error) {
       logger.error('Error converting write exercises for Unit screen:', error);
@@ -365,53 +419,62 @@ export class UnitDataAdapter {
   /**
    * Get conversation data from lesson script for UnitRoleplayScreen
    */
-  static async getUnitConversationFromScript(subjectName: string, cefrLevel: string = 'A1', nativeLanguage: string = 'French'): Promise<UnitConversationExchange[]> {
+  static async getUnitConversationFromScript(subjectName: string, cefrLevel: string = 'A1', targetLanguage: string = 'English', nativeLanguage: string = 'English'): Promise<UnitConversationExchange[]> {
     try {
-      logger.info(`🔄 Converting lesson script to Unit conversation format for: ${subjectName}`);
+      logger.info(`🔄 Converting lesson script to Unit conversation format for: ${subjectName} (target: ${targetLanguage}, native: ${nativeLanguage})`);
       
-      const lessonScript = await this.getLessonScript(subjectName, cefrLevel, nativeLanguage);
+      const lessonScript = await this.getLessonScript(subjectName, cefrLevel, targetLanguage);
       
       if (!lessonScript) {
         logger.warn(`⚠️ No lesson script found for subject: ${subjectName}`);
         return [];
       }
 
-      // For Roleplay exercises, we use English as the target language
-      // The user will practice speaking English conversations
-      const englishScript = lessonScript.english_script;
-      const nativeScript = this.getNativeLanguageScript(lessonScript, nativeLanguage);
+      // Get target language script and native language script
+      const targetScript = this.getTargetLanguageScript(lessonScript, targetLanguage);
+      const nativeScript = this.getTargetLanguageScript(lessonScript, nativeLanguage);
 
-      if (!englishScript) {
-        logger.warn(`⚠️ No English script content found for ${subjectName}`);
+      if (!targetScript) {
+        logger.warn(`⚠️ No ${targetLanguage} script content found for ${subjectName}`);
+        return [];
+      }
+
+      if (!nativeScript) {
+        logger.warn(`⚠️ No ${nativeLanguage} script content found for ${subjectName}`);
         return [];
       }
 
       // Split both scripts into conversation exchanges
-      const englishExchanges = this.splitScriptIntoConversation(englishScript);
-      const nativeExchanges = nativeScript ? this.splitScriptIntoConversation(nativeScript) : [];
+      const targetExchanges = this.splitScriptIntoConversation(targetScript);
+      const nativeExchanges = this.splitScriptIntoConversation(nativeScript);
       
-      // Combine English and native language exchanges
-      const exchanges = englishExchanges.map((englishExchange, index) => {
+      // Ensure both arrays have the same length
+      const minLength = Math.min(targetExchanges.length, nativeExchanges.length);
+      
+      // Combine target and native language exchanges with proper alignment
+      const exchanges = targetExchanges.slice(0, minLength).map((targetExchange, index) => {
         const nativeExchange = nativeExchanges[index];
-        const translation = nativeExchange ? nativeExchange.text : englishExchange.text;
+        const translation = nativeExchange ? nativeExchange.text : targetExchange.text;
         
         // Debug logging for first few exchanges
         if (index < 3) {
           logger.info(`🔍 Exchange ${index} debug:`, {
-            englishText: englishExchange.text,
+            targetText: targetExchange.text,
             nativeText: nativeExchange?.text || 'No native text',
             finalTranslation: translation,
-            hasNativeExchange: !!nativeExchange
+            hasNativeExchange: !!nativeExchange,
+            targetIndex: index,
+            nativeIndex: index
           });
         }
         
         return {
-          ...englishExchange,
-          translation: translation // Use native translation if available
+          ...targetExchange,
+          translation: translation // Use native translation from same index
         };
       });
       
-      logger.info(`✅ Converted ${exchanges.length} conversation exchanges from lesson script with native translations`);
+      logger.info(`✅ Converted ${exchanges.length} conversation exchanges from ${targetLanguage} script with ${nativeLanguage} translations`);
       return exchanges;
     } catch (error) {
       logger.error('Error converting conversation for Unit screen:', error);
