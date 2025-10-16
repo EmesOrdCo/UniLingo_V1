@@ -24,6 +24,7 @@ import { XPService } from '../lib/xpService';
 import { VideoBackground } from '../components/VideoBackground';
 import { VideoCategory } from '../components/VideoControls';
 import { FlashcardSettingsModal } from '../components/FlashcardSettingsModal';
+import { AWSPollyService } from '../lib/awsPollyService';
 
 const { width } = Dimensions.get('window');
 
@@ -415,76 +416,41 @@ export default function FlashcardStudyScreen() {
     }));
   };
 
-  // Play audio pronunciation
+  // Play audio pronunciation using AWS Polly
   const playPronunciation = async (text: string) => {
     console.log('🔊 Playing pronunciation for:', text);
-    console.log('🌐 Platform:', Platform.OS);
     
-    // Stop any currently playing audio first
-    if (Platform.OS === 'web') {
-      if ('speechSynthesis' in window) {
-        speechSynthesis.cancel();
-        console.log('🛑 Stopped web speech synthesis');
-      }
-    } else {
-      Speech.stop();
-      console.log('🛑 Stopped mobile speech');
+    if (isAudioPlaying) {
+      console.log('🔊 Already playing audio, skipping');
+      return;
     }
     
     setIsAudioPlaying(true);
     console.log('🎵 Set audio playing to true');
     
-    if (Platform.OS === 'web') {
-      // Use Web Speech API for web
-      if ('speechSynthesis' in window) {
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'en-US';
-        utterance.rate = 0.8;
-        
-        utterance.onend = () => {
-          console.log('✅ Web speech ended');
-          setIsAudioPlaying(false);
-        };
-        utterance.onerror = (event) => {
-          console.error('❌ Web speech error:', event);
-          setIsAudioPlaying(false);
-        };
-        
-        speechSynthesis.speak(utterance);
-        console.log('🎤 Started web speech synthesis');
-      } else {
-        console.log('❌ Web speech synthesis not available');
-        setIsAudioPlaying(false);
-      }
-    } else {
-      // Use expo-speech for mobile
-      try {
-        console.log('🎤 Starting mobile speech with text:', text);
-        
-        Speech.speak(text, {
-          language: 'en-US',
-          rate: 0.7, // Slightly slower for clarity
-          pitch: 1.0,
-          volume: 1.0,
-          onDone: () => {
-            console.log('✅ Mobile speech done');
-            setIsAudioPlaying(false);
-          },
-          onError: (error) => {
-            console.error('❌ Mobile speech error:', error);
-            setIsAudioPlaying(false);
-          },
-          onStopped: () => {
-            console.log('🛑 Mobile speech stopped');
-            setIsAudioPlaying(false);
-          },
-        });
-        console.log('🎤 Started mobile speech');
-      } catch (error) {
-        console.error('❌ Error starting mobile speech:', error);
-        Alert.alert('Audio Error', 'Failed to play pronunciation audio.');
-        setIsAudioPlaying(false);
-      }
+    try {
+      // Get user's language for voice selection
+      const userLanguage = profile?.target_language || 'en-US';
+      const voiceId = AWSPollyService.getVoiceForLanguage(userLanguage);
+      
+      console.log('🎤 Using AWS Polly with voice:', voiceId, 'for language:', userLanguage);
+      
+      await AWSPollyService.playSpeech(text, {
+        voiceId,
+        languageCode: userLanguage,
+        engine: 'standard', // Use standard engine for cost efficiency
+        rate: 0.9, // Slightly slower for clarity
+        pitch: 1.0,
+        volume: 1.0
+      });
+      
+      console.log('✅ AWS Polly speech completed');
+      setIsAudioPlaying(false);
+      
+    } catch (error) {
+      console.error('❌ AWS Polly speech error:', error);
+      Alert.alert('Audio Error', 'Failed to play pronunciation audio. Please check your internet connection.');
+      setIsAudioPlaying(false);
     }
   };
 

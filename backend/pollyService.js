@@ -96,7 +96,7 @@ class PollyService {
    * @param {string} engine - 'neural' (higher quality) or 'standard'
    * @returns {Promise<Buffer>} - Audio data as buffer
    */
-  async generateAudio(text, voiceId = 'Joanna', engine = 'neural') {
+  async generateAudio(text, voiceId = 'Joanna', engine = 'standard') {
     try {
       console.log('🔊 Generating audio with AWS Polly...');
       console.log(`   Voice: ${voiceId}`);
@@ -292,7 +292,7 @@ class PollyService {
 
       // 4. Generate audio with Polly
       console.log('\n🎙️ Generating audio with AWS Polly...');
-      const audioBuffer = await this.generateAudio(script, 'Joanna', 'neural');
+      const audioBuffer = await this.generateAudio(script, 'Joanna', 'standard');
 
       // 5. Upload to S3
       console.log('\n☁️ Uploading to S3...');
@@ -316,7 +316,7 @@ class PollyService {
           audio_size_bytes: audioBuffer.length,
           voice_id: 'Joanna',
           language_code: 'en-US',
-          polly_engine: 'neural',
+          polly_engine: 'standard',
           original_script: script,
           vocabulary_count: vocabulary.length,
           status: 'completed',

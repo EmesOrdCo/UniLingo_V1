@@ -18,6 +18,7 @@ import { useRefresh } from '../contexts/RefreshContext';
 import { UserFlashcardService } from '../lib/userFlashcardService';
 import { supabase } from '../lib/supabase';
 import { VoiceService } from '../lib/voiceService';
+import { AWSPollyService } from '../lib/awsPollyService';
 
 interface BrowseFlashcardsScreenProps {
   route: {
@@ -175,22 +176,27 @@ export default function BrowseFlashcardsScreen() {
     console.log('🎵 Set audio playing to true');
     
     try {
-      // Use Expo Speech directly for dashboard exercises
+      // Get user's language for voice selection
       const userLanguage = profile?.target_language || 'en-US';
+      const voiceId = AWSPollyService.getVoiceForLanguage(userLanguage);
       
-      await VoiceService.textToSpeechExpo(text, {
-        language: userLanguage,
-        rate: 0.8, // Slightly slower for clarity
+      console.log('🎤 Using AWS Polly with voice:', voiceId, 'for language:', userLanguage);
+      
+      await AWSPollyService.playSpeech(text, {
+        voiceId,
+        languageCode: userLanguage,
+        engine: 'standard', // Use standard engine for cost efficiency
+        rate: 0.9, // Slightly slower for clarity
         pitch: 1.0,
-        volume: 1.0,
+        volume: 1.0
       });
       
-      console.log('✅ Expo Speech TTS completed');
+      console.log('✅ AWS Polly speech completed');
       setIsAudioPlaying(false);
       
     } catch (error) {
-      console.error('❌ TTS error:', error);
-      Alert.alert('Audio Error', 'Failed to play pronunciation audio.');
+      console.error('❌ AWS Polly speech error:', error);
+      Alert.alert('Audio Error', 'Failed to play pronunciation audio. Please check your internet connection.');
       setIsAudioPlaying(false);
     }
   };

@@ -398,7 +398,7 @@ class SimplePollyService {
       Text: text,
       OutputFormat: 'mp3',
       VoiceId: voiceId,
-      Engine: 'neural',
+      Engine: 'standard',
       LanguageCode: languageCode,
       SampleRate: '24000'
     };
