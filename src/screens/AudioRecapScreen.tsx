@@ -58,6 +58,12 @@ export default function AudioRecapScreen() {
 
   // Audio lesson usage tracking
   const [usage, setUsage] = useState<AudioLessonUsage | null>(null);
+  
+  // Duration fix state
+  const [isFixingDurations, setIsFixingDurations] = useState(false);
+  
+  // Actual durations for lessons (loaded from audio files)
+  const [actualDurations, setActualDurations] = useState<Record<string, number>>({});
   const [loadingUsage, setLoadingUsage] = useState(false);
   const [usageExpanded, setUsageExpanded] = useState(false);
   const [usageAnimation] = useState(new Animated.Value(0));
@@ -104,9 +110,29 @@ export default function AudioRecapScreen() {
     try {
       const lessons = await SimpleAudioLessonService.getUserAudioLessons(userId);
       setAudioLessons(lessons);
+      
+      // Load actual durations for each lesson
+      await loadActualDurations(lessons);
     } catch (error) {
       console.error('Error loading audio lessons:', error);
     }
+  };
+
+  const loadActualDurations = async (lessons: SimpleAudioLesson[]) => {
+    const durations: Record<string, number> = {};
+    
+    for (const lesson of lessons) {
+      try {
+        const actualDuration = await SimpleAudioLessonService.getActualAudioDuration(lesson.audio_url);
+        durations[lesson.id] = actualDuration;
+      } catch (error) {
+        console.error(`Error loading duration for lesson ${lesson.id}:`, error);
+        // Fallback to database duration if loading fails
+        durations[lesson.id] = lesson.audio_duration;
+      }
+    }
+    
+    setActualDurations(durations);
   };
 
   const handleCreateAudioLesson = async () => {
@@ -453,6 +479,48 @@ export default function AudioRecapScreen() {
     );
   };
 
+  const handleFixDurations = async () => {
+    if (!user) return;
+    
+    Alert.alert(
+      'Fix Audio Durations',
+      'This will check and fix the duration for all your audio lessons. Continue?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Fix Durations',
+          onPress: async () => {
+            try {
+              setIsFixingDurations(true);
+              
+              // Skip health check for now since endpoint might not be deployed yet
+              console.log('🔧 Proceeding directly with duration fix...');
+              
+              const result = await SimpleAudioLessonService.fixAudioDurations(user.id);
+              
+              if (result.success) {
+                Alert.alert(
+                  'Duration Fix Complete',
+                  `Updated ${result.updatedCount} audio lessons with correct durations.`,
+                  [{ text: 'OK' }]
+                );
+                // Refresh the list to show updated durations
+                await loadAudioLessons(user.id);
+              } else {
+                Alert.alert('Error', result.error || 'Failed to fix durations');
+              }
+            } catch (error) {
+              console.error('Error fixing durations:', error);
+              Alert.alert('Error', 'Failed to fix durations');
+            } finally {
+              setIsFixingDurations(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
@@ -464,7 +532,19 @@ export default function AudioRecapScreen() {
           <Ionicons name="arrow-back" size={24} color="#ffffff" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Audio Recap</Text>
-        <View style={styles.placeholder} />
+        {audioLessons.length > 0 && (
+          <TouchableOpacity
+            style={styles.fixButton}
+            onPress={handleFixDurations}
+            disabled={isFixingDurations}
+          >
+            <Ionicons 
+              name={isFixingDurations ? "hourglass" : "refresh"} 
+              size={20} 
+              color={isFixingDurations ? "#6b7280" : "#8b5cf6"} 
+            />
+          </TouchableOpacity>
+        )}
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -564,7 +644,7 @@ export default function AudioRecapScreen() {
                     <View style={styles.lessonInfo}>
                       <Text style={styles.lessonTitle}>{lesson?.title || 'Unknown'}</Text>
                       <Text style={styles.lessonSubtitle}>
-                        Duration: {SimpleAudioLessonService.formatDuration(lesson.audio_duration)} • Status: {SimpleAudioLessonService.getStatusText(lesson.status)}
+                        Duration: {SimpleAudioLessonService.formatDuration(actualDurations[lesson.id] || lesson.audio_duration)} • Status: {SimpleAudioLessonService.getStatusText(lesson.status)}
                       </Text>
                     </View>
                   </View>
@@ -800,6 +880,14 @@ const styles = StyleSheet.create({
   },
   placeholder: {
     width: 40,
+  },
+  fixButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   content: {
     flex: 1,

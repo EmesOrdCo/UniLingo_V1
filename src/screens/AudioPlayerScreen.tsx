@@ -7,11 +7,14 @@ import {
   Animated,
   Dimensions,
   ActivityIndicator,
+  PanResponder,
+  GestureResponderEvent,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp, useFocusEffect } from '@react-navigation/native';
 import { Audio, AVPlaybackStatus } from 'expo-av';
+import * as Haptics from 'expo-haptics';
 import { SimpleAudioLesson, SimpleAudioLessonService } from '../lib/simpleAudioLessonService';
 import { RootStackParamList } from '../types/navigation';
 
@@ -29,12 +32,65 @@ export default function AudioPlayerScreen() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [position, setPosition] = useState(0);
-  const [duration, setDuration] = useState(lesson.audio_duration * 1000); // Convert to ms
+  const [duration, setDuration] = useState(lesson.audio_duration * 1000);
   const [hasError, setHasError] = useState(false);
+  
+  // Progress bar seeking state
+  const [isSeeking, setIsSeeking] = useState(false);
+  const [seekPosition, setSeekPosition] = useState(0);
+  const progressBarRef = useRef<View>(null);
+  const seekingRef = useRef(false);
+  const lastSeekPosition = useRef(0); // Store the last valid seek position
 
   // Animated values for waveform
   const waveformAnimations = useRef(
     Array.from({ length: WAVEFORM_BARS }, () => new Animated.Value(0.3))
+  ).current;
+
+  // PanResponder for progress bar seeking
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => {
+        return true;
+      },
+      onMoveShouldSetPanResponder: () => {
+        return true;
+      },
+      onPanResponderGrant: (evt) => {
+        setIsSeeking(true);
+        seekingRef.current = true;
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        const { locationX } = evt.nativeEvent;
+        const progressBarWidth = screenWidth - 48;
+        const newProgress = Math.max(0, Math.min(1, locationX / progressBarWidth));
+        const newPosition = newProgress * duration;
+        setSeekPosition(newPosition);
+        lastSeekPosition.current = newPosition; // Store the initial position
+      },
+      onPanResponderMove: (evt) => {
+        const { locationX } = evt.nativeEvent;
+        const progressBarWidth = screenWidth - 48;
+        const newProgress = Math.max(0, Math.min(1, locationX / progressBarWidth));
+        const newPosition = newProgress * duration;
+        setSeekPosition(newPosition);
+        lastSeekPosition.current = newPosition; // Store the last valid position
+      },
+      onPanResponderRelease: async () => {
+        const finalPosition = lastSeekPosition.current;
+        await handleSeek(finalPosition);
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        setIsSeeking(false);
+        seekingRef.current = false;
+      },
+      onPanResponderTerminate: async () => {
+        if (isSeeking) {
+          const finalPosition = lastSeekPosition.current;
+          await handleSeek(finalPosition);
+          setIsSeeking(false);
+          seekingRef.current = false;
+        }
+      },
+    })
   ).current;
 
   useEffect(() => {
@@ -45,6 +101,23 @@ export default function AudioPlayerScreen() {
       }
     };
   }, []);
+
+  // Disable swipe-back gesture on this screen to prevent interference with seeking
+  useFocusEffect(
+    React.useCallback(() => {
+      // Disable swipe-back gesture
+      navigation.setOptions({
+        gestureEnabled: false,
+      });
+
+      // Re-enable when leaving the screen
+      return () => {
+        navigation.setOptions({
+          gestureEnabled: true,
+        });
+      };
+    }, [navigation])
+  );
 
   useEffect(() => {
     if (isPlaying) {
@@ -63,7 +136,6 @@ export default function AudioPlayerScreen() {
         shouldDuckAndroid: true,
       });
 
-      console.log('Loading audio from:', lesson.audio_url);
       const { sound: newSound } = await Audio.Sound.createAsync(
         { uri: lesson.audio_url },
         { progressUpdateIntervalMillis: 100 },
@@ -72,6 +144,7 @@ export default function AudioPlayerScreen() {
 
       setSound(newSound);
       setIsLoading(false);
+      console.log('Audio loaded successfully');
       
       // Auto-play
       await newSound.playAsync();
@@ -85,8 +158,15 @@ export default function AudioPlayerScreen() {
 
   const onPlaybackStatusUpdate = (status: AVPlaybackStatus) => {
     if (status.isLoaded) {
-      setPosition(status.positionMillis);
-      setDuration(status.durationMillis || duration);
+      
+      // Only update position if we're not currently seeking
+      if (!seekingRef.current && !isSeeking) {
+        setPosition(status.positionMillis);
+      }
+      
+      // Use the actual duration from the audio file if available, otherwise use the lesson duration
+      const actualDuration = status.durationMillis || (lesson.audio_duration * 1000);
+      setDuration(actualDuration);
       setIsPlaying(status.isPlaying);
 
       if (status.didJustFinish) {
@@ -134,7 +214,7 @@ export default function AudioPlayerScreen() {
 
   const handleSeek = async (value: number) => {
     if (!sound) return;
-
+    
     try {
       await sound.setPositionAsync(value);
     } catch (error) {
@@ -160,7 +240,11 @@ export default function AudioPlayerScreen() {
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
-  const progress = duration > 0 ? position / duration : 0;
+  // Use lastSeekPosition (stored in ref) during seeking, otherwise use the actual position
+  const currentPosition = (isSeeking || seekingRef.current) ? lastSeekPosition.current : position;
+  const progress = duration > 0 ? currentPosition / duration : 0;
+  
+
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -187,7 +271,7 @@ export default function AudioPlayerScreen() {
             {lesson.title}
           </Text>
           <Text style={styles.subtitle}>
-            Audio Lesson · {SimpleAudioLessonService.formatDuration(lesson.audio_duration)}
+            Audio Lesson · {SimpleAudioLessonService.formatDuration(Math.round(duration / 1000))}
           </Text>
         </View>
 
@@ -231,15 +315,27 @@ export default function AudioPlayerScreen() {
 
         {/* Progress Bar */}
         <View style={styles.progressSection}>
-          <View style={styles.progressBar}>
+          <View 
+            ref={progressBarRef}
+            style={styles.progressBar}
+            {...panResponder.panHandlers}
+          >
             <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
-            <TouchableOpacity
-              style={[styles.progressThumb, { left: `${progress * 100}%` }]}
-              onPressIn={() => {}}
+            <View
+              style={[
+                styles.progressThumb, 
+                { 
+                  left: `${progress * 100}%`,
+                  backgroundColor: isSeeking ? '#ffffff' : '#ffffff',
+                  transform: [{ scale: isSeeking ? 1.3 : 1 }],
+                  shadowOpacity: isSeeking ? 0.5 : 0.25,
+                  shadowRadius: isSeeking ? 8 : 4,
+                }
+              ]}
             />
           </View>
           <View style={styles.timeContainer}>
-            <Text style={styles.timeText}>{formatTime(position)}</Text>
+            <Text style={styles.timeText}>{formatTime(currentPosition)}</Text>
             <Text style={styles.timeText}>{formatTime(duration)}</Text>
           </View>
         </View>
@@ -285,12 +381,12 @@ export default function AudioPlayerScreen() {
         <View style={styles.statusContainer}>
           <View style={styles.statusBadge}>
             <Ionicons
-              name={isPlaying ? 'volume-high' : 'volume-mute'}
+              name={isSeeking ? 'search' : isPlaying ? 'volume-high' : 'volume-mute'}
               size={16}
-              color={isPlaying ? '#10b981' : '#6b7280'}
+              color={isSeeking ? '#f59e0b' : isPlaying ? '#10b981' : '#6b7280'}
             />
-            <Text style={[styles.statusText, isPlaying && styles.statusTextActive]}>
-              {isPlaying ? 'Playing' : 'Paused'}
+            <Text style={[styles.statusText, isSeeking && styles.statusTextSeeking, isPlaying && styles.statusTextActive]}>
+              {isSeeking ? 'Seeking...' : isPlaying ? 'Playing' : 'Paused'}
             </Text>
           </View>
         </View>
@@ -413,25 +509,28 @@ const styles = StyleSheet.create({
     marginVertical: 20,
   },
   progressBar: {
-    height: 6,
+    height: 24,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 3,
-    overflow: 'hidden',
+    borderRadius: 12,
+    overflow: 'visible',
     position: 'relative',
+    justifyContent: 'center',
+    paddingVertical: 4,
   },
   progressFill: {
-    height: '100%',
+    height: 6,
     backgroundColor: '#8b5cf6',
     borderRadius: 3,
+    marginVertical: 7,
   },
   progressThumb: {
     position: 'absolute',
-    top: -5,
-    width: 16,
-    height: 16,
-    borderRadius: 8,
+    top: 4,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
     backgroundColor: '#ffffff',
-    marginLeft: -8,
+    marginLeft: -9,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
@@ -506,6 +605,9 @@ const styles = StyleSheet.create({
   },
   statusTextActive: {
     color: '#10b981',
+  },
+  statusTextSeeking: {
+    color: '#f59e0b',
   },
 });
 

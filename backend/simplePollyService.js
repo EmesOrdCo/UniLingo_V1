@@ -508,6 +508,28 @@ class SimplePollyService {
   }
 
   /**
+   * Get actual audio duration from MP3 buffer
+   * @param {Buffer} audioBuffer - MP3 audio buffer
+   * @returns {Promise<number>} - Duration in seconds
+   */
+  async getActualAudioDuration(audioBuffer) {
+    try {
+      // Use a simple estimation based on MP3 file size and bitrate
+      // This is a rough estimation - for precise duration, we'd need to parse MP3 headers
+      const fileSizeKB = audioBuffer.length / 1024;
+      const estimatedBitrate = 128; // kbps (typical for Polly)
+      const durationSeconds = Math.round((fileSizeKB * 8) / (estimatedBitrate * 1.024));
+      
+      console.log(`⏱️ Estimated actual duration: ${durationSeconds} seconds (${fileSizeKB.toFixed(2)} KB)`);
+      return durationSeconds;
+    } catch (error) {
+      console.error('❌ Error calculating audio duration:', error);
+      // Fallback to text-based estimation
+      return this.estimateDuration('');
+    }
+  }
+
+  /**
    * Complete workflow: Create audio lesson from text
    * @param {string} title - Lesson title
    * @param {string} scriptText - The text to convert to audio
@@ -527,7 +549,7 @@ class SimplePollyService {
       console.log(`🌐 Native Language: ${nativeLanguage}`);
       console.log(`📄 Script length: ${scriptText.length} characters`);
 
-      // 1. Estimate duration
+      // 1. Estimate duration (will be updated with actual duration later)
       const estimatedDuration = this.estimateDuration(scriptText);
 
       // 2. Create database record first (with placeholder URL)
@@ -556,17 +578,22 @@ class SimplePollyService {
       console.log(`🗣️ Using voice for language: ${nativeLanguage}`);
       const audioBuffer = await this.generateAudio(scriptText, nativeLanguage);
 
-      // 4. Upload to Supabase Storage
+      // 4. Calculate actual audio duration
+      console.log('\n⏱️ Calculating actual audio duration...');
+      const actualDuration = await this.getActualAudioDuration(audioBuffer);
+
+      // 5. Upload to Supabase Storage
       console.log('\n☁️ Uploading to Supabase Storage...');
       const { url, path } = await this.uploadToSupabase(audioBuffer, userId, audioLesson.id);
 
-      // 5. Update database with audio URL
-      console.log('\n💾 Updating database with audio URL...');
+      // 6. Update database with audio URL and actual duration
+      console.log('\n💾 Updating database with audio URL and actual duration...');
       const { data: updatedLesson, error: updateError } = await supabase
         .from('audio_lessons')
         .update({
           audio_url: url,
-          audio_file_path: path
+          audio_file_path: path,
+          audio_duration: actualDuration
         })
         .eq('id', audioLesson.id)
         .select()
@@ -582,6 +609,7 @@ class SimplePollyService {
       console.log('✅ AUDIO LESSON CREATION COMPLETED');
       console.log('✅'.repeat(30));
       console.log(`⏱️ Total time: ${generationTime} seconds`);
+      console.log(`⏱️ Actual audio duration: ${actualDuration} seconds`);
       console.log(`🎵 Audio ID: ${updatedLesson.id}`);
       console.log(`🔗 URL: ${url}`);
       console.log('✅'.repeat(30) + '\n');

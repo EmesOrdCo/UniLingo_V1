@@ -406,5 +406,174 @@ export class SimpleAudioLessonService {
         return 'Unknown';
     }
   }
+
+  /**
+   * Test audio service health
+   */
+  static async testAudioServiceHealth(): Promise<{
+    success: boolean;
+    message?: string;
+    error?: string;
+  }> {
+    try {
+      console.log(`🔧 Testing audio service health`);
+      console.log(`🔧 Backend URL: ${BACKEND_CONFIG.BASE_URL}`);
+
+      const response = await fetch(`${BACKEND_CONFIG.BASE_URL}/api/audio/health`);
+      
+      console.log(`🔧 Health check response status: ${response.status}`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      console.log(`✅ Audio service health check:`, result);
+
+      return {
+        success: true,
+        message: result.message,
+      };
+    } catch (error: any) {
+      console.error('❌ Audio service health check failed:', error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  /**
+   * Get actual audio duration from the audio file using Expo AV
+   * @param audioUrl - URL of the audio file
+   * @returns Promise<number> - Duration in seconds
+   */
+  static async getActualAudioDuration(audioUrl: string): Promise<number> {
+    try {
+      const { Audio } = require('expo-av');
+      
+      // Create a sound object to get the duration
+      const { sound } = await Audio.Sound.createAsync(
+        { uri: audioUrl },
+        { shouldPlay: false } // Don't play, just load to get metadata
+      );
+      
+      // Get the status to extract duration
+      const status = await sound.getStatusAsync();
+      
+      if (status.isLoaded && status.durationMillis) {
+        const durationSeconds = Math.round(status.durationMillis / 1000);
+        console.log(`🎵 Actual audio duration: ${durationSeconds}s (${Math.floor(durationSeconds/60)}:${(durationSeconds%60).toString().padStart(2, '0')})`);
+        
+        // Clean up the sound object
+        await sound.unloadAsync();
+        
+        return durationSeconds;
+      } else {
+        throw new Error('Could not load audio metadata');
+      }
+    } catch (error) {
+      console.error('❌ Error getting audio duration:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Fix audio durations for existing lessons using the same method as AudioPlayerScreen
+   * @param userId - User ID
+   */
+  static async fixAudioDurations(userId: string): Promise<{
+    success: boolean;
+    message?: string;
+    updatedCount?: number;
+    results?: Array<{
+      id: string;
+      title: string;
+      oldDuration: number;
+      newDuration: number;
+    }>;
+    error?: string;
+  }> {
+    try {
+      console.log(`🔧 Fixing audio durations for user: ${userId}`);
+
+      // Get all audio lessons for the user
+      const { data: audioLessons, error: fetchError } = await supabase
+        .from('audio_lessons')
+        .select('id, title, audio_url, audio_duration')
+        .eq('user_id', userId);
+
+      if (fetchError) {
+        throw new Error(`Failed to fetch audio lessons: ${fetchError.message}`);
+      }
+
+      if (!audioLessons || audioLessons.length === 0) {
+        return {
+          success: true,
+          message: 'No audio lessons found',
+          updatedCount: 0,
+        };
+      }
+
+      console.log(`📊 Found ${audioLessons.length} audio lessons to check`);
+
+      let updatedCount = 0;
+      const results = [];
+
+      for (const lesson of audioLessons) {
+        try {
+          console.log(`🔧 Checking lesson: "${lesson.title}"`);
+          console.log(`   Database duration: ${lesson.audio_duration}s (${Math.floor(lesson.audio_duration/60)}:${(lesson.audio_duration%60).toString().padStart(2, '0')})`);
+          
+          // Get the actual duration from the audio file metadata (same as AudioPlayerScreen)
+          const actualDuration = await this.getActualAudioDuration(lesson.audio_url);
+          
+          console.log(`   Actual duration: ${actualDuration}s (${Math.floor(actualDuration/60)}:${(actualDuration%60).toString().padStart(2, '0')})`);
+
+          // Update if duration is different
+          if (actualDuration !== lesson.audio_duration) {
+            const { error: updateError } = await supabase
+              .from('audio_lessons')
+              .update({ audio_duration: actualDuration })
+              .eq('id', lesson.id);
+
+            if (updateError) {
+              console.error(`❌ Error updating lesson ${lesson.id}:`, updateError);
+            } else {
+              console.log(`✅ Updated lesson "${lesson.title}" duration: ${lesson.audio_duration}s → ${actualDuration}s`);
+              updatedCount++;
+              results.push({
+                id: lesson.id,
+                title: lesson.title,
+                oldDuration: lesson.audio_duration,
+                newDuration: actualDuration
+              });
+            }
+          } else {
+            console.log(`✅ Lesson "${lesson.title}" duration is already correct`);
+          }
+
+        } catch (lessonError) {
+          console.error(`❌ Error processing lesson ${lesson.id}:`, lessonError);
+        }
+      }
+
+      console.log(`✅ Duration fix completed. Updated ${updatedCount} lessons`);
+
+      return {
+        success: true,
+        message: `Updated ${updatedCount} audio lessons`,
+        updatedCount,
+        results
+      };
+
+    } catch (error: any) {
+      console.error('❌ Failed to fix audio durations:', error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
 }
 

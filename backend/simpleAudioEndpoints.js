@@ -501,6 +501,149 @@ function setupSimpleAudioRoutes(app, limiters) {
     }
   });
 
+  // ============================================
+  // POST /api/audio/fix-durations
+  // Fix audio durations for existing lessons
+  // ============================================
+  app.post('/api/audio/fix-durations', generalLimiter, async (req, res) => {
+    try {
+      console.log(`🔧 Fix durations endpoint called`);
+      console.log(`🔧 Request body:`, req.body);
+      
+      const { userId } = req.body;
+      
+      if (!userId) {
+        console.log(`🔧 Missing userId parameter`);
+        return res.status(400).json({ 
+          success: false,
+          error: 'Missing userId parameter' 
+        });
+      }
+
+      console.log(`🔧 Fixing audio durations for user: ${userId}`);
+
+      // Get all audio lessons for the user
+      const { data: audioLessons, error: fetchError } = await supabase
+        .from('audio_lessons')
+        .select('id, title, audio_url, audio_duration')
+        .eq('user_id', userId);
+
+      if (fetchError) {
+        throw new Error(fetchError.message);
+      }
+
+      if (!audioLessons || audioLessons.length === 0) {
+        return res.json({
+          success: true,
+          message: 'No audio lessons found',
+          updatedCount: 0
+        });
+      }
+
+      console.log(`📊 Found ${audioLessons.length} audio lessons to check`);
+
+      let updatedCount = 0;
+      const results = [];
+
+      for (const lesson of audioLessons) {
+        try {
+          // Fetch the audio file to get its actual duration
+          const response = await fetch(lesson.audio_url);
+          if (!response.ok) {
+            console.log(`⚠️ Could not fetch audio for lesson ${lesson.id}: ${response.status}`);
+            continue;
+          }
+
+          const audioBuffer = await response.arrayBuffer();
+          const fileSizeKB = audioBuffer.byteLength / 1024;
+          
+          // Calculate actual duration based on file size and estimated bitrate
+          const estimatedBitrate = 128; // kbps (typical for Polly)
+          const actualDuration = Math.round((fileSizeKB * 8) / (estimatedBitrate * 1.024));
+          
+          console.log(`📊 Lesson "${lesson.title}":`);
+          console.log(`   Database duration: ${lesson.audio_duration}s`);
+          console.log(`   Actual duration: ${actualDuration}s`);
+          console.log(`   File size: ${fileSizeKB.toFixed(2)} KB`);
+
+          // Update if duration is significantly different (more than 10% difference)
+          const durationDifference = Math.abs(actualDuration - lesson.audio_duration);
+          const percentageDifference = (durationDifference / lesson.audio_duration) * 100;
+
+          if (percentageDifference > 10) {
+            const { error: updateError } = await supabase
+              .from('audio_lessons')
+              .update({ audio_duration: actualDuration })
+              .eq('id', lesson.id);
+
+            if (updateError) {
+              console.error(`❌ Error updating lesson ${lesson.id}:`, updateError);
+            } else {
+              console.log(`✅ Updated lesson "${lesson.title}" duration: ${lesson.audio_duration}s → ${actualDuration}s`);
+              updatedCount++;
+              results.push({
+                id: lesson.id,
+                title: lesson.title,
+                oldDuration: lesson.audio_duration,
+                newDuration: actualDuration
+              });
+            }
+          } else {
+            console.log(`✅ Lesson "${lesson.title}" duration is accurate (${percentageDifference.toFixed(1)}% difference)`);
+          }
+
+        } catch (lessonError) {
+          console.error(`❌ Error processing lesson ${lesson.id}:`, lessonError);
+        }
+      }
+
+      console.log(`✅ Duration fix completed. Updated ${updatedCount} lessons`);
+
+      res.json({
+        success: true,
+        message: `Updated ${updatedCount} audio lessons`,
+        updatedCount,
+        results
+      });
+
+    } catch (error) {
+      console.error('❌ Error fixing audio durations:', error);
+      console.error('❌ Error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      });
+      
+      res.status(500).json({
+        success: false,
+        error: 'Failed to fix audio durations',
+        details: error.message
+      });
+    }
+  });
+
+  // ============================================
+  // GET /api/audio/health
+  // Health check endpoint for audio service
+  // ============================================
+  app.get('/api/audio/health', generalLimiter, async (req, res) => {
+    try {
+      console.log(`🔧 Audio service health check`);
+      res.json({
+        success: true,
+        message: 'Audio service is healthy',
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('❌ Health check error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Health check failed',
+        details: error.message
+      });
+    }
+  });
+
   console.log('✅ Simple audio endpoints registered');
 }
 
