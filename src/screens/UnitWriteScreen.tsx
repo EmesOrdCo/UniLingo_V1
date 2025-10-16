@@ -181,16 +181,20 @@ export default function UnitWriteScreen() {
       setSelectedAnswer(null);
       setUserAnswer([]);
       setAvailableWords([]);
+      // Clear memoized wrong options when starting new lesson
+      setMemoizedWrongOptions({});
       // Initialize with first Thomas message (first Assistant message)
       const firstAssistantMsg = conversationData.conversation.find(msg => msg.speaker === 'Assistant');
       if (firstAssistantMsg) {
         // Find the corresponding exchange data to get native language translations
-        const exchangeData = conversationExchanges[0];
+        const firstAssistantExchangeData = conversationExchanges.find(exchange => 
+          exchange.speaker === 'assistant' && exchange.text === firstAssistantMsg.message
+        );
         
         setConversationHistory([{
           type: 'app',
           french: firstAssistantMsg.message,
-          english: exchangeData?.translation || firstAssistantMsg.message,
+          english: firstAssistantExchangeData?.translation || firstAssistantMsg.message,
         }]);
       }
     }
@@ -201,17 +205,18 @@ export default function UnitWriteScreen() {
       setLoading(true);
       logger.info(`📝 Loading write exercises and conversation data for subject: ${subjectName} (${cefrLevel})`);
       
-      const nativeLanguage = profile?.native_language || 'French';
+      const targetLanguage = profile?.target_language || 'English';
+      const nativeLanguage = profile?.native_language || 'English';
       
       // Load write exercises
-      const exercises = await UnitDataAdapter.getUnitWriteExercises(subjectName, cefrLevel, nativeLanguage);
+      const exercises = await UnitDataAdapter.getUnitWriteExercises(subjectName, cefrLevel, targetLanguage, nativeLanguage);
       
       // Load vocabulary for exercise creation
-      const vocabData = await UnitDataAdapter.getUnitVocabulary(subjectName, nativeLanguage);
+      const vocabData = await UnitDataAdapter.getUnitVocabulary(subjectName, targetLanguage);
       setVocabulary(vocabData);
       
       // Load conversation data
-      const conversationExchanges = await UnitDataAdapter.getUnitConversationFromScript(subjectName, cefrLevel, nativeLanguage);
+      const conversationExchanges = await UnitDataAdapter.getUnitConversationFromScript(subjectName, cefrLevel, targetLanguage, nativeLanguage);
       
       if (exercises.length === 0 || conversationExchanges.length === 0) {
         logger.warn(`⚠️ No write exercises or conversation found for subject: ${subjectName}`);
@@ -287,57 +292,430 @@ export default function UnitWriteScreen() {
     }
   };
 
+  // Memoized wrong options to prevent cycling during re-renders
+  const [memoizedWrongOptions, setMemoizedWrongOptions] = useState<{[key: string]: {text: string, translation: string}}>({});
+
+  // Function to translate target language text to native language
+  const getUserMessageTranslation = (targetLanguageText: string, targetLanguage: string): string => {
+    // This translates FROM target language TO native language (English)
+    const targetLang = targetLanguage.toLowerCase();
+    
+    if (targetLang.includes('chinese') || targetLang.includes('zh') || targetLang.includes('mandarin')) {
+      // Chinese to English translations
+      const chineseToEnglish: {[key: string]: string} = {
+        '你好，我很好，谢谢': 'Hello, I\'m good, thank you',
+        '是的，今天很适合散步': 'Yes, it\'s a good day to walk',
+        '我很好': 'I am fine',
+        '还不错': 'Not bad',
+        '一般般': 'So-so',
+        '很棒': 'Great',
+        '很糟糕': 'Terrible',
+        '不客气': 'You are welcome',
+        '没问题': 'No problem',
+        '很乐意': 'My pleasure',
+        '别客气': 'Don\'t mention it',
+        '你好': 'Hello',
+        '早上好': 'Good morning',
+        '很快再见': 'See you soon',
+        '保重': 'Take care',
+        '我不知道': 'I don\'t know',
+        '也许': 'Maybe',
+        '我想是的': 'I think so',
+        '不是真的': 'Not really',
+        '绝对': 'Absolutely',
+        '你好! 你今天怎么样?': 'Hi! How are you today?',
+        '很高兴见到你': 'Nice to meet you',
+        '回头见': 'See you later',
+        '你好吗？': 'How are you?'
+      };
+      return chineseToEnglish[targetLanguageText] || targetLanguageText;
+    } else if (targetLang.includes('french') || targetLang.includes('fr')) {
+      // French to English translations
+      const frenchToEnglish: {[key: string]: string} = {
+        'Je vais bien': 'I am fine',
+        'Pas mal': 'Not bad',
+        'Comme ci, comme ça': 'So-so',
+        'Génial': 'Great',
+        'Terrible': 'Terrible',
+        'De rien': 'You are welcome',
+        'Pas de problème': 'No problem',
+        'Avec plaisir': 'My pleasure',
+        'Il n\'y a pas de quoi': 'Don\'t mention it',
+        'Bonjour': 'Hello',
+        'Bon matin': 'Good morning',
+        'À bientôt': 'See you soon',
+        'Prenez soin': 'Take care',
+        'Je ne sais pas': 'I don\'t know',
+        'Peut-être': 'Maybe',
+        'Je pense que oui': 'I think so',
+        'Pas vraiment': 'Not really',
+        'Absolument': 'Absolutely',
+        'Salut, ça va ?': 'Hi, how are you?',
+        'Bien, merci': 'Good, thanks',
+        'Au revoir': 'Goodbye'
+      };
+      return frenchToEnglish[targetLanguageText] || targetLanguageText;
+    } else if (targetLang.includes('spanish') || targetLang.includes('es')) {
+      // Spanish to English translations
+      const spanishToEnglish: {[key: string]: string} = {
+        'Estoy bien': 'I am fine',
+        'No está mal': 'Not bad',
+        'Más o menos': 'So-so',
+        'Genial': 'Great',
+        'Terrible': 'Terrible',
+        'De nada': 'You are welcome',
+        'No hay problema': 'No problem',
+        'Con gusto': 'My pleasure',
+        'No te preocupes': 'Don\'t worry about it',
+        'Hola': 'Hello',
+        'Buenos días': 'Good morning',
+        'Hasta pronto': 'See you soon',
+        'Cuídate': 'Take care',
+        'No sé': 'I don\'t know',
+        'Tal vez': 'Maybe',
+        'Creo que sí': 'I think so',
+        'No realmente': 'Not really',
+        'Absolutamente': 'Absolutely',
+        '¿Cómo estás?': 'How are you?',
+        'Mucho gusto': 'Nice to meet you',
+        'Hasta luego': 'See you later'
+      };
+      return spanishToEnglish[targetLanguageText] || targetLanguageText;
+    }
+    
+    // Default: assume it's already in English (native language)
+    return targetLanguageText;
+  };
+
+  // Function to convert English text to target language for wrong options
+  const convertToTargetLanguage = (englishText: string, targetLanguage: string): string => {
+    const targetLang = targetLanguage.toLowerCase();
+    
+    if (targetLang.includes('chinese') || targetLang.includes('zh') || targetLang.includes('mandarin')) {
+      // English to Chinese translations
+      const englishToChinese: {[key: string]: string} = {
+        'Hello, I\'m good, thank you': '你好，我很好，谢谢',
+        'Yes, it\'s a good day to walk': '是的，今天很适合散步',
+        'I am fine': '我很好',
+        'Not bad': '还不错',
+        'So-so': '一般般',
+        'Great': '很棒',
+        'Terrible': '很糟糕',
+        'You are welcome': '不客气',
+        'No problem': '没问题',
+        'My pleasure': '很乐意',
+        'Don\'t mention it': '别客气',
+        'Hello': '你好',
+        'Good morning': '早上好',
+        'See you soon': '很快再见',
+        'Take care': '保重',
+        'I don\'t know': '我不知道',
+        'Maybe': '也许',
+        'I think so': '我想是的',
+        'Not really': '不是真的',
+        'Absolutely': '绝对'
+      };
+      return englishToChinese[englishText] || englishText;
+    } else if (targetLang.includes('french') || targetLang.includes('fr')) {
+      // English to French translations
+      const englishToFrench: {[key: string]: string} = {
+        'I am fine': 'Je vais bien',
+        'Not bad': 'Pas mal',
+        'So-so': 'Comme ci, comme ça',
+        'Great': 'Génial',
+        'Terrible': 'Terrible',
+        'You are welcome': 'De rien',
+        'No problem': 'Pas de problème',
+        'My pleasure': 'Avec plaisir',
+        'Don\'t mention it': 'Il n\'y a pas de quoi',
+        'Hello': 'Bonjour',
+        'Good morning': 'Bon matin',
+        'See you soon': 'À bientôt',
+        'Take care': 'Prenez soin',
+        'I don\'t know': 'Je ne sais pas',
+        'Maybe': 'Peut-être',
+        'I think so': 'Je pense que oui',
+        'Not really': 'Pas vraiment',
+        'Absolutely': 'Absolument'
+      };
+      return englishToFrench[englishText] || englishText;
+    } else if (targetLang.includes('spanish') || targetLang.includes('es')) {
+      // English to Spanish translations
+      const englishToSpanish: {[key: string]: string} = {
+        'I am fine': 'Estoy bien',
+        'Not bad': 'No está mal',
+        'So-so': 'Más o menos',
+        'Great': 'Genial',
+        'Terrible': 'Terrible',
+        'You are welcome': 'De nada',
+        'No problem': 'No hay problema',
+        'My pleasure': 'Con gusto',
+        'Don\'t worry about it': 'No te preocupes',
+        'Hello': 'Hola',
+        'Good morning': 'Buenos días',
+        'See you soon': 'Hasta pronto',
+        'Take care': 'Cuídate',
+        'I don\'t know': 'No sé',
+        'Maybe': 'Tal vez',
+        'I think so': 'Creo que sí',
+        'Not really': 'No realmente',
+        'Absolutely': 'Absolutamente'
+      };
+      return englishToSpanish[englishText] || englishText;
+    }
+    
+    // Default: return as is
+    return englishText;
+  };
+
   // Get current exchange data from conversation
   // Generate contextually relevant wrong options for multiple choice questions
-  const generateWrongOptions = (correctAnswer: string, currentIndex: number): string => {
+  const generateWrongOptions = (correctAnswer: string, currentIndex: number): {text: string, translation: string} => {
+    // Create a unique key for this combination
+    const key = `${correctAnswer}-${currentIndex}`;
+    
+    // Return memoized option if it exists
+    if (memoizedWrongOptions[key]) {
+      return memoizedWrongOptions[key];
+    }
+    
     try {
+      // Get user's language preferences
+      const nativeLanguage = profile?.native_language || 'English';
+      const targetLanguage = profile?.target_language || 'English';
+      
       // Get all user messages from the conversation for context
       const userMessages = conversationData?.conversation?.filter(msg => msg.speaker === 'User') || [];
       const assistantMessages = conversationData?.conversation?.filter(msg => msg.speaker === 'Assistant') || [];
+      const exchangeData = conversationExchanges[currentIndex];
       
-      // Create a pool of potential wrong options
-      const wrongOptionsPool: string[] = [];
+      // Create a pool of potential wrong options with translations
+      const wrongOptionsPool: {text: string, translation: string}[] = [];
       
-      // Add other user responses from the conversation
-      userMessages.forEach((msg, index) => {
-        if (index !== currentIndex && msg.message) {
-          // Extract key phrases from other responses
-          const words = msg.message.split(' ').filter(word => 
-            word.length > 2 && 
-            !['the', 'and', 'or', 'but', 'is', 'are', 'was', 'were', 'have', 'has', 'had'].includes(word.toLowerCase())
-          );
-          wrongOptionsPool.push(...words.slice(0, 2)); // Take first 2 meaningful words
+      // Priority 1: Get contextually relevant responses from other parts of the conversation
+      // Use conversationExchanges to get proper target-to-native language mapping
+      conversationExchanges.forEach((exchange, index) => {
+        if (index !== currentIndex && exchange.speaker === 'user' && exchange.text) {
+          // For conversation responses, use the full response as a wrong option
+          // This creates more realistic alternatives
+          const response = exchange.text.trim();
+          if (response.length > 0 && response !== correctAnswer) {
+            // Use the translation field from the exchange data for proper mapping
+            const nativeTranslation = exchange.translation || response;
+            wrongOptionsPool.push({text: response, translation: nativeTranslation});
+          }
         }
       });
       
-      // Add common greeting/response words from vocabulary
+      // Priority 2: Add vocabulary words that are contextually similar
       if (vocabulary.length > 0) {
         const vocabWords = vocabulary
-          .map(v => v.keywords || v.english_term || v.term)
-          .filter(word => word && word !== correctAnswer && word.length > 2)
-          .slice(0, 5);
-        wrongOptionsPool.push(...vocabWords);
+          .map(v => ({
+            text: v.keywords || v.english_term || v.term, // Target language text
+            translation: v.native_translation || v.english || v.keywords // Native language translation
+          }))
+          .filter(item => item.text && item.text !== correctAnswer && item.text.length > 2);
+        
+        // Prioritize words that are similar in length or context to the correct answer
+        const similarWords = vocabWords.filter(item => 
+          Math.abs(item.text.length - correctAnswer.length) <= 3 || // Similar length
+          item.text.toLowerCase().includes(correctAnswer.toLowerCase().substring(0, 3)) || // Similar start
+          correctAnswer.toLowerCase().includes(item.text.toLowerCase().substring(0, 3))
+        );
+        
+        wrongOptionsPool.push(...similarWords.slice(0, 3));
+        
+        // Add other vocabulary words if we don't have enough
+        if (wrongOptionsPool.length < 2) {
+          const remainingWords = vocabWords.filter(item => !similarWords.includes(item));
+          wrongOptionsPool.push(...remainingWords.slice(0, 2));
+        }
       }
       
-      // Add some common incorrect responses
-      const commonWrongOptions = [
-        'No', 'Yes', 'Maybe', 'Sorry', 'Thanks', 'Please', 'Excuse me',
-        'Goodbye', 'See you', 'Later', 'Tomorrow', 'Yesterday', 'Today',
-        'Fine', 'Okay', 'Sure', 'Alright', 'Great', 'Bad', 'Tired'
-      ];
-      wrongOptionsPool.push(...commonWrongOptions);
+      // Priority 3: Add contextually appropriate common responses based on conversation type
+      const conversationContext = assistantMessages[currentIndex]?.message?.toLowerCase() || '';
+      let contextuallyRelevantOptions: {text: string, translation: string}[] = [];
+      
+      // Generate contextually appropriate options based on the actual target language
+      // The text should be in the target language, translation in native language
+      if (targetLanguage.toLowerCase().includes('french') || targetLanguage.toLowerCase().includes('fr')) {
+        // French target language options
+        if (conversationContext.includes('bonjour') || conversationContext.includes('hello') || conversationContext.includes('salut')) {
+          contextuallyRelevantOptions = [
+            {text: 'Au revoir', translation: 'Goodbye'},
+            {text: 'À bientôt', translation: 'See you later'},
+            {text: 'Comment allez-vous ?', translation: 'How are you?'},
+            {text: 'Enchanté', translation: 'Nice to meet you'}
+          ];
+        } else if (conversationContext.includes('ça va') || conversationContext.includes('how are you')) {
+          contextuallyRelevantOptions = [
+            {text: 'Je vais bien', translation: 'I am fine'},
+            {text: 'Pas mal', translation: 'Not bad'},
+            {text: 'Comme ci, comme ça', translation: 'So-so'},
+            {text: 'Génial', translation: 'Great'},
+            {text: 'Terrible', translation: 'Terrible'}
+          ];
+        } else if (conversationContext.includes('merci') || conversationContext.includes('thank')) {
+          contextuallyRelevantOptions = [
+            {text: 'De rien', translation: 'You are welcome'},
+            {text: 'Pas de problème', translation: 'No problem'},
+            {text: 'Avec plaisir', translation: 'My pleasure'},
+            {text: 'Il n\'y a pas de quoi', translation: 'Don\'t mention it'}
+          ];
+        } else if (conversationContext.includes('au revoir') || conversationContext.includes('goodbye')) {
+          contextuallyRelevantOptions = [
+            {text: 'Bonjour', translation: 'Hello'},
+            {text: 'Bon matin', translation: 'Good morning'},
+            {text: 'À bientôt', translation: 'See you soon'},
+            {text: 'Prenez soin', translation: 'Take care'}
+          ];
+        } else {
+          contextuallyRelevantOptions = [
+            {text: 'Je ne sais pas', translation: 'I don\'t know'},
+            {text: 'Peut-être', translation: 'Maybe'},
+            {text: 'Je pense que oui', translation: 'I think so'},
+            {text: 'Pas vraiment', translation: 'Not really'},
+            {text: 'Absolument', translation: 'Absolutely'}
+          ];
+        }
+      } else if (targetLanguage.toLowerCase().includes('spanish') || targetLanguage.toLowerCase().includes('es')) {
+        // Spanish target language options
+        if (conversationContext.includes('hola') || conversationContext.includes('hello')) {
+          contextuallyRelevantOptions = [
+            {text: 'Adiós', translation: 'Goodbye'},
+            {text: 'Hasta luego', translation: 'See you later'},
+            {text: '¿Cómo estás?', translation: 'How are you?'},
+            {text: 'Mucho gusto', translation: 'Nice to meet you'}
+          ];
+        } else if (conversationContext.includes('cómo') || conversationContext.includes('how are you')) {
+          contextuallyRelevantOptions = [
+            {text: 'Estoy bien', translation: 'I am fine'},
+            {text: 'No está mal', translation: 'Not bad'},
+            {text: 'Más o menos', translation: 'So-so'},
+            {text: 'Genial', translation: 'Great'},
+            {text: 'Terrible', translation: 'Terrible'}
+          ];
+        } else if (conversationContext.includes('gracias') || conversationContext.includes('thank')) {
+          contextuallyRelevantOptions = [
+            {text: 'De nada', translation: 'You are welcome'},
+            {text: 'No hay problema', translation: 'No problem'},
+            {text: 'Con gusto', translation: 'My pleasure'},
+            {text: 'No te preocupes', translation: 'Don\'t worry about it'}
+          ];
+        } else if (conversationContext.includes('adiós') || conversationContext.includes('goodbye')) {
+          contextuallyRelevantOptions = [
+            {text: 'Hola', translation: 'Hello'},
+            {text: 'Buenos días', translation: 'Good morning'},
+            {text: 'Hasta pronto', translation: 'See you soon'},
+            {text: 'Cuídate', translation: 'Take care'}
+          ];
+        } else {
+          contextuallyRelevantOptions = [
+            {text: 'No sé', translation: 'I don\'t know'},
+            {text: 'Tal vez', translation: 'Maybe'},
+            {text: 'Creo que sí', translation: 'I think so'},
+            {text: 'No realmente', translation: 'Not really'},
+            {text: 'Absolutamente', translation: 'Absolutely'}
+          ];
+        }
+      } else if (targetLanguage.toLowerCase().includes('chinese') || targetLanguage.toLowerCase().includes('zh') || targetLanguage.toLowerCase().includes('mandarin')) {
+        // Chinese target language options
+        if (conversationContext.includes('你好') || conversationContext.includes('hello') || conversationContext.includes('hi')) {
+          contextuallyRelevantOptions = [
+            {text: '再见', translation: 'Goodbye'},
+            {text: '回头见', translation: 'See you later'},
+            {text: '你好吗？', translation: 'How are you?'},
+            {text: '很高兴认识你', translation: 'Nice to meet you'}
+          ];
+        } else if (conversationContext.includes('怎么样') || conversationContext.includes('how are you')) {
+          contextuallyRelevantOptions = [
+            {text: '我很好，谢谢', translation: 'I am fine, thank you'},
+            {text: '还不错', translation: 'Not bad'},
+            {text: '一般般', translation: 'So-so'},
+            {text: '很棒', translation: 'Great'},
+            {text: '很糟糕', translation: 'Terrible'}
+          ];
+        } else if (conversationContext.includes('谢谢') || conversationContext.includes('thank')) {
+          contextuallyRelevantOptions = [
+            {text: '不客气', translation: 'You are welcome'},
+            {text: '没问题', translation: 'No problem'},
+            {text: '很乐意', translation: 'My pleasure'},
+            {text: '别客气', translation: 'Don\'t mention it'}
+          ];
+        } else if (conversationContext.includes('再见') || conversationContext.includes('goodbye')) {
+          contextuallyRelevantOptions = [
+            {text: '你好', translation: 'Hello'},
+            {text: '早上好', translation: 'Good morning'},
+            {text: '很快再见', translation: 'See you soon'},
+            {text: '保重', translation: 'Take care'}
+          ];
+        } else {
+          contextuallyRelevantOptions = [
+            {text: '我不知道', translation: 'I don\'t know'},
+            {text: '也许', translation: 'Maybe'},
+            {text: '我想是的', translation: 'I think so'},
+            {text: '不是真的', translation: 'Not really'},
+            {text: '绝对', translation: 'Absolutely'},
+            {text: '是的，今天很适合散步', translation: 'Yes, it\'s a good day to walk'},
+            {text: '你好，我很好，谢谢', translation: 'Hello, I\'m good, thank you'},
+            {text: '我很好，谢谢', translation: 'I am fine, thank you'},
+            {text: '还不错', translation: 'Not bad'},
+            {text: '一般般', translation: 'So-so'},
+            {text: '很棒', translation: 'Great'},
+            {text: '很糟糕', translation: 'Terrible'}
+          ];
+        }
+      } else {
+        // Generic/English target language options
+        contextuallyRelevantOptions = [
+          {text: 'I don\'t know', translation: 'I don\'t know'},
+          {text: 'Maybe', translation: 'Maybe'},
+          {text: 'I think so', translation: 'I think so'},
+          {text: 'Not really', translation: 'Not really'},
+          {text: 'Absolutely', translation: 'Absolutely'}
+        ];
+      }
+      
+      wrongOptionsPool.push(...contextuallyRelevantOptions);
       
       // Filter out the correct answer and get unique options
-      const uniqueOptions = [...new Set(wrongOptionsPool)]
-        .filter(option => option !== correctAnswer && option.length > 0);
+      const uniqueOptions = wrongOptionsPool.filter(option => option.text !== correctAnswer);
       
       // Shuffle and return a random wrong option
       const shuffled = uniqueOptions.sort(() => Math.random() - 0.5);
-      return shuffled[0] || 'No'; // Fallback to 'No' if no options found
+      const selectedOption = shuffled[0] || {text: 'I don\'t know', translation: 'I don\'t know'}; // More natural fallback
+      
+      // Memoize the selected option
+      setMemoizedWrongOptions(prev => ({
+        ...prev,
+        [key]: selectedOption
+      }));
+      
+      return selectedOption;
       
     } catch (error) {
       console.error('Error generating wrong options:', error);
-      return 'No'; // Fallback
+      const targetLanguage = profile?.target_language || 'English';
+      
+      // Language-agnostic fallback
+      let fallbackText = 'I don\'t know';
+      if (targetLanguage.toLowerCase().includes('french') || targetLanguage.toLowerCase().includes('fr')) {
+        fallbackText = 'Je ne sais pas';
+      } else if (targetLanguage.toLowerCase().includes('spanish') || targetLanguage.toLowerCase().includes('es')) {
+        fallbackText = 'No sé';
+      } else if (targetLanguage.toLowerCase().includes('chinese') || targetLanguage.toLowerCase().includes('zh') || targetLanguage.toLowerCase().includes('mandarin')) {
+        fallbackText = '我不知道';
+      }
+      
+      const fallbackOption = {text: fallbackText, translation: 'I don\'t know'};
+      
+      // Memoize the fallback option too
+      setMemoizedWrongOptions(prev => ({
+        ...prev,
+        [key]: fallbackOption
+      }));
+      
+      return fallbackOption;
     }
   };
 
@@ -356,7 +734,12 @@ export default function UnitWriteScreen() {
       const assistantMsg = assistantMessages[currentExchangeIndex] || assistantMessages[0];
       
       // Find the corresponding exchange data to get native language translations
-      const exchangeData = conversationExchanges[currentExchangeIndex];
+      const userExchangeData = conversationExchanges.find(exchange => 
+        exchange.speaker === 'user' && exchange.text === userMsg.message
+      );
+      const assistantExchangeData = conversationExchanges.find(exchange => 
+        exchange.speaker === 'assistant' && exchange.text === assistantMsg.message
+      );
       
       // Generate dynamic wrong option for multiple choice questions
       const correctAnswer = userMsg.message;
@@ -364,12 +747,12 @@ export default function UnitWriteScreen() {
       
       return {
         appMessage: {
-          french: assistantMsg.message,
-          english: exchangeData?.translation || assistantMsg.message
+          french: assistantMsg.message, // Target language text
+          english: assistantExchangeData?.translation || assistantMsg.message // Native language translation
         },
         userMessage: {
-          french: userMsg.message,
-          english: exchangeData?.translation || userMsg.message
+          french: userMsg.message, // Target language text
+          english: userExchangeData?.translation || userMsg.message // Native language translation
         },
         type: currentExchangeIndex < 2 ? 'choice' as const : 'scramble' as const,
         wrongOption: dynamicWrongOption
@@ -379,14 +762,18 @@ export default function UnitWriteScreen() {
     // For fallback conversation, also generate dynamic wrong options
     const fallbackExchange = CONVERSATION[currentExchangeIndex] || CONVERSATION[0];
     if (fallbackExchange.type === 'choice' && currentExchangeIndex < 2) {
-      const correctAnswer = fallbackExchange.userMessage.english;
+      const correctAnswer = fallbackExchange.userMessage.french; // Use French as the correct answer
       const dynamicWrongOption = generateWrongOptions(correctAnswer, currentExchangeIndex);
       return {
         ...fallbackExchange,
         wrongOption: dynamicWrongOption
       };
     }
-    return fallbackExchange;
+    // For non-choice exchanges, ensure wrongOption is undefined
+    return {
+      ...fallbackExchange,
+      wrongOption: undefined
+    };
   };
 
   const currentExchange = getCurrentExchange();
@@ -496,12 +883,14 @@ export default function UnitWriteScreen() {
           const nextAssistantMsg = assistantMessages[currentExchangeIndex + 1];
           if (nextAssistantMsg) {
             // Find the corresponding exchange data to get native language translations
-            const nextExchangeData = conversationExchanges[currentExchangeIndex + 1];
+            const nextAssistantExchangeData = conversationExchanges.find(exchange => 
+              exchange.speaker === 'assistant' && exchange.text === nextAssistantMsg.message
+            );
             
             newHistory.push({
               type: 'app' as const,
               french: nextAssistantMsg.message,
-              english: nextExchangeData?.translation || nextAssistantMsg.message,
+              english: nextAssistantExchangeData?.translation || nextAssistantMsg.message,
             });
           }
         }
@@ -533,6 +922,13 @@ export default function UnitWriteScreen() {
     }
     setShowResult(false);
     setIsCorrect(false);
+    // Clear memoized wrong options for current exchange to get fresh options
+    const key = `${currentExchange.userMessage.french}-${currentExchangeIndex}`;
+    setMemoizedWrongOptions(prev => {
+      const newOptions = { ...prev };
+      delete newOptions[key];
+      return newOptions;
+    });
   };
 
   const handleSkip = () => {
@@ -552,12 +948,14 @@ export default function UnitWriteScreen() {
       const nextAssistantMsg = assistantMessages[currentExchangeIndex + 1];
       if (nextAssistantMsg) {
         // Find the corresponding exchange data to get native language translations
-        const nextExchangeData = conversationExchanges[currentExchangeIndex + 1];
+        const nextAssistantExchangeData = conversationExchanges.find(exchange => 
+          exchange.speaker === 'assistant' && exchange.text === nextAssistantMsg.message
+        );
         
         newHistory.push({
           type: 'app' as const,
           french: nextAssistantMsg.message,
-          english: nextExchangeData?.translation || nextAssistantMsg.message,
+          english: nextAssistantExchangeData?.translation || nextAssistantMsg.message,
         });
       }
     }
@@ -1278,13 +1676,16 @@ export default function UnitWriteScreen() {
               <TouchableOpacity
                 style={[
                   styles.multiChoiceButton,
-                  selectedAnswer === currentExchange.wrongOption && styles.multiChoiceSelected,
+                  selectedAnswer === (typeof currentExchange.wrongOption === 'object' ? currentExchange.wrongOption?.text : currentExchange.wrongOption) && styles.multiChoiceSelected,
                 ]}
-                onPress={() => handleAnswerSelect(currentExchange.wrongOption)}
+                onPress={() => handleAnswerSelect(typeof currentExchange.wrongOption === 'object' ? currentExchange.wrongOption?.text || '' : currentExchange.wrongOption || '')}
                 disabled={showResult}
               >
                 <Text style={styles.multiChoiceButtonText}>
-                  {currentExchange.wrongOption}
+                  {typeof currentExchange.wrongOption === 'object' ? currentExchange.wrongOption?.text : currentExchange.wrongOption}
+                </Text>
+                <Text style={styles.multiChoiceButtonEnglish}>
+                  {typeof currentExchange.wrongOption === 'object' ? currentExchange.wrongOption?.translation : currentExchange.wrongOption}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -1364,9 +1765,9 @@ export default function UnitWriteScreen() {
             {!showResult || isCorrect ? (
               <TouchableOpacity
                 style={[
-                  styles.checkButton,
+                  styles.checkButtonBottom,
                   ((currentExchange.type === 'choice' && !selectedAnswer) || 
-                  (currentExchange.type === 'scramble' && userAnswer.length === 0)) && styles.checkButtonDisabled
+                  (currentExchange.type === 'scramble' && userAnswer.length === 0)) && styles.checkButtonDisabledBottom
                 ]}
                 onPress={handleCheck}
                 disabled={
@@ -1374,15 +1775,15 @@ export default function UnitWriteScreen() {
                   (currentExchange.type === 'scramble' && userAnswer.length === 0)
                 }
               >
-                <Text style={styles.checkButtonText}>Check</Text>
+                <Text style={styles.checkButtonTextBottom}>Check</Text>
               </TouchableOpacity>
             ) : (
               <View style={styles.retrySkipButtons}>
                 <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
-                  <Text style={styles.retryButtonText}>Retry</Text>
+                  <Text style={styles.retryButtonTextBottom}>Retry</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
-                  <Text style={styles.skipButtonText}>Skip</Text>
+                  <Text style={styles.skipButtonTextBottom}>Skip</Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -1483,7 +1884,7 @@ const styles = StyleSheet.create({
   conversationScrollView: {
     flex: 1,
   },
-  conversationContent: {
+  conversationContentNew: {
     padding: 20,
     paddingBottom: 100,
   },
@@ -1772,7 +2173,7 @@ const styles = StyleSheet.create({
     color: '#991b1b',
     fontWeight: '600',
   },
-  scrambleContainer: {
+  scrambleContainerBottom: {
     gap: 16,
   },
   scramblePrompt: {
@@ -1869,7 +2270,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
   },
-  retryButton: {
+  retryButtonTop: {
     flex: 1,
     backgroundColor: '#ffffff',
     paddingVertical: 16,
@@ -1883,7 +2284,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#1e293b',
   },
-  skipButton: {
+  skipButtonTop: {
     flex: 1,
     backgroundColor: '#ffffff',
     paddingVertical: 16,
@@ -2291,7 +2692,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#4f46e5',
     transform: [{ scale: 1.1 }],
   },
-  checkButton: {
+  checkButtonBottom: {
     flex: 1,
     backgroundColor: '#cbd5e1',
     paddingVertical: 16,
@@ -2303,11 +2704,11 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 3,
   },
-  checkButtonDisabled: {
+  checkButtonDisabledBottom: {
     backgroundColor: '#e5e7eb',
     opacity: 0.5,
   },
-  checkButtonText: {
+  checkButtonTextBottom: {
     fontSize: 18,
     fontWeight: '700',
     color: '#1f2937',
@@ -2326,7 +2727,7 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: '#6366f1',
   },
-  retryButtonText: {
+  retryButtonTextBottom: {
     fontSize: 16,
     fontWeight: '700',
     color: '#6366f1',
@@ -2340,7 +2741,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#d1d5db',
   },
-  skipButtonText: {
+  skipButtonTextBottom: {
     fontSize: 16,
     fontWeight: '600',
     color: '#6b7280',
