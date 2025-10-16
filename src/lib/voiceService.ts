@@ -115,8 +115,8 @@ export class VoiceService {
       console.log('🔊 VoiceService: Starting AWS Polly TTS');
       
       // Use AWS Polly service
-      await AWSPollyService.textToSpeech(text, {
-        language: config.language,
+      await AWSPollyService.playSpeech(text, {
+        languageCode: config.language,
         rate: config.rate,
         pitch: config.pitch,
         volume: config.volume,

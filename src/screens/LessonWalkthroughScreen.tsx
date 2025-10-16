@@ -1108,6 +1108,7 @@ export default function LessonWalkthroughScreen() {
           console.log(`Listen progress: question ${index + 1}/${lessonVocabulary.length}`);
         }}
         initialQuestionIndex={0}
+        userProfile={profile}
       />
     );
   }

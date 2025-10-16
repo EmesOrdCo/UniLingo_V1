@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { VoiceService } from '../../lib/voiceService';
+import { AWSPollyService } from '../../lib/awsPollyService';
 import LeaveConfirmationModal from './LeaveConfirmationModal';
 
 interface LessonListenProps {
@@ -20,6 +21,7 @@ interface LessonListenProps {
   onClose: () => void;
   onProgressUpdate?: (questionIndex: number) => void;
   initialQuestionIndex?: number;
+  userProfile?: any; // Add user profile for language detection
 }
 
 interface ListenQuestion {
@@ -32,7 +34,8 @@ export default function LessonListen({
   onComplete, 
   onClose, 
   onProgressUpdate, 
-  initialQuestionIndex = 0 
+  initialQuestionIndex = 0,
+  userProfile
 }: LessonListenProps) {
   const [questions, setQuestions] = useState<ListenQuestion[]>([]);
   const [currentIndex, setCurrentIndex] = useState(initialQuestionIndex);
@@ -99,12 +102,25 @@ export default function LessonListen({
       setIsPlaying(true);
       console.log('🔊 Playing audio for personal lesson:', textToSpeak);
       
-      // Use AWS Polly for personal lessons (higher quality TTS)
-      await VoiceService.textToSpeech(textToSpeak, {
-        language: 'en-US',
-        rate: 0.8,
+      // Get user's target language from profile and convert to proper language code
+      const userLanguageName = userProfile?.target_language;
+      if (!userLanguageName) {
+        throw new Error('User target language not found in profile');
+      }
+      
+      const languageCode = AWSPollyService.getLanguageCodeFromName(userLanguageName);
+      const voiceId = AWSPollyService.getVoiceForLanguage(languageCode);
+      
+      console.log('🎤 Using AWS Polly with voice:', voiceId, 'for language:', languageCode, '(from user target language:', userLanguageName, ')');
+      
+      // Use AWS Polly directly for personal lessons (higher quality TTS)
+      await AWSPollyService.playSpeech(textToSpeak, {
+        voiceId,
+        languageCode: languageCode,
+        engine: 'standard', // Use standard engine for cost efficiency
+        rate: 0.8, // Slightly slower for clarity
         pitch: 1.0,
-        volume: 1.0,
+        volume: 1.0
       });
       
       console.log('✅ AWS Polly TTS completed for personal lesson');
