@@ -86,7 +86,14 @@ export const VideoBackground: React.FC<VideoBackgroundProps> = ({ category, isMu
   // Load videos when category changes
   useEffect(() => {
     const loadVideos = async () => {
-      if (!category || category === 'mix') {
+      if (!category) {
+        // No category selected, don't load any videos
+        setVideos([]);
+        setCurrentVideo(null);
+        return;
+      }
+      
+      if (category === 'mix') {
         // For mix, get videos from all categories
         const [minecraftVideos, gtaVideos, subwayVideos] = await Promise.all([
           fetchVideos('minecraft'),
