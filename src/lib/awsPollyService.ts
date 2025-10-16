@@ -4,6 +4,7 @@
  */
 
 import { logger } from './logger';
+import * as Speech from 'expo-speech';
 
 interface PollyOptions {
   voiceId?: string;
@@ -106,7 +107,7 @@ export class AWSPollyService {
         
         const audio = new Audio(audioUrl);
         
-        return new Promise((resolve, reject) => {
+      return new Promise((resolve, reject) => {
           audio.onended = () => {
             URL.revokeObjectURL(audioUrl);
             resolve();
@@ -119,15 +120,14 @@ export class AWSPollyService {
           
           audio.play().catch(reject);
         });
-      } else {
-        // React Native environment - fall back to Expo Speech
-        logger.info('🌐 React Native environment detected, falling back to Expo Speech');
-        
-        // Import Expo Speech dynamically
-        const { default: Speech } = await import('expo-speech');
+          } else {
+        // React Native environment - use Expo Speech (imported statically at top)
+        logger.info('🌐 React Native environment detected, using Expo Speech');
         
         // Get language code for Expo Speech
         const languageCode = options.languageCode || 'en-US';
+        
+        logger.info(`🔊 Using Expo Speech for: "${text}" with language: ${languageCode}`);
         
         return new Promise((resolve, reject) => {
           Speech.speak(text, {
