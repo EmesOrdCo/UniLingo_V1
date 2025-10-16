@@ -1139,6 +1139,7 @@ export default function LessonWalkthroughScreen() {
         conversationData={conversationData}
         onComplete={(score) => handleExerciseComplete('conversation', score, totalExchanges)}
         onClose={() => setCurrentStep('flow-preview')}
+        userProfile={profile}
       />
     );
   }

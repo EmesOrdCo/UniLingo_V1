@@ -23,6 +23,7 @@ import { LessonService, Lesson, LessonVocabulary } from '../lib/lessonService';
 import { XPService } from '../lib/xpService';
 import { PronunciationService } from '../lib/pronunciationService';
 import { VoiceService } from '../lib/voiceService';
+import { AWSPollyService } from '../lib/awsPollyService';
 import * as Speech from 'expo-speech';
 import { logger } from '../lib/logger';
 
@@ -96,7 +97,7 @@ export default function ConversationLessonScreen() {
   
   const navigation = useNavigation();
   const route = useRoute();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { lessonId, lessonTitle } = route.params as RouteParams;
   
   // Use refs to prevent stale closures and ensure state consistency
@@ -842,25 +843,53 @@ export default function ConversationLessonScreen() {
     
     setIsPlayingAudio(true);
     try {
-      // Use Expo Speech directly for personal lessons
-      await VoiceService.textToSpeechExpo(text, {
-        language: languageCode,
+      // Get user's target language from profile and convert to proper language code
+      const userLanguageName = profile?.target_language;
+      if (!userLanguageName) {
+        throw new Error('User target language not found in profile');
+      }
+      
+      const awsLanguageCode = AWSPollyService.getLanguageCodeFromName(userLanguageName);
+      const voiceId = AWSPollyService.getVoiceForLanguage(awsLanguageCode);
+      
+      console.log('🎤 Using AWS Polly with voice:', voiceId, 'for language:', awsLanguageCode, '(from user target language:', userLanguageName, ')');
+      
+      // Use AWS Polly for personal lessons (higher quality TTS)
+      await AWSPollyService.playSpeech(text, {
+        voiceId,
+        languageCode: awsLanguageCode,
+        engine: 'standard', // Use standard engine for cost efficiency
         rate: speed,
         pitch: 1.0,
-        volume: 0.8,
+        volume: 0.8
       });
       
-      console.log('✅ Expo Speech TTS completed');
+      console.log('✅ AWS Polly TTS completed for conversation');
       setIsPlayingAudio(false);
       
     } catch (error) {
-      console.error('❌ TTS error:', error);
-      setIsPlayingAudio(false);
-      Alert.alert(
-        'Audio Unavailable',
-        'Audio playback is currently unavailable. Please try again later.',
-        [{ text: 'OK' }]
-      );
+      console.error('❌ AWS Polly TTS error for conversation:', error);
+      console.log('🔄 Falling back to Expo Speech for conversation');
+      
+      // Fallback to Expo Speech if Polly fails
+      try {
+        await VoiceService.textToSpeechExpo(text, {
+          language: languageCode,
+          rate: speed,
+          pitch: 1.0,
+          volume: 0.8,
+        });
+        console.log('✅ Expo Speech fallback completed for conversation');
+        setIsPlayingAudio(false);
+      } catch (fallbackError) {
+        console.error('❌ Expo Speech fallback also failed:', fallbackError);
+        setIsPlayingAudio(false);
+        Alert.alert(
+          'Audio Unavailable',
+          'Audio playback is currently unavailable. Please try again later.',
+          [{ text: 'OK' }]
+        );
+      }
     }
   };
 
