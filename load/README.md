@@ -194,11 +194,14 @@ Configure these secrets in your GitHub repository:
 # macOS
 brew install k6
 
-# Linux
-sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
-echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
-sudo apt-get update
-sudo apt-get install k6
+# Linux (Alternative method - more reliable)
+curl https://github.com/grafana/k6/releases/download/v0.48.0/k6-v0.48.0-linux-amd64.tar.gz -L | tar xvz --strip-components 1 -C /usr/local/bin
+
+# Or using package manager (if GPG issues occur, use the method above)
+# sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+# echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+# sudo apt-get update
+# sudo apt-get install k6
 
 # Docker
 docker run --rm -i grafana/k6 run - < k6/generate_flashcards_test.js
@@ -236,22 +239,27 @@ docker run --rm \
 
 ### Common Issues
 
-1. **Authentication Failures**
+1. **k6 Installation Failures (GPG Issues)**
+   - If GPG key import fails in CI/CD, use the direct download method
+   - Error: "gpg: failed to create temporary file" or "gpg: can't connect to the dirmngr"
+   - Solution: Use `curl https://github.com/grafana/k6/releases/download/v0.48.0/k6-v0.48.0-linux-amd64.tar.gz -L | tar xvz --strip-components 1 -C /usr/local/bin`
+
+2. **Authentication Failures**
    - Verify API key or bearer token
    - Check authentication type configuration
    - Ensure staging environment is accessible
 
-2. **Job Timeouts**
+3. **Job Timeouts**
    - Increase `JOB_TIMEOUT_SECONDS`
    - Check queue depth and worker capacity
    - Verify AI service responsiveness
 
-3. **High Error Rates**
+4. **High Error Rates**
    - Check staging environment health
    - Verify rate limiting configuration
    - Review error logs for patterns
 
-4. **Queue Depth Exceeded**
+5. **Queue Depth Exceeded**
    - Increase worker capacity
    - Optimize job processing time
    - Adjust rate limiting
