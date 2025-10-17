@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   View, 
   Text, 
@@ -10,7 +10,8 @@ import {
   FlatList,
   Platform,
   Modal,
-  Linking
+  Linking,
+  Animated
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -24,110 +25,110 @@ import SubjectSelectionScreen from './SubjectSelectionScreen';
 
 // Comprehensive list of languages supported by ChatGPT/OpenAI
 const SUPPORTED_LANGUAGES = [
-  { code: 'af', name: 'Afrikaans', flag: '🇿🇦' },
-  { code: 'sq', name: 'Albanian', flag: '🇦🇱' },
-  { code: 'am', name: 'Amharic', flag: '🇪🇹' },
-  { code: 'ar', name: 'Arabic', flag: '🇸🇦' },
-  { code: 'hy', name: 'Armenian', flag: '🇦🇲' },
-  { code: 'az', name: 'Azerbaijani', flag: '🇦🇿' },
-  { code: 'eu', name: 'Basque', flag: '🇪🇸' },
-  { code: 'be', name: 'Belarusian', flag: '🇧🇾' },
-  { code: 'bn', name: 'Bengali', flag: '🇧🇩' },
-  { code: 'bs', name: 'Bosnian', flag: '🇧🇦' },
-  { code: 'bg', name: 'Bulgarian', flag: '🇧🇬' },
-  { code: 'ca', name: 'Catalan', flag: '🇪🇸' },
-  { code: 'ceb', name: 'Cebuano', flag: '🇵🇭' },
-  { code: 'ny', name: 'Chichewa', flag: '🇲🇼' },
-  { code: 'zh', name: 'Chinese (Simplified)', flag: '🇨🇳' },
-  { code: 'zh-tw', name: 'Chinese (Traditional)', flag: '🇹🇼' },
-  { code: 'co', name: 'Corsican', flag: '🇫🇷' },
-  { code: 'hr', name: 'Croatian', flag: '🇭🇷' },
-  { code: 'cs', name: 'Czech', flag: '🇨🇿' },
-  { code: 'da', name: 'Danish', flag: '🇩🇰' },
-  { code: 'nl', name: 'Dutch', flag: '🇳🇱' },
-  { code: 'en', name: 'English', flag: '🇺🇸' },
-  { code: 'eo', name: 'Esperanto', flag: '🌍' },
-  { code: 'et', name: 'Estonian', flag: '🇪🇪' },
-  { code: 'tl', name: 'Filipino', flag: '🇵🇭' },
-  { code: 'fi', name: 'Finnish', flag: '🇫🇮' },
-  { code: 'fr', name: 'French', flag: '🇫🇷' },
-  { code: 'fy', name: 'Frisian', flag: '🇳🇱' },
-  { code: 'gl', name: 'Galician', flag: '🇪🇸' },
-  { code: 'ka', name: 'Georgian', flag: '🇬🇪' },
-  { code: 'de', name: 'German', flag: '🇩🇪' },
-  { code: 'el', name: 'Greek', flag: '🇬🇷' },
-  { code: 'gu', name: 'Gujarati', flag: '🇮🇳' },
-  { code: 'ht', name: 'Haitian Creole', flag: '🇭🇹' },
-  { code: 'ha', name: 'Hausa', flag: '🇳🇬' },
-  { code: 'haw', name: 'Hawaiian', flag: '🇺🇸' },
-  { code: 'iw', name: 'Hebrew', flag: '🇮🇱' },
-  { code: 'hi', name: 'Hindi', flag: '🇮🇳' },
-  { code: 'hmn', name: 'Hmong', flag: '🇱🇦' },
-  { code: 'hu', name: 'Hungarian', flag: '🇭🇺' },
-  { code: 'is', name: 'Icelandic', flag: '🇮🇸' },
-  { code: 'ig', name: 'Igbo', flag: '🇳🇬' },
-  { code: 'id', name: 'Indonesian', flag: '🇮🇩' },
-  { code: 'ga', name: 'Irish', flag: '🇮🇪' },
-  { code: 'it', name: 'Italian', flag: '🇮🇹' },
-  { code: 'ja', name: 'Japanese', flag: '🇯🇵' },
-  { code: 'jw', name: 'Javanese', flag: '🇮🇩' },
-  { code: 'kn', name: 'Kannada', flag: '🇮🇳' },
-  { code: 'kk', name: 'Kazakh', flag: '🇰🇿' },
-  { code: 'km', name: 'Khmer', flag: '🇰🇭' },
-  { code: 'ko', name: 'Korean', flag: '🇰🇷' },
-  { code: 'ku', name: 'Kurdish (Kurmanji)', flag: '🇮🇶' },
-  { code: 'ky', name: 'Kyrgyz', flag: '🇰🇬' },
-  { code: 'lo', name: 'Lao', flag: '🇱🇦' },
-  { code: 'la', name: 'Native', flag: '🏛️' },
-  { code: 'lv', name: 'Latvian', flag: '🇱🇻' },
-  { code: 'lt', name: 'Lithuanian', flag: '🇱🇹' },
-  { code: 'lb', name: 'Luxembourgish', flag: '🇱🇺' },
-  { code: 'mk', name: 'Macedonian', flag: '🇲🇰' },
-  { code: 'mg', name: 'Malagasy', flag: '🇲🇬' },
-  { code: 'ms', name: 'Malay', flag: '🇲🇾' },
-  { code: 'ml', name: 'Malayalam', flag: '🇮🇳' },
-  { code: 'mt', name: 'Maltese', flag: '🇲🇹' },
-  { code: 'mi', name: 'Maori', flag: '🇳🇿' },
-  { code: 'mr', name: 'Marathi', flag: '🇮🇳' },
-  { code: 'mn', name: 'Mongolian', flag: '🇲🇳' },
-  { code: 'my', name: 'Myanmar (Burmese)', flag: '🇲🇲' },
-  { code: 'ne', name: 'Nepali', flag: '🇳🇵' },
-  { code: 'no', name: 'Norwegian', flag: '🇳🇴' },
-  { code: 'ps', name: 'Pashto', flag: '🇦🇫' },
-  { code: 'fa', name: 'Persian', flag: '🇮🇷' },
-  { code: 'pl', name: 'Polish', flag: '🇵🇱' },
-  { code: 'pt', name: 'Portuguese', flag: '🇵🇹' },
-  { code: 'ma', name: 'Punjabi', flag: '🇮🇳' },
-  { code: 'ro', name: 'Romanian', flag: '🇷🇴' },
-  { code: 'ru', name: 'Russian', flag: '🇷🇺' },
-  { code: 'sm', name: 'Samoan', flag: '🇼🇸' },
-  { code: 'gd', name: 'Scots Gaelic', flag: '🏴󠁧󠁢󠁳󠁣󠁴󠁿' },
-  { code: 'sr', name: 'Serbian', flag: '🇷🇸' },
-  { code: 'st', name: 'Sesotho', flag: '🇱🇸' },
-  { code: 'sn', name: 'Shona', flag: '🇿🇼' },
-  { code: 'sd', name: 'Sindhi', flag: '🇵🇰' },
-  { code: 'si', name: 'Sinhala', flag: '🇱🇰' },
-  { code: 'sk', name: 'Slovak', flag: '🇸🇰' },
-  { code: 'sl', name: 'Slovenian', flag: '🇸🇮' },
-  { code: 'so', name: 'Somali', flag: '🇸🇴' },
-  { code: 'es', name: 'Spanish', flag: '🇪🇸' },
-  { code: 'su', name: 'Sundanese', flag: '🇮🇩' },
-  { code: 'sw', name: 'Swahili', flag: '🇹🇿' },
-  { code: 'sv', name: 'Swedish', flag: '🇸🇪' },
-  { code: 'tg', name: 'Tajik', flag: '🇹🇯' },
-  { code: 'ta', name: 'Tamil', flag: '🇮🇳' },
-  { code: 'te', name: 'Telugu', flag: '🇮🇳' },
-  { code: 'th', name: 'Thai', flag: '🇹🇭' },
-  { code: 'tr', name: 'Turkish', flag: '🇹🇷' },
-  { code: 'uk', name: 'Ukrainian', flag: '🇺🇦' },
-  { code: 'ur', name: 'Urdu', flag: '🇵🇰' },
-  { code: 'uz', name: 'Uzbek', flag: '🇺🇿' },
-  { code: 'vi', name: 'Vietnamese', flag: '🇻🇳' },
-  { code: 'cy', name: 'Welsh', flag: '🏴󠁧󠁢󠁷󠁬󠁳󠁿' },
-  { code: 'xh', name: 'Xhosa', flag: '🇿🇦' },
-  { code: 'yi', name: 'Yiddish', flag: '🇮🇱' },
-  { code: 'yo', name: 'Yoruba', flag: '🇳🇬' },
-  { code: 'zu', name: 'Zulu', flag: '🇿🇦' },
+  { code: 'af', name: 'Afrikaans', flag: '🇿🇦', highlighted: false },
+  { code: 'sq', name: 'Albanian', flag: '🇦🇱', highlighted: false },
+  { code: 'am', name: 'Amharic', flag: '🇪🇹', highlighted: false },
+  { code: 'ar', name: 'Arabic', flag: '🇸🇦', highlighted: false },
+  { code: 'hy', name: 'Armenian', flag: '🇦🇲', highlighted: false },
+  { code: 'az', name: 'Azerbaijani', flag: '🇦🇿', highlighted: false },
+  { code: 'eu', name: 'Basque', flag: '🇪🇸', highlighted: false },
+  { code: 'be', name: 'Belarusian', flag: '🇧🇾', highlighted: false },
+  { code: 'bn', name: 'Bengali', flag: '🇧🇩', highlighted: false },
+  { code: 'bs', name: 'Bosnian', flag: '🇧🇦', highlighted: false },
+  { code: 'bg', name: 'Bulgarian', flag: '🇧🇬', highlighted: false },
+  { code: 'ca', name: 'Catalan', flag: '🇪🇸', highlighted: false },
+  { code: 'ceb', name: 'Cebuano', flag: '🇵🇭', highlighted: false },
+  { code: 'ny', name: 'Chichewa', flag: '🇲🇼', highlighted: false },
+  { code: 'zh', name: 'Chinese (Simplified)', flag: '🇨🇳', highlighted: true },
+  { code: 'zh-tw', name: 'Chinese (Traditional)', flag: '🇹🇼', highlighted: true },
+  { code: 'co', name: 'Corsican', flag: '🇫🇷', highlighted: false },
+  { code: 'hr', name: 'Croatian', flag: '🇭🇷', highlighted: false },
+  { code: 'cs', name: 'Czech', flag: '🇨🇿', highlighted: false },
+  { code: 'da', name: 'Danish', flag: '🇩🇰', highlighted: false },
+  { code: 'nl', name: 'Dutch', flag: '🇳🇱', highlighted: false },
+  { code: 'en', name: 'English', flag: '🇺🇸', highlighted: true },
+  { code: 'eo', name: 'Esperanto', flag: '🌍', highlighted: false },
+  { code: 'et', name: 'Estonian', flag: '🇪🇪', highlighted: false },
+  { code: 'tl', name: 'Filipino', flag: '🇵🇭', highlighted: false },
+  { code: 'fi', name: 'Finnish', flag: '🇫🇮', highlighted: false },
+  { code: 'fr', name: 'French', flag: '🇫🇷', highlighted: true },
+  { code: 'fy', name: 'Frisian', flag: '🇳🇱', highlighted: false },
+  { code: 'gl', name: 'Galician', flag: '🇪🇸', highlighted: false },
+  { code: 'ka', name: 'Georgian', flag: '🇬🇪', highlighted: false },
+  { code: 'de', name: 'German', flag: '🇩🇪', highlighted: true },
+  { code: 'el', name: 'Greek', flag: '🇬🇷', highlighted: false },
+  { code: 'gu', name: 'Gujarati', flag: '🇮🇳', highlighted: false },
+  { code: 'ht', name: 'Haitian Creole', flag: '🇭🇹', highlighted: false },
+  { code: 'ha', name: 'Hausa', flag: '🇳🇬', highlighted: false },
+  { code: 'haw', name: 'Hawaiian', flag: '🇺🇸', highlighted: false },
+  { code: 'iw', name: 'Hebrew', flag: '🇮🇱', highlighted: false },
+  { code: 'hi', name: 'Hindi', flag: '🇮🇳', highlighted: true },
+  { code: 'hmn', name: 'Hmong', flag: '🇱🇦', highlighted: false },
+  { code: 'hu', name: 'Hungarian', flag: '🇭🇺', highlighted: false },
+  { code: 'is', name: 'Icelandic', flag: '🇮🇸', highlighted: false },
+  { code: 'ig', name: 'Igbo', flag: '🇳🇬', highlighted: false },
+  { code: 'id', name: 'Indonesian', flag: '🇮🇩', highlighted: false },
+  { code: 'ga', name: 'Irish', flag: '🇮🇪', highlighted: false },
+  { code: 'it', name: 'Italian', flag: '🇮🇹', highlighted: false },
+  { code: 'ja', name: 'Japanese', flag: '🇯🇵', highlighted: false },
+  { code: 'jw', name: 'Javanese', flag: '🇮🇩', highlighted: false },
+  { code: 'kn', name: 'Kannada', flag: '🇮🇳', highlighted: false },
+  { code: 'kk', name: 'Kazakh', flag: '🇰🇿', highlighted: false },
+  { code: 'km', name: 'Khmer', flag: '🇰🇭', highlighted: false },
+  { code: 'ko', name: 'Korean', flag: '🇰🇷', highlighted: false },
+  { code: 'ku', name: 'Kurdish (Kurmanji)', flag: '🇮🇶', highlighted: false },
+  { code: 'ky', name: 'Kyrgyz', flag: '🇰🇬', highlighted: false },
+  { code: 'lo', name: 'Lao', flag: '🇱🇦', highlighted: false },
+  { code: 'la', name: 'Native', flag: '🏛️', highlighted: false },
+  { code: 'lv', name: 'Latvian', flag: '🇱🇻', highlighted: false },
+  { code: 'lt', name: 'Lithuanian', flag: '🇱🇹', highlighted: false },
+  { code: 'lb', name: 'Luxembourgish', flag: '🇱🇺', highlighted: false },
+  { code: 'mk', name: 'Macedonian', flag: '🇲🇰', highlighted: false },
+  { code: 'mg', name: 'Malagasy', flag: '🇲🇬', highlighted: false },
+  { code: 'ms', name: 'Malay', flag: '🇲🇾', highlighted: false },
+  { code: 'ml', name: 'Malayalam', flag: '🇮🇳', highlighted: false },
+  { code: 'mt', name: 'Maltese', flag: '🇲🇹', highlighted: false },
+  { code: 'mi', name: 'Maori', flag: '🇳🇿', highlighted: false },
+  { code: 'mr', name: 'Marathi', flag: '🇮🇳', highlighted: false },
+  { code: 'mn', name: 'Mongolian', flag: '🇲🇳', highlighted: false },
+  { code: 'my', name: 'Myanmar (Burmese)', flag: '🇲🇲', highlighted: false },
+  { code: 'ne', name: 'Nepali', flag: '🇳🇵', highlighted: false },
+  { code: 'no', name: 'Norwegian', flag: '🇳🇴', highlighted: false },
+  { code: 'ps', name: 'Pashto', flag: '🇦🇫', highlighted: false },
+  { code: 'fa', name: 'Persian', flag: '🇮🇷', highlighted: false },
+  { code: 'pl', name: 'Polish', flag: '🇵🇱', highlighted: false },
+  { code: 'pt', name: 'Portuguese', flag: '🇵🇹', highlighted: false },
+  { code: 'ma', name: 'Punjabi', flag: '🇮🇳', highlighted: false },
+  { code: 'ro', name: 'Romanian', flag: '🇷🇴', highlighted: false },
+  { code: 'ru', name: 'Russian', flag: '🇷🇺', highlighted: false },
+  { code: 'sm', name: 'Samoan', flag: '🇼🇸', highlighted: false },
+  { code: 'gd', name: 'Scots Gaelic', flag: '🏴󠁧󠁢󠁳󠁣󠁴󠁿', highlighted: false },
+  { code: 'sr', name: 'Serbian', flag: '🇷🇸', highlighted: false },
+  { code: 'st', name: 'Sesotho', flag: '🇱🇸', highlighted: false },
+  { code: 'sn', name: 'Shona', flag: '🇿🇼', highlighted: false },
+  { code: 'sd', name: 'Sindhi', flag: '🇵🇰', highlighted: false },
+  { code: 'si', name: 'Sinhala', flag: '🇱🇰', highlighted: false },
+  { code: 'sk', name: 'Slovak', flag: '🇸🇰', highlighted: false },
+  { code: 'sl', name: 'Slovenian', flag: '🇸🇮', highlighted: false },
+  { code: 'so', name: 'Somali', flag: '🇸🇴', highlighted: false },
+  { code: 'es', name: 'Spanish', flag: '🇪🇸', highlighted: true },
+  { code: 'su', name: 'Sundanese', flag: '🇮🇩', highlighted: false },
+  { code: 'sw', name: 'Swahili', flag: '🇹🇿', highlighted: false },
+  { code: 'sv', name: 'Swedish', flag: '🇸🇪', highlighted: false },
+  { code: 'tg', name: 'Tajik', flag: '🇹🇯', highlighted: false },
+  { code: 'ta', name: 'Tamil', flag: '🇮🇳', highlighted: false },
+  { code: 'te', name: 'Telugu', flag: '🇮🇳', highlighted: false },
+  { code: 'th', name: 'Thai', flag: '🇹🇭', highlighted: false },
+  { code: 'tr', name: 'Turkish', flag: '🇹🇷', highlighted: false },
+  { code: 'uk', name: 'Ukrainian', flag: '🇺🇦', highlighted: false },
+  { code: 'ur', name: 'Urdu', flag: '🇵🇰', highlighted: false },
+  { code: 'uz', name: 'Uzbek', flag: '🇺🇿', highlighted: false },
+  { code: 'vi', name: 'Vietnamese', flag: '🇻🇳', highlighted: false },
+  { code: 'cy', name: 'Welsh', flag: '🏴󠁧󠁢󠁷󠁬󠁳󠁿', highlighted: false },
+  { code: 'xh', name: 'Xhosa', flag: '🇿🇦', highlighted: false },
+  { code: 'yi', name: 'Yiddish', flag: '🇮🇱', highlighted: false },
+  { code: 'yo', name: 'Yoruba', flag: '🇳🇬', highlighted: false },
+  { code: 'zu', name: 'Zulu', flag: '🇿🇦', highlighted: false },
 ];
 
 const DISCOVERY_SOURCES = [
@@ -147,18 +148,140 @@ const DISCOVERY_SOURCES = [
   'Other'
 ];
 
+// Animated Highlighted Language Item Component
+interface AnimatedHighlightedLanguageItemProps {
+  item: { code: string; name: string; flag: string; highlighted: boolean };
+  isSelected: boolean;
+  onPress: () => void;
+  languageModalType: 'native' | 'target';
+  formData: any;
+}
+
+const AnimatedHighlightedLanguageItem = ({ item, isSelected, onPress, languageModalType, formData }: AnimatedHighlightedLanguageItemProps) => {
+  const shineAnimation = useRef(new Animated.Value(0)).current;
+  const pulseAnimation = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    // Enhanced shine effect animation with staggered timing
+    const shineLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(shineAnimation, {
+          toValue: 1,
+          duration: 2500,
+          useNativeDriver: false,
+        }),
+        Animated.delay(1000), // Pause between shine cycles
+        Animated.timing(shineAnimation, {
+          toValue: 0,
+          duration: 2500,
+          useNativeDriver: false,
+        }),
+        Animated.delay(2000), // Longer pause
+      ])
+    );
+
+    // More subtle and elegant pulse animation
+    const pulseLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnimation, {
+          toValue: 1.015,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnimation, {
+          toValue: 1,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+
+    // Start animations with slight delay for staggered effect
+    setTimeout(() => {
+      shineLoop.start();
+      pulseLoop.start();
+    }, 500);
+
+    return () => {
+      shineLoop.stop();
+      pulseLoop.stop();
+    };
+  }, [shineAnimation, pulseAnimation]);
+
+  const shineTranslateX = shineAnimation.interpolate({
+    inputRange: [0, 0.3, 0.7, 1],
+    outputRange: [-120, 0, 0, 120],
+  });
+
+  const shineOpacity = shineAnimation.interpolate({
+    inputRange: [0, 0.2, 0.5, 0.8, 1],
+    outputRange: [0, 0.3, 0.7, 0.3, 0],
+  });
+
+  const shineScale = shineAnimation.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [0.8, 1.2, 0.8],
+  });
+
+  return (
+    <Animated.View style={{ transform: [{ scale: pulseAnimation }] }}>
+      <TouchableOpacity
+        style={[
+          styles.languageItem,
+          styles.languageItemHighlighted,
+          isSelected && styles.languageItemSelected
+        ]}
+        onPress={onPress}
+        activeOpacity={0.7}
+      >
+        {/* Enhanced shine effect overlay */}
+        <Animated.View
+          style={[
+            styles.shineOverlay,
+            {
+              transform: [
+                { translateX: shineTranslateX },
+                { scale: shineScale }
+              ],
+              opacity: shineOpacity,
+            },
+          ]}
+        />
+        
+        <View style={styles.languageItemContent}>
+          <Text style={styles.flagEmoji}>{item.flag}</Text>
+          <Text style={[
+            styles.languageName,
+            styles.languageNameHighlighted,
+            isSelected && styles.languageNameSelected
+          ]}>
+            {item.name}
+          </Text>
+          <View style={styles.highlightedBadge}>
+            <Text style={styles.highlightedBadgeText}>Featured</Text>
+          </View>
+        </View>
+        {isSelected && (
+          <Ionicons name="checkmark" size={20} color="#6366f1" />
+        )}
+      </TouchableOpacity>
+    </Animated.View>
+  );
+};
+
 export default function OnboardingFlowScreen({ route }: { route?: any }) {
   const navigation = useNavigation();
   const { user, clearNewUserFlag, refreshProfile, signUp } = useAuth();
   const [currentStep, setCurrentStep] = useState(0);
   const [showSubjectModal, setShowSubjectModal] = useState(false);
   const [showLanguageModal, setShowLanguageModal] = useState(false);
+  const [showInfoModal, setShowInfoModal] = useState(false);
   const [languageModalType, setLanguageModalType] = useState<'native' | 'target'>('target');
   
   // Form data
   const [formData, setFormData] = useState({
     nativeLanguage: '',
-    targetLanguage: 'English', // Hard coded to English
+    targetLanguage: '', // Allow user to select
     subject: '',
     proficiency: '',
     timeCommitment: '',
@@ -467,34 +590,55 @@ export default function OnboardingFlowScreen({ route }: { route?: any }) {
           
           <View style={styles.listContainer}>
             <FlatList
-              data={SUPPORTED_LANGUAGES}
+              data={SUPPORTED_LANGUAGES.sort((a, b) => {
+                // Sort highlighted languages first, then alphabetically
+                if (a.highlighted && !b.highlighted) return -1;
+                if (!a.highlighted && b.highlighted) return 1;
+                return a.name.localeCompare(b.name);
+              })}
               keyExtractor={(item) => item.code}
               showsVerticalScrollIndicator={true}
               contentContainerStyle={styles.listContent}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={[
-                    styles.languageItem,
-                    ((languageModalType === 'native' && formData.nativeLanguage === item.name) ||
-                     (languageModalType === 'target' && formData.targetLanguage === item.name)) && styles.languageItemSelected
-                  ]}
-                  onPress={() => selectLanguage(item, languageModalType)}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.flagEmoji}>{item.flag}</Text>
-                  <Text style={[
-                    styles.languageName,
-                    ((languageModalType === 'native' && formData.nativeLanguage === item.name) ||
-                     (languageModalType === 'target' && formData.targetLanguage === item.name)) && styles.languageNameSelected
-                  ]}>
-                    {item.name}
-                  </Text>
-                  {((languageModalType === 'native' && formData.nativeLanguage === item.name) ||
-                    (languageModalType === 'target' && formData.targetLanguage === item.name)) && (
-                    <Ionicons name="checkmark" size={20} color="#6366f1" />
-                  )}
-                </TouchableOpacity>
-              )}
+              renderItem={({ item }) => {
+                const isSelected = (languageModalType === 'native' && formData.nativeLanguage === item.name) ||
+                                 (languageModalType === 'target' && formData.targetLanguage === item.name);
+                
+                if (item.highlighted) {
+                  return (
+                    <AnimatedHighlightedLanguageItem
+                      item={item}
+                      isSelected={isSelected}
+                      onPress={() => selectLanguage(item, languageModalType)}
+                      languageModalType={languageModalType}
+                      formData={formData}
+                    />
+                  );
+                }
+                
+                return (
+                  <TouchableOpacity
+                    style={[
+                      styles.languageItem,
+                      isSelected && styles.languageItemSelected
+                    ]}
+                    onPress={() => selectLanguage(item, languageModalType)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.languageItemContent}>
+                      <Text style={styles.flagEmoji}>{item.flag}</Text>
+                      <Text style={[
+                        styles.languageName,
+                        isSelected && styles.languageNameSelected
+                      ]}>
+                        {item.name}
+                      </Text>
+                    </View>
+                    {isSelected && (
+                      <Ionicons name="checkmark" size={20} color="#6366f1" />
+                    )}
+                  </TouchableOpacity>
+                );
+              }}
             />
           </View>
         </View>
@@ -508,7 +652,17 @@ export default function OnboardingFlowScreen({ route }: { route?: any }) {
         console.log('🎯 Rendering Languages step - currentStep:', currentStep);
         return (
           <View style={styles.stepContainer}>
-            <Text style={styles.stepTitle}>My languages</Text>
+            <View style={styles.stepTitleContainer}>
+              <Text style={styles.stepTitle}>My languages</Text>
+              <TouchableOpacity
+                onPress={() => setShowInfoModal(true)}
+                style={styles.infoButton}
+                accessibilityLabel="Learn about featured languages"
+                accessibilityHint="Tap to learn about languages with general lesson access"
+              >
+                <Ionicons name="information-circle-outline" size={20} color="#6366f1" />
+              </TouchableOpacity>
+            </View>
             
             <View style={styles.languageSection}>
               <Text style={styles.sectionLabel}>I speak...</Text>
@@ -546,26 +700,36 @@ export default function OnboardingFlowScreen({ route }: { route?: any }) {
 
             <View style={styles.languageSection}>
               <Text style={styles.sectionLabel}>I want to learn</Text>
-              <View
+              <TouchableOpacity
                 style={[
                   styles.languageCard,
-                  styles.languageCardSelected,
-                  styles.languageCardDisabled
+                  formData.targetLanguage && styles.languageCardSelected
                 ]}
+                onPress={() => {
+                  setShowLanguageModal(true);
+                  setLanguageModalType('target');
+                }}
               >
                 <View style={styles.languageCardContent}>
                   <Text style={styles.flagEmoji}>
-                    🇺🇸
+                    {formData.targetLanguage 
+                      ? SUPPORTED_LANGUAGES.find(lang => lang.name === formData.targetLanguage)?.flag || '🇺🇸'
+                      : '🇺🇸'
+                    }
                   </Text>
                   <Text style={[
                     styles.languageCardText,
-                    styles.languageCardTextSelected
+                    formData.targetLanguage && styles.languageCardTextSelected
                   ]}>
-                    English
+                    {formData.targetLanguage || 'Select your target language'}
                   </Text>
-                  <Ionicons name="checkmark" size={20} color="#6366f1" />
+                  {formData.targetLanguage ? (
+                    <Ionicons name="checkmark" size={20} color="#6366f1" />
+                  ) : (
+                    <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
+                  )}
                 </View>
-              </View>
+              </TouchableOpacity>
             </View>
           </View>
         );
@@ -906,6 +1070,46 @@ export default function OnboardingFlowScreen({ route }: { route?: any }) {
       </View>
 
       {renderLanguageModal()}
+      
+      {/* Info Modal */}
+      {showInfoModal && (
+        <Modal
+          visible={showInfoModal}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setShowInfoModal(false)}
+        >
+          <View style={styles.infoModalOverlay}>
+            <View style={styles.infoModalContent}>
+              <View style={styles.infoModalHeader}>
+                <Text style={styles.infoModalTitle}>
+                  Featured Languages
+                </Text>
+                <TouchableOpacity
+                  onPress={() => setShowInfoModal(false)}
+                  style={styles.infoModalCloseButton}
+                  accessibilityLabel="Close modal"
+                >
+                  <Ionicons name="close" size={24} color="#64748b" />
+                </TouchableOpacity>
+              </View>
+              
+              <Text style={styles.infoModalText}>
+                Languages marked as "Featured" have access to general lessons that teach standard day-to-day vocabulary and common phrases.
+              </Text>
+              
+              <TouchableOpacity
+                style={styles.infoModalButton}
+                onPress={() => setShowInfoModal(false)}
+              >
+                <Text style={styles.infoModalButtonText}>
+                  Got it
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+      )}
       
       {/* Subject Selection Modal */}
       {showSubjectModal && (
@@ -1309,5 +1513,132 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#22c55e',
     textAlign: 'center',
+  },
+  // New styles for language selection enhancements
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  infoButton: {
+    padding: 4,
+  },
+  stepTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 24,
+  },
+  languageItemContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  languageItemHighlighted: {
+    backgroundColor: '#f8faff',
+    borderColor: '#6366f1',
+    borderWidth: 1.5,
+    borderRadius: 16,
+    marginVertical: 3,
+    position: 'relative',
+    overflow: 'hidden',
+    shadowColor: '#6366f1',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  languageNameHighlighted: {
+    fontWeight: '700',
+    color: '#4338ca',
+    fontSize: 16,
+    letterSpacing: 0.2,
+  },
+  highlightedBadge: {
+    backgroundColor: '#6366f1',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    marginLeft: 10,
+    shadowColor: '#6366f1',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  highlightedBadgeText: {
+    color: '#fff',
+    fontSize: 9,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
+    textShadowColor: 'rgba(0, 0, 0, 0.1)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 1,
+  },
+  shineOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: 60,
+    backgroundColor: 'rgba(255, 255, 255, 0.4)',
+    transform: [{ skewX: '-15deg' }],
+    borderRadius: 16,
+  },
+  // Info modal styles
+  infoModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  infoModalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 24,
+    maxWidth: 400,
+    width: '100%',
+    maxHeight: '80%',
+  },
+  infoModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  infoModalTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  infoModalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1e293b',
+  },
+  infoModalCloseButton: {
+    padding: 4,
+  },
+  infoModalText: {
+    fontSize: 16,
+    lineHeight: 22,
+    color: '#64748b',
+    marginBottom: 24,
+  },
+  infoModalButton: {
+    backgroundColor: '#6366f1',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+  },
+  infoModalButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
   },
 });

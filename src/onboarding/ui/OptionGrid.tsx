@@ -14,6 +14,7 @@ interface Option {
   leftEmoji?: string;
   leftIcon?: React.ReactNode;
   disabled?: boolean;
+  highlighted?: boolean;
 }
 
 interface OptionGridProps {
@@ -72,6 +73,7 @@ export function OptionGrid({
             subtitle={option.subtitle}
             selected={isSelected}
             disabled={option.disabled}
+            highlighted={option.highlighted}
             onPress={() => handleOptionPress(option.id)}
             leftEmoji={option.leftEmoji}
             leftIcon={option.leftIcon}

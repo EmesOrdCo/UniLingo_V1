@@ -13,6 +13,7 @@ interface CardOptionProps {
   subtitle?: string;
   selected?: boolean;
   disabled?: boolean;
+  highlighted?: boolean;
   onPress?: () => void;
   leftIcon?: React.ReactNode;
   leftEmoji?: string;
@@ -27,6 +28,7 @@ export function CardOption({
   subtitle,
   selected = false,
   disabled = false,
+  highlighted = false,
   onPress,
   leftIcon,
   leftEmoji,
@@ -85,7 +87,8 @@ export function CardOption({
         styles.container,
         {
           backgroundColor: selected ? theme.colors.primaryLight + '20' : theme.colors.background.surface,
-          borderColor: selected ? theme.colors.primary : theme.colors.border.primary,
+          borderColor: selected ? theme.colors.primary : highlighted ? theme.colors.primary + '40' : theme.colors.border.primary,
+          borderWidth: highlighted ? 2 : 1,
           opacity: disabled ? 0.5 : pressed ? 0.8 : 1,
         },
         style,
@@ -141,6 +144,11 @@ export function CardOption({
 
         {/* Right Icon */}
         <View style={styles.rightSection}>
+          {highlighted && (
+            <Text style={[styles.star, { color: theme.colors.primary }]}>
+              ⭐
+            </Text>
+          )}
           {getRightIcon()}
         </View>
       </View>
@@ -210,6 +218,10 @@ const styles = StyleSheet.create({
   checkmark: {
     fontSize: 12,
     fontWeight: '600',
+  },
+  star: {
+    fontSize: 16,
+    marginRight: 8,
   },
 });
 
