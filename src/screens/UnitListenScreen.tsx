@@ -15,6 +15,7 @@ import { useAuth } from '../contexts/AuthContext';
 import * as Speech from 'expo-speech';
 import { UnitDataAdapter, UnitVocabularyItem, UnitSentence } from '../lib/unitDataAdapter';
 import { logger } from '../lib/logger';
+import { getVocabularySpeechLanguage, getSpeechLanguageCode } from '../lib/languageService';
 
 export default function UnitListenScreen() {
   const navigation = useNavigation();
@@ -52,11 +53,12 @@ export default function UnitListenScreen() {
       logger.info(`🎧 Loading listen data for subject: ${subjectName} (${cefrLevel})`);
       
       const nativeLanguage = profile?.native_language || 'French';
+      const targetLanguage = profile?.target_language || 'English';
       
       // Load vocabulary and sentences
       const [vocabData, sentenceData] = await Promise.all([
-        UnitDataAdapter.getUnitVocabulary(subjectName, nativeLanguage),
-        UnitDataAdapter.getUnitSentences(subjectName, nativeLanguage)
+        UnitDataAdapter.getUnitVocabulary(subjectName, nativeLanguage, targetLanguage),
+        UnitDataAdapter.getUnitSentences(subjectName, nativeLanguage, targetLanguage)
       ]);
       
       if (vocabData.length === 0) {
@@ -193,35 +195,10 @@ export default function UnitListenScreen() {
     try {
       setIsPlaying(true);
       
-      // Determine the correct language code based on user's target language
-      const getLanguageCode = (targetLanguage: string) => {
-        const languageMap: { [key: string]: string } = {
-          'English': 'en-US',
-          'French': 'fr-FR',
-          'Spanish': 'es-ES',
-          'German': 'de-DE',
-          'Italian': 'it-IT',
-          'Portuguese': 'pt-PT',
-          'Chinese (Simplified)': 'zh-CN',
-          'Chinese (Traditional)': 'zh-TW',
-          'Japanese': 'ja-JP',
-          'Korean': 'ko-KR',
-          'Arabic': 'ar-SA',
-          'Russian': 'ru-RU',
-          'Dutch': 'nl-NL',
-          'Danish': 'da-DK',
-          'Finnish': 'fi-FI',
-          'Polish': 'pl-PL',
-          'Thai': 'th-TH',
-          'Vietnamese': 'vi-VN',
-        };
-        return languageMap[targetLanguage] || 'en-US'; // Default to English
-      };
-      
-      // The question.audio contains the target language text
-      // We need to determine what language the user is learning (target language)
+      // Determine the correct language code based on bi-directional learning
+      // The question.audio contains the target language text (what user is learning)
       const userTargetLanguage = profile?.target_language || 'English';
-      const languageCode = getLanguageCode(userTargetLanguage);
+      const languageCode = getSpeechLanguageCode(userTargetLanguage);
       
       await Speech.speak(question.audio, {
         language: languageCode,
@@ -229,7 +206,7 @@ export default function UnitListenScreen() {
         pitch: 1.0,
       });
       
-      logger.info(`🔊 Speaking: ${question.audio} in ${languageCode}`);
+      logger.info(`🔊 Speaking: ${question.audio} in ${languageCode} (target language: ${userTargetLanguage})`);
       setTimeout(() => setIsPlaying(false), 2000);
     } catch (error) {
       console.error('Error playing audio:', error);

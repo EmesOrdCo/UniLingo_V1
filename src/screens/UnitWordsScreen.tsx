@@ -15,6 +15,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { UnitDataAdapter, UnitVocabularyItem } from '../lib/unitDataAdapter';
 import { logger } from '../lib/logger';
+import { getVocabularySpeechLanguage, getNativeLanguageSpeechCode, getTargetLanguageSpeechCode } from '../lib/languageService';
 import * as Speech from 'expo-speech';
 
 export default function UnitWordsScreen() {
@@ -46,7 +47,9 @@ export default function UnitWordsScreen() {
       logger.info(`📚 Loading vocabulary for subject: ${subjectName}`);
       
       const nativeLanguage = profile?.native_language || 'French';
-      const vocabData = await UnitDataAdapter.getUnitVocabulary(subjectName, nativeLanguage);
+      const targetLanguage = profile?.target_language || 'English';
+      
+      const vocabData = await UnitDataAdapter.getUnitVocabulary(subjectName, nativeLanguage, targetLanguage);
       
       if (vocabData.length === 0) {
         logger.warn(`⚠️ No vocabulary found for subject: ${subjectName}`);
@@ -275,19 +278,39 @@ export default function UnitWordsScreen() {
     setShowExitModal(false);
   };
 
-  const handleSpeakWord = (word: string) => {
+  const handleSpeakWord = (word: string, fieldType: 'source' | 'target') => {
     try {
       // Stop any currently speaking text
       Speech.stop();
       
+      // Get current vocabulary item to determine correct language
+      const currentVocab = vocabulary[currentQuestion];
+      if (!currentVocab) {
+        logger.warn('No vocabulary item found for current question');
+        return;
+      }
+      
+      // Determine correct speech language based on which field was tapped
+      let speechLanguage: string;
+      
+      if (fieldType === 'source') {
+        // Source field contains native language text
+        speechLanguage = getNativeLanguageSpeechCode(profile?.native_language);
+        logger.info(`🔍 Debug - Native language: "${profile?.native_language}" -> Speech code: "${speechLanguage}"`);
+      } else {
+        // Target field contains target language text
+        speechLanguage = getTargetLanguageSpeechCode(profile?.target_language);
+        logger.info(`🔍 Debug - Target language: "${profile?.target_language}" -> Speech code: "${speechLanguage}"`);
+      }
+      
       // Speak the word with appropriate language settings
       Speech.speak(word, {
-        language: 'en-US', // English language
+        language: speechLanguage,
         pitch: 1.0,
         rate: 0.8,
       });
       
-      logger.info(`🔊 Speaking word: ${word}`);
+      logger.info(`🔊 Speaking word: ${word} in language: ${speechLanguage} (field: ${fieldType})`);
     } catch (error) {
       logger.error('Error speaking word:', error);
     }
@@ -332,12 +355,20 @@ export default function UnitWordsScreen() {
                   <Text style={styles.wordEnglish}>{word.english}</Text>
                   <Text style={styles.wordFrench}>{word.french}</Text>
                 </View>
-                <TouchableOpacity 
-                  style={styles.audioButton}
-                  onPress={() => handleSpeakWord(word.english)}
-                >
-                  <Ionicons name="volume-high" size={24} color="#6366f1" />
-                </TouchableOpacity>
+                <View style={styles.audioButtonsContainer}>
+                  <TouchableOpacity 
+                    style={styles.audioButton}
+                    onPress={() => handleSpeakWord(word.english, 'source')}
+                  >
+                    <Ionicons name="volume-high" size={20} color="#6366f1" />
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={styles.audioButton}
+                    onPress={() => handleSpeakWord(word.french, 'target')}
+                  >
+                    <Ionicons name="volume-high" size={20} color="#10b981" />
+                  </TouchableOpacity>
+                </View>
               </View>
             ))}
           </View>
@@ -1040,14 +1071,17 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#ffffff',
   },
+  audioButtonsContainer: {
+    flexDirection: 'row',
+    gap: 8,
+  },
   audioButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: '#f0f4ff',
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: 12,
   },
   modalOverlay: {
     flex: 1,

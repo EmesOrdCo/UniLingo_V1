@@ -73,30 +73,50 @@ export class UnitDataAdapter {
 
   /**
    * Get vocabulary data in the format expected by UnitWordsScreen
+   * Now supports bi-directional learning with proper language direction
    */
-  static async getUnitVocabulary(subjectName: string, nativeLanguage: string = 'French'): Promise<UnitVocabularyItem[]> {
+  static async getUnitVocabulary(subjectName: string, nativeLanguage: string = 'French', targetLanguage?: string): Promise<UnitVocabularyItem[]> {
     try {
       logger.info(`🔄 Converting database data to Unit vocabulary format for: ${subjectName}`);
       
-      // Convert language code to full language name
-      const languageName = this.getLanguageNameFromCode(nativeLanguage);
-      logger.info(`🌍 Language mapping: ${nativeLanguage} -> ${languageName}`);
+      // Convert language codes to full language names
+      const nativeLanguageName = this.getLanguageNameFromCode(nativeLanguage);
+      const targetLanguageName = targetLanguage ? this.getLanguageNameFromCode(targetLanguage) : 'English';
       
-      const lessonData = await SubjectLessonService.getSubjectLesson(subjectName, languageName);
+      logger.info(`🌍 Language mapping: ${nativeLanguage} -> ${nativeLanguageName}, target: ${targetLanguage} -> ${targetLanguageName}`);
+      
+      const lessonData = await SubjectLessonService.getSubjectLesson(subjectName, nativeLanguageName);
       
       if (!lessonData.vocabulary || lessonData.vocabulary.length === 0) {
         logger.warn(`⚠️ No vocabulary found for subject: ${subjectName}`);
         return [];
       }
 
-      // Convert to Unit format
-      const unitVocabulary: UnitVocabularyItem[] = lessonData.vocabulary.map(vocab => ({
-        english: vocab.english_translation,
-        french: this.getTranslation(vocab, languageName),
-        image_url: vocab.image_url
-      }));
+      // Convert to Unit format with proper language direction
+      const unitVocabulary: UnitVocabularyItem[] = lessonData.vocabulary.map(vocab => {
+        // Determine source and target based on user's language preferences
+        let sourceText: string;
+        let targetText: string;
+        
+        if (targetLanguage && targetLanguage !== 'English') {
+          // User wants to learn a specific target language
+          // Show: Native Language → Target Language
+          sourceText = this.getTranslation(vocab, nativeLanguageName);
+          targetText = this.getTranslation(vocab, targetLanguageName);
+        } else {
+          // Default behavior: English → Native Language
+          sourceText = vocab.english_translation;
+          targetText = this.getTranslation(vocab, nativeLanguageName);
+        }
+        
+        return {
+          english: sourceText, // Source language (what user sees first)
+          french: targetText,  // Target language (what user learns)
+          image_url: vocab.image_url
+        };
+      });
 
-      logger.info(`✅ Converted ${unitVocabulary.length} vocabulary items for Unit screen`);
+      logger.info(`✅ Converted ${unitVocabulary.length} vocabulary items for Unit screen (${nativeLanguageName} → ${targetLanguageName})`);
       return unitVocabulary;
     } catch (error) {
       logger.error('Error converting vocabulary for Unit screen:', error);
@@ -106,15 +126,19 @@ export class UnitDataAdapter {
 
   /**
    * Get sentences data in the format expected by UnitListenScreen and UnitSpeakScreen
+   * Now supports bi-directional learning with proper language direction
    */
-  static async getUnitSentences(subjectName: string, nativeLanguage: string = 'French'): Promise<UnitSentence[]> {
+  static async getUnitSentences(subjectName: string, nativeLanguage: string = 'French', targetLanguage?: string): Promise<UnitSentence[]> {
     try {
       logger.info(`🔄 Converting database data to Unit sentences format for: ${subjectName}`);
       
-      // Convert language code to full language name
-      const languageName = this.getLanguageNameFromCode(nativeLanguage);
+      // Convert language codes to full language names
+      const nativeLanguageName = this.getLanguageNameFromCode(nativeLanguage);
+      const targetLanguageName = targetLanguage ? this.getLanguageNameFromCode(targetLanguage) : 'English';
       
-      const lessonData = await SubjectLessonService.getSubjectLesson(subjectName, languageName);
+      logger.info(`🌍 Language mapping: ${nativeLanguage} -> ${nativeLanguageName}, target: ${targetLanguage} -> ${targetLanguageName}`);
+      
+      const lessonData = await SubjectLessonService.getSubjectLesson(subjectName, nativeLanguageName);
       
       if (!lessonData.vocabulary || lessonData.vocabulary.length === 0) {
         logger.warn(`⚠️ No vocabulary found for subject: ${subjectName}`);
@@ -123,22 +147,52 @@ export class UnitDataAdapter {
 
       // Convert vocabulary to sentences using example sentences
       const unitSentences: UnitSentence[] = lessonData.vocabulary
-        .filter(vocab => vocab.example_sentence_english && this.getExampleSentence(vocab, languageName))
-        .map(vocab => ({
-          english: vocab.example_sentence_english!,
-          french: this.getExampleSentence(vocab, languageName)!
-        }));
+        .filter(vocab => vocab.example_sentence_english && this.getExampleSentence(vocab, nativeLanguageName))
+        .map(vocab => {
+          // Determine source and target based on user's language preferences
+          let sourceSentence: string;
+          let targetSentence: string;
+          
+          if (targetLanguage && targetLanguage !== 'English') {
+            // User wants to learn a specific target language
+            // Show: Native Language → Target Language
+            sourceSentence = this.getExampleSentence(vocab, nativeLanguageName)!;
+            targetSentence = this.getExampleSentence(vocab, targetLanguageName) || vocab.example_sentence_english!;
+          } else {
+            // Default behavior: English → Native Language
+            sourceSentence = vocab.example_sentence_english!;
+            targetSentence = this.getExampleSentence(vocab, nativeLanguageName)!;
+          }
+          
+          return {
+            english: sourceSentence, // Source language sentence
+            french: targetSentence   // Target language sentence
+          };
+        });
 
       // If no example sentences, create simple sentences from vocabulary
       if (unitSentences.length === 0) {
-        const fallbackSentences = lessonData.vocabulary.slice(0, 7).map(vocab => ({
-          english: `This is ${vocab.english_translation}`,
-          french: `Ceci est ${this.getTranslation(vocab, languageName)}`
-        }));
+        const fallbackSentences = lessonData.vocabulary.slice(0, 7).map(vocab => {
+          let sourceText: string;
+          let targetText: string;
+          
+          if (targetLanguage && targetLanguage !== 'English') {
+            sourceText = `This is ${this.getTranslation(vocab, nativeLanguageName)}`;
+            targetText = `Esto es ${this.getTranslation(vocab, targetLanguageName)}`;
+          } else {
+            sourceText = `This is ${vocab.english_translation}`;
+            targetText = `Ceci est ${this.getTranslation(vocab, nativeLanguageName)}`;
+          }
+          
+          return {
+            english: sourceText,
+            french: targetText
+          };
+        });
         unitSentences.push(...fallbackSentences);
       }
 
-      logger.info(`✅ Converted ${unitSentences.length} sentences for Unit screen`);
+      logger.info(`✅ Converted ${unitSentences.length} sentences for Unit screen (${nativeLanguageName} → ${targetLanguageName})`);
       return unitSentences;
     } catch (error) {
       logger.error('Error converting sentences for Unit screen:', error);

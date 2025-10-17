@@ -64,6 +64,7 @@ import TypeWhatYouHearGame from '../components/games/TypeWhatYouHearGame';
 import SpeedChallengeGame from '../components/games/SpeedChallengeGame';
 import SentenceScrambleGame from '../components/games/SentenceScrambleGame';
 import SpeakingGame from '../components/games/SpeakingGame';
+import { getSpeechLanguageCode } from '../lib/languageService';
 
 const { width } = Dimensions.get('window');
 
@@ -724,11 +725,18 @@ export default function GamesScreen({ route }: { route?: any }) {
     
     try {
       setIsAudioPlaying(true);
+      
+      // Determine correct language based on user's target language
+      const userTargetLanguage = profile?.target_language || 'English';
+      const languageCode = getSpeechLanguageCode(userTargetLanguage);
+      
       await Speech.speak(text, {
-        language: 'en-US',
+        language: languageCode,
         pitch: 1.0,
         rate: 0.8,
       });
+      
+      logger.info(`🔊 Speaking: ${text} in ${languageCode} (target language: ${userTargetLanguage})`);
     } catch (error) {
       console.error('❌ Error playing pronunciation:', error);
     } finally {

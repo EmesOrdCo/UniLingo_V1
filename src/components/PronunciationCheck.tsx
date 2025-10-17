@@ -11,6 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
 import { PronunciationService, PronunciationResult } from '../lib/pronunciationService';
+import { getSpeechLanguageCode } from '../lib/languageService';
 
 interface PronunciationCheckProps {
   word: string;
@@ -287,9 +288,14 @@ const PronunciationCheck: React.FC<PronunciationCheckProps> = ({
     try {
       setIsPlayingHint(true);
       
+      // Try to determine language from the word or use English as fallback
+      // For pronunciation hints, we typically want to speak in the target language
+      const targetLanguage = 'English'; // Default to English for pronunciation hints
+      const languageCode = getSpeechLanguageCode(targetLanguage);
+      
       // Use expo-speech for text-to-speech
       await Speech.speak(word, {
-        language: 'en-US',
+        language: languageCode,
         pitch: 1.0,
         rate: 0.8,
         volume: 1.0,
@@ -301,6 +307,8 @@ const PronunciationCheck: React.FC<PronunciationCheckProps> = ({
           Alert.alert('Hint Error', 'Could not play audio hint. Please try again.');
         },
       });
+      
+      console.log(`🔊 Speaking hint: ${word} in ${languageCode}`);
     } catch (error) {
       console.error('Hint playback error:', error);
       setIsPlayingHint(false);

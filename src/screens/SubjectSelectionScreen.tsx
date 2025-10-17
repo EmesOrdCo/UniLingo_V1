@@ -11,7 +11,6 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { SubjectDataService } from '../lib/subjectDataService';
 
 // Comprehensive list of university degree subjects
 const UNIVERSITY_SUBJECTS = [
@@ -146,21 +145,18 @@ export default function SubjectSelectionScreen({ onSubjectSelect, selectedSubjec
   const [filteredSubjects, setFilteredSubjects] = useState(UNIVERSITY_SUBJECTS);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load subjects from database on component mount
+  // Use only hardcoded academic subjects (no database loading)
   useEffect(() => {
     const loadSubjects = async () => {
       try {
         setIsLoading(true);
-        const subjectsWithMetadata = await SubjectDataService.getSubjectsWithMetadata();
         
-        // Combine database subjects with hardcoded subjects, prioritizing database subjects
-        const dbSubjects = subjectsWithMetadata.map(s => s.name);
-        const combinedSubjects = [...new Set([...dbSubjects, ...UNIVERSITY_SUBJECTS])].sort();
+        // Use only hardcoded university subjects - no database loading
+        // The database contains topics, not academic subjects
+        setAvailableSubjects(UNIVERSITY_SUBJECTS);
+        setFilteredSubjects(UNIVERSITY_SUBJECTS);
         
-        setAvailableSubjects(combinedSubjects);
-        setFilteredSubjects(combinedSubjects);
-        
-        console.log(`✅ Loaded ${combinedSubjects.length} subjects for selection (${dbSubjects.length} from database)`);
+        console.log(`✅ Loaded ${UNIVERSITY_SUBJECTS.length} academic subjects for selection`);
       } catch (error) {
         console.error('❌ Error loading subjects for selection:', error);
         // Keep using hardcoded subjects as fallback

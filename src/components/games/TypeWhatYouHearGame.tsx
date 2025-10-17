@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
 import * as Haptics from 'expo-haptics';
 import GameCompletionTracker from '../../lib/gameCompletionTracker';
+import { getSpeechLanguageCode } from '../../lib/languageService';
 
 interface TypeWhatYouHearGameProps {
   gameData: any;
@@ -52,13 +53,20 @@ const TypeWhatYouHearGame: React.FC<TypeWhatYouHearGameProps> = ({ gameData, onC
     
     setIsPlaying(true);
     try {
+      // Try to determine language from gameData or use English as fallback
+      // This component is used in games where the target language should be spoken
+      const targetLanguage = gameData?.targetLanguage || 'English';
+      const languageCode = getSpeechLanguageCode(targetLanguage);
+      
       await Speech.speak(currentQuestion.correctAnswer, {
-        language: 'en',
+        language: languageCode,
         pitch: 1.0,
         rate: 0.8,
         onDone: () => setIsPlaying(false),
         onError: () => setIsPlaying(false),
       });
+      
+      console.log(`🔊 Speaking: ${currentQuestion.correctAnswer} in ${languageCode} (target: ${targetLanguage})`);
     } catch (error) {
       console.error('Speech error:', error);
       setIsPlaying(false);

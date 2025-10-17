@@ -73,11 +73,12 @@ export default function UnitSpeakScreen() {
       logger.info(`🎤 Loading speak data for subject: ${subjectName} (${cefrLevel})`);
       
       const nativeLanguage = profile?.native_language || 'French';
+      const targetLanguage = profile?.target_language || 'English';
       
       // Load vocabulary and sentences
       const [vocabData, sentenceData] = await Promise.all([
-        UnitDataAdapter.getUnitVocabulary(subjectName, nativeLanguage),
-        UnitDataAdapter.getUnitSentences(subjectName, nativeLanguage)
+        UnitDataAdapter.getUnitVocabulary(subjectName, nativeLanguage, targetLanguage),
+        UnitDataAdapter.getUnitSentences(subjectName, nativeLanguage, targetLanguage)
       ]);
       
       if (vocabData.length === 0) {
