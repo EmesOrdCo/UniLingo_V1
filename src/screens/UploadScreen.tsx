@@ -20,6 +20,7 @@ import { ImageUploadService, ImageUploadProgress, ImageProcessingResult } from '
 import { UserFlashcardService } from '../lib/userFlashcardService';
 import { FlashcardService } from '../lib/flashcardService';
 import FlashcardReviewModal from '../components/FlashcardReviewModal';
+import UploadProgressModal from '../components/UploadProgressModal';
 import ImageProcessingModal from '../components/ImageProcessingModal';
 import ImagePreviewModal from '../components/ImagePreviewModal';
 import { TopicEditModal } from '../components/TopicEditModal';
@@ -1191,12 +1192,14 @@ export default function UploadScreen() {
       
       console.log(`✅ Text validation passed: ${extractedText.length} characters extracted`);
       
+      const userTargetLanguage = profile?.target_language || 'English';
+      
       const flashcards = await UploadService.generateFlashcards(
         extractedText,
         userSubject,
         topic,
         userNativeLanguage,
-        false,
+        userTargetLanguage,
         (progressUpdate) => {
           // Check if cancelled before updating progress
           if (isCancelled) {
@@ -1574,7 +1577,16 @@ export default function UploadScreen() {
 
       </ScrollView>
 
-      {/* Progress Modal - REMOVED: Progress bar in UI already handles this */}
+      {/* Progress Modal */}
+      <UploadProgressModal
+        visible={showProgressModal}
+        progress={progress}
+        onClose={handleCancelUpload}
+        onCancel={handleCancelUpload}
+        onRetry={handleRetryUpload}
+        onUseAlternative={handleUseAlternative}
+        onContinue={handleContinue}
+      />
 
       {/* Image Processing Modal */}
       <ImageProcessingModal
