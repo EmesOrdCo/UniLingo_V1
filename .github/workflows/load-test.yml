@@ -3,9 +3,6 @@ name: Load Testing
 on:
   push:
     branches: [ main ]
-    paths:
-      - 'load/**'
-      - '.github/workflows/load-test.yml'
   workflow_dispatch:
     inputs:
       test_type:
