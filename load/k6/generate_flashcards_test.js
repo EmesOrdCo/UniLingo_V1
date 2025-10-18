@@ -130,7 +130,7 @@ function fetchQueueDepth() {
     
     if (response.status === 200) {
       const data = JSON.parse(response.body);
-      return data.queue?.waiting || data.waiting || 0;
+      return (data.queue && data.queue.waiting) || data.waiting || 0;
     }
   } catch (error) {
     console.log(`Failed to fetch queue depth: ${error}`);
@@ -152,7 +152,7 @@ export default function () {
 
   // Step C & D: Generate flashcards and poll for completion
   for (let jobIndex = 0; jobIndex < maxJobs; jobIndex++) {
-    const payload = { ...getRandomPayload(), userId };
+    const payload = Object.assign({}, getRandomPayload(), { userId });
     
     const jobStartTime = Date.now();
     
