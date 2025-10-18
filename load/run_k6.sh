@@ -76,7 +76,8 @@ show_usage() {
 }
 
 # Parse command line arguments
-STAGING_BASE_URL="$DEFAULT_STAGING_BASE_URL"
+# Use environment variable if set, otherwise use default
+STAGING_BASE_URL="${STAGING_BASE_URL:-$DEFAULT_STAGING_BASE_URL}"
 VU_COUNT="$DEFAULT_VU_COUNT"
 RAMP_UP="$DEFAULT_RAMP_UP"
 STEADY_STATE="$DEFAULT_STEADY_STATE"
