@@ -82,10 +82,15 @@ jobs:
 
       - name: Check smoke test results
         run: |
-          if [ -f "load/test-results/smoke/k6_results_*.json" ]; then
+          # Check if any k6 results files exist
+          if ls load/test-results/smoke/k6_results_*.json 1> /dev/null 2>&1; then
             echo "✅ Smoke test completed successfully"
+            echo "📊 Results files found:"
+            ls -la load/test-results/smoke/k6_results_*.json
           else
             echo "❌ Smoke test failed - no results file found"
+            echo "📁 Contents of smoke directory:"
+            ls -la load/test-results/smoke/ || echo "Directory does not exist"
             exit 1
           fi
 
