@@ -228,8 +228,8 @@ mkdir -p "$OUTPUT_DIR"
 
 # Generate timestamp for unique filenames
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
-OUTPUT_FILE="$OUTPUT_DIR/k6_results_${TIMESTAMP}.json"
-REPORT_FILE="$OUTPUT_DIR/load_test_report_${TIMESTAMP}.md"
+OUTPUT_FILE="$(pwd)/$OUTPUT_DIR/k6_results_${TIMESTAMP}.json"
+REPORT_FILE="$(pwd)/$OUTPUT_DIR/load_test_report_${TIMESTAMP}.md"
 
 # Print configuration
 print_status "Load Test Configuration:"
