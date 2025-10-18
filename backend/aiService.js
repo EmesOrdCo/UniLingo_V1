@@ -22,10 +22,10 @@ const openaiCircuitBreaker = new CircuitBreaker('openai', {
   monitoringWindow: 60000,   // Count failures in 60 second window
 });
 
-// Rate limiting configuration
+// Rate limiting configuration (legacy - now using Redis-backed rate limiter)
 const RATE_LIMITS = {
-  requestsPerMinute: 50,
-  tokensPerMinute: 75000,
+  requestsPerMinute: 200, // Updated to match GPT-4o-mini limits
+  tokensPerMinute: 200000, // Updated to match GPT-4o-mini limits
   maxRetries: 3,
   baseDelay: 1000,
   maxDelay: 30000,

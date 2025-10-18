@@ -42,6 +42,31 @@ const aiJobsQueue = new Queue('ai-jobs', {
 });
 
 /**
+ * Audio Jobs Queue
+ * Handles all audio-related jobs (TTS, pronunciation assessment, audio lesson generation)
+ * 
+ * Optimized for audio services with higher concurrency limits
+ */
+const audioJobsQueue = new Queue('audio-jobs', {
+  connection: redisConfig,
+  defaultJobOptions: {
+    attempts: 2, // Fewer retries for audio (faster failure)
+    backoff: {
+      type: 'exponential',
+      delay: 1000, // Start with 1 second delay
+    },
+    removeOnComplete: {
+      age: 1800, // Keep completed jobs for 30 minutes (shorter for audio)
+      count: 200, // Keep last 200 completed jobs
+    },
+    removeOnFail: {
+      age: 3600, // Keep failed jobs for 1 hour
+      count: 100, // Keep last 100 failed jobs
+    },
+  }
+});
+
+/**
  * Calculate idempotency key for job deduplication
  * Creates a stable hash from userId and payload
  * 
@@ -183,6 +208,37 @@ async function enqueue(jobType, payload, opts = {}) {
 }
 
 /**
+ * Enqueue an audio job to the audio jobs queue
+ * 
+ * @param {string} jobType - Type of audio job (e.g., 'generate-audio-lesson', 'assess-pronunciation')
+ * @param {object} payload - Job data
+ * @param {object} opts - Optional BullMQ job options
+ * @returns {Promise<{jobId: string, queue: string}>}
+ */
+async function enqueueAudio(jobType, payload, opts = {}) {
+  try {
+    console.log(`🎵 Enqueueing audio job: ${jobType}`);
+    console.log(`📦 Payload keys: ${Object.keys(payload).join(', ')}`);
+    
+    const job = await audioJobsQueue.add(jobType, payload, {
+      ...opts,
+      // Ensure job has a unique ID for tracking
+      jobId: opts.jobId || `${jobType}-${Date.now()}-${Math.random().toString(36).substring(7)}`,
+    });
+    
+    console.log(`✅ Audio job enqueued successfully: ${job.id}`);
+    
+    return {
+      jobId: job.id,
+      queue: 'audio-jobs',
+    };
+  } catch (error) {
+    console.error(`❌ Failed to enqueue audio job:`, error);
+    throw new Error(`Audio queue error: ${error.message}`);
+  }
+}
+
+/**
  * Get job status and result
  * 
  * @param {string} jobId - Job ID to query
@@ -190,7 +246,15 @@ async function enqueue(jobType, payload, opts = {}) {
  */
 async function getJobStatus(jobId) {
   try {
-    const job = await aiJobsQueue.getJob(jobId);
+    // Try AI jobs queue first
+    let job = await aiJobsQueue.getJob(jobId);
+    let queueName = 'ai-jobs';
+    
+    // If not found in AI queue, try audio queue
+    if (!job) {
+      job = await audioJobsQueue.getJob(jobId);
+      queueName = 'audio-jobs';
+    }
     
     if (!job) {
       return {
@@ -205,6 +269,7 @@ async function getJobStatus(jobId) {
     const response = {
       status: state, // 'waiting', 'active', 'completed', 'failed', 'delayed'
       jobId: job.id,
+      queue: queueName,
       timestamp: job.timestamp,
     };
     
@@ -299,6 +364,7 @@ async function cleanOldJobs(olderThan = 86400000, status = 'completed') {
 async function close() {
   console.log('🔌 Closing queue connections...');
   await aiJobsQueue.close();
+  await audioJobsQueue.close();
   await redis.quit();
   console.log('✅ Queue connections closed');
 }
@@ -318,12 +384,14 @@ process.on('SIGINT', async () => {
 
 module.exports = {
   enqueue,
+  enqueueAudio,
   getJobStatus,
   getQueueStats,
   healthCheck,
   cleanOldJobs,
   close,
   aiJobsQueue,
+  audioJobsQueue,
   redis,
   // Issue #7: Idempotency functions
   calculateIdempotencyKey,

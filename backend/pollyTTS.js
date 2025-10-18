@@ -25,7 +25,7 @@ class PollyTTSService {
     // Rate limiting
     this.requestCounts = new Map();
     this.rateLimitWindow = 60000; // 1 minute window
-    this.maxRequestsPerWindow = 100; // Max 100 requests per minute per IP
+    this.maxRequestsPerWindow = 2000; // Max 2000 requests per minute per IP (increased from 500)
 
     console.log('🎙️ PollyTTSService initialized:', {
       region: process.env.AWS_REGION,

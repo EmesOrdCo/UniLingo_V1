@@ -25,7 +25,7 @@ class ResilientPronunciationService {
     // TODO (Optional): Migrate to BullMQ if pronunciation becomes a bottleneck
     this.requestQueue = [];
     this.processing = 0;
-    this.maxConcurrent = 20; // Azure Speech Service S0 tier limit
+    this.maxConcurrent = 150; // Azure Speech Service S0 tier limit (increased from 100)
     
     this.retryConfig = {
       maxRetries: 3,

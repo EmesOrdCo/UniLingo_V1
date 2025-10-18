@@ -294,6 +294,9 @@ export default function CreateLessonScreen() {
     }
 
     try {
+      // Reset cancellation state when starting image selection
+      setIsCancelled(false);
+      
       const images = await ImageUploadService.pickImages();
       setSelectedImages(images);
       setShowImagePreview(true);
@@ -313,6 +316,9 @@ export default function CreateLessonScreen() {
     }
 
     try {
+      // Reset cancellation state when starting photo capture
+      setIsCancelled(false);
+      
       const images = await ImageUploadService.takePhoto();
       setSelectedImages(images);
       setShowImagePreview(true);
@@ -332,6 +338,9 @@ export default function CreateLessonScreen() {
 
   const handleAddMoreImages = async () => {
     try {
+      // Reset cancellation state when adding more images
+      setIsCancelled(false);
+      
       const newImages = await ImageUploadService.pickImages();
       const combinedImages = [...selectedImages, ...newImages];
       

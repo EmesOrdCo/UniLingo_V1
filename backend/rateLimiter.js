@@ -103,33 +103,34 @@ function createLimiter(name, options = {}) {
 
 // OpenAI rate limiter
 // Configurable via environment variables for easy tuning
+// GPT-4o-mini: 10,000 RPM, 200,000 TPM (much higher limits than GPT-4)
 const openaiLimiter = createLimiter('openai', {
-  reservoir: parseInt(process.env.OPENAI_RATE_LIMIT_RPM || '50'),     // Requests per minute
+  reservoir: parseInt(process.env.OPENAI_RATE_LIMIT_RPM || '200'),     // Requests per minute (increased from 50)
   window: 60000,           // Per minute
-  maxConcurrent: parseInt(process.env.OPENAI_MAX_CONCURRENT || '5'),  // Max concurrent
-  minTime: 100,            // 100ms between requests
+  maxConcurrent: parseInt(process.env.OPENAI_MAX_CONCURRENT || '20'),  // Max concurrent (increased from 5)
+  minTime: 50,             // 50ms between requests (reduced from 100ms)
 });
 
-console.log(`⚙️ OpenAI limiter configured: ${process.env.OPENAI_RATE_LIMIT_RPM || 50} req/min, ${process.env.OPENAI_MAX_CONCURRENT || 5} concurrent`);
+console.log(`⚙️ OpenAI limiter configured: ${process.env.OPENAI_RATE_LIMIT_RPM || 200} req/min, ${process.env.OPENAI_MAX_CONCURRENT || 20} concurrent`);
 
 // Azure Speech rate limiter  
-// 20 concurrent connections (S0 tier) - configurable for higher tiers
+// S0 tier: 200 RPS, 1000 burst - much higher than current usage
 const azureSpeechLimiter = createLimiter('azure-speech', {
-  maxConcurrent: parseInt(process.env.AZURE_SPEECH_MAX_CONCURRENT || '20'),  // S0 tier default
-  minTime: parseInt(process.env.AZURE_SPEECH_MIN_TIME || '50'),              // 50ms between
+  maxConcurrent: parseInt(process.env.AZURE_SPEECH_MAX_CONCURRENT || '150'),  // Increased from 20 to 150
+  minTime: parseInt(process.env.AZURE_SPEECH_MIN_TIME || '10'),              // 10ms between (reduced from 50ms)
 });
 
-console.log(`⚙️ Azure Speech limiter configured: ${process.env.AZURE_SPEECH_MAX_CONCURRENT || 20} concurrent`);
+console.log(`⚙️ Azure Speech limiter configured: ${process.env.AZURE_SPEECH_MAX_CONCURRENT || 150} concurrent`);
 
 // Azure Vision OCR rate limiter
-// Conservative limit for free tier (5000/month)
+// S0 tier: 100 RPM, 5 concurrent - much higher than free tier
 const azureVisionLimiter = createLimiter('azure-vision', {
-  reservoir: parseInt(process.env.AZURE_VISION_RATE_LIMIT_RPM || '20'),  // 20 per minute default
+  reservoir: parseInt(process.env.AZURE_VISION_RATE_LIMIT_RPM || '100'),  // 100 per minute (increased from 20)
   window: 60000,           // Per minute
-  maxConcurrent: parseInt(process.env.AZURE_VISION_MAX_CONCURRENT || '5'),  // Max 5 concurrent
+  maxConcurrent: parseInt(process.env.AZURE_VISION_MAX_CONCURRENT || '5'),  // Max 5 concurrent (unchanged)
 });
 
-console.log(`⚙️ Azure Vision limiter configured: ${process.env.AZURE_VISION_RATE_LIMIT_RPM || 20} req/min, ${process.env.AZURE_VISION_MAX_CONCURRENT || 5} concurrent`);
+console.log(`⚙️ Azure Vision limiter configured: ${process.env.AZURE_VISION_RATE_LIMIT_RPM || 100} req/min, ${process.env.AZURE_VISION_MAX_CONCURRENT || 5} concurrent`);
 
 /**
  * Simple Redis-backed rate limiting (for IP/User limits)
