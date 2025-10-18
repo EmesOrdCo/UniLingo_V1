@@ -42,6 +42,10 @@ const PORT = process.env.PORT || 3001;
 const LOCAL_IP = getLocalIP();
 const networkLogger = new NetworkLogger();
 
+// Configure Express to trust proxy (required for Railway deployment)
+// This allows Express to properly handle X-Forwarded-For headers from Railway's reverse proxy
+app.set('trust proxy', true);
+
 // Initialize new services
 const performanceMonitor = new PerformanceMonitor();
 const resilientPronunciationService = new ResilientPronunciationService();
