@@ -130,6 +130,7 @@ function fetchQueueDepth() {
     
     if (response.status === 200) {
       const data = JSON.parse(response.body);
+      // Fixed: replaced optional chaining with compatible syntax
       return (data.queue && data.queue.waiting) || data.waiting || 0;
     }
   } catch (error) {
