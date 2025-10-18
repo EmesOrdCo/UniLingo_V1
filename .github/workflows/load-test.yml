@@ -33,7 +33,7 @@ env:
 
 jobs:
   smoke-test:
-    if: github.event_name == 'workflow_dispatch' && github.event.inputs.test_type == 'smoke' || github.event_name == 'schedule'
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.test_type == 'smoke') || github.event_name == 'schedule'
     runs-on: ubuntu-latest
     name: Smoke Test (50 VUs)
     
