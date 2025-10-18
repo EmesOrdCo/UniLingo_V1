@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 
 /**
- * Script to populate Italian translations in the subject_words table
- * Uses OpenAI API to translate English translations and example sentences
+ * Script to populate Italian lesson scripts in the lesson_scripts table
+ * Uses OpenAI API to translate English lesson scripts to Italian
  * 
- * Usage: node populate_italian_translations.js [--dry-run] [--limit N]
+ * Usage: node populate_italian_lesson_scripts.js [--dry-run] [--limit N]
  * 
  * Options:
  *   --dry-run    Show what would be translated without making changes
@@ -52,7 +52,7 @@ async function translateToItalian(text) {
       messages: [
         {
           role: "system",
-          content: "You are a professional translator. Translate the following English text to Italian. Use proper Italian grammar, vocabulary, and cultural context. Maintain the same tone, structure, and formatting. Do not add any explanations or notes, just return the translation."
+          content: "You are a professional translator. Translate the following English lesson script to Italian. Use proper Italian grammar, vocabulary, and cultural context. Maintain the same tone, structure, and formatting. Do not add any explanations or notes, just return the translation."
         },
         {
           role: "user",
@@ -60,7 +60,7 @@ async function translateToItalian(text) {
         }
       ],
       temperature: 0.3,
-      max_tokens: 2000
+      max_tokens: 4000
     });
 
     return response.choices[0].message.content.trim();
@@ -71,80 +71,69 @@ async function translateToItalian(text) {
 }
 
 /**
- * Get all subject words that need Italian translation
+ * Get all lesson scripts that need Italian translation
  */
-async function getWordsNeedingTranslation() {
+async function getLessonScriptsNeedingTranslation() {
   const { data, error } = await supabase
-    .from('subject_words')
-    .select('id, english_translation, example_sentence_english')
-    .or('italian_translation.is.null,example_sentence_italian.is.null')
+    .from('lesson_scripts')
+    .select('id, subject_name, english_lesson_script')
+    .is('italian_lesson_script', null)
     .order('id');
 
   if (error) {
-    throw new Error(`Failed to fetch words: ${error.message}`);
+    throw new Error(`Failed to fetch lesson scripts: ${error.message}`);
   }
 
   return data || [];
 }
 
 /**
- * Update a word with Italian translations
+ * Update a lesson script with Italian translations
  */
-async function updateWordTranslations(id, italianTranslation, exampleSentenceItalian) {
-  const updateData = {};
-  
-  if (italianTranslation) {
-    updateData.italian_translation = italianTranslation;
-  }
-  
-  if (exampleSentenceItalian) {
-    updateData.example_sentence_italian = exampleSentenceItalian;
-  }
+async function updateLessonScriptTranslations(id, italianLessonScript) {
+  const updateData = {
+    italian_lesson_script: italianLessonScript
+  };
 
   const { error } = await supabase
-    .from('subject_words')
+    .from('lesson_scripts')
     .update(updateData)
     .eq('id', id);
 
   if (error) {
-    throw new Error(`Failed to update word ${id}: ${error.message}`);
+    throw new Error(`Failed to update lesson script ${id}: ${error.message}`);
   }
 }
 
 /**
- * Process a single word for translation
+ * Process a single lesson script for translation
  */
-async function processWord(word) {
-  console.log(`Processing word ${word.id}: "${word.english_translation}"`);
+async function processLessonScript(lessonScript) {
+  console.log(`Processing lesson script ${lessonScript.id}: "${lessonScript.subject_name}"`);
   
-  let italianTranslation = '';
-  let exampleSentenceItalian = '';
+  let italianLessonScript = null;
   
   try {
-    // Translate the main word/phrase
-    if (word.english_translation) {
-      italianTranslation = await translateToItalian(word.english_translation);
-      console.log(`  ✓ Translated: "${word.english_translation}" → "${italianTranslation}"`);
-    }
-    
-    // Translate the example sentence
-    if (word.example_sentence_english) {
-      exampleSentenceItalian = await translateToItalian(word.example_sentence_english);
-      console.log(`  ✓ Example: "${word.example_sentence_english}" → "${exampleSentenceItalian}"`);
+    // Translate the lesson script
+    if (lessonScript.english_lesson_script) {
+      italianLessonScript = await translateToItalian(lessonScript.english_lesson_script);
+      console.log(`  ✓ Lesson script translated (${lessonScript.english_lesson_script.length} → ${italianLessonScript.length} chars)`);
+    } else {
+      console.log(`  - No lesson script to translate`);
     }
     
     // Update the database unless it's a dry run
     if (!isDryRun) {
-      await updateWordTranslations(word.id, italianTranslation, exampleSentenceItalian);
+      await updateLessonScriptTranslations(lessonScript.id, italianLessonScript);
       console.log(`  ✓ Updated database`);
     } else {
       console.log(`  ⚠️  DRY RUN - Would update database`);
     }
     
-    return { success: true, word };
+    return { success: true, lessonScript };
   } catch (error) {
-    console.error(`  ❌ Error processing word ${word.id}:`, error.message);
-    return { success: false, word, error };
+    console.error(`  ❌ Error processing lesson script ${lessonScript.id}:`, error.message);
+    return { success: false, lessonScript, error };
   }
 }
 
@@ -159,50 +148,42 @@ function delay(ms) {
  * Main function
  */
 async function main() {
-  console.log('🇮🇹 Italian Translation Populator');
-  console.log('=====================================');
+  console.log('🇮🇹 Italian Lesson Script Translation Populator');
+  console.log('===============================================');
   
   if (isDryRun) {
     console.log('⚠️  DRY RUN MODE - No changes will be made to the database');
   }
   
   try {
-    // Check if Italian columns exist
-    const { data: columns, error: columnError } = await supabase
-      .rpc('get_table_columns', { table_name: 'subject_words' });
+    // Get lesson scripts that need translation
+    console.log('\n📋 Fetching lesson scripts that need Italian translation...');
+    const lessonScripts = await getLessonScriptsNeedingTranslation();
     
-    if (columnError) {
-      console.log('⚠️  Could not verify table structure, proceeding anyway...');
-    }
-    
-    // Get words that need translation
-    console.log('\n📋 Fetching words that need Italian translation...');
-    const words = await getWordsNeedingTranslation();
-    
-    if (words.length === 0) {
-      console.log('✅ No words need Italian translation!');
+    if (lessonScripts.length === 0) {
+      console.log('✅ No lesson scripts need Italian translation!');
       return;
     }
     
-    console.log(`Found ${words.length} words that need translation`);
+    console.log(`Found ${lessonScripts.length} lesson scripts that need translation`);
     
     // Apply limit if specified
-    const wordsToProcess = limit ? words.slice(0, limit) : words;
+    const scriptsToProcess = limit ? lessonScripts.slice(0, limit) : lessonScripts;
     
     if (limit) {
-      console.log(`Processing ${wordsToProcess.length} words (limited by --limit=${limit})`);
+      console.log(`Processing ${scriptsToProcess.length} lesson scripts (limited by --limit=${limit})`);
     }
     
-    // Process each word
+    // Process each lesson script
     console.log('\n🔄 Starting translation process...');
     let successCount = 0;
     let errorCount = 0;
     
-    for (let i = 0; i < wordsToProcess.length; i++) {
-      const word = wordsToProcess[i];
-      console.log(`\n[${i + 1}/${wordsToProcess.length}]`);
+    for (let i = 0; i < scriptsToProcess.length; i++) {
+      const lessonScript = scriptsToProcess[i];
+      console.log(`\n[${i + 1}/${scriptsToProcess.length}]`);
       
-      const result = await processWord(word);
+      const result = await processLessonScript(lessonScript);
       
       if (result.success) {
         successCount++;
@@ -211,8 +192,8 @@ async function main() {
       }
       
       // Add delay to avoid rate limiting (except for the last item)
-      if (i < wordsToProcess.length - 1) {
-        await delay(1000); // 1 second delay
+      if (i < scriptsToProcess.length - 1) {
+        await delay(2000); // 2 second delay for lesson scripts (longer content)
       }
     }
     
@@ -221,7 +202,7 @@ async function main() {
     console.log('==========');
     console.log(`✅ Successfully processed: ${successCount}`);
     console.log(`❌ Errors: ${errorCount}`);
-    console.log(`📝 Total words: ${wordsToProcess.length}`);
+    console.log(`📝 Total lesson scripts: ${scriptsToProcess.length}`);
     
     if (isDryRun) {
       console.log('\n⚠️  This was a dry run. Run without --dry-run to apply changes.');
@@ -237,9 +218,9 @@ async function main() {
 
 // Show usage if help is requested
 if (process.argv.includes('--help') || process.argv.includes('-h')) {
-  console.log('Italian Translation Populator');
+  console.log('Italian Lesson Script Translation Populator');
   console.log('Usage:');
-  console.log('  node populate_italian_translations.js [options]');
+  console.log('  node populate_italian_lesson_scripts.js [options]');
   console.log('\nOptions:');
   console.log('  --dry-run           Show what would be translated without making changes');
   console.log('  --limit=N          Limit the number of records to process (for testing)');
