@@ -82,7 +82,7 @@ jobs:
             HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
               --connect-timeout 5 \
               --max-time 10 \
-              "${{ secrets.STAGING_BASE_URL }$endpoint")
+              "${{ secrets.STAGING_BASE_URL }}$endpoint")
             
             if [ "$HTTP_CODE" -eq 200 ] || [ "$HTTP_CODE" -eq 403 ]; then
               echo "✅ $endpoint responded with $HTTP_CODE (expected)"
