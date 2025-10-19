@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Animated } from '
 import { Ionicons } from '@expo/vector-icons';
 import Svg, { Polygon, Circle, Line } from 'react-native-svg';
 import * as Haptics from 'expo-haptics';
+import { useTranslation } from '../../lib/i18n';
 
 interface AsteroidsGameProps {
   gameData?: any;
@@ -65,6 +66,8 @@ type UFO = {
 };
 
 const AsteroidsGame: React.FC<AsteroidsGameProps> = ({ onClose, onGameComplete, onRestart }) => {
+  const { t } = useTranslation();
+  
   // Game state
   const [ship, setShip] = useState<Ship>({
     x: GAME_WIDTH / 2,
@@ -606,7 +609,7 @@ const AsteroidsGame: React.FC<AsteroidsGameProps> = ({ onClose, onGameComplete, 
         <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
           <Ionicons name="close-circle" size={28} color="#EF4444" />
         </TouchableOpacity>
-        <Text style={styles.title}>ASTEROIDS</Text>
+        <Text style={styles.title}>{t('arcade.asteroids.title')}</Text>
         <TouchableOpacity onPress={() => setIsPaused(!isPaused)} style={styles.pauseButton}>
           <Ionicons name={isPaused ? 'play-circle' : 'pause-circle'} size={28} color="#3B82F6" />
         </TouchableOpacity>
@@ -615,11 +618,11 @@ const AsteroidsGame: React.FC<AsteroidsGameProps> = ({ onClose, onGameComplete, 
       {/* Score Board */}
       <View style={styles.scoreBoard}>
         <View style={styles.scoreBox}>
-          <Text style={styles.scoreLabel}>SCORE</Text>
+          <Text style={styles.scoreLabel}>{t('arcade.asteroids.score')}</Text>
           <Text style={styles.scoreValue}>{score}</Text>
         </View>
         <View style={styles.scoreBox}>
-          <Text style={styles.scoreLabel}>LIVES</Text>
+          <Text style={styles.scoreLabel}>{t('arcade.asteroids.lives')}</Text>
           <View style={styles.livesContainer}>
             {[...Array(lives)].map((_, i) => (
               <Ionicons key={i} name="rocket" size={14} color="#10B981" />
@@ -627,7 +630,7 @@ const AsteroidsGame: React.FC<AsteroidsGameProps> = ({ onClose, onGameComplete, 
           </View>
         </View>
         <View style={styles.scoreBox}>
-          <Text style={styles.scoreLabel}>LEVEL</Text>
+          <Text style={styles.scoreLabel}>{t('arcade.asteroids.level')}</Text>
           <Text style={styles.scoreValue}>{level}</Text>
         </View>
       </View>
@@ -692,10 +695,10 @@ const AsteroidsGame: React.FC<AsteroidsGameProps> = ({ onClose, onGameComplete, 
         {/* Start Message */}
         {!gameStarted && !gameOver && (
           <View style={styles.startMessage}>
-            <Text style={styles.startText}>Ready to launch!</Text>
+            <Text style={styles.startText}>{t('arcade.asteroids.readyToLaunch')}</Text>
             <TouchableOpacity style={styles.startButton} onPress={handleStart}>
               <Ionicons name="rocket" size={24} color="#FFFFFF" />
-              <Text style={styles.startButtonText}>START</Text>
+              <Text style={styles.startButtonText}>{t('arcade.asteroids.start')}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -740,7 +743,7 @@ const AsteroidsGame: React.FC<AsteroidsGameProps> = ({ onClose, onGameComplete, 
       {/* Instructions */}
       <View style={styles.instructions}>
         <Text style={styles.instructionsText}>
-          Destroy asteroids and UFOs! Watch out - asteroids split into smaller pieces!
+          {t('arcade.asteroids.instructions')}
         </Text>
       </View>
 
@@ -749,17 +752,17 @@ const AsteroidsGame: React.FC<AsteroidsGameProps> = ({ onClose, onGameComplete, 
         <View style={styles.overlay}>
           <View style={styles.gameOverCard}>
             <Ionicons name="skull" size={64} color="#EF4444" />
-            <Text style={styles.gameOverTitle}>Game Over!</Text>
-            <Text style={styles.finalScore}>Final Score: {score}</Text>
-            <Text style={styles.statsText}>Level Reached: {level}</Text>
+            <Text style={styles.gameOverTitle}>{t('arcade.asteroids.gameOver')}</Text>
+            <Text style={styles.finalScore}>{t('arcade.asteroids.finalScore', { score })}</Text>
+            <Text style={styles.statsText}>{t('arcade.asteroids.levelReached', { level })}</Text>
             <View style={styles.buttonRow}>
               <TouchableOpacity style={styles.restartButton} onPress={handleRestart}>
                 <Ionicons name="refresh" size={20} color="#FFFFFF" />
-                <Text style={styles.buttonText}>Play Again</Text>
+                <Text style={styles.buttonText}>{t('arcade.asteroids.playAgain')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.exitButton} onPress={handleClose}>
                 <Ionicons name="exit" size={20} color="#FFFFFF" />
-                <Text style={styles.buttonText}>Exit</Text>
+                <Text style={styles.buttonText}>{t('arcade.asteroids.exit')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -771,10 +774,10 @@ const AsteroidsGame: React.FC<AsteroidsGameProps> = ({ onClose, onGameComplete, 
         <View style={styles.overlay}>
           <View style={styles.pausedCard}>
             <Ionicons name="pause-circle" size={64} color="#3B82F6" />
-            <Text style={styles.pausedTitle}>Paused</Text>
+            <Text style={styles.pausedTitle}>{t('arcade.asteroids.paused')}</Text>
             <TouchableOpacity style={styles.resumeButton} onPress={() => setIsPaused(false)}>
               <Ionicons name="play" size={20} color="#FFFFFF" />
-              <Text style={styles.buttonText}>Resume</Text>
+              <Text style={styles.buttonText}>{t('arcade.asteroids.resume')}</Text>
             </TouchableOpacity>
           </View>
         </View>

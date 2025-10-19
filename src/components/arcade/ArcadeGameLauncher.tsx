@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Modal } from 'react-native';
 import { ArcadeGame, ArcadeService } from '../../lib/arcadeService';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTranslation } from '../../lib/i18n';
 import GameWebView from './GameWebView';
 import SnakeGame from '../games/SnakeGame';
 import Game2048 from '../games/2048Game';
@@ -23,6 +24,7 @@ interface ArcadeGameLauncherProps {
 }
 
 export default function ArcadeGameLauncher({ visible, game, onClose }: ArcadeGameLauncherProps) {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [gameStartTime] = useState(Date.now());
   const [restartCount, setRestartCount] = useState(0);
@@ -73,14 +75,14 @@ export default function ArcadeGameLauncher({ visible, game, onClose }: ArcadeGam
       const playCheck = await ArcadeService.canPlayGame(user.id, game.id);
       
       if (!playCheck.canPlay) {
-        alert(playCheck.message || 'Not enough XP to restart. Complete some lessons to earn more XP!');
+        alert(playCheck.message || t('arcade.gameLauncher.notEnoughXP'));
         return false; // Indicate restart failed
       }
 
       // Purchase the restart (spend XP again)
       const purchase = await ArcadeService.purchaseGame(user.id, game.id);
       if (!purchase.success) {
-        alert(purchase.message || 'Failed to restart game');
+        alert(purchase.message || t('arcade.gameLauncher.restartFailed'));
         return false; // Indicate restart failed
       }
 

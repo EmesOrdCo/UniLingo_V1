@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { useTranslation } from '../../lib/i18n';
 import { useAuth } from '../../contexts/AuthContext';
 import { VocabularyInterpretationService, InterpretedVocabulary } from '../../lib/vocabularyInterpretationService';
 import LeaveConfirmationModal from './LeaveConfirmationModal';
@@ -23,6 +24,7 @@ interface QuizQuestion {
 }
 
 export default function LessonFlashcardQuiz({ vocabulary, onComplete, onClose, onProgressUpdate, initialQuestionIndex = 0 }: LessonFlashcardQuizProps) {
+  const { t } = useTranslation();
   const [questions, setQuestions] = useState<QuizQuestion[]>([]);
   const [currentQuestion, setCurrentQuestion] = useState(initialQuestionIndex);
   const [score, setScore] = useState(0);
@@ -231,7 +233,7 @@ export default function LessonFlashcardQuiz({ vocabulary, onComplete, onClose, o
               onPress={() => setReviewFilter('all')}
             >
               <Text style={[styles.filterButtonText, reviewFilter === 'all' && styles.filterButtonTextActive]}>
-                All ({questions.length})
+                {t('lessons.flashcardQuiz.all')} ({questions.length})
               </Text>
             </TouchableOpacity>
             <TouchableOpacity 
@@ -239,7 +241,7 @@ export default function LessonFlashcardQuiz({ vocabulary, onComplete, onClose, o
               onPress={() => setReviewFilter('correct')}
             >
               <Text style={[styles.filterButtonText, reviewFilter === 'correct' && styles.filterButtonTextActive]}>
-                Correct ({questions.filter((_, index) => userAnswers[index] === questions[index].correctAnswer).length})
+                {t('lessons.common.correct')} ({questions.filter((_, index) => userAnswers[index] === questions[index].correctAnswer).length})
               </Text>
             </TouchableOpacity>
             <TouchableOpacity 
@@ -247,7 +249,7 @@ export default function LessonFlashcardQuiz({ vocabulary, onComplete, onClose, o
               onPress={() => setReviewFilter('incorrect')}
             >
               <Text style={[styles.filterButtonText, reviewFilter === 'incorrect' && styles.filterButtonTextActive]}>
-                Incorrect ({questions.filter((_, index) => userAnswers[index] !== questions[index].correctAnswer).length})
+                {t('lessons.common.incorrect')} ({questions.filter((_, index) => userAnswers[index] !== questions[index].correctAnswer).length})
               </Text>
             </TouchableOpacity>
           </View>
@@ -292,11 +294,11 @@ export default function LessonFlashcardQuiz({ vocabulary, onComplete, onClose, o
           <View style={styles.buttonContainer}>
             <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
               <Ionicons name="refresh" size={20} color="#6366f1" />
-              <Text style={styles.retryButtonText}>Retry</Text>
+              <Text style={styles.retryButtonText}>{t('lessons.common.retry')}</Text>
             </TouchableOpacity>
             
             <TouchableOpacity style={styles.continueButton} onPress={handleReviewComplete}>
-              <Text style={styles.continueButtonText}>Continue</Text>
+              <Text style={styles.continueButtonText}>{t('lessons.common.continue')}</Text>
               <Ionicons name="arrow-forward" size={20} color="#ffffff" />
             </TouchableOpacity>
           </View>
@@ -319,11 +321,11 @@ export default function LessonFlashcardQuiz({ vocabulary, onComplete, onClose, o
           <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
             <Ionicons name="close" size={24} color="#64748b" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Flashcard Quiz</Text>
+          <Text style={styles.headerTitle}>{t('lessons.exercises.flashcardQuiz')}</Text>
           <View style={styles.placeholder} />
         </View>
         <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Loading quiz...</Text>
+          <Text style={styles.loadingText}>{t('lessons.flashcardQuiz.loading')}</Text>
         </View>
 
         {/* Leave Confirmation Modal */}
@@ -345,7 +347,7 @@ export default function LessonFlashcardQuiz({ vocabulary, onComplete, onClose, o
         <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
           <Ionicons name="close" size={24} color="#64748b" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Flashcard Quiz</Text>
+        <Text style={styles.headerTitle}>{t('lessons.exercises.flashcardQuiz')}</Text>
         <View style={styles.placeholder} />
       </View>
 
@@ -354,7 +356,7 @@ export default function LessonFlashcardQuiz({ vocabulary, onComplete, onClose, o
           <View style={[styles.progressFill, { width: `${progressPercentage}%` }]} />
         </View>
         <Text style={styles.progressText}>
-          Question {currentQuestion + 1} of {questions.length}
+          {t('lessons.common.question')} {currentQuestion + 1} {t('lessons.common.of')} {questions.length}
         </Text>
       </View>
 

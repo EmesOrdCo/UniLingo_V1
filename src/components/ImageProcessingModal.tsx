@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ImageUploadProgress } from '../lib/imageUploadService';
+import { useTranslation } from '../lib/i18n';
 
 interface ImageProcessingModalProps {
   visible: boolean;
@@ -34,6 +35,7 @@ export default function ImageProcessingModal({
   onUseAlternative,
   onContinue,
 }: ImageProcessingModalProps) {
+  const { t } = useTranslation();
   // Animation values
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const rotateAnim = useRef(new Animated.Value(0)).current;
@@ -159,70 +161,70 @@ export default function ImageProcessingModal({
   const getStageTitle = (stage: string) => {
     switch (stage) {
       case 'selecting':
-        return 'Selecting Images';
+        return t('imageProcessing.stages.selecting');
       case 'uploading':
-        return 'Uploading Images';
+        return t('imageProcessing.stages.uploading');
       case 'processing':
-        return 'Processing with OCR';
+        return t('imageProcessing.stages.processing');
       case 'generating':
-        return 'Generating Flashcards';
+        return t('imageProcessing.stages.generating');
       case 'complete':
-        return 'Complete!';
+        return t('imageProcessing.stages.complete');
       case 'error':
-        return 'Processing Failed';
+        return t('imageProcessing.stages.error');
       default:
-        return 'Processing';
+        return t('imageProcessing.stages.default');
     }
   };
 
   const getErrorDetails = (message: string) => {
     if (message.includes('permissions')) {
       return {
-        title: 'Permission Required',
-        description: 'Camera and photo library permissions are required to process images.',
-        solution: 'Please enable camera and photo library permissions in your device settings.',
+        title: t('imageProcessing.errors.permissionRequired.title'),
+        description: t('imageProcessing.errors.permissionRequired.description'),
+        solution: t('imageProcessing.errors.permissionRequired.solution'),
         icon: 'camera-outline'
       };
     } else if (message.includes('No text could be extracted')) {
       return {
-        title: 'No Text Found',
-        description: 'Unable to extract text from your images.',
-        solution: 'Ensure your images contain clear, readable text. Try taking photos with better lighting or higher resolution.',
+        title: t('imageProcessing.errors.noTextFound.title'),
+        description: t('imageProcessing.errors.noTextFound.description'),
+        solution: t('imageProcessing.errors.noTextFound.solution'),
         icon: 'text-outline'
       };
     } else if (message.includes('timed out')) {
       return {
-        title: 'Processing Timeout',
-        description: 'The image processing took too long to complete.',
-        solution: 'Try uploading smaller images or fewer images at once.',
+        title: t('imageProcessing.errors.processingTimeout.title'),
+        description: t('imageProcessing.errors.processingTimeout.description'),
+        solution: t('imageProcessing.errors.processingTimeout.solution'),
         icon: 'time-outline'
       };
     } else if (message.includes('Network request failed')) {
       return {
-        title: 'Connection Error',
-        description: 'Unable to connect to the image processing server.',
-        solution: 'Check your internet connection and try again.',
+        title: t('imageProcessing.errors.connectionError.title'),
+        description: t('imageProcessing.errors.connectionError.description'),
+        solution: t('imageProcessing.errors.connectionError.solution'),
         icon: 'wifi-outline'
       };
     } else if (message.includes('Backend request failed with status 502')) {
       return {
-        title: 'Server Processing Error',
-        description: 'The server encountered an error while processing your images.',
-        solution: 'Try uploading smaller images or fewer images at once. The server may be temporarily overloaded.',
+        title: t('imageProcessing.errors.serverProcessingError.title'),
+        description: t('imageProcessing.errors.serverProcessingError.description'),
+        solution: t('imageProcessing.errors.serverProcessingError.solution'),
         icon: 'server-outline'
       };
     } else if (message.includes('Azure Computer Vision credentials not configured')) {
       return {
-        title: 'OCR Service Unavailable',
-        description: 'The OCR service is not properly configured.',
-        solution: 'Please contact support to set up the image processing service.',
+        title: t('imageProcessing.errors.azureCredentials.title'),
+        description: t('imageProcessing.errors.azureCredentials.description'),
+        solution: t('imageProcessing.errors.azureCredentials.solution'),
         icon: 'key-outline'
       };
     } else {
       return {
-        title: 'Unexpected Error',
-        description: 'An unexpected error occurred during image processing.',
-        solution: 'Please try again. If the problem persists, try restarting the app.',
+        title: t('imageProcessing.errors.unexpectedError.title'),
+        description: t('imageProcessing.errors.unexpectedError.description'),
+        solution: t('imageProcessing.errors.unexpectedError.solution'),
         icon: 'warning-outline'
       };
     }
@@ -418,7 +420,7 @@ export default function ImageProcessingModal({
                       onPress={onRetry}
                     >
                       <Ionicons name="refresh" size={16} color="#ffffff" />
-                      <Text style={styles.retryButtonText}>Try Again</Text>
+                      <Text style={styles.retryButtonText}>{t('imageProcessing.buttons.tryAgain')}</Text>
                     </TouchableOpacity>
                   )}
                   {onUseAlternative && (
@@ -427,7 +429,7 @@ export default function ImageProcessingModal({
                       onPress={onUseAlternative}
                     >
                       <Ionicons name="options" size={16} color="#ffffff" />
-                      <Text style={styles.alternativeButtonText}>Use Alternative</Text>
+                      <Text style={styles.alternativeButtonText}>{t('imageProcessing.buttons.useAlternative')}</Text>
                     </TouchableOpacity>
                   )}
                   {onClose && (
@@ -436,7 +438,7 @@ export default function ImageProcessingModal({
                       onPress={onClose}
                     >
                       <Ionicons name="close" size={16} color="#ffffff" />
-                      <Text style={styles.closeButtonText}>Close</Text>
+                      <Text style={styles.closeButtonText}>{t('imageProcessing.buttons.close')}</Text>
                     </TouchableOpacity>
                   )}
                 </View>
@@ -448,7 +450,7 @@ export default function ImageProcessingModal({
                     onPress={onContinue || onClose}
                   >
                     <Ionicons name="checkmark" size={20} color="#ffffff" />
-                    <Text style={styles.continueButtonText}>Continue</Text>
+                    <Text style={styles.continueButtonText}>{t('imageProcessing.buttons.continue')}</Text>
                   </TouchableOpacity>
                 )
               )}

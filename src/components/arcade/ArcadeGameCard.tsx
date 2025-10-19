@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ArcadeGame } from '../../lib/arcadeService';
+import { useTranslation } from '../../lib/i18n';
 
 interface ArcadeGameCardProps {
   game: ArcadeGame;
@@ -10,6 +11,47 @@ interface ArcadeGameCardProps {
 }
 
 export default function ArcadeGameCard({ game, highScore, onPress }: ArcadeGameCardProps) {
+  const { t } = useTranslation();
+
+  const getTranslatedGameName = (gameName: string) => {
+    const nameMap: { [key: string]: string } = {
+      'Snake': t('arcade.games.snake'),
+      '2048': t('arcade.games.2048'),
+      'Tetris': t('arcade.games.tetris'),
+      'Clumsy Bird': t('arcade.games.clumsyBird'),
+      'Space Invaders': t('arcade.games.spaceInvaders'),
+      'Pac-Man': t('arcade.games.pacman'),
+      'Hextris': t('arcade.games.hextris'),
+      'Breakout': t('arcade.games.breakout'),
+      'Pong': t('arcade.games.pong'),
+      'Asteroids': t('arcade.games.asteroids'),
+      'Sudoku': t('arcade.games.sudoku'),
+      'Minesweeper': t('arcade.games.minesweeper'),
+      'Bubble Shooter': t('arcade.games.bubbleShooter'),
+      'Flappy Bird': t('arcade.games.flappyBird'),
+    };
+    return nameMap[gameName] || gameName;
+  };
+
+  const getTranslatedGameDescription = (gameName: string) => {
+    const descriptionMap: { [key: string]: string } = {
+      'Snake': t('arcade.descriptions.snake'),
+      '2048': t('arcade.descriptions.2048'),
+      'Tetris': t('arcade.descriptions.tetris'),
+      'Clumsy Bird': t('arcade.descriptions.clumsyBird'),
+      'Space Invaders': t('arcade.descriptions.spaceInvaders'),
+      'Pac-Man': t('arcade.descriptions.pacman'),
+      'Hextris': t('arcade.descriptions.hextris'),
+      'Breakout': t('arcade.descriptions.breakout'),
+      'Pong': t('arcade.descriptions.pong'),
+      'Asteroids': t('arcade.descriptions.asteroids'),
+      'Sudoku': t('arcade.descriptions.sudoku'),
+      'Minesweeper': t('arcade.descriptions.minesweeper'),
+      'Bubble Shooter': t('arcade.descriptions.bubbleShooter'),
+      'Flappy Bird': t('arcade.descriptions.flappyBird'),
+    };
+    return descriptionMap[gameName] || game.description;
+  };
   const getCategoryIcon = (category: string) => {
     switch (category) {
       case 'puzzle':
@@ -59,11 +101,11 @@ export default function ArcadeGameCard({ game, highScore, onPress }: ArcadeGameC
       <View style={styles.content}>
         <View style={styles.header}>
           <Text style={styles.gameName} numberOfLines={1}>
-            {game.name}
+            {getTranslatedGameName(game.name)}
           </Text>
           {game.xp_cost === 0 ? (
             <View style={styles.freeBadge}>
-              <Text style={styles.freeText}>FREE</Text>
+              <Text style={styles.freeText}>{t('arcade.free')}</Text>
             </View>
           ) : (
             <View style={styles.costBadge}>
@@ -74,7 +116,7 @@ export default function ArcadeGameCard({ game, highScore, onPress }: ArcadeGameC
         </View>
 
         <Text style={styles.description} numberOfLines={2}>
-          {game.description}
+          {getTranslatedGameDescription(game.name)}
         </Text>
 
         <View style={styles.footer}>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from '../lib/i18n';
 
 interface Game {
   id: string;
@@ -17,9 +18,11 @@ interface AllGamesSectionProps {
 }
 
 const AllGamesSection: React.FC<AllGamesSectionProps> = ({ games }) => {
+  const { t } = useTranslation();
+  
   return (
     <View style={styles.container}>
-      <Text style={styles.sectionTitle}>All Games</Text>
+      <Text style={styles.sectionTitle}>{t('games.allGames')}</Text>
       <View style={styles.gamesGrid}>
         {games.map((game) => (
           <View key={game.id} style={styles.gameCard}>
@@ -37,12 +40,12 @@ const AllGamesSection: React.FC<AllGamesSectionProps> = ({ games }) => {
               <View style={styles.gameTag}>
                 <Text style={styles.gameTagText}>{game.tag}</Text>
               </View>
-              <Text style={styles.gameCards}>{game.cards} cards</Text>
+              <Text style={styles.gameCards}>{game.cards} {t('games.cardsAvailable')}</Text>
             </View>
 
             {/* Play Button */}
             <TouchableOpacity style={styles.playButton} onPress={game.onPlay}>
-              <Text style={styles.playButtonText}>Play</Text>
+              <Text style={styles.playButtonText}>{t('games.playNow')}</Text>
               <Ionicons name="arrow-forward" size={16} color="#ffffff" />
             </TouchableOpacity>
           </View>

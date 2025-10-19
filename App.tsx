@@ -11,6 +11,7 @@ import { SubscriptionProvider, useSubscription } from './src/contexts/Subscripti
 import { ProfilePictureProvider } from './src/contexts/ProfilePictureContext';
 import { RefreshProvider, useRefresh } from './src/contexts/RefreshContext';
 import { SelectedUnitProvider } from './src/contexts/SelectedUnitContext';
+import { I18nProvider } from './src/lib/i18n';
 import { setRefreshTrigger } from './src/lib/progressTrackingService';
 import LoadingScreen from './src/components/LoadingScreen';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
@@ -62,6 +63,7 @@ import ConversationLessonScreen from './src/screens/ConversationLessonScreen';
 import ArcadeScreen from './src/screens/ArcadeScreen';
 import AudioRecapScreen from './src/screens/AudioRecapScreen';
 import AudioPlayerScreen from './src/screens/AudioPlayerScreen';
+import SettingsScreen from './src/screens/SettingsScreen';
 
 const Stack = createStackNavigator();
 
@@ -115,6 +117,7 @@ function MainNavigator() {
       <Stack.Screen name="Arcade" component={ArcadeScreen} />
       <Stack.Screen name="AudioRecap" component={AudioRecapScreen} />
       <Stack.Screen name="AudioPlayer" component={AudioPlayerScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="Settings" component={SettingsScreen} />
     </Stack.Navigator>
   );
 }
@@ -212,22 +215,24 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <AuthProvider>
-        <SubscriptionProvider>
-          <ProfilePictureProvider>
-            <RefreshProvider>
-              <SelectedUnitProvider>
-                <NavigationContainer>
-                  <ErrorBoundary>
-                    <AppNavigator />
-                    <StatusBar style="auto" />
-                  </ErrorBoundary>
-                </NavigationContainer>
-              </SelectedUnitProvider>
-            </RefreshProvider>
-          </ProfilePictureProvider>
-        </SubscriptionProvider>
-      </AuthProvider>
+      <I18nProvider>
+        <AuthProvider>
+          <SubscriptionProvider>
+            <ProfilePictureProvider>
+              <RefreshProvider>
+                <SelectedUnitProvider>
+                  <NavigationContainer>
+                    <ErrorBoundary>
+                      <AppNavigator />
+                      <StatusBar style="auto" />
+                    </ErrorBoundary>
+                  </NavigationContainer>
+                </SelectedUnitProvider>
+              </RefreshProvider>
+            </ProfilePictureProvider>
+          </SubscriptionProvider>
+        </AuthProvider>
+      </I18nProvider>
     </SafeAreaProvider>
   );
 }

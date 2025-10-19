@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { UploadProgress } from '../lib/uploadService';
+import { useTranslation } from '../lib/i18n';
 
 interface UploadProgressModalProps {
   visible: boolean;
@@ -34,6 +35,7 @@ export default function UploadProgressModal({
   onUseAlternative,
   onContinue,
 }: UploadProgressModalProps) {
+  const { t } = useTranslation();
   // Animation values
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const rotateAnim = useRef(new Animated.Value(0)).current;
@@ -154,117 +156,117 @@ export default function UploadProgressModal({
   const getStageTitle = (stage: string) => {
     switch (stage) {
       case 'uploading':
-        return progress.message?.includes('image') ? 'Uploading Images' : 'Uploading PDF';
+        return progress.message?.includes('image') ? t('uploadProgress.stages.uploadingImages') : t('uploadProgress.stages.uploadingPDF');
       case 'processing':
-        return progress.message?.includes('OCR') ? 'Processing Images' : 'Processing Content';
+        return progress.message?.includes('OCR') ? t('uploadProgress.stages.processingImages') : t('uploadProgress.stages.processingContent');
       case 'generating':
-        return 'Generating Flashcards';
+        return t('uploadProgress.stages.generating');
       case 'complete':
-        return 'Complete!';
+        return t('uploadProgress.stages.complete');
       case 'error':
-        return 'Upload Failed';
+        return t('uploadProgress.stages.error');
       default:
-        return 'Processing';
+        return t('uploadProgress.stages.processing');
     }
   };
 
   const getErrorDetails = (message: string) => {
     if (message.includes('Document picker is busy')) {
       return {
-        title: 'Document Picker Busy',
-        description: 'Another file operation is in progress. Please wait a moment and try again.',
-        solution: 'Close any open file dialogs and wait a few seconds before retrying.',
+        title: t('uploadProgress.errors.documentPickerBusy.title'),
+        description: t('uploadProgress.errors.documentPickerBusy.description'),
+        solution: t('uploadProgress.errors.documentPickerBusy.solution'),
         icon: 'time-outline'
       };
     } else if (message.includes('Different document picking in progress')) {
       return {
-        title: 'Document Picker Conflict',
-        description: 'The document picker is currently busy with another operation.',
-        solution: 'Please wait for any other file operations to complete, then try again.',
+        title: t('uploadProgress.errors.documentPickerConflict.title'),
+        description: t('uploadProgress.errors.documentPickerConflict.description'),
+        solution: t('uploadProgress.errors.documentPickerConflict.solution'),
         icon: 'sync-outline'
       };
     } else if (message.includes('Please select a PDF file')) {
       return {
-        title: 'Invalid File Type',
-        description: 'The selected file is not a PDF document.',
-        solution: 'Please select a valid PDF file (.pdf extension).',
+        title: t('uploadProgress.errors.invalidFileType.title'),
+        description: t('uploadProgress.errors.invalidFileType.description'),
+        solution: t('uploadProgress.errors.invalidFileType.solution'),
         icon: 'document-outline'
       };
     } else if (message.includes('No file selected')) {
       return {
-        title: 'No File Selected',
-        description: 'No file was selected from the document picker.',
-        solution: 'Please select a PDF file to upload.',
+        title: t('uploadProgress.errors.noFileSelected.title'),
+        description: t('uploadProgress.errors.noFileSelected.description'),
+        solution: t('uploadProgress.errors.noFileSelected.solution'),
         icon: 'folder-open-outline'
       };
     } else if (message.includes('PDF file not found')) {
       return {
-        title: 'File Not Found',
-        description: 'The selected PDF file could not be accessed.',
-        solution: 'The file may have been moved or deleted. Please select it again.',
+        title: t('uploadProgress.errors.fileNotFound.title'),
+        description: t('uploadProgress.errors.fileNotFound.description'),
+        solution: t('uploadProgress.errors.fileNotFound.solution'),
         icon: 'file-tray-outline'
       };
     } else if (message.includes('Failed to extract text from PDF')) {
       return {
-        title: 'Text Extraction Failed',
-        description: 'Unable to read the content from the PDF file.',
-        solution: 'The PDF may be corrupted, password-protected, or contain only images. Try a different PDF.',
+        title: t('uploadProgress.errors.textExtractionFailed.title'),
+        description: t('uploadProgress.errors.textExtractionFailed.description'),
+        solution: t('uploadProgress.errors.textExtractionFailed.solution'),
         icon: 'text-outline'
       };
     } else if (message.includes('OpenAI API key not configured')) {
       return {
-        title: 'AI Service Unavailable',
-        description: 'The AI service is not properly configured.',
-        solution: 'Please check your OpenAI API key configuration and try again.',
+        title: t('uploadProgress.errors.aiServiceUnavailable.title'),
+        description: t('uploadProgress.errors.aiServiceUnavailable.description'),
+        solution: t('uploadProgress.errors.aiServiceUnavailable.solution'),
         icon: 'key-outline'
       };
     } else if (message.includes('timed out')) {
       return {
-        title: 'Processing Timeout',
-        description: 'The upload process timed out. This can happen with large files or slow connections.',
-        solution: 'Try uploading a smaller PDF file or check your internet connection.',
+        title: t('uploadProgress.errors.processingTimeout.title'),
+        description: t('uploadProgress.errors.processingTimeout.description'),
+        solution: t('uploadProgress.errors.processingTimeout.solution'),
         icon: 'time-outline'
       };
     } else if (message.includes('Backend request timed out')) {
       return {
-        title: 'Backend Timeout',
-        description: 'The backend server took too long to process your PDF.',
-        solution: 'Try uploading a smaller PDF file or try again in a few minutes.',
+        title: t('uploadProgress.errors.backendTimeout.title'),
+        description: t('uploadProgress.errors.backendTimeout.description'),
+        solution: t('uploadProgress.errors.backendTimeout.solution'),
         icon: 'server-outline'
       };
     } else if (message.includes('AI processing timed out')) {
       return {
-        title: 'AI Processing Timeout',
-        description: 'The AI service took too long to generate flashcards.',
-        solution: 'Try uploading a smaller PDF file or try again in a few minutes.',
+        title: t('uploadProgress.errors.aiProcessingTimeout.title'),
+        description: t('uploadProgress.errors.aiProcessingTimeout.description'),
+        solution: t('uploadProgress.errors.aiProcessingTimeout.solution'),
         icon: 'sparkles-outline'
       };
     } else if (message.includes('Backend request failed with status 502')) {
       return {
-        title: 'Server Processing Error',
-        description: 'The server encountered an error while processing your images.',
-        solution: 'Try uploading smaller images or fewer images at once. The server may be temporarily overloaded.',
+        title: t('uploadProgress.errors.serverProcessingError.title'),
+        description: t('uploadProgress.errors.serverProcessingError.description'),
+        solution: t('uploadProgress.errors.serverProcessingError.solution'),
         icon: 'server-outline'
       };
     } else if (message.includes('Network request failed')) {
       return {
-        title: 'Connection Error',
-        description: 'Unable to connect to the image processing server.',
-        solution: 'Check your internet connection and try again. The server may be temporarily unavailable.',
+        title: t('uploadProgress.errors.connectionError.title'),
+        description: t('uploadProgress.errors.connectionError.description'),
+        solution: t('uploadProgress.errors.connectionError.solution'),
         icon: 'wifi-outline'
       };
     } else if (message.includes('No text could be extracted')) {
       return {
-        title: 'No Text Found',
-        description: 'Unable to extract text from your images.',
-        solution: 'Ensure your images contain clear, readable text. Try taking photos with better lighting or higher resolution.',
+        title: t('uploadProgress.errors.noTextFound.title'),
+        description: t('uploadProgress.errors.noTextFound.description'),
+        solution: t('uploadProgress.errors.noTextFound.solution'),
         icon: 'text-outline'
       };
       } else {
         return {
-          title: 'Unexpected Error',
-          description: 'An unexpected error occurred during the upload process.',
-          solution: 'Please try again. If the problem persists, try restarting the app.',
+          title: t('uploadProgress.errors.unexpectedError.title'),
+          description: t('uploadProgress.errors.unexpectedError.description'),
+          solution: t('uploadProgress.errors.unexpectedError.solution'),
           icon: 'warning-outline'
         };
       }
@@ -460,7 +462,7 @@ export default function UploadProgressModal({
                       onPress={onRetry}
                     >
                       <Ionicons name="refresh" size={20} color="#ffffff" />
-                      <Text style={styles.retryButtonText}>Try Again</Text>
+                      <Text style={styles.retryButtonText}>{t('uploadProgress.buttons.tryAgain')}</Text>
                     </TouchableOpacity>
                   )}
                   {onUseAlternative && (
@@ -469,7 +471,7 @@ export default function UploadProgressModal({
                       onPress={onUseAlternative}
                     >
                       <Ionicons name="options" size={20} color="#8b5cf6" />
-                      <Text style={styles.alternativeButtonText}>Use Alternative</Text>
+                      <Text style={styles.alternativeButtonText}>{t('uploadProgress.buttons.useAlternative')}</Text>
                     </TouchableOpacity>
                   )}
                   {onClose && (
@@ -478,7 +480,7 @@ export default function UploadProgressModal({
                       onPress={onClose}
                     >
                       <Ionicons name="close" size={20} color="#64748b" />
-                      <Text style={styles.closeButtonText}>Close</Text>
+                      <Text style={styles.closeButtonText}>{t('uploadProgress.buttons.close')}</Text>
                     </TouchableOpacity>
                   )}
                 </View>
@@ -490,7 +492,7 @@ export default function UploadProgressModal({
                     onPress={onContinue || onClose}
                   >
                     <Ionicons name="checkmark" size={20} color="#ffffff" />
-                    <Text style={styles.continueButtonText}>Continue</Text>
+                    <Text style={styles.continueButtonText}>{t('uploadProgress.buttons.continue')}</Text>
                   </TouchableOpacity>
                 )
               )}

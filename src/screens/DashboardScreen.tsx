@@ -21,6 +21,7 @@ import OptimizedProgressService from '../lib/optimizedProgressService';
 import { useAuth } from '../contexts/AuthContext';
 import { useRefresh } from '../contexts/RefreshContext';
 import { useSelectedUnit } from '../contexts/SelectedUnitContext';
+import { useTranslation } from '../lib/i18n';
 
 const Tab = createBottomTabNavigator();
 
@@ -102,6 +103,7 @@ function LessonsTab() {
 
 // Main tab navigator component
 function TabNavigator() {
+  const { t } = useTranslation();
   logger.debug('TabNavigator rendering');
   return (
     <Tab.Navigator
@@ -137,10 +139,26 @@ function TabNavigator() {
         headerShown: false,
       })}
     >
-      <Tab.Screen name="Home" component={OverviewTab} />
-      <Tab.Screen name="Games" component={GamesScreen} />
-      <Tab.Screen name="Lessons" component={LessonsTab} />
-      <Tab.Screen name="Progress" component={ProgressPageScreen} />
+      <Tab.Screen 
+        name="Home" 
+        component={OverviewTab} 
+        options={{ tabBarLabel: t('tab.home') }}
+      />
+      <Tab.Screen 
+        name="Games" 
+        component={GamesScreen} 
+        options={{ tabBarLabel: t('tab.games') }}
+      />
+      <Tab.Screen 
+        name="Lessons" 
+        component={LessonsTab} 
+        options={{ tabBarLabel: t('tab.lessons') }}
+      />
+      <Tab.Screen 
+        name="Progress" 
+        component={ProgressPageScreen} 
+        options={{ tabBarLabel: t('tab.progress') }}
+      />
     </Tab.Navigator>
   );
 }

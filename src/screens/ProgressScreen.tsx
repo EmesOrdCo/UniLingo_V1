@@ -9,15 +9,16 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import ConsistentHeader from '../components/ConsistentHeader';
+import { useTranslation } from '../lib/i18n';
 
 
 export default function ProgressScreen() {
-
+  const { t } = useTranslation();
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ConsistentHeader 
-        pageName="Progress"
+        pageName={t('progress.title')}
       />
       
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -25,21 +26,21 @@ export default function ProgressScreen() {
         <View style={styles.summarySection}>
           <View style={styles.summaryCard}>
             <View style={styles.summaryHeader}>
-              <Text style={styles.summaryTitle}>This Week</Text>
+              <Text style={styles.summaryTitle}>{t('progress.thisWeek')}</Text>
               <Ionicons name="calendar" size={20} color="#6366f1" />
             </View>
             <View style={styles.summaryStats}>
               <View style={styles.summaryStat}>
                 <Text style={styles.summaryNumber}>127</Text>
-                <Text style={styles.summaryLabel}>Cards Studied</Text>
+                <Text style={styles.summaryLabel}>{t('progress.cardsStudied')}</Text>
               </View>
               <View style={styles.summaryStat}>
                 <Text style={styles.summaryNumber}>89%</Text>
-                <Text style={styles.summaryLabel}>Accuracy</Text>
+                <Text style={styles.summaryLabel}>{t('progress.accuracy')}</Text>
               </View>
               <View style={styles.summaryStat}>
                 <Text style={styles.summaryNumber}>45</Text>
-                <Text style={styles.summaryLabel}>Minutes</Text>
+                <Text style={styles.summaryLabel}>{t('progress.minutes')}</Text>
               </View>
             </View>
           </View>
@@ -109,8 +110,8 @@ export default function ProgressScreen() {
 
         {/* Learning Streaks */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Learning Streaks</Text>
-          <Text style={styles.sectionSubtitle}>Keep up your momentum</Text>
+          <Text style={styles.sectionTitle}>{t('progress.learningStreaks')}</Text>
+          <Text style={styles.sectionSubtitle}>{t('progress.keepMomentum')}</Text>
           
           <View style={styles.streaksGrid}>
             <View style={styles.streakCard}>
@@ -118,7 +119,7 @@ export default function ProgressScreen() {
                 <Ionicons name="flame" size={24} color="#ef4444" />
               </View>
               <Text style={styles.streakNumber}>7</Text>
-              <Text style={styles.streakLabel}>Day Streak</Text>
+              <Text style={styles.streakLabel}>{t('progress.dayStreak')}</Text>
             </View>
             
             <View style={styles.streakCard}>
@@ -126,7 +127,7 @@ export default function ProgressScreen() {
                 <Ionicons name="trophy" size={24} color="#f59e0b" />
               </View>
               <Text style={styles.streakNumber}>23</Text>
-              <Text style={styles.streakLabel}>Total Days</Text>
+              <Text style={styles.streakLabel}>{t('progress.totalDays')}</Text>
             </View>
             
             <View style={styles.streakCard}>
@@ -134,7 +135,7 @@ export default function ProgressScreen() {
                 <Ionicons name="trending-up" size={24} color="#10b981" />
               </View>
               <Text style={styles.streakNumber}>12</Text>
-              <Text style={styles.streakLabel}>Best Streak</Text>
+              <Text style={styles.streakLabel}>{t('progress.bestStreak')}</Text>
             </View>
           </View>
         </View>

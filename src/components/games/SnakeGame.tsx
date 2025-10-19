@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Animated, Alert }
 import { Ionicons } from '@expo/vector-icons';
 import { PanGestureHandler, State } from 'react-native-gesture-handler';
 import * as Haptics from 'expo-haptics';
+import { useTranslation } from '../../lib/i18n';
 
 interface SnakeGameProps {
   gameData?: any;
@@ -23,6 +24,8 @@ type Direction = 'UP' | 'DOWN' | 'LEFT' | 'RIGHT';
 type Position = { x: number; y: number };
 
 const SnakeGame: React.FC<SnakeGameProps> = ({ onClose, onGameComplete, onRestart }) => {
+  const { t } = useTranslation();
+  
   // Game state
   const [snake, setSnake] = useState<Position[]>([
     { x: 10, y: 10 },
@@ -290,7 +293,7 @@ const SnakeGame: React.FC<SnakeGameProps> = ({ onClose, onGameComplete, onRestar
           <Ionicons name="close-circle" size={32} color="#EF4444" />
         </TouchableOpacity>
         <View style={styles.scoreContainer}>
-          <Text style={styles.scoreLabel}>Score</Text>
+          <Text style={styles.scoreLabel}>{t('arcade.snake.score')}</Text>
           <Text style={styles.scoreValue}>{score}</Text>
         </View>
         <TouchableOpacity
@@ -396,17 +399,17 @@ const SnakeGame: React.FC<SnakeGameProps> = ({ onClose, onGameComplete, onRestar
         <View style={styles.overlay}>
           <View style={styles.gameOverCard}>
             <Ionicons name="skull" size={64} color="#EF4444" />
-            <Text style={styles.gameOverTitle}>Game Over!</Text>
-            <Text style={styles.finalScore}>Final Score: {score}</Text>
-            <Text style={styles.lengthText}>Snake Length: {snake.length}</Text>
+            <Text style={styles.gameOverTitle}>{t('arcade.snake.gameOver')}</Text>
+            <Text style={styles.finalScore}>{t('arcade.snake.finalScore', { score })}</Text>
+            <Text style={styles.lengthText}>{t('arcade.snake.snakeLength', { length: snake.length })}</Text>
             <View style={styles.buttonRow}>
               <TouchableOpacity style={styles.restartButton} onPress={handleRestart}>
                 <Ionicons name="refresh" size={20} color="#FFFFFF" />
-                <Text style={styles.buttonText}>Play Again</Text>
+                <Text style={styles.buttonText}>{t('arcade.snake.playAgain')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.exitButton} onPress={handleClose}>
                 <Ionicons name="exit" size={20} color="#FFFFFF" />
-                <Text style={styles.buttonText}>Exit</Text>
+                <Text style={styles.buttonText}>{t('arcade.snake.exit')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -418,13 +421,13 @@ const SnakeGame: React.FC<SnakeGameProps> = ({ onClose, onGameComplete, onRestar
         <View style={styles.overlay}>
           <View style={styles.pausedCard}>
             <Ionicons name="pause-circle" size={64} color="#3B82F6" />
-            <Text style={styles.pausedTitle}>Paused</Text>
+            <Text style={styles.pausedTitle}>{t('arcade.snake.paused')}</Text>
             <TouchableOpacity
               style={styles.resumeButton}
               onPress={() => setIsPaused(false)}
             >
               <Ionicons name="play" size={20} color="#FFFFFF" />
-              <Text style={styles.buttonText}>Resume</Text>
+              <Text style={styles.buttonText}>{t('arcade.snake.resume')}</Text>
             </TouchableOpacity>
           </View>
         </View>

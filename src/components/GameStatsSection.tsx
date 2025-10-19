@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from '../lib/i18n';
 
 interface GameStats {
   today: number;
@@ -14,18 +15,19 @@ interface GameStatsSectionProps {
 }
 
 const GameStatsSection: React.FC<GameStatsSectionProps> = ({ stats }) => {
+  const { t } = useTranslation();
   return (
     <View style={styles.container}>
       <View style={styles.sectionTitleContainer}>
         <Ionicons name="game-controller" size={24} color="#6366f1" />
-        <Text style={styles.standardSectionTitle}>Your Game Stats</Text>
+        <Text style={styles.standardSectionTitle}>{t('games.yourGameStats')}</Text>
       </View>
       
       <View style={styles.statsGrid}>
           <View style={styles.stat}>
             <View style={styles.statHeader}>
               <Ionicons name="game-controller" size={16} color="#6466E9" />
-              <Text style={styles.statLabel} numberOfLines={1}>Today</Text>
+              <Text style={styles.statLabel} numberOfLines={1}>{t('games.today')}</Text>
             </View>
             <Text style={styles.statValue} numberOfLines={1}>{stats.today}</Text>
           </View>
@@ -33,7 +35,7 @@ const GameStatsSection: React.FC<GameStatsSectionProps> = ({ stats }) => {
           <View style={styles.stat}>
             <View style={styles.statHeader}>
               <Ionicons name="trophy" size={16} color="#6466E9" />
-              <Text style={styles.statLabel} numberOfLines={1}>Total</Text>
+              <Text style={styles.statLabel} numberOfLines={1}>{t('games.total')}</Text>
             </View>
             <Text style={styles.statValue} numberOfLines={1}>{stats.total}</Text>
           </View>
@@ -41,7 +43,7 @@ const GameStatsSection: React.FC<GameStatsSectionProps> = ({ stats }) => {
           <View style={styles.stat}>
             <View style={styles.statHeader}>
               <Ionicons name="flash" size={16} color="#6466E9" />
-              <Text style={styles.statLabel} numberOfLines={1}>Acc</Text>
+              <Text style={styles.statLabel} numberOfLines={1}>{t('games.acc')}</Text>
             </View>
             <Text style={styles.statValue} numberOfLines={1}>{stats.accuracyPct}%</Text>
           </View>
@@ -49,7 +51,7 @@ const GameStatsSection: React.FC<GameStatsSectionProps> = ({ stats }) => {
           <View style={styles.stat}>
             <View style={styles.statHeader}>
               <Ionicons name="time" size={16} color="#6466E9" />
-              <Text style={styles.statLabel} numberOfLines={1}>Time</Text>
+              <Text style={styles.statLabel} numberOfLines={1}>{t('games.time')}</Text>
             </View>
             <Text style={styles.statValue} numberOfLines={1}>{stats.totalMinutes}m</Text>
           </View>

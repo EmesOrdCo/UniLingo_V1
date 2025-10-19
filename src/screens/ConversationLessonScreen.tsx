@@ -26,6 +26,7 @@ import { VoiceService } from '../lib/voiceService';
 import { AWSPollyService } from '../lib/awsPollyService';
 import * as Speech from 'expo-speech';
 import { logger } from '../lib/logger';
+import { useTranslation } from '../lib/i18n';
 
 const { width } = Dimensions.get('window');
 
@@ -58,6 +59,7 @@ interface ExerciseState {
 }
 
 export default function ConversationLessonScreen() {
+  const { t } = useTranslation();
   const [conversationData, setConversationData] = useState<ConversationData | null>(null);
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -921,13 +923,13 @@ export default function ConversationLessonScreen() {
   const handleShowLearningResources = (text: string) => {
     // Show modal with learning resources
     Alert.alert(
-      'Learning Resources',
-      `Grammar and vocabulary help for: "${text}"`,
+      t('lessons.conversation.learningResources'),
+      `${t('lessons.conversation.grammarAndVocabularyHelp')} "${text}"`,
       [
-        { text: 'Grammar Help', onPress: () => console.log('Show grammar') },
-        { text: 'Vocabulary', onPress: () => console.log('Show vocabulary') },
-        { text: 'Practice', onPress: () => console.log('Show practice') },
-        { text: 'Cancel', style: 'cancel' }
+        { text: t('lessons.conversation.grammarHelp'), onPress: () => console.log('Show grammar') },
+        { text: t('lessons.conversation.vocabularyHelp'), onPress: () => console.log('Show vocabulary') },
+        { text: t('lessons.conversation.practice'), onPress: () => console.log('Show practice') },
+        { text: t('lessons.common.cancel'), style: 'cancel' }
       ]
     );
   };

@@ -15,6 +15,7 @@ import LessonFillInTheBlank from '../components/lesson/LessonFillInTheBlank';
 import LessonListen from '../components/lesson/LessonListen';
 import LessonSpeak from '../components/lesson/LessonSpeak';
 import LessonConversation from '../components/lesson/LessonConversation';
+import { useTranslation } from '../lib/i18n';
 
 type ExerciseStep = 'flow-preview' | 'flashcards' | 'flashcard-quiz' | 'fill-in-blank' | 'listen' | 'speak' | 'conversation' | 'completed';
 
@@ -24,6 +25,7 @@ interface RouteParams {
 }
 
 export default function LessonWalkthroughScreen() {
+  const { t } = useTranslation();
   const [currentStep, setCurrentStep] = useState<ExerciseStep>('flow-preview');
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [lessonVocabulary, setLessonVocabulary] = useState<any[]>([]);
@@ -1035,7 +1037,7 @@ export default function LessonWalkthroughScreen() {
                   onPress={startNewLesson}
                 >
                   <Ionicons name="play" size={20} color="#ffffff" />
-                  <Text style={styles.startFlowButtonText}>Start Lesson</Text>
+                  <Text style={styles.startFlowButtonText}>{t('lessons.exercises.startLesson')}</Text>
                 </TouchableOpacity>
               )}
             </View>

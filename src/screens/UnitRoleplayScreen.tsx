@@ -22,6 +22,7 @@ import PronunciationCheck from '../components/PronunciationCheck';
 import { PronunciationResult } from '../lib/pronunciationService';
 import { UnitDataAdapter, UnitConversationExchange } from '../lib/unitDataAdapter';
 import { logger } from '../lib/logger';
+import { useTranslation } from '../lib/i18n';
 import { getAppropriateSpeechLanguage, getTargetLanguageSpeechCode, getNativeLanguageSpeechCode } from '../lib/languageService';
 import { VoiceService } from '../lib/voiceService';
 import * as Speech from 'expo-speech';
@@ -89,6 +90,7 @@ export default function UnitRoleplayScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const { user, profile } = useAuth();
+  const { t } = useTranslation();
   const scrollViewRef = useRef<ScrollView>(null);
   
   const { unitTitle, subjectName, cefrLevel } = (route.params as any) || { 
@@ -830,7 +832,7 @@ export default function UnitRoleplayScreen() {
     
     return (
       <View style={styles.completionContainer}>
-        <Text style={styles.completionTitle}>🎉 Roleplay Complete!</Text>
+        <Text style={styles.completionTitle}>🎉 {t('lessons.roleplay.complete')}</Text>
         <Text style={styles.completionSubtitle}>Great job!</Text>
         
         <View style={styles.statsContainer}>
@@ -879,7 +881,7 @@ export default function UnitRoleplayScreen() {
           <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color="#000000" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>{unitTitle} - Roleplay</Text>
+          <Text style={styles.headerTitle}>{unitTitle} - {t('lessons.roleplay.title')}</Text>
           <View style={styles.headerSpacer} />
         </View>
         <View style={styles.loadingContainer}>
@@ -902,7 +904,7 @@ export default function UnitRoleplayScreen() {
         <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#000000" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{unitTitle} - Roleplay</Text>
+        <Text style={styles.headerTitle}>{unitTitle} - {t('lessons.roleplay.title')}</Text>
         <View style={styles.headerSpacer} />
       </View>
 
@@ -915,17 +917,17 @@ export default function UnitRoleplayScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Are you sure you want to leave?</Text>
+            <Text style={styles.modalTitle}>{t('lessons.exitModal.title')}</Text>
             <Text style={styles.modalSubtitle}>
-              Your progress won't be saved for this lesson, and you'll have to start again when you return.
+              {t('lessons.exitModal.description')}
             </Text>
             
             <TouchableOpacity style={styles.modalConfirmButton} onPress={handleConfirmExit}>
-              <Text style={styles.modalConfirmButtonText}>Yes, I want to leave</Text>
+              <Text style={styles.modalConfirmButtonText}>{t('lessons.exitModal.confirm')}</Text>
             </TouchableOpacity>
             
             <TouchableOpacity style={styles.modalCancelButton} onPress={handleCancelExit}>
-              <Text style={styles.modalCancelButtonText}>Not Now</Text>
+              <Text style={styles.modalCancelButtonText}>{t('lessons.exitModal.cancel')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -1089,7 +1091,7 @@ export default function UnitRoleplayScreen() {
       {/* Pinned Bottom Section: Current Question + Answer Interface */}
       {currentExchangeIndex < getTotalExchanges() && (
         <View style={styles.bottomPinnedSection}>
-          <Text style={styles.questionLabel}>Say this phrase</Text>
+          <Text style={styles.questionLabel}>{t('lessons.roleplay.sayThisPhrase')}</Text>
           
           {/* Current Question Bubble - Target language */}
           <Text style={styles.currentPrompt}>{currentExchange.userMessage.french}</Text>

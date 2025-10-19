@@ -35,14 +35,14 @@ export class FavouriteGamesService {
     try {
       // Get all possible games with their favourite status
       const allGames = [
-        { name: 'Flashcard Quiz', category: 'vocabulary' },
-        { name: 'Memory Match', category: 'vocabulary' },
-        { name: 'Word Scramble', category: 'vocabulary' },
-        { name: 'Hangman', category: 'vocabulary' },
-        { name: 'Speed Challenge', category: 'vocabulary' },
-        { name: 'Sentence Scramble', category: 'grammar' },
-        { name: 'Planet Defense', category: 'vocabulary' },
-        { name: 'Listen & Type', category: 'listening' },
+        { name: 'flashcard_quiz', category: 'vocabulary' },
+        { name: 'memory_match', category: 'vocabulary' },
+        { name: 'word_scramble', category: 'vocabulary' },
+        { name: 'hangman', category: 'vocabulary' },
+        { name: 'speed_challenge', category: 'vocabulary' },
+        { name: 'sentence_scramble', category: 'grammar' },
+        { name: 'gravity_game', category: 'vocabulary' },
+        { name: 'type_what_you_hear', category: 'listening' },
       ];
 
       // Get user's favourite games

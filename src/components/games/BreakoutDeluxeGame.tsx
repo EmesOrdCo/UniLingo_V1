@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Animated, PanResponder } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { useTranslation } from '../../lib/i18n';
 
 interface BreakoutDeluxeGameProps {
   gameData?: any;
@@ -63,6 +64,8 @@ type Laser = {
 };
 
 const BreakoutDeluxeGame: React.FC<BreakoutDeluxeGameProps> = ({ onClose, onGameComplete, onRestart }) => {
+  const { t } = useTranslation();
+  
   // Game state
   const [paddleX, setPaddleX] = useState((GAME_WIDTH - INITIAL_PADDLE_WIDTH) / 2);
   const [paddleWidth, setPaddleWidth] = useState(INITIAL_PADDLE_WIDTH);
@@ -639,7 +642,7 @@ const BreakoutDeluxeGame: React.FC<BreakoutDeluxeGameProps> = ({ onClose, onGame
         <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
           <Ionicons name="close-circle" size={28} color="#EF4444" />
         </TouchableOpacity>
-        <Text style={styles.title}>BREAKOUT DELUXE</Text>
+        <Text style={styles.title}>{t('arcade.breakout.title')}</Text>
         <TouchableOpacity onPress={() => setIsPaused(!isPaused)} style={styles.pauseButton}>
           <Ionicons name={isPaused ? 'play-circle' : 'pause-circle'} size={28} color="#3B82F6" />
         </TouchableOpacity>
@@ -648,11 +651,11 @@ const BreakoutDeluxeGame: React.FC<BreakoutDeluxeGameProps> = ({ onClose, onGame
       {/* Score Board */}
       <View style={styles.scoreBoard}>
         <View style={styles.scoreBox}>
-          <Text style={styles.scoreLabel}>SCORE</Text>
+          <Text style={styles.scoreLabel}>{t('arcade.breakout.score')}</Text>
           <Text style={styles.scoreValue}>{score}</Text>
         </View>
         <View style={styles.scoreBox}>
-          <Text style={styles.scoreLabel}>LIVES</Text>
+          <Text style={styles.scoreLabel}>{t('arcade.breakout.lives')}</Text>
           <View style={styles.livesContainer}>
             {[...Array(lives)].map((_, i) => (
               <Ionicons key={i} name="heart" size={14} color="#EF4444" />
@@ -660,7 +663,7 @@ const BreakoutDeluxeGame: React.FC<BreakoutDeluxeGameProps> = ({ onClose, onGame
           </View>
         </View>
         <View style={styles.scoreBox}>
-          <Text style={styles.scoreLabel}>LEVEL</Text>
+          <Text style={styles.scoreLabel}>{t('arcade.breakout.level')}</Text>
           <Text style={styles.scoreValue}>{level}</Text>
         </View>
         {hasLaser && (
@@ -774,7 +777,7 @@ const BreakoutDeluxeGame: React.FC<BreakoutDeluxeGameProps> = ({ onClose, onGame
             activeOpacity={0.9}
           >
             <View style={styles.startMessage}>
-              <Text style={styles.startText}>TAP TO START</Text>
+              <Text style={styles.startText}>{t('arcade.breakout.tapToStart')}</Text>
               <Ionicons name="play-circle" size={48} color="#FFFFFF" />
             </View>
           </TouchableOpacity>
@@ -784,7 +787,7 @@ const BreakoutDeluxeGame: React.FC<BreakoutDeluxeGameProps> = ({ onClose, onGame
       {/* Instructions */}
       <View style={styles.instructions}>
         <Text style={styles.instructionsText}>
-          Collect power-ups for special abilities! Top row bricks need 4 hits!
+          {t('arcade.breakout.instructions')}
         </Text>
       </View>
 
@@ -793,17 +796,17 @@ const BreakoutDeluxeGame: React.FC<BreakoutDeluxeGameProps> = ({ onClose, onGame
         <View style={styles.overlay}>
           <View style={styles.winCard}>
             <Ionicons name="trophy" size={64} color="#F59E0B" />
-            <Text style={styles.winTitle}>Level Complete!</Text>
-            <Text style={styles.winScore}>Score: {score}</Text>
-            <Text style={styles.winLevel}>Level {level}</Text>
+            <Text style={styles.winTitle}>{t('arcade.breakout.levelComplete')}</Text>
+            <Text style={styles.winScore}>{t('arcade.breakout.scoreLabel', { score })}</Text>
+            <Text style={styles.winLevel}>{t('arcade.breakout.levelLabel', { level })}</Text>
             <View style={styles.buttonRow}>
               <TouchableOpacity style={styles.nextLevelButton} onPress={handleNextLevel}>
                 <Ionicons name="play-forward" size={20} color="#FFFFFF" />
-                <Text style={styles.buttonText}>Next Level</Text>
+                <Text style={styles.buttonText}>{t('arcade.breakout.nextLevel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.exitButton} onPress={handleClose}>
                 <Ionicons name="exit" size={20} color="#FFFFFF" />
-                <Text style={styles.buttonText}>Exit</Text>
+                <Text style={styles.buttonText}>{t('arcade.breakout.exit')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -815,17 +818,17 @@ const BreakoutDeluxeGame: React.FC<BreakoutDeluxeGameProps> = ({ onClose, onGame
         <View style={styles.overlay}>
           <View style={styles.gameOverCard}>
             <Ionicons name="close-circle" size={64} color="#EF4444" />
-            <Text style={styles.gameOverTitle}>Game Over!</Text>
-            <Text style={styles.finalScore}>Final Score: {score}</Text>
-            <Text style={styles.statsText}>Level: {level}</Text>
+            <Text style={styles.gameOverTitle}>{t('arcade.breakout.gameOver')}</Text>
+            <Text style={styles.finalScore}>{t('arcade.breakout.finalScore', { score })}</Text>
+            <Text style={styles.statsText}>{t('arcade.breakout.levelStats', { level })}</Text>
             <View style={styles.buttonRow}>
               <TouchableOpacity style={styles.restartButton} onPress={handleRestart}>
                 <Ionicons name="refresh" size={20} color="#FFFFFF" />
-                <Text style={styles.buttonText}>Play Again</Text>
+                <Text style={styles.buttonText}>{t('arcade.breakout.playAgain')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.exitButton} onPress={handleClose}>
                 <Ionicons name="exit" size={20} color="#FFFFFF" />
-                <Text style={styles.buttonText}>Exit</Text>
+                <Text style={styles.buttonText}>{t('arcade.breakout.exit')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -837,10 +840,10 @@ const BreakoutDeluxeGame: React.FC<BreakoutDeluxeGameProps> = ({ onClose, onGame
         <View style={styles.overlay}>
           <View style={styles.pausedCard}>
             <Ionicons name="pause-circle" size={64} color="#3B82F6" />
-            <Text style={styles.pausedTitle}>Paused</Text>
+            <Text style={styles.pausedTitle}>{t('arcade.breakout.paused')}</Text>
             <TouchableOpacity style={styles.resumeButton} onPress={() => setIsPaused(false)}>
               <Ionicons name="play" size={20} color="#FFFFFF" />
-              <Text style={styles.buttonText}>Resume</Text>
+              <Text style={styles.buttonText}>{t('arcade.breakout.resume')}</Text>
             </TouchableOpacity>
           </View>
         </View>

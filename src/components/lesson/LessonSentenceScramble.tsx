@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { useTranslation } from '../../lib/i18n';
 import { useAuth } from '../../contexts/AuthContext';
 import { VocabularyInterpretationService, InterpretedVocabulary } from '../../lib/vocabularyInterpretationService';
 
@@ -21,6 +22,7 @@ interface ScrambleQuestion {
 }
 
 export default function LessonSentenceScramble({ vocabulary, onComplete, onClose, onProgressUpdate, initialQuestionIndex = 0 }: LessonSentenceScrambleProps) {
+  const { t } = useTranslation();
   const [questions, setQuestions] = useState<ScrambleQuestion[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(initialQuestionIndex);
   const [scrambledWords, setScrambledWords] = useState<string[]>([]);
@@ -160,7 +162,7 @@ export default function LessonSentenceScramble({ vocabulary, onComplete, onClose
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
             <Ionicons name="close" size={24} color="#64748b" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Sentence Scramble Complete!</Text>
+          <Text style={styles.headerTitle}>{t('lessons.exercises.sentenceScramble')} {t('lessons.exercises.completed')}!</Text>
           <View style={styles.placeholder} />
         </View>
 
@@ -173,7 +175,7 @@ export default function LessonSentenceScramble({ vocabulary, onComplete, onClose
             
             {/* Completion Title */}
             <Text style={styles.completionTitle}>🎉 Excellent Work!</Text>
-            <Text style={styles.completionSubtitle}>Sentence Scramble Complete</Text>
+            <Text style={styles.completionSubtitle}>{t('lessons.exercises.sentenceScramble')} {t('lessons.exercises.completed')}</Text>
             
             {/* Stats Card */}
             <View style={styles.statsCard}>
@@ -224,7 +226,7 @@ export default function LessonSentenceScramble({ vocabulary, onComplete, onClose
             <TouchableOpacity style={styles.completeButton} onPress={() => onComplete(score)}>
               <View style={styles.completeButtonContent}>
                 <Ionicons name="arrow-forward" size={20} color="#ffffff" />
-                <Text style={styles.completeButtonText}>Continue to Next Exercise</Text>
+                <Text style={styles.completeButtonText}>{t('lessons.common.continue')} {t('lessons.common.to')} {t('lessons.common.next')} {t('lessons.exercise')}</Text>
               </View>
             </TouchableOpacity>
           </View>
@@ -240,13 +242,13 @@ export default function LessonSentenceScramble({ vocabulary, onComplete, onClose
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
             <Ionicons name="close" size={24} color="#64748b" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Sentence Scramble</Text>
+          <Text style={styles.headerTitle}>{t('lessons.exercises.sentenceScramble')}</Text>
           <View style={styles.placeholder} />
         </View>
         <View style={styles.loadingContainer}>
           <Text style={styles.loadingText}>No example sentences available for this lesson.</Text>
           <TouchableOpacity style={styles.skipButton} onPress={() => onComplete(0)}>
-            <Text style={styles.skipButtonText}>Skip to Next Exercise</Text>
+            <Text style={styles.skipButtonText}>{t('lessons.common.skip')} {t('lessons.common.to')} {t('lessons.common.next')} {t('lessons.exercise')}</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -270,7 +272,7 @@ export default function LessonSentenceScramble({ vocabulary, onComplete, onClose
         >
           <Ionicons name="close" size={24} color="#6366f1" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Sentence Scramble</Text>
+        <Text style={styles.headerTitle}>{t('lessons.exercises.sentenceScramble')}</Text>
         <View style={styles.placeholder} />
       </View>
 
@@ -279,19 +281,19 @@ export default function LessonSentenceScramble({ vocabulary, onComplete, onClose
           <View style={[styles.progressFill, { width: `${progressPercentage}%` }]} />
         </View>
         <Text style={styles.progressText}>
-          Question {currentQuestionIndex + 1} of {questions.length}
+          {t('lessons.common.question')} {currentQuestionIndex + 1} {t('lessons.common.of')} {questions.length}
         </Text>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.questionContainer}>
           <Text style={styles.instructionText}>
-            Unscramble the words to form the correct sentence:
+            {t('lessons.sentenceScramble.instructions')}
           </Text>
 
           {/* Selected Words */}
           <View style={styles.selectedWordsContainer}>
-            <Text style={styles.selectedWordsLabel}>Your sentence:</Text>
+            <Text style={styles.selectedWordsLabel}>{t('lessons.sentenceScramble.yourSentence')}</Text>
             <View style={styles.selectedWords}>
               {selectedWords.map((word, index) => (
                 <TouchableOpacity
@@ -307,7 +309,7 @@ export default function LessonSentenceScramble({ vocabulary, onComplete, onClose
 
           {/* Scrambled Words */}
           <View style={styles.scrambledWordsContainer}>
-            <Text style={styles.scrambledWordsLabel}>Available words:</Text>
+            <Text style={styles.scrambledWordsLabel}>{t('lessons.sentenceScramble.availableWords')}</Text>
             <View style={styles.scrambledWords}>
               {scrambledWords.map((word, index) => (
                 <TouchableOpacity
@@ -325,12 +327,12 @@ export default function LessonSentenceScramble({ vocabulary, onComplete, onClose
           <View style={styles.actionButtons}>
             <TouchableOpacity style={styles.checkButton} onPress={checkAnswer}>
               <Ionicons name="checkmark" size={20} color="#ffffff" />
-              <Text style={styles.checkButtonText}>Check Answer</Text>
+              <Text style={styles.checkButtonText}>{t('lessons.common.check')} {t('lessons.common.answer')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.skipButton} onPress={skipQuestion}>
               <Ionicons name="arrow-forward" size={20} color="#6366f1" />
-              <Text style={styles.skipButtonText}>Skip</Text>
+              <Text style={styles.skipButtonText}>{t('lessons.common.skip')}</Text>
             </TouchableOpacity>
           </View>
 

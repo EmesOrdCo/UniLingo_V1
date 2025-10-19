@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from '../lib/i18n';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = width * 0.4; // 40% of screen width for each card
@@ -21,11 +22,12 @@ interface HorizontalGamesSectionProps {
 }
 
 const HorizontalGamesSection: React.FC<HorizontalGamesSectionProps> = ({ games }) => {
+  const { t } = useTranslation();
   return (
     <View style={styles.container}>
       <View style={styles.sectionTitleContainer}>
         <Ionicons name="grid" size={24} color="#6366f1" />
-        <Text style={styles.standardSectionTitle}>All Games</Text>
+        <Text style={styles.standardSectionTitle}>{t('games.allGames')}</Text>
       </View>
       <ScrollView
         horizontal
@@ -57,12 +59,12 @@ const HorizontalGamesSection: React.FC<HorizontalGamesSectionProps> = ({ games }
               <View style={styles.gameTag}>
                 <Text style={styles.gameTagText}>{game.tag}</Text>
               </View>
-              <Text style={styles.gameCards}>{game.cards} cards available</Text>
+              <Text style={styles.gameCards}>{game.cards} {t('games.cardsAvailable')}</Text>
             </View>
 
             {/* Play Button */}
             <TouchableOpacity style={styles.playButton} onPress={game.onPlay}>
-              <Text style={styles.playButtonText}>Play Now</Text>
+              <Text style={styles.playButtonText}>{t('games.playNow')}</Text>
               <Ionicons name="arrow-forward" size={18} color="#ffffff" />
             </TouchableOpacity>
           </View>

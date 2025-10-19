@@ -8,8 +8,10 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { SimpleTokenTracker } from '../lib/simpleTokenTracker';
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from '../lib/i18n';
 
 const AIUsageBar: React.FC = () => {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [spendingPercentage, setSpendingPercentage] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -41,15 +43,15 @@ const AIUsageBar: React.FC = () => {
   };
 
   const getStatusText = () => {
-    if (spendingPercentage >= 100) return 'Limit Exceeded';
-    if (spendingPercentage >= 80) return 'Near Limit';
-    return 'Normal';
+    if (spendingPercentage >= 100) return t('aiUsage.status.limitExceeded');
+    if (spendingPercentage >= 80) return t('aiUsage.status.nearLimit');
+    return t('aiUsage.status.normal');
   };
 
   if (loading) {
     return (
       <View style={styles.container}>
-        <Text style={styles.loadingText}>Loading usage...</Text>
+        <Text style={styles.loadingText}>{t('aiUsage.loading')}</Text>
       </View>
     );
   }
@@ -62,14 +64,14 @@ const AIUsageBar: React.FC = () => {
       <View style={styles.header}>
         <View style={styles.titleRow}>
           <Ionicons name="analytics" size={20} color={statusColor} />
-          <Text style={styles.title}>AI Usage</Text>
+          <Text style={styles.title}>{t('aiUsage.title')}</Text>
         </View>
         <Text style={[styles.status, { color: statusColor }]}>{statusText}</Text>
       </View>
       
       <View style={styles.usageInfo}>
         <Text style={styles.percentageText}>
-          {spendingPercentage.toFixed(1)}% used
+          {spendingPercentage.toFixed(1)}% {t('aiUsage.used')}
         </Text>
       </View>
       

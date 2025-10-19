@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Animated, TouchableWithoutFeedback } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { useTranslation } from '../../lib/i18n';
 
 interface FlappyBirdGameProps {
   gameData?: any;
@@ -30,6 +31,8 @@ type Pipe = {
 };
 
 const FlappyBirdGame: React.FC<FlappyBirdGameProps> = ({ onClose, onGameComplete, onRestart }) => {
+  const { t } = useTranslation();
+  
   // Game state
   const [birdY, setBirdY] = useState(GAME_HEIGHT / 2);
   const [birdVelocity, setBirdVelocity] = useState(0);
@@ -405,7 +408,7 @@ const FlappyBirdGame: React.FC<FlappyBirdGameProps> = ({ onClose, onGameComplete
           <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
             <Ionicons name="close-circle" size={28} color="#EF4444" />
           </TouchableOpacity>
-          <Text style={styles.title}>FLAPPY BIRD</Text>
+          <Text style={styles.title}>{t('arcade.flappyBird.title')}</Text>
           <View style={styles.headerSpacer} />
         </View>
 
@@ -487,7 +490,7 @@ const FlappyBirdGame: React.FC<FlappyBirdGameProps> = ({ onClose, onGameComplete
           {/* Start Message */}
           {!gameStarted && !gameOver && (
             <View style={styles.startMessage}>
-              <Text style={styles.startText}>Tap to Flap!</Text>
+              <Text style={styles.startText}>{t('arcade.flappyBird.tapToFlap')}</Text>
               <Ionicons name="hand-left" size={32} color="#FFFFFF" />
             </View>
           )}
@@ -607,7 +610,7 @@ const FlappyBirdGame: React.FC<FlappyBirdGameProps> = ({ onClose, onGameComplete
         {/* Instructions */}
         {!gameStarted && (
           <View style={styles.instructions}>
-            <Text style={styles.instructionsText}>Tap anywhere to make the bird fly!</Text>
+            <Text style={styles.instructionsText}>{t('arcade.flappyBird.tapToFly')}</Text>
           </View>
         )}
 
@@ -616,32 +619,32 @@ const FlappyBirdGame: React.FC<FlappyBirdGameProps> = ({ onClose, onGameComplete
           <View style={styles.overlay}>
             <View style={styles.gameOverCard}>
               <Ionicons name="sad" size={64} color="#EF4444" />
-              <Text style={styles.gameOverTitle}>Game Over!</Text>
+              <Text style={styles.gameOverTitle}>{t('arcade.flappyBird.gameOver')}</Text>
               <View style={styles.scoreCard}>
                 <View style={styles.scoreRow}>
-                  <Text style={styles.scoreRowLabel}>Score</Text>
+                  <Text style={styles.scoreRowLabel}>{t('arcade.flappyBird.score')}</Text>
                   <Text style={styles.scoreRowValue}>{score}</Text>
                 </View>
                 <View style={styles.scoreDivider} />
                 <View style={styles.scoreRow}>
-                  <Text style={styles.scoreRowLabel}>Best</Text>
+                  <Text style={styles.scoreRowLabel}>{t('arcade.flappyBird.best')}</Text>
                   <Text style={styles.scoreRowValue}>{bestScore}</Text>
                 </View>
               </View>
               {score > bestScore && (
                 <View style={styles.newBestBadge}>
                   <Ionicons name="trophy" size={16} color="#F59E0B" />
-                  <Text style={styles.newBestText}>New Best!</Text>
+                  <Text style={styles.newBestText}>{t('arcade.flappyBird.newBest')}</Text>
                 </View>
               )}
               <View style={styles.buttonRow}>
                 <TouchableOpacity style={styles.restartButton} onPress={handleRestart}>
                   <Ionicons name="refresh" size={20} color="#FFFFFF" />
-                  <Text style={styles.buttonText}>Play Again</Text>
+                  <Text style={styles.buttonText}>{t('arcade.flappyBird.playAgain')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.exitButton} onPress={handleClose}>
                   <Ionicons name="exit" size={20} color="#FFFFFF" />
-                  <Text style={styles.buttonText}>Exit</Text>
+                  <Text style={styles.buttonText}>{t('arcade.flappyBird.exit')}</Text>
                 </TouchableOpacity>
               </View>
             </View>

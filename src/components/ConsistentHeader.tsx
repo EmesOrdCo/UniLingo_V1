@@ -8,6 +8,7 @@ import { useRefresh } from '../contexts/RefreshContext';
 import { HolisticProgressService } from '../lib/holisticProgressService';
 import StreakDetailsModal from './StreakDetailsModal';
 import ProfileAvatar from './ProfileAvatar';
+import { useTranslation } from '../lib/i18n';
 
 interface ConsistentHeaderProps {
   pageName: string;
@@ -32,6 +33,7 @@ export default function ConsistentHeader({
   const { user, profile } = useAuth();
   const { refreshTrigger: profileRefreshTrigger } = useProfilePicture();
   const { refreshTrigger } = useRefresh();
+  const { t } = useTranslation();
   const [currentStreak, setCurrentStreak] = useState(streakCount);
   const [showStreakModal, setShowStreakModal] = useState(false);
 
@@ -86,7 +88,14 @@ export default function ConsistentHeader({
           <Text style={[styles.streakText, darkMode && styles.streakTextDark]}>{currentStreak}</Text>
         </TouchableOpacity>
         
-                              <TouchableOpacity 
+        <TouchableOpacity 
+          style={styles.settingsButton}
+          onPress={() => navigation.navigate('Settings' as never)}
+        >
+          <Ionicons name="settings-outline" size={24} color={darkMode ? "#ffffff" : "#64748b"} />
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
           style={styles.profileButton}
           onPress={() => navigation.navigate('Profile' as never)}
         >
@@ -174,6 +183,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#92400e',
+  },
+  settingsButton: {
+    padding: 4,
   },
   profileButton: {
     padding: 4,

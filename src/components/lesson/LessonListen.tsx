@@ -11,6 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { useTranslation } from '../../lib/i18n';
 import { VoiceService } from '../../lib/voiceService';
 import { AWSPollyService } from '../../lib/awsPollyService';
 import LeaveConfirmationModal from './LeaveConfirmationModal';
@@ -37,6 +38,7 @@ export default function LessonListen({
   initialQuestionIndex = 0,
   userProfile
 }: LessonListenProps) {
+  const { t } = useTranslation();
   const [questions, setQuestions] = useState<ListenQuestion[]>([]);
   const [currentIndex, setCurrentIndex] = useState(initialQuestionIndex);
   const [userInput, setUserInput] = useState('');
@@ -287,7 +289,7 @@ export default function LessonListen({
           <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
             <Ionicons name="close" size={28} color="#1f2937" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Listen Exercise Complete!</Text>
+          <Text style={styles.headerTitle}>{t('lessons.exercises.listen')} {t('lessons.exercise')} {t('lessons.exercises.completed')}!</Text>
           <View style={styles.placeholder} />
         </View>
 
@@ -352,11 +354,11 @@ export default function LessonListen({
             <View style={styles.buttonContainer}>
               <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
                 <Ionicons name="refresh" size={20} color="#6366f1" />
-                <Text style={styles.retryButtonText}>Retry</Text>
+                <Text style={styles.retryButtonText}>{t('lessons.common.retry')}</Text>
               </TouchableOpacity>
               
               <TouchableOpacity style={styles.continueButton} onPress={handleContinue}>
-                <Text style={styles.continueButtonText}>Continue</Text>
+                <Text style={styles.continueButtonText}>{t('lessons.common.continue')}</Text>
                 <Ionicons name="arrow-forward" size={20} color="#ffffff" />
               </TouchableOpacity>
             </View>
@@ -391,7 +393,7 @@ export default function LessonListen({
         <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
           <Ionicons name="close" size={28} color="#1f2937" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Listen Exercise</Text>
+        <Text style={styles.headerTitle}>{t('lessons.exercises.listen')} {t('lessons.exercise')}</Text>
         <View style={styles.placeholder} />
       </View>
 
@@ -399,7 +401,7 @@ export default function LessonListen({
         {/* Progress */}
         <View style={styles.progressContainer}>
           <Text style={styles.progressText}>
-            Round {currentRound} - Word {currentIndex + 1} of {vocabulary.length}
+            {t('lessons.fillBlank.round1')} {currentRound} - {t('lessons.common.word')} {currentIndex + 1} {t('lessons.common.of')} {vocabulary.length}
           </Text>
           <View style={styles.progressBar}>
             <View 
@@ -414,7 +416,7 @@ export default function LessonListen({
         {/* Audio Player Card */}
         <View style={styles.audioCard}>
           <Text style={styles.instructionText}>
-            {currentRound === 1 ? 'Listen and select the correct answer' : 'Listen and type what you hear'}
+            {currentRound === 1 ? t('lessons.listen.instructions') : t('lessons.listen.typeInstructions')}
           </Text>
           
           <TouchableOpacity 
@@ -428,7 +430,7 @@ export default function LessonListen({
               color={isPlaying ? "#10b981" : "#6366f1"} 
             />
             <Text style={styles.playButtonText}>
-              {isPlaying ? 'Playing...' : 'Tap to play audio'}
+              {isPlaying ? t('lessons.listen.playing') : t('lessons.listen.playAudio')}
             </Text>
           </TouchableOpacity>
 
@@ -503,7 +505,7 @@ export default function LessonListen({
                   style={styles.skipButton}
                   onPress={skipQuestion}
                 >
-                  <Text style={styles.skipButtonText}>Skip</Text>
+                  <Text style={styles.skipButtonText}>{t('lessons.common.skip')}</Text>
                 </TouchableOpacity>
                 
                 <TouchableOpacity 
@@ -511,14 +513,14 @@ export default function LessonListen({
                   onPress={checkAnswer}
                   disabled={!userInput.trim()}
                 >
-                  <Text style={styles.submitButtonText}>Submit</Text>
+                  <Text style={styles.submitButtonText}>{t('lessons.common.submit')}</Text>
                 </TouchableOpacity>
               </View>
             )
           ) : (
             <TouchableOpacity style={styles.nextButton} onPress={handleNextQuestion}>
               <Text style={styles.nextButtonText}>
-                {currentIndex < vocabulary.length - 1 ? 'Next Question' : currentRound === 1 ? 'Start Round 2' : 'Finish'}
+                {currentIndex < vocabulary.length - 1 ? t('lessons.common.next') + ' ' + t('lessons.common.question') : currentRound === 1 ? t('lessons.common.start') + ' ' + t('lessons.fillBlank.round2') : t('lessons.common.finish')}
               </Text>
             </TouchableOpacity>
           )}

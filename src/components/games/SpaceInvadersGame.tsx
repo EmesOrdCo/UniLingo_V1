@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Animated, PanResponder } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { useTranslation } from '../../lib/i18n';
 
 interface SpaceInvadersGameProps {
   gameData?: any;
@@ -30,6 +31,8 @@ type Enemy = { id: number; row: number; col: number; type: number; alive: boolea
 type Bullet = { id: number; x: number; y: number; friendly: boolean };
 
 const SpaceInvadersGame: React.FC<SpaceInvadersGameProps> = ({ onClose, onGameComplete, onRestart }) => {
+  const { t } = useTranslation();
+  
   // Game state
   const [playerX, setPlayerX] = useState(GAME_WIDTH / 2 - PLAYER_WIDTH / 2);
   const [enemies, setEnemies] = useState<Enemy[]>([]);
@@ -675,7 +678,7 @@ const SpaceInvadersGame: React.FC<SpaceInvadersGameProps> = ({ onClose, onGameCo
         <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
           <Ionicons name="close-circle" size={28} color="#EF4444" />
         </TouchableOpacity>
-        <Text style={styles.title}>SPACE INVADERS</Text>
+        <Text style={styles.title}>{t('arcade.spaceInvaders.title')}</Text>
         <TouchableOpacity onPress={() => setIsPaused(!isPaused)} style={styles.pauseButton}>
           <Ionicons name={isPaused ? 'play-circle' : 'pause-circle'} size={28} color="#3B82F6" />
         </TouchableOpacity>
@@ -684,11 +687,11 @@ const SpaceInvadersGame: React.FC<SpaceInvadersGameProps> = ({ onClose, onGameCo
       {/* Score Board */}
       <View style={styles.scoreBoard}>
         <View style={styles.scoreBox}>
-          <Text style={styles.scoreLabel}>SCORE</Text>
+          <Text style={styles.scoreLabel}>{t('arcade.spaceInvaders.score')}</Text>
           <Text style={styles.scoreValue}>{score}</Text>
         </View>
         <View style={styles.scoreBox}>
-          <Text style={styles.scoreLabel}>LIVES</Text>
+          <Text style={styles.scoreLabel}>{t('arcade.spaceInvaders.lives')}</Text>
           <View style={styles.livesContainer}>
             {[...Array(lives)].map((_, i) => (
               <Ionicons key={i} name="rocket" size={14} color="#00F0F0" />
@@ -696,7 +699,7 @@ const SpaceInvadersGame: React.FC<SpaceInvadersGameProps> = ({ onClose, onGameCo
           </View>
         </View>
         <View style={styles.scoreBox}>
-          <Text style={styles.scoreLabel}>WAVE</Text>
+          <Text style={styles.scoreLabel}>{t('arcade.spaceInvaders.wave')}</Text>
           <Text style={styles.scoreValue}>{wave}</Text>
         </View>
       </View>
@@ -771,7 +774,7 @@ const SpaceInvadersGame: React.FC<SpaceInvadersGameProps> = ({ onClose, onGameCo
         </TouchableOpacity>
         <TouchableOpacity style={styles.shootButton} onPress={shoot}>
           <Ionicons name="radio-button-on" size={28} color="#FFFFFF" />
-          <Text style={styles.shootText}>FIRE</Text>
+          <Text style={styles.shootText}>{t('arcade.spaceInvaders.fire')}</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.moveButton}
@@ -786,17 +789,17 @@ const SpaceInvadersGame: React.FC<SpaceInvadersGameProps> = ({ onClose, onGameCo
         <View style={styles.overlay}>
           <View style={styles.winCard}>
             <Ionicons name="trophy" size={64} color="#F59E0B" />
-            <Text style={styles.winTitle}>Wave Cleared!</Text>
-            <Text style={styles.winScore}>Score: {score}</Text>
-            <Text style={styles.winWave}>Wave {wave} Complete</Text>
+            <Text style={styles.winTitle}>{t('arcade.spaceInvaders.waveCleared')}</Text>
+            <Text style={styles.winScore}>{t('arcade.spaceInvaders.scoreLabel', { score })}</Text>
+            <Text style={styles.winWave}>{t('arcade.spaceInvaders.waveComplete', { wave })}</Text>
             <View style={styles.buttonRow}>
               <TouchableOpacity style={styles.nextWaveButton} onPress={handleNextWave}>
                 <Ionicons name="play-forward" size={20} color="#FFFFFF" />
-                <Text style={styles.buttonText}>Next Wave</Text>
+                <Text style={styles.buttonText}>{t('arcade.spaceInvaders.nextWave')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.exitButton} onPress={handleClose}>
                 <Ionicons name="exit" size={20} color="#FFFFFF" />
-                <Text style={styles.buttonText}>Exit</Text>
+                <Text style={styles.buttonText}>{t('arcade.spaceInvaders.exit')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -808,17 +811,17 @@ const SpaceInvadersGame: React.FC<SpaceInvadersGameProps> = ({ onClose, onGameCo
         <View style={styles.overlay}>
           <View style={styles.gameOverCard}>
             <Ionicons name="skull" size={64} color="#EF4444" />
-            <Text style={styles.gameOverTitle}>Game Over!</Text>
-            <Text style={styles.finalScore}>Final Score: {score}</Text>
-            <Text style={styles.statsText}>Wave: {wave}</Text>
+            <Text style={styles.gameOverTitle}>{t('arcade.spaceInvaders.gameOver')}</Text>
+            <Text style={styles.finalScore}>{t('arcade.spaceInvaders.finalScore', { score })}</Text>
+            <Text style={styles.statsText}>{t('arcade.spaceInvaders.waveStats', { wave })}</Text>
             <View style={styles.buttonRow}>
               <TouchableOpacity style={styles.restartButton} onPress={handleRestart}>
                 <Ionicons name="refresh" size={20} color="#FFFFFF" />
-                <Text style={styles.buttonText}>Play Again</Text>
+                <Text style={styles.buttonText}>{t('arcade.spaceInvaders.playAgain')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.exitButton} onPress={handleClose}>
                 <Ionicons name="exit" size={20} color="#FFFFFF" />
-                <Text style={styles.buttonText}>Exit</Text>
+                <Text style={styles.buttonText}>{t('arcade.spaceInvaders.exit')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -830,10 +833,10 @@ const SpaceInvadersGame: React.FC<SpaceInvadersGameProps> = ({ onClose, onGameCo
         <View style={styles.overlay}>
           <View style={styles.pausedCard}>
             <Ionicons name="pause-circle" size={64} color="#3B82F6" />
-            <Text style={styles.pausedTitle}>Paused</Text>
+            <Text style={styles.pausedTitle}>{t('arcade.spaceInvaders.paused')}</Text>
             <TouchableOpacity style={styles.resumeButton} onPress={() => setIsPaused(false)}>
               <Ionicons name="play" size={20} color="#FFFFFF" />
-              <Text style={styles.buttonText}>Resume</Text>
+              <Text style={styles.buttonText}>{t('arcade.spaceInvaders.resume')}</Text>
             </TouchableOpacity>
           </View>
         </View>

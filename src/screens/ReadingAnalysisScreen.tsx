@@ -10,11 +10,13 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import { useTranslation } from '../lib/i18n';
 
 export default function ReadingAnalysisScreen() {
   const [text, setText] = useState('');
   const [analysis, setAnalysis] = useState('');
   const navigation = useNavigation();
+  const { t } = useTranslation();
 
   const sampleTexts = [
     {
@@ -77,20 +79,20 @@ Recommendations:
         >
           <Ionicons name="arrow-back" size={24} color="#1e293b" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Reading Analysis</Text>
+        <Text style={styles.headerTitle}>{t('readingAnalysis.title')}</Text>
         <View style={styles.headerSpacer} />
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.introSection}>
-          <Text style={styles.introTitle}>AI-Powered Text Analysis</Text>
+          <Text style={styles.introTitle}>{t('readingAnalysis.subtitle')}</Text>
           <Text style={styles.introSubtitle}>
-            Upload or paste your academic text to get instant analysis, vocabulary extraction, and learning recommendations
+            {t('readingAnalysis.description')}
           </Text>
         </View>
 
         <View style={styles.sampleSection}>
-          <Text style={styles.sectionTitle}>Sample Texts</Text>
+          <Text style={styles.sectionTitle}>{t('readingAnalysis.sampleTexts')}</Text>
           <View style={styles.sampleGrid}>
             {sampleTexts.map((sample, index) => (
               <TouchableOpacity
@@ -114,12 +116,12 @@ Recommendations:
         </View>
 
         <View style={styles.inputSection}>
-          <Text style={styles.sectionTitle}>Your Text</Text>
+          <Text style={styles.sectionTitle}>{t('readingAnalysis.yourText')}</Text>
           <TextInput
             style={styles.textInput}
             value={text}
             onChangeText={setText}
-            placeholder="Paste your academic text here for analysis..."
+            placeholder={t('readingAnalysis.placeholder')}
             multiline
             numberOfLines={6}
             textAlignVertical="top"
@@ -127,13 +129,13 @@ Recommendations:
           
           <TouchableOpacity style={styles.analyzeButton} onPress={analyzeText}>
             <Ionicons name="analytics" size={20} color="#ffffff" />
-            <Text style={styles.analyzeButtonText}>Analyze Text</Text>
+            <Text style={styles.analyzeButtonText}>{t('readingAnalysis.analyzeButton')}</Text>
           </TouchableOpacity>
         </View>
 
         {analysis && (
           <View style={styles.analysisSection}>
-            <Text style={styles.sectionTitle}>Analysis Results</Text>
+            <Text style={styles.sectionTitle}>{t('readingAnalysis.results')}</Text>
             <View style={styles.analysisCard}>
               <Text style={styles.analysisText}>{analysis}</Text>
             </View>

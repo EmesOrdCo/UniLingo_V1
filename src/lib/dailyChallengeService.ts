@@ -12,16 +12,16 @@ export interface DailyChallenge {
 }
 
 export class DailyChallengeService {
-  // Available games for daily challenge
+  // Available games for daily challenge (using IDs for consistency)
   private static readonly AVAILABLE_GAMES = [
-    'Flashcard Quiz',
-    'Memory Match', 
-    'Word Scramble',
-    'Hangman',
-    'Speed Challenge',
-    'Planet Defense',
-    'Listen & Type',
-    'Sentence Scramble'
+    'flashcard_quiz',
+    'memory_match', 
+    'word_scramble',
+    'hangman',
+    'speed_challenge',
+    'gravity_game',
+    'type_what_you_hear',
+    'sentence_scramble'
   ];
 
   /**

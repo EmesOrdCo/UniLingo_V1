@@ -17,11 +17,13 @@ import { UnitDataAdapter, UnitVocabularyItem } from '../lib/unitDataAdapter';
 import { logger } from '../lib/logger';
 import { getVocabularySpeechLanguage, getNativeLanguageSpeechCode, getTargetLanguageSpeechCode } from '../lib/languageService';
 import * as Speech from 'expo-speech';
+import { useTranslation } from '../lib/i18n';
 
 export default function UnitWordsScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const { user, profile } = useAuth();
+  const { t } = useTranslation();
   
   const { unitTitle, subjectName } = (route.params as any) || { unitTitle: 'Saying Hello', subjectName: 'Asking About Location' };
   
@@ -323,7 +325,7 @@ export default function UnitWordsScreen() {
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color="#000000" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>{unitTitle} - Words</Text>
+          <Text style={styles.headerTitle}>{unitTitle} - {t('lessons.exercises.words')}</Text>
           <View style={styles.headerSpacer} />
         </View>
         <View style={styles.loadingContainer}>
@@ -341,12 +343,12 @@ export default function UnitWordsScreen() {
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color="#000000" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>{unitTitle} - Words</Text>
+          <Text style={styles.headerTitle}>{unitTitle} - {t('lessons.exercises.words')}</Text>
           <View style={styles.headerSpacer} />
         </View>
 
         <ScrollView style={styles.content} contentContainerStyle={styles.introContainer}>
-          <Text style={styles.introTitle}>Words you'll learn</Text>
+          <Text style={styles.introTitle}>{t('lessons.exercises.wordsYoullLearn')}</Text>
           
           <View style={styles.wordsList}>
             {vocabulary.map((word, index) => (
@@ -376,7 +378,7 @@ export default function UnitWordsScreen() {
 
         <View style={styles.introButtonContainer}>
           <TouchableOpacity style={styles.startLessonButton} onPress={handleStartLesson}>
-            <Text style={styles.startLessonButtonText}>Start Lesson</Text>
+            <Text style={styles.startLessonButtonText}>{t('lessons.exercises.startLesson')}</Text>
             <Ionicons name="play" size={20} color="#ffffff" />
           </TouchableOpacity>
         </View>
@@ -447,17 +449,17 @@ export default function UnitWordsScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Are you sure you want to leave?</Text>
+            <Text style={styles.modalTitle}>{t('lessons.exitModal.title')}</Text>
             <Text style={styles.modalSubtitle}>
-              Your progress won't be saved for this lesson, and you'll have to start again when you return.
+              {t('lessons.exitModal.description')}
             </Text>
             
             <TouchableOpacity style={styles.modalConfirmButton} onPress={handleConfirmExit}>
-              <Text style={styles.modalConfirmButtonText}>Yes, I want to leave</Text>
+              <Text style={styles.modalConfirmButtonText}>{t('lessons.exitModal.confirm')}</Text>
             </TouchableOpacity>
             
             <TouchableOpacity style={styles.modalCancelButton} onPress={handleCancelExit}>
-              <Text style={styles.modalCancelButtonText}>Not Now</Text>
+              <Text style={styles.modalCancelButtonText}>{t('lessons.exitModal.cancel')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -483,7 +485,7 @@ export default function UnitWordsScreen() {
         {/* Question */}
         <View style={styles.questionSection}>
           <Text style={styles.questionLabel}>
-            {question.type === 'en-to-fr' ? 'Translate this' : 'Which of these is'}
+            {question.type === 'en-to-fr' ? t('lessons.exercises.translateThis') : t('lessons.exercises.whichOfThese')}
           </Text>
           <Text style={styles.questionText}>
             {question.type === 'en-to-fr' ? question.question : `" ${question.question} " ?`}
@@ -619,7 +621,7 @@ export default function UnitWordsScreen() {
             onPress={handleCheck}
             disabled={!selectedAnswer}
           >
-            <Text style={styles.checkButtonText}>Check</Text>
+            <Text style={styles.checkButtonText}>{t('lessons.exercises.check')}</Text>
           </TouchableOpacity>
         ) : !isCorrect ? (
           <View style={styles.incorrectActions}>

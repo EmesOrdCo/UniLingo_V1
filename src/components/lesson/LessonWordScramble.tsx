@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, TextInput, ScrollView } from 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { useTranslation } from '../../lib/i18n';
 
 interface LessonWordScrambleProps {
   vocabulary: any[];
@@ -19,6 +20,7 @@ interface WordScrambleQuestion {
 }
 
 export default function LessonWordScramble({ vocabulary, onComplete, onClose, onProgressUpdate, initialQuestionIndex = 0 }: LessonWordScrambleProps) {
+  const { t } = useTranslation();
   const [questions, setQuestions] = useState<WordScrambleQuestion[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(initialQuestionIndex);
   const [scrambledWord, setScrambledWord] = useState('');
@@ -143,7 +145,7 @@ export default function LessonWordScramble({ vocabulary, onComplete, onClose, on
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
             <Ionicons name="close" size={24} color="#64748b" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Word Scramble Complete!</Text>
+          <Text style={styles.headerTitle}>{t('lessons.exercises.wordScramble')} {t('lessons.exercises.completed')}!</Text>
           <View style={styles.placeholder} />
         </View>
 
@@ -156,7 +158,7 @@ export default function LessonWordScramble({ vocabulary, onComplete, onClose, on
             
             {/* Completion Title */}
             <Text style={styles.completionTitle}>🎉 Fantastic Work!</Text>
-            <Text style={styles.completionSubtitle}>Word Scramble Complete</Text>
+            <Text style={styles.completionSubtitle}>{t('lessons.exercises.wordScramble')} {t('lessons.exercises.completed')}</Text>
             
             {/* Stats Card */}
             <View style={styles.statsCard}>
@@ -207,7 +209,7 @@ export default function LessonWordScramble({ vocabulary, onComplete, onClose, on
             <TouchableOpacity style={styles.completeButton} onPress={() => onComplete(score)}>
               <View style={styles.completeButtonContent}>
                 <Ionicons name="arrow-forward" size={20} color="#ffffff" />
-                <Text style={styles.completeButtonText}>Continue to Next Exercise</Text>
+                <Text style={styles.completeButtonText}>{t('lessons.common.continue')} {t('lessons.common.to')} {t('lessons.common.next')} {t('lessons.exercise')}</Text>
               </View>
             </TouchableOpacity>
           </View>
@@ -223,13 +225,13 @@ export default function LessonWordScramble({ vocabulary, onComplete, onClose, on
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
             <Ionicons name="close" size={24} color="#64748b" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Word Scramble</Text>
+          <Text style={styles.headerTitle}>{t('lessons.exercises.wordScramble')}</Text>
           <View style={styles.placeholder} />
         </View>
         <View style={styles.loadingContainer}>
           <Text style={styles.loadingText}>No vocabulary available for this lesson.</Text>
           <TouchableOpacity style={styles.skipButton} onPress={() => onComplete(0)}>
-            <Text style={styles.skipButtonText}>Complete Lesson</Text>
+            <Text style={styles.skipButtonText}>{t('lessons.common.complete')} {t('lessons.lesson')}</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -247,7 +249,7 @@ export default function LessonWordScramble({ vocabulary, onComplete, onClose, on
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
             <Ionicons name="close" size={24} color="#64748b" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Word Scramble</Text>
+          <Text style={styles.headerTitle}>{t('lessons.exercises.wordScramble')}</Text>
           <View style={styles.placeholder} />
         </View>
         <View style={styles.loadingContainer}>
@@ -271,7 +273,7 @@ export default function LessonWordScramble({ vocabulary, onComplete, onClose, on
         >
           <Ionicons name="close" size={24} color="#64748b" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Word Scramble</Text>
+        <Text style={styles.headerTitle}>{t('lessons.exercises.wordScramble')}</Text>
         <View style={styles.placeholder} />
       </View>
 
@@ -280,36 +282,36 @@ export default function LessonWordScramble({ vocabulary, onComplete, onClose, on
           <View style={[styles.progressFill, { width: `${progressPercentage}%` }]} />
         </View>
         <Text style={styles.progressText}>
-          Question {currentQuestionIndex + 1} of {questions.length}
+          {t('lessons.common.question')} {currentQuestionIndex + 1} {t('lessons.common.of')} {questions.length}
         </Text>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.questionContainer}>
           <Text style={styles.instructionText}>
-            Unscramble the word below:
+            {t('lessons.wordScramble.instructions')}
           </Text>
 
           {/* Scrambled Word Display */}
           <View style={styles.scrambledWordContainer}>
-            <Text style={styles.scrambledWordLabel}>Scrambled word:</Text>
+            <Text style={styles.scrambledWordLabel}>{t('lessons.wordScramble.scrambledWord')}</Text>
             <Text style={styles.scrambledWordText}>{scrambledWord}</Text>
           </View>
 
           {/* Hint */}
           <View style={styles.hintContainer}>
-            <Text style={styles.hintLabel}>Hint:</Text>
-            <Text style={styles.hintText}>{currentQuestion?.hint || 'No hint available'}</Text>
+            <Text style={styles.hintLabel}>{t('lessons.common.hint')}:</Text>
+            <Text style={styles.hintText}>{currentQuestion?.hint || t('lessons.common.noHintAvailable')}</Text>
           </View>
 
           {/* Answer Input */}
           <View style={styles.answerContainer}>
-            <Text style={styles.answerLabel}>Your answer:</Text>
+            <Text style={styles.answerLabel}>{t('lessons.wordScramble.yourAnswer')}</Text>
             <TextInput
               style={styles.answerInput}
               value={userAnswer}
               onChangeText={setUserAnswer}
-              placeholder="Type the unscrambled word..."
+              placeholder={t('lessons.wordScramble.enterAnswer')}
               placeholderTextColor="#9ca3af"
               autoCapitalize="none"
               autoCorrect={false}
@@ -325,12 +327,12 @@ export default function LessonWordScramble({ vocabulary, onComplete, onClose, on
               disabled={!userAnswer.trim() || showResult}
             >
               <Ionicons name="checkmark" size={20} color="#ffffff" />
-              <Text style={styles.checkButtonText}>Check Answer</Text>
+              <Text style={styles.checkButtonText}>{t('lessons.common.check')} {t('lessons.common.answer')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.skipButton} onPress={skipQuestion}>
               <Ionicons name="arrow-forward" size={20} color="#6366f1" />
-              <Text style={styles.skipButtonText}>Skip</Text>
+              <Text style={styles.skipButtonText}>{t('lessons.common.skip')}</Text>
             </TouchableOpacity>
           </View>
 

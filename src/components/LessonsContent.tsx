@@ -5,6 +5,7 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { LessonService, Lesson, LessonProgress } from '../lib/lessonService';
 import { logger } from '../lib/logger';
+import { useTranslation } from '../lib/i18n';
 
 // Type definitions for better type safety
 interface LessonWithProgress extends Lesson {
@@ -22,6 +23,7 @@ export default function LessonsContent(props: LessonsContentProps = {}) {
   
   const navigation = useNavigation();
   const { user } = useAuth();
+  const { t } = useTranslation();
 
   // Fetch user's lessons when component comes into focus
   useFocusEffect(
@@ -84,7 +86,7 @@ export default function LessonsContent(props: LessonsContentProps = {}) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#6366f1" />
-        <Text style={styles.loadingText}>Loading your lessons...</Text>
+        <Text style={styles.loadingText}>{t('lessons.loadingLessons')}</Text>
       </View>
     );
   }
@@ -93,13 +95,13 @@ export default function LessonsContent(props: LessonsContentProps = {}) {
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Create Your First Lesson Card */}
       <View style={styles.createLessonCard}>
-        <Text style={styles.createLessonTitle}>Create an AI Lesson</Text>
+        <Text style={styles.createLessonTitle}>{t('lessons.createAI')}</Text>
         <Text style={styles.createLessonDescription}>
-          Upload PDF course notes to generate an interactive vocabulary lesson.
+          {t('lessons.createAIDescription')}
         </Text>
         <TouchableOpacity style={styles.uploadButton} onPress={handleCreateLesson}>
           <Ionicons name="cloud-upload-outline" size={24} color="#ffffff" />
-          <Text style={styles.uploadButtonText}>Create Lesson</Text>
+          <Text style={styles.uploadButtonText}>{t('lessons.createLesson')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -110,9 +112,9 @@ export default function LessonsContent(props: LessonsContentProps = {}) {
             <Ionicons name="book-outline" size={20} color="#8b5cf6" />
           </View>
           <View style={styles.yourLessonsText}>
-            <Text style={styles.yourLessonsTitle}>Your Lessons</Text>
+            <Text style={styles.yourLessonsTitle}>{t('lessons.yourLessons')}</Text>
             <Text style={styles.yourLessonsSubtitle}>
-              {lessons.length === 0 ? 'No lessons yet.' : `${lessons.length} lesson${lessons.length !== 1 ? 's' : ''} created`}
+              {lessons.length === 0 ? t('lessons.noLessonsYet') : `${lessons.length} lesson${lessons.length !== 1 ? 's' : ''} created`}
             </Text>
           </View>
         </View>
@@ -123,7 +125,7 @@ export default function LessonsContent(props: LessonsContentProps = {}) {
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Ionicons name="headset-outline" size={20} color="#8b5cf6" />
-          <Text style={styles.sectionTitle}>Listen</Text>
+          <Text style={styles.sectionTitle}>{t('lessons.listen')}</Text>
         </View>
         
         <TouchableOpacity 
@@ -131,8 +133,8 @@ export default function LessonsContent(props: LessonsContentProps = {}) {
           onPress={() => handleActivityPress('Audio Recap')}
         >
           <View style={styles.activityContent}>
-            <Text style={styles.activityTitle}>Audio Recap</Text>
-            <Text style={styles.activityDescription}>Do guided audio lessons, hands free</Text>
+            <Text style={styles.activityTitle}>{t('lessons.audioRecap')}</Text>
+            <Text style={styles.activityDescription}>{t('lessons.audioRecapDescription')}</Text>
           </View>
           <View style={[styles.activityIcon, { backgroundColor: '#6466E9' }]}>
             <Ionicons name="headset" size={24} color="#ffffff" />
@@ -144,9 +146,9 @@ export default function LessonsContent(props: LessonsContentProps = {}) {
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Ionicons name="chatbubble-outline" size={20} color="#8b5cf6" />
-          <Text style={styles.sectionTitle}>Speak</Text>
+          <Text style={styles.sectionTitle}>{t('lessons.speak')}</Text>
           <View style={[styles.comingSoonIndicator, styles.speakBadge]}>
-            <Text style={styles.comingSoonText}>Coming Soon</Text>
+            <Text style={styles.comingSoonText}>{t('lessons.comingSoon')}</Text>
           </View>
         </View>
         
@@ -155,8 +157,8 @@ export default function LessonsContent(props: LessonsContentProps = {}) {
           onPress={() => handleActivityPress('AI Conversation Partner')}
         >
           <View style={styles.activityContent}>
-            <Text style={styles.activityTitle}>AI Conversation Partner</Text>
-            <Text style={styles.activityDescription}>Practise in your own words</Text>
+            <Text style={styles.activityTitle}>{t('lessons.aiConversation')}</Text>
+            <Text style={styles.activityDescription}>{t('lessons.aiConversationDescription')}</Text>
           </View>
           <View style={styles.activityIcon}>
             <Ionicons name="sparkles" size={24} color="#ffffff" />
@@ -168,9 +170,9 @@ export default function LessonsContent(props: LessonsContentProps = {}) {
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Ionicons name="checkmark-circle-outline" size={20} color="#8b5cf6" />
-          <Text style={styles.sectionTitle}>Write</Text>
+          <Text style={styles.sectionTitle}>{t('lessons.write')}</Text>
           <View style={[styles.comingSoonIndicator, styles.writeBadge]}>
-            <Text style={styles.comingSoonText}>Coming Soon</Text>
+            <Text style={styles.comingSoonText}>{t('lessons.comingSoon')}</Text>
           </View>
         </View>
         
@@ -179,8 +181,8 @@ export default function LessonsContent(props: LessonsContentProps = {}) {
           onPress={() => handleActivityPress('Guided Text Message Conversations')}
         >
           <View style={styles.activityContent}>
-            <Text style={styles.activityTitle}>Guided Text Message Conversations</Text>
-            <Text style={styles.activityDescription}>Practice writing through guided text conversations</Text>
+            <Text style={styles.activityTitle}>{t('lessons.guidedText')}</Text>
+            <Text style={styles.activityDescription}>{t('lessons.guidedTextDescription')}</Text>
           </View>
           <View style={[styles.activityIcon, { backgroundColor: '#06b6d4' }]}>
             <Ionicons name="chatbubble" size={24} color="#ffffff" />

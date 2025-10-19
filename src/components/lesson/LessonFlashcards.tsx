@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../contexts/AuthContext';
 import { VocabularyInterpretationService, InterpretedVocabulary } from '../../lib/vocabularyInterpretationService';
 import LeaveConfirmationModal from './LeaveConfirmationModal';
+import { useTranslation } from '../../lib/i18n';
 
 interface LessonFlashcardsProps {
   vocabulary: any[];
@@ -17,6 +18,7 @@ interface LessonFlashcardsProps {
 const { width: screenWidth } = Dimensions.get('window');
 
 export default function LessonFlashcards({ vocabulary, onComplete, onClose, onProgressUpdate, initialQuestionIndex = 0 }: LessonFlashcardsProps) {
+  const { t } = useTranslation();
   const [currentIndex, setCurrentIndex] = useState(initialQuestionIndex);
   const [isFlipped, setIsFlipped] = useState(false);
   const [viewedCards, setViewedCards] = useState<Set<number>>(new Set());
@@ -126,7 +128,7 @@ export default function LessonFlashcards({ vocabulary, onComplete, onClose, onPr
         >
           <Ionicons name="close" size={24} color="#64748b" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Flashcards</Text>
+        <Text style={styles.headerTitle}>{t('lessons.exercises.flashcards')}</Text>
         <View style={styles.placeholder} />
       </View>
 
@@ -146,10 +148,10 @@ export default function LessonFlashcards({ vocabulary, onComplete, onClose, onPr
           <Animated.View style={[styles.cardFace, styles.cardFront, frontAnimatedStyle]}>
             <View style={styles.cardContent}>
               <Text style={styles.cardTitle}>{languageDirection.targetLanguageName} Term</Text>
-              <Text style={styles.cardText}>{currentCard?.frontTerm || 'No term available'}</Text>
+              <Text style={styles.cardText}>{currentCard?.frontTerm || t('lessons.flashcards.noTermAvailable')}</Text>
               <View style={styles.flipHint}>
                 <Ionicons name="sync" size={16} color="#64748b" />
-                <Text style={styles.flipHintText}>Tap to flip</Text>
+                <Text style={styles.flipHintText}>{t('lessons.flashcards.tapToFlip')}</Text>
               </View>
             </View>
           </Animated.View>
@@ -157,16 +159,16 @@ export default function LessonFlashcards({ vocabulary, onComplete, onClose, onPr
           <Animated.View style={[styles.cardFace, styles.cardBack, backAnimatedStyle]}>
             <View style={styles.cardContent}>
               <Text style={styles.cardTitle}>{languageDirection.nativeLanguageName} Translation</Text>
-              <Text style={styles.cardText}>{currentCard?.backTerm || 'No translation available'}</Text>
+              <Text style={styles.cardText}>{currentCard?.backTerm || t('lessons.flashcards.noTranslationAvailable')}</Text>
               {currentCard?.definition && (
-                <Text style={styles.definitionText}>Definition: {currentCard.definition}</Text>
+                <Text style={styles.definitionText}>{t('lessons.flashcards.definition')}: {currentCard.definition}</Text>
               )}
               {currentCard?.frontExample && (
-                <Text style={styles.exampleText}>Example: {currentCard.frontExample}</Text>
+                <Text style={styles.exampleText}>{t('lessons.common.example')}: {currentCard.frontExample}</Text>
               )}
               <View style={styles.flipHint}>
                 <Ionicons name="sync" size={16} color="#64748b" />
-                <Text style={styles.flipHintText}>Tap to flip back</Text>
+                <Text style={styles.flipHintText}>{t('lessons.flashcards.tapToFlipBack')}</Text>
               </View>
             </View>
           </Animated.View>

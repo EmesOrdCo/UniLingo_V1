@@ -18,6 +18,7 @@ import { useRefresh } from '../contexts/RefreshContext';
 import { getBackendUrl } from '../config/backendConfig';
 import { LessonService } from '../lib/lessonService';
 import BackendAIService from '../lib/backendAIService';
+import { useTranslation } from '../lib/i18n';
 
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
@@ -40,6 +41,7 @@ export default function CreateLessonScreen() {
   
   const navigation = useNavigation();
   const { user, profile } = useAuth();
+  const { t } = useTranslation();
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isCancelled, setIsCancelled] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -592,16 +594,15 @@ export default function CreateLessonScreen() {
           <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
             <Ionicons name="arrow-back" size={24} color="#6366f1" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Create New Lesson</Text>
+          <Text style={styles.headerTitle}>{t('createLesson.title')}</Text>
           <View style={styles.placeholder} />
         </View>
 
         {/* Description */}
         <View style={styles.descriptionContainer}>
-          <Text style={styles.descriptionTitle}>AI-Powered Vocabulary Lessons</Text>
+          <Text style={styles.descriptionTitle}>{t('createLesson.description.title')}</Text>
           <Text style={styles.descriptionText}>
-            Upload your course notes and let AI create an interactive vocabulary lesson 
-            tailored to your subject area.
+            {t('createLesson.description.text')}
           </Text>
         </View>
 
@@ -616,14 +617,14 @@ export default function CreateLessonScreen() {
         {/* Source Name Input */}
         <View style={styles.sourceNameSection}>
           <Text style={styles.sourceNameLabel}>
-            <Ionicons name="folder" size={16} color="#6366f1" /> Source Name (Optional)
+            <Ionicons name="folder" size={16} color="#6366f1" /> {t('createLesson.sourceName.label')}
           </Text>
           <Text style={styles.sourceNameHint}>
-            Give your content a custom name (e.g., "Chapter 3 Notes", "Midterm Study Guide")
+            {t('createLesson.sourceName.hint')}
           </Text>
           <TextInput
             style={styles.sourceNameInput}
-            placeholder="e.g., Chapter 3 Notes"
+            placeholder={t('createLesson.sourceName.placeholder')}
             placeholderTextColor="#9ca3af"
             value={sourceName}
             onChangeText={setSourceName}
@@ -635,9 +636,9 @@ export default function CreateLessonScreen() {
           <View style={styles.uploadIcon}>
             <Ionicons name="document-text" size={48} color="#6366f1" />
           </View>
-          <Text style={styles.uploadTitle}>Upload Course Notes</Text>
+          <Text style={styles.uploadTitle}>{t('createLesson.upload.title')}</Text>
           <Text style={styles.uploadSubtitle}>
-            Select a PDF file or take photos to create your lesson
+            {t('createLesson.upload.subtitle')}
           </Text>
           
           {/* Upload Options */}
@@ -654,7 +655,7 @@ export default function CreateLessonScreen() {
             >
               <Ionicons name="cloud-upload" size={20} color="#ffffff" />
               <Text style={styles.uploadButtonText}>
-                {isProcessing ? 'Creating Lesson...' : 'Choose PDF File'}
+                {isProcessing ? t('createLesson.buttons.creating') : t('createLesson.buttons.choosePDF')}
               </Text>
             </TouchableOpacity>
 
@@ -671,7 +672,7 @@ export default function CreateLessonScreen() {
               >
                 <Ionicons name="camera" size={20} color="#ffffff" />
                 <Text style={styles.uploadButtonText}>
-                  {isProcessing ? 'Processing...' : 'Take Photo'}
+                  {isProcessing ? t('createLesson.buttons.processing') : t('createLesson.buttons.takePhoto')}
                 </Text>
               </TouchableOpacity>
 
@@ -686,7 +687,7 @@ export default function CreateLessonScreen() {
               >
                 <Ionicons name="images" size={20} color="#ffffff" />
                 <Text style={styles.uploadButtonText}>
-                  {isProcessing ? 'Processing...' : 'Choose Photos'}
+                  {isProcessing ? t('createLesson.buttons.processing') : t('createLesson.buttons.choosePhotos')}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -705,23 +706,23 @@ export default function CreateLessonScreen() {
 
         {/* Info Section */}
         <View style={styles.infoSection}>
-          <Text style={styles.infoTitle}>What you'll get</Text>
+          <Text style={styles.infoTitle}>{t('createLesson.info.title')}</Text>
           <View style={styles.infoSteps}>
             <View style={styles.infoStep}>
               <Ionicons name="flash" size={20} color="#6366f1" />
-              <Text style={styles.stepText}>AI extracts key vocabulary terms</Text>
+              <Text style={styles.stepText}>{t('createLesson.info.step1')}</Text>
             </View>
             <View style={styles.infoStep}>
               <Ionicons name="book" size={20} color="#6366f1" />
-              <Text style={styles.stepText}>Creates structured lesson content</Text>
+              <Text style={styles.stepText}>{t('createLesson.info.step2')}</Text>
             </View>
             <View style={styles.infoStep}>
               <Ionicons name="school" size={20} color="#6366f1" />
-              <Text style={styles.stepText}>Interactive learning exercises</Text>
+              <Text style={styles.stepText}>{t('createLesson.info.step3')}</Text>
             </View>
             <View style={styles.infoStep}>
               <Ionicons name="trending-up" size={20} color="#6366f1" />
-              <Text style={styles.stepText}>Track progress and earn XP</Text>
+              <Text style={styles.stepText}>{t('createLesson.info.step4')}</Text>
             </View>
           </View>
         </View>

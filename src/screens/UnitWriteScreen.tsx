@@ -21,6 +21,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { UnitDataAdapter, UnitWriteExercise, UnitConversationExchange } from '../lib/unitDataAdapter';
 import { logger } from '../lib/logger';
+import { useTranslation } from '../lib/i18n';
 import { getAppropriateSpeechLanguage, getTargetLanguageSpeechCode, getNativeLanguageSpeechCode } from '../lib/languageService';
 import { VoiceService } from '../lib/voiceService';
 import * as Speech from 'expo-speech';
@@ -97,6 +98,7 @@ export default function UnitWriteScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const { user, profile } = useAuth();
+  const { t } = useTranslation();
   const scrollViewRef = useRef<ScrollView>(null);
   
   const { unitTitle, subjectName, cefrLevel } = (route.params as any) || { 
@@ -1475,17 +1477,17 @@ export default function UnitWriteScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Are you sure you want to leave?</Text>
+            <Text style={styles.modalTitle}>{t('lessons.exitModal.title')}</Text>
             <Text style={styles.modalSubtitle}>
-              Your progress won't be saved for this lesson, and you'll have to start again when you return.
+              {t('lessons.exitModal.description')}
             </Text>
             
             <TouchableOpacity style={styles.modalConfirmButton} onPress={handleConfirmExit}>
-              <Text style={styles.modalConfirmButtonText}>Yes, I want to leave</Text>
+              <Text style={styles.modalConfirmButtonText}>{t('lessons.exitModal.confirm')}</Text>
             </TouchableOpacity>
             
             <TouchableOpacity style={styles.modalCancelButton} onPress={handleCancelExit}>
-              <Text style={styles.modalCancelButtonText}>Not Now</Text>
+              <Text style={styles.modalCancelButtonText}>{t('lessons.exitModal.cancel')}</Text>
             </TouchableOpacity>
           </View>
         </View>

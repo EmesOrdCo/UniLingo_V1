@@ -16,6 +16,7 @@ import PronunciationCheck from '../components/PronunciationCheck';
 import { PronunciationResult } from '../lib/pronunciationService';
 import { UnitDataAdapter, UnitVocabularyItem, UnitSentence } from '../lib/unitDataAdapter';
 import { logger } from '../lib/logger';
+import { useTranslation } from '../lib/i18n';
 
 // TODO: Move to database or configuration file
 // Hardcoded vocabulary for "Saying Hello" - should be loaded from database
@@ -51,6 +52,7 @@ export default function UnitSpeakScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const { user, profile } = useAuth();
+  const { t } = useTranslation();
   
   const { unitTitle, subjectName, cefrLevel } = (route.params as any) || { 
     unitTitle: 'Saying Hello', 
@@ -246,17 +248,17 @@ export default function UnitSpeakScreen() {
       <SafeAreaView style={styles.completionContainer}>
         <View style={styles.completionContent}>
           <Text style={styles.completionEmoji}>🎉</Text>
-          <Text style={styles.completionTitle}>Speaking Complete!</Text>
-          <Text style={styles.completionSubtitle}>Great work on your pronunciation!</Text>
+          <Text style={styles.completionTitle}>{t('lessons.speak.complete')}</Text>
+          <Text style={styles.completionSubtitle}>{t('lessons.speak.greatWork')}</Text>
           
           <View style={styles.completionStats}>
             <View style={styles.completionStatCard}>
               <Text style={styles.completionStatValue}>{score}/{totalQuestions}</Text>
-              <Text style={styles.completionStatLabel}>Correct</Text>
+              <Text style={styles.completionStatLabel}>{t('lessons.speak.correct')}</Text>
             </View>
             <View style={styles.completionStatCard}>
               <Text style={styles.completionStatValue}>{accuracyPercentage}%</Text>
-              <Text style={styles.completionStatLabel}>Accuracy</Text>
+              <Text style={styles.completionStatLabel}>{t('lessons.speak.accuracy')}</Text>
             </View>
           </View>
           
@@ -290,7 +292,7 @@ export default function UnitSpeakScreen() {
           <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color="#000000" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>{unitTitle} - Speak</Text>
+          <Text style={styles.headerTitle}>{unitTitle} - {t('lessons.speak.title')}</Text>
           <View style={styles.headerSpacer} />
         </View>
         <View style={styles.loadingContainer}>
@@ -310,7 +312,7 @@ export default function UnitSpeakScreen() {
           <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color="#000000" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>{unitTitle} - Speak</Text>
+          <Text style={styles.headerTitle}>{unitTitle} - {t('lessons.speak.title')}</Text>
           <View style={styles.headerSpacer} />
         </View>
         <View style={styles.loadingContainer}>
@@ -327,7 +329,7 @@ export default function UnitSpeakScreen() {
         <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#000000" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{unitTitle} - Speak</Text>
+        <Text style={styles.headerTitle}>{unitTitle} - {t('lessons.speak.title')}</Text>
         <View style={styles.headerSpacer} />
       </View>
 
@@ -340,17 +342,17 @@ export default function UnitSpeakScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Are you sure you want to leave?</Text>
+            <Text style={styles.modalTitle}>{t('lessons.exitModal.title')}</Text>
             <Text style={styles.modalSubtitle}>
-              Your progress won't be saved for this lesson, and you'll have to start again when you return.
+              {t('lessons.exitModal.description')}
             </Text>
             
             <TouchableOpacity style={styles.modalConfirmButton} onPress={handleConfirmExit}>
-              <Text style={styles.modalConfirmButtonText}>Yes, I want to leave</Text>
+              <Text style={styles.modalConfirmButtonText}>{t('lessons.exitModal.confirm')}</Text>
             </TouchableOpacity>
             
             <TouchableOpacity style={styles.modalCancelButton} onPress={handleCancelExit}>
-              <Text style={styles.modalCancelButtonText}>Not Now</Text>
+              <Text style={styles.modalCancelButtonText}>{t('lessons.exitModal.cancel')}</Text>
             </TouchableOpacity>
           </View>
         </View>

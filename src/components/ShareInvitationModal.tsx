@@ -12,6 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { getAppStoreLink, getPlatformIcon, getPlatformIconColor } from '../config/appStore';
+import { useTranslation } from '../lib/i18n';
 
 interface ShareInvitationModalProps {
   visible: boolean;
@@ -19,6 +20,7 @@ interface ShareInvitationModalProps {
 }
 
 export default function ShareInvitationModal({ visible, onClose }: ShareInvitationModalProps) {
+  const { t } = useTranslation();
   const { user, profile } = useAuth();
   const [isSharing, setIsSharing] = useState(false);
 
@@ -31,39 +33,24 @@ export default function ShareInvitationModal({ visible, onClose }: ShareInvitati
       // Get platform-specific app store link
       const appStoreLink = getAppStoreLink();
       
-      const shareMessage = `🎓 ${inviterName} thinks you'd love UniLingo!
-
-📱 UniLingo is an innovative language learning app that uses AI to create personalized flashcards from your study materials.
-
-✨ What makes UniLingo special:
-• AI-powered flashcard generation from PDFs and text
-• Personalized learning paths
-• Interactive games and challenges
-• Progress tracking and streaks
-• Study with friends and compete
-
-🚀 Download UniLingo now and start learning smarter!
-
-${appStoreLink}
-
-#UniLingo #LanguageLearning #AI #Education`;
+      const shareMessage = t('invite.shareMessage', { inviterName, appStoreLink });
 
       const result = await Share.share({
         message: shareMessage,
-        title: 'Join me on UniLingo!',
+        title: t('invite.shareTitle'),
         url: appStoreLink,
       });
 
       if (result.action === Share.sharedAction) {
         Alert.alert(
-          'Shared Successfully!',
-          'Your invitation has been shared. Your friends can now download UniLingo!',
+          t('invite.sharedSuccessfully'),
+          t('invite.sharedMessage'),
           [{ text: 'OK', onPress: onClose }]
         );
       }
     } catch (error) {
       console.error('Share error:', error);
-      Alert.alert('Error', 'Failed to share invitation. Please try again.');
+      Alert.alert(t('profile.picture.error'), t('invite.shareError'));
     } finally {
       setIsSharing(false);
     }
@@ -85,7 +72,7 @@ ${appStoreLink}
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Invite Friends</Text>
+            <Text style={styles.modalTitle}>{t('invite.title')}</Text>
             <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
               <Ionicons name="close" size={24} color="#64748b" />
             </TouchableOpacity>
@@ -97,31 +84,31 @@ ${appStoreLink}
             </View>
             
             <Text style={styles.description}>
-              Share UniLingo with your friends using your device's native sharing!
+              {t('invite.description')}
             </Text>
 
             <View style={styles.benefitsContainer}>
-              <Text style={styles.benefitsTitle}>Why use native sharing?</Text>
+              <Text style={styles.benefitsTitle}>{t('invite.benefitsTitle')}</Text>
               <View style={styles.benefitItem}>
                 <Ionicons name="checkmark-circle" size={16} color="#10b981" />
-                <Text style={styles.benefitText}>Works with any app (WhatsApp, Messages, Email, etc.)</Text>
+                <Text style={styles.benefitText}>{t('invite.benefit1')}</Text>
               </View>
               <View style={styles.benefitItem}>
                 <Ionicons name="checkmark-circle" size={16} color="#10b981" />
-                <Text style={styles.benefitText}>No network connectivity issues</Text>
+                <Text style={styles.benefitText}>{t('invite.benefit2')}</Text>
               </View>
               <View style={styles.benefitItem}>
                 <Ionicons name="checkmark-circle" size={16} color="#10b981" />
-                <Text style={styles.benefitText}>Uses your existing contacts and apps</Text>
+                <Text style={styles.benefitText}>{t('invite.benefit3')}</Text>
               </View>
               <View style={styles.benefitItem}>
                 <Ionicons name="checkmark-circle" size={16} color="#10b981" />
-                <Text style={styles.benefitText}>No backend server required</Text>
+                <Text style={styles.benefitText}>{t('invite.benefit4')}</Text>
               </View>
             </View>
 
             <View style={styles.appStoreContainer}>
-              <Text style={styles.appStoreTitle}>App Store Links Included:</Text>
+              <Text style={styles.appStoreTitle}>{t('invite.appStoreTitle')}</Text>
               <View style={styles.appStoreItem}>
                 <Ionicons 
                   name={getPlatformIcon()} 
@@ -129,7 +116,7 @@ ${appStoreLink}
                   color={getPlatformIconColor()} 
                 />
                 <Text style={styles.appStoreText}>
-                  {Platform.OS === 'ios' ? 'iOS App Store' : 'Google Play Store'}
+                  {Platform.OS === 'ios' ? t('invite.iosAppStore') : t('invite.googlePlayStore')}
                 </Text>
               </View>
             </View>
@@ -141,12 +128,12 @@ ${appStoreLink}
             >
               <Ionicons name="share" size={20} color="#ffffff" />
               <Text style={styles.shareButtonText}>
-                {isSharing ? 'Sharing...' : 'Share Invitation'}
+                {isSharing ? t('invite.sharing') : t('invite.shareButton')}
               </Text>
             </TouchableOpacity>
 
             <Text style={styles.note}>
-              Tap the button above to open your device's share sheet and choose how to share UniLingo with your friends!
+              {t('invite.note')}
             </Text>
           </View>
         </View>

@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Animated, PanResp
 import { Ionicons } from '@expo/vector-icons';
 import Svg, { Circle, Line, Defs, RadialGradient, Stop } from 'react-native-svg';
 import * as Haptics from 'expo-haptics';
+import { useTranslation } from '../../lib/i18n';
 
 // Create animated SVG components
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
@@ -49,6 +50,8 @@ type FlyingBubble = {
 };
 
 const BubbleShooterGame: React.FC<BubbleShooterGameProps> = ({ onClose, onGameComplete, onRestart }) => {
+  const { t } = useTranslation();
+  
   // Game state
   const [bubbles, setBubbles] = useState<Bubble[]>([]);
   const [poppingBubbles, setPoppingBubbles] = useState<PoppingBubble[]>([]); // Bubbles being animated
@@ -668,7 +671,7 @@ const BubbleShooterGame: React.FC<BubbleShooterGameProps> = ({ onClose, onGameCo
         <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
           <Ionicons name="close-circle" size={28} color="#EF4444" />
         </TouchableOpacity>
-        <Text style={styles.title}>BUBBLE SHOOTER</Text>
+        <Text style={styles.title}>{t('arcade.bubbleShooter.title')}</Text>
         <TouchableOpacity onPress={() => setIsPaused(!isPaused)} style={styles.pauseButton}>
           <Ionicons name={isPaused ? 'play-circle' : 'pause-circle'} size={28} color="#3B82F6" />
         </TouchableOpacity>
@@ -677,11 +680,11 @@ const BubbleShooterGame: React.FC<BubbleShooterGameProps> = ({ onClose, onGameCo
       {/* Score */}
       <View style={styles.scoreBoard}>
         <View style={styles.scoreBox}>
-          <Text style={styles.scoreLabel}>SCORE</Text>
+          <Text style={styles.scoreLabel}>{t('arcade.bubbleShooter.score')}</Text>
           <Text style={styles.scoreValue}>{score}</Text>
         </View>
         <View style={styles.nextBubbleBox}>
-          <Text style={styles.scoreLabel}>NEXT</Text>
+          <Text style={styles.scoreLabel}>{t('arcade.bubbleShooter.next')}</Text>
           <Svg width={40} height={40}>
             <Defs>
               <RadialGradient id={`gradient-next`} cx="50%" cy="50%" r="50%">
@@ -793,10 +796,10 @@ const BubbleShooterGame: React.FC<BubbleShooterGameProps> = ({ onClose, onGameCo
         {/* Start Message */}
         {!gameStarted && !gameOver && (
           <View style={styles.startMessage}>
-            <Text style={styles.startText}>Match 3+ bubbles!</Text>
+            <Text style={styles.startText}>{t('arcade.bubbleShooter.matchBubbles')}</Text>
             <TouchableOpacity style={styles.startButton} onPress={handleStart}>
               <Ionicons name="play" size={24} color="#FFFFFF" />
-              <Text style={styles.startButtonText}>START</Text>
+              <Text style={styles.startButtonText}>{t('arcade.bubbleShooter.start')}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -805,7 +808,7 @@ const BubbleShooterGame: React.FC<BubbleShooterGameProps> = ({ onClose, onGameCo
       {/* Instructions */}
       <View style={styles.instructions}>
         <Text style={styles.instructionsText}>
-          Drag on grid to aim and release to shoot!
+          {t('arcade.bubbleShooter.dragToAim')}
         </Text>
       </View>
 
@@ -814,16 +817,16 @@ const BubbleShooterGame: React.FC<BubbleShooterGameProps> = ({ onClose, onGameCo
         <View style={styles.overlay}>
           <View style={styles.gameOverCard}>
             <Ionicons name="sad" size={64} color="#EF4444" />
-            <Text style={styles.gameOverTitle}>Game Over!</Text>
-            <Text style={styles.finalScore}>Final Score: {score}</Text>
+            <Text style={styles.gameOverTitle}>{t('arcade.bubbleShooter.gameOver')}</Text>
+            <Text style={styles.finalScore}>{t('arcade.bubbleShooter.finalScore', { score })}</Text>
             <View style={styles.buttonRow}>
               <TouchableOpacity style={styles.restartButton} onPress={handleRestart}>
                 <Ionicons name="refresh" size={20} color="#FFFFFF" />
-                <Text style={styles.buttonText}>Play Again</Text>
+                <Text style={styles.buttonText}>{t('arcade.bubbleShooter.playAgain')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.exitButton} onPress={handleClose}>
                 <Ionicons name="exit" size={20} color="#FFFFFF" />
-                <Text style={styles.buttonText}>Exit</Text>
+                <Text style={styles.buttonText}>{t('arcade.bubbleShooter.exit')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -835,10 +838,10 @@ const BubbleShooterGame: React.FC<BubbleShooterGameProps> = ({ onClose, onGameCo
         <View style={styles.overlay}>
           <View style={styles.pausedCard}>
             <Ionicons name="pause-circle" size={64} color="#3B82F6" />
-            <Text style={styles.pausedTitle}>Paused</Text>
+            <Text style={styles.pausedTitle}>{t('arcade.bubbleShooter.paused')}</Text>
             <TouchableOpacity style={styles.resumeButton} onPress={() => setIsPaused(false)}>
               <Ionicons name="play" size={20} color="#FFFFFF" />
-              <Text style={styles.buttonText}>Resume</Text>
+              <Text style={styles.buttonText}>{t('arcade.bubbleShooter.resume')}</Text>
             </TouchableOpacity>
           </View>
         </View>

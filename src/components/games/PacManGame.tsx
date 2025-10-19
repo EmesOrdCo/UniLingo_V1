@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Animated } from '
 import { Ionicons } from '@expo/vector-icons';
 import { GestureHandlerRootView, PanGestureHandler, State } from 'react-native-gesture-handler';
 import * as Haptics from 'expo-haptics';
+import { useTranslation } from '../../lib/i18n';
 
 interface PacManGameProps {
   gameData?: any;
@@ -87,6 +88,8 @@ const createMaze = (): number[][] => {
 };
 
 const PacManGame: React.FC<PacManGameProps> = ({ onClose, onGameComplete, onRestart }) => {
+  const { t } = useTranslation();
+  
   // Game state
   const [maze, setMaze] = useState<number[][]>(createMaze());
   const [pacman, setPacman] = useState<Position>({ row: 14, col: 9 });
@@ -540,7 +543,7 @@ const PacManGame: React.FC<PacManGameProps> = ({ onClose, onGameComplete, onRest
         <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
           <Ionicons name="close-circle" size={28} color="#EF4444" />
         </TouchableOpacity>
-        <Text style={styles.title}>PAC-MAN</Text>
+        <Text style={styles.title}>{t('arcade.pacman.title')}</Text>
         <TouchableOpacity onPress={() => setIsPaused(!isPaused)} style={styles.pauseButton}>
           <Ionicons name={isPaused ? 'play-circle' : 'pause-circle'} size={28} color="#3B82F6" />
         </TouchableOpacity>
@@ -549,11 +552,11 @@ const PacManGame: React.FC<PacManGameProps> = ({ onClose, onGameComplete, onRest
       {/* Score Board */}
       <View style={styles.scoreBoard}>
         <View style={styles.scoreBox}>
-          <Text style={styles.scoreLabel}>SCORE</Text>
+          <Text style={styles.scoreLabel}>{t('arcade.pacman.score')}</Text>
           <Text style={styles.scoreValue}>{score}</Text>
         </View>
         <View style={styles.scoreBox}>
-          <Text style={styles.scoreLabel}>LIVES</Text>
+          <Text style={styles.scoreLabel}>{t('arcade.pacman.lives')}</Text>
           <View style={styles.livesContainer}>
             {[...Array(lives)].map((_, i) => (
               <View key={i} style={styles.pacmanLife} />
@@ -561,7 +564,7 @@ const PacManGame: React.FC<PacManGameProps> = ({ onClose, onGameComplete, onRest
           </View>
         </View>
         <View style={styles.scoreBox}>
-          <Text style={styles.scoreLabel}>LEVEL</Text>
+          <Text style={styles.scoreLabel}>{t('arcade.pacman.level')}</Text>
           <Text style={styles.scoreValue}>{level}</Text>
         </View>
       </View>
@@ -569,7 +572,7 @@ const PacManGame: React.FC<PacManGameProps> = ({ onClose, onGameComplete, onRest
       {/* Power Mode Indicator */}
       {powerMode && (
         <View style={styles.powerBadge}>
-          <Text style={styles.powerText}>POWER MODE!</Text>
+          <Text style={styles.powerText}>{t('arcade.pacman.powerMode')}</Text>
         </View>
       )}
 
@@ -675,9 +678,9 @@ const PacManGame: React.FC<PacManGameProps> = ({ onClose, onGameComplete, onRest
         {!gameStarted && !gameOver && !won && (
           <View style={styles.tapToStartOverlay}>
             <View style={styles.startMessage}>
-              <Text style={styles.startText}>SWIPE TO START</Text>
+              <Text style={styles.startText}>{t('arcade.pacman.swipeToStart')}</Text>
               <Ionicons name="hand-left" size={48} color="#FFFF00" />
-              <Text style={styles.startSubtext}>Swipe to move Pac-Man</Text>
+              <Text style={styles.startSubtext}>{t('arcade.pacman.swipeToMove')}</Text>
             </View>
           </View>
         )}
@@ -712,17 +715,17 @@ const PacManGame: React.FC<PacManGameProps> = ({ onClose, onGameComplete, onRest
         <View style={styles.overlay}>
           <View style={styles.winCard}>
             <Ionicons name="trophy" size={64} color="#FFFF00" />
-            <Text style={styles.winTitle}>Level Complete!</Text>
-            <Text style={styles.winScore}>Score: {score}</Text>
-            <Text style={styles.winLevel}>Level {level}</Text>
+            <Text style={styles.winTitle}>{t('arcade.pacman.levelComplete')}</Text>
+            <Text style={styles.winScore}>{t('arcade.pacman.score')}: {score}</Text>
+            <Text style={styles.winLevel}>{t('arcade.pacman.levelNumber', { level })}</Text>
             <View style={styles.buttonRow}>
               <TouchableOpacity style={styles.nextLevelButton} onPress={handleNextLevel}>
                 <Ionicons name="play-forward" size={20} color="#000000" />
-                <Text style={styles.nextLevelText}>Next Level</Text>
+                <Text style={styles.nextLevelText}>{t('arcade.pacman.nextLevel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.exitButton} onPress={handleClose}>
                 <Ionicons name="exit" size={20} color="#FFFFFF" />
-                <Text style={styles.buttonText}>Exit</Text>
+                <Text style={styles.buttonText}>{t('arcade.pacman.exit')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -734,17 +737,17 @@ const PacManGame: React.FC<PacManGameProps> = ({ onClose, onGameComplete, onRest
         <View style={styles.overlay}>
           <View style={styles.gameOverCard}>
             <Ionicons name="skull" size={64} color="#EF4444" />
-            <Text style={styles.gameOverTitle}>Game Over!</Text>
-            <Text style={styles.finalScore}>Final Score: {score}</Text>
-            <Text style={styles.statsText}>Level: {level}</Text>
+            <Text style={styles.gameOverTitle}>{t('arcade.pacman.gameOver')}</Text>
+            <Text style={styles.finalScore}>{t('arcade.pacman.finalScore', { score })}</Text>
+            <Text style={styles.statsText}>{t('arcade.pacman.level')}: {level}</Text>
             <View style={styles.buttonRow}>
               <TouchableOpacity style={styles.restartButton} onPress={handleRestart}>
                 <Ionicons name="refresh" size={20} color="#000000" />
-                <Text style={styles.restartText}>Play Again</Text>
+                <Text style={styles.restartText}>{t('arcade.pacman.playAgain')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.exitButton} onPress={handleClose}>
                 <Ionicons name="exit" size={20} color="#FFFFFF" />
-                <Text style={styles.buttonText}>Exit</Text>
+                <Text style={styles.buttonText}>{t('arcade.pacman.exit')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -756,10 +759,10 @@ const PacManGame: React.FC<PacManGameProps> = ({ onClose, onGameComplete, onRest
         <View style={styles.overlay}>
           <View style={styles.pausedCard}>
             <Ionicons name="pause-circle" size={64} color="#FFFF00" />
-            <Text style={styles.pausedTitle}>Paused</Text>
+            <Text style={styles.pausedTitle}>{t('arcade.pacman.paused')}</Text>
             <TouchableOpacity style={styles.resumeButton} onPress={() => setIsPaused(false)}>
               <Ionicons name="play" size={20} color="#000000" />
-              <Text style={styles.resumeText}>Resume</Text>
+              <Text style={styles.resumeText}>{t('arcade.pacman.resume')}</Text>
             </TouchableOpacity>
           </View>
         </View>

@@ -47,6 +47,7 @@ export type RootStackParamList = {
   Games: { launchGame?: string; isDailyChallenge?: boolean; challengeId?: string; gameOptions?: any };
   Flashcards: undefined;
   AudioRecap: undefined;
+  Settings: undefined;
   AudioPlayer: { lesson: SimpleAudioLesson; userId: string };
 };
 

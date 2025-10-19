@@ -2,18 +2,20 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSubscription } from '../contexts/SubscriptionContext';
+import { useTranslation } from '../lib/i18n';
 
 interface SubscriptionStatusProps {
   onUpgrade?: () => void;
 }
 
 export default function SubscriptionStatus({ onUpgrade }: SubscriptionStatusProps) {
+  const { t } = useTranslation();
   const { currentPlan, isLoading } = useSubscription();
 
   if (isLoading) {
     return (
       <View style={styles.container}>
-        <Text style={styles.loadingText}>Loading subscription...</Text>
+        <Text style={styles.loadingText}>{t('subscription.loading')}</Text>
       </View>
     );
   }
@@ -32,11 +34,11 @@ export default function SubscriptionStatus({ onUpgrade }: SubscriptionStatusProp
   };
 
   const getStatusText = () => {
-    if (isCancelled) return 'Cancelled';
-    if (isTrial) return 'Trial';
-    if (isInactive) return 'Inactive';
-    if (isPremium) return 'Active';
-    return 'Data Unavailable';
+    if (isCancelled) return t('subscription.status.cancelled');
+    if (isTrial) return t('subscription.status.trial');
+    if (isInactive) return t('subscription.status.inactive');
+    if (isPremium) return t('subscription.status.active');
+    return t('subscription.dataUnavailable');
   };
 
   const getStatusIcon = () => {
@@ -47,13 +49,30 @@ export default function SubscriptionStatus({ onUpgrade }: SubscriptionStatusProp
     return 'help-circle';
   };
 
+  const getTranslatedFeature = (feature: string) => {
+    const featureMap: { [key: string]: string } = {
+      'AI flashcards': t('subscription.features.aiFlashcards'),
+      'AI lessons': t('subscription.features.aiLessons'),
+      'Advanced progress analytics': t('subscription.features.advancedAnalytics'),
+    };
+    return featureMap[feature] || feature;
+  };
+
+  const getTranslatedPlanName = (planName: string) => {
+    const planMap: { [key: string]: string } = {
+      'Premium Yearly': t('subscription.planNames.premiumYearly'),
+      'Premium Monthly': t('subscription.planNames.premiumMonthly'),
+    };
+    return planMap[planName] || planName;
+  };
+
   const handleUpgrade = () => {
     if (onUpgrade) {
       onUpgrade();
     } else {
       Alert.alert(
-        'Upgrade Subscription',
-        'Contact support to upgrade your subscription.',
+        t('subscription.upgradeTitle'),
+        t('subscription.upgradeMessage'),
         [{ text: 'OK' }]
       );
     }
@@ -63,12 +82,12 @@ export default function SubscriptionStatus({ onUpgrade }: SubscriptionStatusProp
     <View style={styles.container}>
       <View style={styles.header}>
         <Ionicons name="card" size={24} color="#6366f1" />
-        <Text style={styles.title}>Subscription</Text>
+        <Text style={styles.title}>{t('subscription.title')}</Text>
       </View>
 
       <View style={styles.planContainer}>
         <View style={styles.planInfo}>
-          <Text style={styles.planName}>{currentPlan?.name || 'Subscription Data Unavailable'}</Text>
+          <Text style={styles.planName}>{currentPlan?.name ? getTranslatedPlanName(currentPlan.name) : t('subscription.dataUnavailable')}</Text>
           <View style={styles.statusContainer}>
             <Ionicons
               name={getStatusIcon() as any}
@@ -83,7 +102,7 @@ export default function SubscriptionStatus({ onUpgrade }: SubscriptionStatusProp
 
         {!isPremium && (
           <TouchableOpacity style={styles.upgradeButton} onPress={handleUpgrade}>
-            <Text style={styles.upgradeButtonText}>Upgrade</Text>
+            <Text style={styles.upgradeButtonText}>{t('subscription.upgrade')}</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -91,7 +110,7 @@ export default function SubscriptionStatus({ onUpgrade }: SubscriptionStatusProp
       {currentPlan?.renewalDate && (
         <View style={styles.expiryContainer}>
           <Text style={styles.expiryLabel}>
-            {isTrial ? 'Trial expires:' : 'Renews:'}
+            {isTrial ? t('subscription.trialExpires') : t('subscription.renews')}
           </Text>
           <Text style={styles.expiryDate}>
             {currentPlan.renewalDate.toLocaleDateString()}
@@ -101,24 +120,24 @@ export default function SubscriptionStatus({ onUpgrade }: SubscriptionStatusProp
 
       {currentPlan?.cost && (
         <View style={styles.costContainer}>
-          <Text style={styles.costLabel}>Cost:</Text>
+          <Text style={styles.costLabel}>{t('subscription.cost')}</Text>
           <Text style={styles.costAmount}>
-            £{currentPlan.cost}/{currentPlan.planType === 'yearly' ? 'year' : 'month'}
+            £{currentPlan.cost ? currentPlan.cost + '/' : ''}{currentPlan.planType === 'yearly' ? t('subscription.billingPeriod.year') : t('subscription.billingPeriod.month')}
           </Text>
         </View>
       )}
 
       {currentPlan?.planType && (
         <View style={styles.planTypeContainer}>
-          <Text style={styles.planTypeLabel}>Plan:</Text>
+          <Text style={styles.planTypeLabel}>{t('subscription.plan')}</Text>
           <Text style={styles.planTypeText}>
-            {currentPlan.planType === 'yearly' ? 'Annual' : 'Monthly'} Billing
+            {currentPlan.planType === 'yearly' ? t('subscription.yearlyBilling') : t('subscription.monthlyBilling')}
           </Text>
         </View>
       )}
 
       <View style={styles.featuresContainer}>
-        <Text style={styles.featuresTitle}>Your plan includes:</Text>
+        <Text style={styles.featuresTitle}>{t('subscription.featuresTitle')}</Text>
         {currentPlan?.features.slice(0, 3).map((feature, index) => (
           <View key={index} style={styles.featureRow}>
             <Ionicons
@@ -126,7 +145,7 @@ export default function SubscriptionStatus({ onUpgrade }: SubscriptionStatusProp
               size={16}
               color={isPremium ? '#10b981' : '#6b7280'}
             />
-            <Text style={styles.featureText}>{feature}</Text>
+            <Text style={styles.featureText}>{getTranslatedFeature(feature)}</Text>
           </View>
         ))}
       </View>

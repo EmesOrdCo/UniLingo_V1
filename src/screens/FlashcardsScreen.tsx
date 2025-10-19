@@ -25,21 +25,23 @@ import { AWSPollyService } from '../lib/awsPollyService';
 import { supabase } from '../lib/supabase';
 import { VoiceService } from '../lib/voiceService';
 import ConsistentHeader from '../components/ConsistentHeader';
+import { useTranslation } from '../lib/i18n';
 
 
 const { width } = Dimensions.get('window');
 
 export default function FlashcardsScreen() {
+  const { t } = useTranslation();
   const { refreshTrigger } = useRefresh();
   const [refreshing, setRefreshing] = useState(false);
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
   const [selectedDifficulty, setSelectedDifficulty] = useState<string | null>(null);
   const [topics, setTopics] = useState<Array<{ id: string; name: string; icon: string; color: string; count: number }>>([]);
   const [difficulties] = useState([
-    { id: 'all', name: 'All Difficulties', color: '#6366f1', description: 'Mix of all levels' },
-    { id: 'beginner', name: 'Beginner', color: '#10b981', description: 'Basic concepts' },
-    { id: 'intermediate', name: 'Intermediate', color: '#f59e0b', description: 'Core principles' },
-    { id: 'expert', name: 'Expert', color: '#ef4444', description: 'Complex topics' },
+    { id: 'all', name: t('difficulty.all'), color: '#6366f1', description: t('difficulty.allDescription') },
+    { id: 'beginner', name: t('difficulty.beginner'), color: '#10b981', description: t('difficulty.beginnerDescription') },
+    { id: 'intermediate', name: t('difficulty.intermediate'), color: '#f59e0b', description: t('difficulty.intermediateDescription') },
+    { id: 'expert', name: t('difficulty.expert'), color: '#ef4444', description: t('difficulty.expertDescription') },
   ]);
   const [isLoading, setIsLoading] = useState(true);
   const [studySession, setStudySession] = useState<{
@@ -1269,7 +1271,7 @@ export default function FlashcardsScreen() {
               onPress={() => setShowCreateForm(!showCreateForm)}
             >
               <Ionicons name="add-circle" size={24} color="#6366f1" />
-              <Text style={styles.sectionTitle}>Create Your Own</Text>
+              <Text style={styles.sectionTitle}>{t('flashcards.createYourOwn')}</Text>
               <Ionicons 
                 name={showCreateForm ? "chevron-up" : "chevron-down"} 
                 size={20} 
@@ -1366,12 +1368,12 @@ export default function FlashcardsScreen() {
 
               {/* Front Text Input */}
               <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Front (Question/Term) *</Text>
+                <Text style={styles.inputLabel}>{t('flashcardForm.front')} *</Text>
                 <TextInput
                   style={[styles.input, styles.textArea]}
                   value={newFlashcard.front}
                   onChangeText={(text) => setNewFlashcard(prev => ({ ...prev, front: text }))}
-                  placeholder="Enter the question or term"
+                  placeholder={t('flashcardForm.frontPlaceholder')}
                   multiline
                   numberOfLines={3}
                 />
@@ -1379,12 +1381,12 @@ export default function FlashcardsScreen() {
 
               {/* Back Text Input */}
               <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Back (Answer/Definition) *</Text>
+                <Text style={styles.inputLabel}>{t('flashcardForm.back')} *</Text>
                 <TextInput
                   style={[styles.input, styles.textArea]}
                   value={newFlashcard.back}
                   onChangeText={(text) => setNewFlashcard(prev => ({ ...prev, back: text }))}
-                  placeholder="Enter the answer or definition"
+                  placeholder={t('flashcardForm.backPlaceholder')}
                   multiline
                   numberOfLines={3}
                 />
@@ -1392,12 +1394,12 @@ export default function FlashcardsScreen() {
 
               {/* Example Input */}
               <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Example *</Text>
+                <Text style={styles.inputLabel}>{t('flashcardForm.example')} *</Text>
                 <TextInput
                   style={[styles.input, styles.textArea]}
                   value={newFlashcard.example}
                   onChangeText={(text) => setNewFlashcard(prev => ({ ...prev, example: text }))}
-                  placeholder="Provide an example sentence using the front term"
+                  placeholder={t('flashcardForm.examplePlaceholder')}
                   multiline
                   numberOfLines={2}
                 />
@@ -1515,23 +1517,23 @@ export default function FlashcardsScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Ionicons name="library" size={24} color="#10b981" />
-            <Text style={styles.sectionTitle}>Review Your Flashcards</Text>
+            <Text style={styles.sectionTitle}>{t('flashcards.reviewYourFlashcards')}</Text>
           </View>
           <Text style={styles.sectionDescription}>
-            Browse and review all your created flashcards
+            {t('flashcards.reviewDescription')}
           </Text>
           
           <View style={styles.reviewFlashcardsCard}>
             <View style={styles.reviewStatsRow}>
               <View style={styles.reviewStatItem}>
                 <Ionicons name="book" size={20} color="#10b981" />
-                <Text style={styles.reviewStatNumber}>{realFlashcardStats.totalCards}</Text>
-                <Text style={styles.reviewStatLabel}>Total Cards</Text>
-              </View>
-              <View style={styles.reviewStatItem}>
-                <Ionicons name="bookmark" size={20} color="#6366f1" />
-                <Text style={styles.reviewStatNumber}>{topics.length}</Text>
-                <Text style={styles.reviewStatLabel}>Topics</Text>
+              <Text style={styles.reviewStatNumber}>{realFlashcardStats.totalCards}</Text>
+              <Text style={styles.reviewStatLabel}>{t('flashcards.totalCards')}</Text>
+            </View>
+            <View style={styles.reviewStatItem}>
+              <Ionicons name="bookmark" size={20} color="#6366f1" />
+              <Text style={styles.reviewStatNumber}>{topics.length}</Text>
+              <Text style={styles.reviewStatLabel}>{t('flashcards.topics')}</Text>
               </View>
             </View>
             
@@ -1607,7 +1609,7 @@ export default function FlashcardsScreen() {
                               <View style={[styles.compactIcon, { backgroundColor: '#8b5cf6' }]}>
                                 <Ionicons name="layers" size={16} color="#ffffff" />
                               </View>
-                              <Text style={styles.compactDropdownText}>All Topics</Text>
+                              <Text style={styles.compactDropdownText}>{t('flashcardForm.allTopics')}</Text>
                             </>
                           ) : (
                             <>
@@ -1770,7 +1772,7 @@ export default function FlashcardsScreen() {
                       <Ionicons name="layers" size={16} color="#ffffff" />
                     </View>
                     <View style={styles.compactDropdownOptionContent}>
-                      <Text style={styles.compactDropdownOptionText}>All Topics</Text>
+                      <Text style={styles.compactDropdownOptionText}>{t('flashcardForm.allTopics')}</Text>
                       <Text style={styles.compactDropdownOptionCount}>
                         {selectedDifficulty && topicFilteredCounts['all-topics'] !== undefined
                           ? `${topicFilteredCounts['all-topics']} cards (${selectedDifficulty})`

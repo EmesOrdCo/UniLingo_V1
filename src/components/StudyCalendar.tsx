@@ -7,6 +7,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from '../lib/i18n';
 
 const { width } = Dimensions.get('window');
 
@@ -16,6 +17,7 @@ interface StudyCalendarProps {
 }
 
 export default function StudyCalendar({ studyDates, currentMonth }: StudyCalendarProps) {
+  const { t } = useTranslation();
   const [selectedMonth, setSelectedMonth] = useState(currentMonth || new Date());
   const [calendarDays, setCalendarDays] = useState<Array<{
     date: Date;
@@ -146,12 +148,38 @@ export default function StudyCalendar({ studyDates, currentMonth }: StudyCalenda
   };
 
   const getMonthName = (date: Date): string => {
-    return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    const monthIndex = date.getMonth();
+    const year = date.getFullYear();
+    
+    const monthNames = [
+      t('calendar.months.january'),
+      t('calendar.months.february'),
+      t('calendar.months.march'),
+      t('calendar.months.april'),
+      t('calendar.months.may'),
+      t('calendar.months.june'),
+      t('calendar.months.july'),
+      t('calendar.months.august'),
+      t('calendar.months.september'),
+      t('calendar.months.october'),
+      t('calendar.months.november'),
+      t('calendar.months.december'),
+    ];
+    
+    return `${monthNames[monthIndex]} ${year}`;
   };
 
   const getDayName = (dayIndex: number): string => {
-    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    return days[dayIndex];
+    const dayNames = [
+      t('calendar.days.sunday'),
+      t('calendar.days.monday'),
+      t('calendar.days.tuesday'),
+      t('calendar.days.wednesday'),
+      t('calendar.days.thursday'),
+      t('calendar.days.friday'),
+      t('calendar.days.saturday'),
+    ];
+    return dayNames[dayIndex];
   };
 
   const getDayStyle = (day: any) => {

@@ -1,3 +1,11 @@
+# Load testing results (can be very large)
+load/load-results/
+load/test-results/
+*.json
+!package*.json
+!tsconfig.json
+!*.config.json
+
 # Expo
 .expo/
 .expo-shared/

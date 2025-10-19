@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
 import { PronunciationService, PronunciationResult } from '../lib/pronunciationService';
 import { getSpeechLanguageCode } from '../lib/languageService';
+import { useTranslation } from '../lib/i18n';
 
 interface PronunciationCheckProps {
   word: string;
@@ -38,6 +39,7 @@ const PronunciationCheck: React.FC<PronunciationCheckProps> = ({
   hideScoreRing = false,
   hideWordDisplay = false,
 }) => {
+  const { t } = useTranslation();
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState<PronunciationResult | null>(null);
@@ -332,11 +334,14 @@ const PronunciationCheck: React.FC<PronunciationCheckProps> = ({
 
   return (
     <View style={styles.container}>
+      {/* Instruction */}
+      <Text style={styles.instruction}>{t('lessons.speak.sayTheWord')}</Text>
+      
       {/* Word/Sentence to pronounce */}
       {!hideWordDisplay && (
         <View style={styles.textContainer}>
           <View style={styles.wordHeader}>
-            <Text style={styles.label}>Say this:</Text>
+            <Text style={styles.label}>{t('lessons.speak.sayThis')}</Text>
             <TouchableOpacity
               style={[styles.hintButton, isPlayingHint && styles.hintButtonActive]}
               onPress={handlePlayHint}
@@ -348,7 +353,7 @@ const PronunciationCheck: React.FC<PronunciationCheckProps> = ({
                 color={isPlayingHint ? "#ffffff" : "#6366f1"} 
               />
               <Text style={[styles.hintButtonText, isPlayingHint && styles.hintButtonTextActive]}>
-                {isPlayingHint ? "Playing..." : "Hint"}
+                {isPlayingHint ? t('lessons.speak.playing') : t('lessons.speak.hint')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -371,7 +376,7 @@ const PronunciationCheck: React.FC<PronunciationCheckProps> = ({
               color={isPlayingHint ? "#ffffff" : "#6366f1"} 
             />
             <Text style={[styles.hintButtonText, isPlayingHint && styles.hintButtonTextActive]}>
-              {isPlayingHint ? "Playing..." : "Hint"}
+              {isPlayingHint ? t('lessons.speak.playing') : t('lessons.speak.hint')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -391,7 +396,7 @@ const PronunciationCheck: React.FC<PronunciationCheckProps> = ({
               disabled={disabled}
             >
               <Ionicons name="mic" size={32} color="#ffffff" />
-              <Text style={styles.recordButtonText}>Tap to Record</Text>
+              <Text style={styles.recordButtonText}>{t('lessons.speak.tapToRecord')}</Text>
             </TouchableOpacity>
           ) : (
             <Animated.View
@@ -476,14 +481,14 @@ const PronunciationCheck: React.FC<PronunciationCheckProps> = ({
         <View style={translation ? styles.translationContainer : styles.tipsContainer}>
           {translation ? (
             <>
-              <Text style={styles.translationLabel}>TRANSLATION:</Text>
+              <Text style={styles.translationLabel}>{t('lessons.speak.translation')}</Text>
               <Text style={styles.translationText}>{translation}</Text>
             </>
           ) : (
             <>
               <Ionicons name="information-circle" size={16} color="#64748b" />
               <Text style={styles.tipsText}>
-                Speak clearly and naturally. Recording will stop automatically after {maxRecordingDuration / 1000} seconds.
+                {t('lessons.roleplay.speakClearly', { seconds: maxRecordingDuration / 1000 })}
               </Text>
             </>
           )}
@@ -719,6 +724,14 @@ const styles = StyleSheet.create({
   recordButtonDisabled: {
     backgroundColor: '#9ca3af',
     opacity: 0.6,
+  },
+  instruction: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6b7280',
+    textAlign: 'center',
+    marginBottom: 16,
+    letterSpacing: 0.5,
   },
 });
 

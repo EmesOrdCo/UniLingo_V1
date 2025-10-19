@@ -15,6 +15,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useRefresh } from '../contexts/RefreshContext';
 import { LessonService, Lesson, LessonProgress } from '../lib/lessonService';
 import { supabase } from '../lib/supabase';
+import { useTranslation } from '../lib/i18n';
 
 export default function YourLessonsScreen() {
   const [lessons, setLessons] = useState<(Lesson & { vocab_count: number; progress?: LessonProgress })[]>([]);
@@ -24,6 +25,7 @@ export default function YourLessonsScreen() {
   const navigation = useNavigation();
   const { user } = useAuth();
   const { refreshTrigger } = useRefresh();
+  const { t } = useTranslation();
 
   // Fetch user's lessons when component comes into focus
   useFocusEffect(
@@ -222,7 +224,7 @@ export default function YourLessonsScreen() {
         </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#6366f1" />
-          <Text style={styles.loadingText}>Loading your lessons...</Text>
+          <Text style={styles.loadingText}>{t('yourLessons.loading')}</Text>
         </View>
       </SafeAreaView>
     );
@@ -238,7 +240,7 @@ export default function YourLessonsScreen() {
         >
           <Ionicons name="arrow-back" size={24} color="#1e293b" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Your Lessons</Text>
+        <Text style={styles.headerTitle}>{t('yourLessons.title')}</Text>
         <View style={styles.headerSpacer} />
       </View>
       
@@ -249,7 +251,7 @@ export default function YourLessonsScreen() {
             <View style={styles.createLessonIcon}>
               <Ionicons name="add" size={24} color="#ffffff" />
             </View>
-            <Text style={styles.createLessonText}>Create New Lesson</Text>
+            <Text style={styles.createLessonText}>{t('yourLessons.createNewLesson')}</Text>
           </View>
           <Ionicons name="chevron-forward" size={20} color="#ffffff" />
         </TouchableOpacity>
@@ -260,12 +262,12 @@ export default function YourLessonsScreen() {
             <View style={styles.emptyStateIcon}>
               <Ionicons name="book-outline" size={48} color="#9ca3af" />
             </View>
-            <Text style={styles.emptyStateTitle}>No lessons yet</Text>
+            <Text style={styles.emptyStateTitle}>{t('yourLessons.emptyState.title')}</Text>
             <Text style={styles.emptyStateSubtitle}>
-              Create an AI lesson by uploading a PDF or document to get started with personalized learning.
+              {t('yourLessons.emptyState.description')}
             </Text>
             <TouchableOpacity style={styles.emptyStateButton} onPress={handleCreateLesson}>
-              <Text style={styles.emptyStateButtonText}>Create an AI Lesson</Text>
+              <Text style={styles.emptyStateButtonText}>{t('yourLessons.emptyState.createButton')}</Text>
             </TouchableOpacity>
           </View>
         ) : (

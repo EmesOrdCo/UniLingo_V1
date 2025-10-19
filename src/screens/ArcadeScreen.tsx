@@ -3,8 +3,10 @@ import { View, StyleSheet, StatusBar, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import ConsistentHeader from '../components/ConsistentHeader';
 import ArcadeSection from '../components/arcade/ArcadeSection';
+import { useTranslation } from '../lib/i18n';
 
 export default function ArcadeScreen() {
+  const { t } = useTranslation();
   const navigation = useNavigation();
 
   const handleBackPress = () => {
@@ -16,7 +18,7 @@ export default function ArcadeScreen() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#1E293B" />
       <ConsistentHeader 
-        pageName="Arcade"
+        pageName={t('arcade.title')}
         pageIcon="game-controller"
         showBackButton={true}
         onBackPress={handleBackPress}

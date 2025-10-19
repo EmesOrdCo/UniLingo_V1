@@ -11,6 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { DailyGoalsService, DailyGoalProgress } from '../lib/dailyGoalsService';
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from '../lib/i18n';
 
 const { width } = Dimensions.get('window');
 
@@ -20,6 +21,7 @@ interface DailyGoalsWidgetProps {
 }
 
 export default function DailyGoalsWidget({ onGoalCompleted, refreshTrigger }: DailyGoalsWidgetProps) {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [goalProgress, setGoalProgress] = useState<DailyGoalProgress | null>(null);
   const [loading, setLoading] = useState(true);
@@ -236,13 +238,13 @@ export default function DailyGoalsWidget({ onGoalCompleted, refreshTrigger }: Da
   const getGoalLabel = (goalType: string) => {
     switch (goalType) {
       case 'study_time':
-        return 'Study Time';
+        return t('progress.studyTime');
       case 'lessons_completed':
-        return 'Lessons';
+        return t('progress.lessons');
       case 'flashcards_reviewed':
-        return 'Flashcards';
+        return t('progress.flashcards');
       case 'games_played':
-        return 'Games';
+        return t('progress.games');
       default:
         return goalType;
     }
@@ -251,13 +253,13 @@ export default function DailyGoalsWidget({ onGoalCompleted, refreshTrigger }: Da
   const getGoalUnit = (goalType: string) => {
     switch (goalType) {
       case 'study_time':
-        return 'min';
+        return t('progress.min');
       case 'lessons_completed':
-        return 'lessons';
+        return t('progress.lessonsUnit');
       case 'flashcards_reviewed':
-        return 'cards';
+        return t('progress.cardsUnit');
       case 'games_played':
-        return 'games';
+        return t('progress.gamesUnit');
       default:
         return '';
     }
@@ -316,7 +318,7 @@ export default function DailyGoalsWidget({ onGoalCompleted, refreshTrigger }: Da
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.title}>Daily Goals</Text>
+          <Text style={styles.title}>{t('progress.dailyGoals')}</Text>
           <TouchableOpacity onPress={refreshGoals} style={styles.refreshButton}>
             <Ionicons name="refresh" size={20} color="#6366f1" />
           </TouchableOpacity>
@@ -330,12 +332,12 @@ export default function DailyGoalsWidget({ onGoalCompleted, refreshTrigger }: Da
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.titleSection}>
-          <Text style={styles.title}>Daily Goals</Text>
+          <Text style={styles.title}>{t('progress.dailyGoals')}</Text>
           <View style={styles.overallProgress}>
             <Text style={styles.overallProgressText}>
               {goalProgress.overall_progress}%
             </Text>
-            <Text style={styles.overallProgressLabel}>Complete</Text>
+            <Text style={styles.overallProgressLabel}>{t('progress.complete')}</Text>
           </View>
         </View>
         <View style={styles.buttonContainer}>
@@ -364,7 +366,7 @@ export default function DailyGoalsWidget({ onGoalCompleted, refreshTrigger }: Da
       {goalProgress.overall_progress >= 100 && (
         <View style={styles.completionCelebration}>
           <Ionicons name="trophy" size={24} color="#f59e0b" />
-          <Text style={styles.completionText}>Daily goals completed! 🎉</Text>
+          <Text style={styles.completionText}>{t('progress.dailyGoalsCompleted')}</Text>
         </View>
       )}
 

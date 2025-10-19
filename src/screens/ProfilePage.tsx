@@ -8,6 +8,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useProfilePicture } from '../contexts/ProfilePictureContext';
 import { HolisticProgressService } from '../lib/holisticProgressService';
 import { ProfilePictureService } from '../lib/profilePictureService';
+import { useTranslation } from '../lib/i18n';
 import ShareInvitationModal from '../components/ShareInvitationModal';
 import ProfileAvatar from '../components/ProfileAvatar';
 import ContactSupportModal from '../components/ContactSupportModal';
@@ -16,6 +17,7 @@ import AIUsageBar from '../components/AIUsageBar';
 // Character system removed - will implement custom 2D system
 
 export default function ProfilePage() {
+  const { t } = useTranslation();
   const navigation = useNavigation();
   const { user, profile, signOut } = useAuth();
   const { triggerRefresh, refreshTrigger } = useProfilePicture();
@@ -63,8 +65,8 @@ export default function ProfilePage() {
       
       if (status !== 'granted') {
         Alert.alert(
-          'Permission Required',
-          'Sorry, we need camera roll permissions to make this work!',
+          t('profile.picture.permissionRequired'),
+          t('profile.picture.permissionMessage'),
           [{ text: 'OK' }]
         );
         return;
@@ -85,29 +87,29 @@ export default function ProfilePage() {
         // Save to persistent storage
         try {
           if (!user?.id) {
-            Alert.alert('Error', 'User not authenticated');
+            Alert.alert(t('profile.picture.error'), t('profile.picture.notAuthenticated'));
             return;
           }
           await ProfilePictureService.saveProfilePicture(imageUri, user.id);
           triggerRefresh(); // Use global refresh trigger
-          Alert.alert('Success', 'Profile picture updated!');
+          Alert.alert(t('profile.picture.success'), t('profile.picture.updated'));
         } catch (error) {
           console.error('Error saving profile picture:', error);
-          Alert.alert('Error', 'Failed to save profile picture. Please try again.');
+          Alert.alert(t('profile.picture.error'), t('profile.picture.failedSave'));
         }
       }
     } catch (error) {
       // Don't log cancellation errors - they're normal user actions
-      Alert.alert('Error', 'Failed to pick image. Please try again.');
+      Alert.alert(t('profile.picture.error'), t('profile.picture.failedPick'));
     }
   };
 
   const removeProfilePicture = async () => {
     Alert.alert(
-      'Remove Profile Picture',
-      'Are you sure you want to remove your profile picture?',
+      t('profile.picture.removeTitle'),
+      t('profile.picture.removeMessage'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('profile.signOut.cancel'), style: 'cancel' },
         {
           text: 'Remove',
           style: 'destructive',
@@ -116,10 +118,10 @@ export default function ProfilePage() {
               await ProfilePictureService.removeProfilePicture(user?.id || '');
               setProfileImage(null);
               triggerRefresh(); // Use global refresh trigger
-              Alert.alert('Success', 'Profile picture removed!');
+              Alert.alert(t('profile.picture.success'), t('profile.picture.removeSuccess'));
             } catch (error) {
               console.error('Error removing profile picture:', error);
-              Alert.alert('Error', 'Failed to remove profile picture. Please try again.');
+              Alert.alert(t('profile.picture.error'), t('profile.picture.removeFailed'));
             }
           },
         },
@@ -129,12 +131,12 @@ export default function ProfilePage() {
 
   const handleSignOut = async () => {
     Alert.alert(
-      'Sign Out',
-      'Are you sure you want to sign out?',
+      t('profile.signOut.title'),
+      t('profile.signOut.message'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('profile.signOut.cancel'), style: 'cancel' },
         {
-          text: 'Sign Out',
+          text: t('profile.signOut.confirm'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -156,18 +158,18 @@ export default function ProfilePage() {
       if (supported) {
         await Linking.openURL(manageAccountUrl);
       } else {
-        Alert.alert('Error', 'Cannot open manage account page');
+        Alert.alert(t('profile.picture.error'), t('profile.account.cannotOpen'));
       }
     } catch (error) {
       console.error('Error opening manage account:', error);
-      Alert.alert('Error', 'Failed to open manage account page');
+      Alert.alert(t('profile.picture.error'), t('profile.account.failedOpen'));
     }
   };
 
   const menuItems = [
     {
       id: 'settings',
-      title: 'Settings',
+      title: t('profile.menu.settings'),
       icon: 'settings-outline',
       onPress: () => {
         setShowSettings(true);
@@ -175,7 +177,7 @@ export default function ProfilePage() {
     },
     {
       id: 'profile-picture',
-      title: 'Change profile picture',
+      title: t('profile.menu.changeProfilePicture'),
       icon: 'camera-outline',
       onPress: () => {
         pickImage();
@@ -183,7 +185,7 @@ export default function ProfilePage() {
     },
     ...(profileImage ? [{
       id: 'remove-profile-picture',
-      title: 'Remove profile picture',
+      title: t('profile.menu.removeProfilePicture'),
       icon: 'trash-outline',
       onPress: () => {
         removeProfilePicture();
@@ -191,7 +193,7 @@ export default function ProfilePage() {
     }] : []),
     {
       id: 'invite',
-      title: 'Invite friends',
+      title: t('profile.menu.inviteFriends'),
       icon: 'person-add-outline',
       onPress: () => {
         setShowShareInvitation(true);
@@ -199,7 +201,7 @@ export default function ProfilePage() {
     },
     {
       id: 'faq',
-      title: 'FAQs',
+      title: t('profile.menu.faq'),
       icon: 'help-circle-outline',
       onPress: () => {
         navigation.navigate('FAQ' as never);
@@ -207,7 +209,7 @@ export default function ProfilePage() {
     },
     {
       id: 'support',
-      title: 'Contact Support',
+      title: t('profile.menu.contactSupport'),
       icon: 'chatbubble-outline',
       onPress: () => {
         setShowContactSupport(true);
@@ -220,7 +222,7 @@ export default function ProfilePage() {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>Profile</Text>
+          <Text style={styles.headerTitle}>{t('profile.title')}</Text>
         </View>
         <TouchableOpacity 
           style={styles.closeButton}
@@ -242,8 +244,8 @@ export default function ProfilePage() {
             refreshTrigger={refreshTrigger}
           />
         </TouchableOpacity>
-          <Text style={styles.userName}>{profile?.name || user?.email?.split('@')[0] || 'User'}</Text>
-          <Text style={styles.userEmail}>{user?.email || 'No email'}</Text>
+          <Text style={styles.userName}>{profile?.name || user?.email?.split('@')[0] || t('profile.user')}</Text>
+          <Text style={styles.userEmail}>{user?.email || t('profile.noEmail')}</Text>
         </View>
 
         {/* Subscription Status */}
@@ -281,7 +283,7 @@ export default function ProfilePage() {
         <View style={styles.settingsOverlay}>
           <View style={styles.settingsModal}>
             <View style={styles.settingsHeader}>
-              <Text style={styles.settingsTitle}>Settings</Text>
+              <Text style={styles.settingsTitle}>{t('profile.settings.title')}</Text>
               <TouchableOpacity 
                 style={styles.closeButton}
                 onPress={() => setShowSettings(false)}
@@ -293,13 +295,13 @@ export default function ProfilePage() {
             <ScrollView style={styles.settingsContent} showsVerticalScrollIndicator={false}>
               {/* Account Section */}
               <View style={styles.settingsSection}>
-                <Text style={styles.sectionHeader}>Account</Text>
+                <Text style={styles.sectionHeader}>{t('profile.settings.account')}</Text>
                 
                 <View style={styles.settingItem}>
                   <View style={styles.settingLeft}>
                     <Ionicons name="mail-outline" size={24} color="#374151" />
                     <View style={styles.settingTextContainer}>
-                      <Text style={styles.settingTitle}>{user?.email || 'No email'}</Text>
+                      <Text style={styles.settingTitle}>{user?.email || t('profile.noEmail')}</Text>
                     </View>
                   </View>
                 </View>
@@ -307,7 +309,7 @@ export default function ProfilePage() {
                 <TouchableOpacity style={styles.settingItem} onPress={handleManageAccount}>
                   <View style={styles.settingLeft}>
                     <Ionicons name="shield-checkmark-outline" size={24} color="#374151" />
-                    <Text style={styles.settingTitle}>Manage your account</Text>
+                    <Text style={styles.settingTitle}>{t('profile.settings.manageAccount')}</Text>
                   </View>
                   <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
                 </TouchableOpacity>
@@ -315,7 +317,7 @@ export default function ProfilePage() {
                 <TouchableOpacity style={styles.settingItem} onPress={handleSignOut}>
                   <View style={styles.settingLeft}>
                     <Ionicons name="log-out-outline" size={24} color="#374151" />
-                    <Text style={styles.settingTitle}>Log out</Text>
+                    <Text style={styles.settingTitle}>{t('profile.settings.logOut')}</Text>
                   </View>
                 </TouchableOpacity>
               </View>
@@ -324,7 +326,7 @@ export default function ProfilePage() {
 
               {/* About Section */}
               <View style={styles.settingsSection}>
-                <Text style={styles.sectionHeader}>About</Text>
+                <Text style={styles.sectionHeader}>{t('profile.settings.about')}</Text>
                 
                 <TouchableOpacity 
                   style={styles.settingItem}
@@ -332,7 +334,7 @@ export default function ProfilePage() {
                 >
                   <View style={styles.settingLeft}>
                     <Ionicons name="document-text-outline" size={24} color="#374151" />
-                    <Text style={styles.settingTitle}>Terms and Conditions</Text>
+                    <Text style={styles.settingTitle}>{t('profile.settings.termsAndConditions')}</Text>
                   </View>
                   <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
                 </TouchableOpacity>
@@ -343,7 +345,7 @@ export default function ProfilePage() {
                 >
                   <View style={styles.settingLeft}>
                     <Ionicons name="shield-checkmark-outline" size={24} color="#374151" />
-                    <Text style={styles.settingTitle}>Privacy Policy</Text>
+                    <Text style={styles.settingTitle}>{t('profile.settings.privacyPolicy')}</Text>
                   </View>
                   <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
                 </TouchableOpacity>
@@ -351,7 +353,7 @@ export default function ProfilePage() {
                 <View style={styles.settingItem}>
                   <View style={styles.settingLeft}>
                     <Ionicons name="information-circle-outline" size={24} color="#374151" />
-                    <Text style={styles.settingTitle}>Version</Text>
+                    <Text style={styles.settingTitle}>{t('profile.settings.version')}</Text>
                   </View>
                   <Text style={styles.settingValue}>1.0</Text>
                 </View>

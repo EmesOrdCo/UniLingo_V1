@@ -10,6 +10,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { useTranslation } from '../../lib/i18n';
 import PronunciationCheck from '../PronunciationCheck';
 import LeaveConfirmationModal from './LeaveConfirmationModal';
 
@@ -28,6 +29,7 @@ export default function LessonSpeak({
   onProgressUpdate, 
   initialQuestionIndex = 0 
 }: LessonSpeakProps) {
+  const { t } = useTranslation();
   const [currentIndex, setCurrentIndex] = useState(initialQuestionIndex);
   const [scores, setScores] = useState<number[]>([]);
   const [totalScore, setTotalScore] = useState(0);
@@ -118,7 +120,7 @@ export default function LessonSpeak({
           <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
             <Ionicons name="close" size={28} color="#1f2937" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Speak Exercise Complete!</Text>
+          <Text style={styles.headerTitle}>{t('lessons.speak.exerciseComplete')}</Text>
           <View style={styles.placeholder} />
         </View>
 
@@ -128,25 +130,25 @@ export default function LessonSpeak({
               <Ionicons name="checkmark-circle" size={80} color="#10b981" />
             </View>
             
-            <Text style={styles.completionTitle}>🎉 Outstanding Work!</Text>
+            <Text style={styles.completionTitle}>{t('lessons.speak.outstandingWork')}</Text>
             <Text style={styles.completionSubtitle}>
-              Great job practicing your pronunciation
+              {t('lessons.speak.greatJobPracticing')}
             </Text>
             
             <View style={styles.statsContainer}>
               <View style={styles.statItem}>
                 <Text style={styles.statValue}>{passedWords}</Text>
-                <Text style={styles.statLabel}>Passed</Text>
+                <Text style={styles.statLabel}>{t('lessons.common.passed')}</Text>
               </View>
               <View style={styles.statDivider} />
               <View style={styles.statItem}>
                 <Text style={styles.statValue}>{totalWords}</Text>
-                <Text style={styles.statLabel}>Total</Text>
+                <Text style={styles.statLabel}>{t('lessons.common.total')}</Text>
               </View>
               <View style={styles.statDivider} />
               <View style={styles.statItem}>
                 <Text style={styles.statValue}>{accuracyPercentage}%</Text>
-                <Text style={styles.statLabel}>Accuracy</Text>
+                <Text style={styles.statLabel}>{t('lessons.common.accuracy')}</Text>
               </View>
             </View>
 
@@ -154,12 +156,12 @@ export default function LessonSpeak({
             <View style={styles.performanceContainer}>
               <Text style={styles.performanceText}>
                 {passedWords === totalWords
-                  ? "Perfect! You pronounced every word correctly! 🌟"
+                  ? t('lessons.speak.perfectMessage')
                   : passedWords >= totalWords * 0.8
-                  ? "Excellent! You're mastering pronunciation! 🎯"
+                  ? t('lessons.speak.excellentMessage')
                   : passedWords >= totalWords * 0.6
-                  ? "Great job! Keep practicing to improve! 💪"
-                  : "Nice try! Practice makes perfect! 🚀"
+                  ? t('lessons.speak.greatJobMessage')
+                  : t('lessons.speak.niceTryMessage')
                 }
               </Text>
             </View>
@@ -168,11 +170,11 @@ export default function LessonSpeak({
             <View style={styles.buttonContainer}>
               <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
                 <Ionicons name="refresh" size={20} color="#6366f1" />
-                <Text style={styles.retryButtonText}>Retry</Text>
+                <Text style={styles.retryButtonText}>{t('lessons.common.retry')}</Text>
               </TouchableOpacity>
               
               <TouchableOpacity style={styles.continueButton} onPress={handleContinue}>
-                <Text style={styles.continueButtonText}>Continue</Text>
+                <Text style={styles.continueButtonText}>{t('lessons.common.continue')}</Text>
                 <Ionicons name="arrow-forward" size={20} color="#ffffff" />
               </TouchableOpacity>
             </View>
@@ -244,7 +246,7 @@ export default function LessonSpeak({
           <View style={styles.nextButtonContainer}>
             <TouchableOpacity style={styles.nextButton} onPress={moveToNextWord}>
               <Text style={styles.nextButtonText}>
-                {currentIndex < vocabulary.length - 1 ? 'Next Word' : 'Complete Exercise'}
+                {currentIndex < vocabulary.length - 1 ? t('lessons.common.next') + ' ' + t('lessons.common.word') : t('lessons.common.complete') + ' ' + t('lessons.exercise')}
               </Text>
               <Ionicons name="arrow-forward" size={20} color="#ffffff" />
             </TouchableOpacity>

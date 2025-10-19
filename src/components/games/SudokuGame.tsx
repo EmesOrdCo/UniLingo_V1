@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Animated, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { useTranslation } from '../../lib/i18n';
 
 interface SudokuGameProps {
   gameData?: any;
@@ -24,6 +25,8 @@ type Cell = {
 };
 
 const SudokuGame: React.FC<SudokuGameProps> = ({ onClose, onGameComplete, onRestart }) => {
+  const { t } = useTranslation();
+  
   // Game state
   const [grid, setGrid] = useState<Cell[][]>([]);
   const [selectedCell, setSelectedCell] = useState<{ row: number; col: number } | null>(null);
@@ -413,7 +416,7 @@ const SudokuGame: React.FC<SudokuGameProps> = ({ onClose, onGameComplete, onRest
         <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
           <Ionicons name="close-circle" size={28} color="#EF4444" />
         </TouchableOpacity>
-        <Text style={styles.title}>SUDOKU</Text>
+        <Text style={styles.title}>{t('arcade.sudoku.title')}</Text>
         <TouchableOpacity onPress={() => setIsPaused(!isPaused)} style={styles.pauseButton}>
           <Ionicons name={isPaused ? 'play-circle' : 'pause-circle'} size={28} color="#3B82F6" />
         </TouchableOpacity>
@@ -440,8 +443,8 @@ const SudokuGame: React.FC<SudokuGameProps> = ({ onClose, onGameComplete, onRest
         <View style={styles.difficultyOverlay}>
           <View style={styles.difficultyCard}>
             <Ionicons name="grid" size={64} color="#6366F1" />
-            <Text style={styles.difficultyTitle}>Choose Difficulty</Text>
-            <Text style={styles.difficultySubtitle}>Select your challenge level</Text>
+            <Text style={styles.difficultyTitle}>{t('arcade.sudoku.chooseDifficulty')}</Text>
+            <Text style={styles.difficultySubtitle}>{t('arcade.sudoku.selectChallenge')}</Text>
             
             <View style={styles.difficultyButtons}>
               <TouchableOpacity 
@@ -449,7 +452,7 @@ const SudokuGame: React.FC<SudokuGameProps> = ({ onClose, onGameComplete, onRest
                 onPress={() => startGameWithDifficulty('easy')}
               >
                 <Ionicons name="happy" size={32} color="#FFFFFF" />
-                <Text style={styles.difficultyButtonText}>Easy</Text>
+                <Text style={styles.difficultyButtonText}>{t('arcade.sudoku.easy')}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity 
@@ -457,7 +460,7 @@ const SudokuGame: React.FC<SudokuGameProps> = ({ onClose, onGameComplete, onRest
                 onPress={() => startGameWithDifficulty('medium')}
               >
                 <Ionicons name="flame" size={32} color="#FFFFFF" />
-                <Text style={styles.difficultyButtonText}>Medium</Text>
+                <Text style={styles.difficultyButtonText}>{t('arcade.sudoku.medium')}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity 
@@ -465,7 +468,7 @@ const SudokuGame: React.FC<SudokuGameProps> = ({ onClose, onGameComplete, onRest
                 onPress={() => startGameWithDifficulty('hard')}
               >
                 <Ionicons name="flash" size={32} color="#FFFFFF" />
-                <Text style={styles.difficultyButtonText}>Hard</Text>
+                <Text style={styles.difficultyButtonText}>{t('arcade.sudoku.hard')}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity 
@@ -473,7 +476,7 @@ const SudokuGame: React.FC<SudokuGameProps> = ({ onClose, onGameComplete, onRest
                 onPress={() => startGameWithDifficulty('expert')}
               >
                 <Ionicons name="skull" size={32} color="#FFFFFF" />
-                <Text style={styles.difficultyButtonText}>Expert</Text>
+                <Text style={styles.difficultyButtonText}>{t('arcade.sudoku.expert')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -579,10 +582,10 @@ const SudokuGame: React.FC<SudokuGameProps> = ({ onClose, onGameComplete, onRest
         {/* Start Message */}
         {!gameStarted && !gameOver && !gameWon && (
           <View style={styles.startMessage}>
-            <Text style={styles.startText}>Fill the grid with numbers 1-9!</Text>
+            <Text style={styles.startText}>{t('arcade.sudoku.fillGrid')}</Text>
             <TouchableOpacity style={styles.startButton} onPress={handleStart}>
               <Ionicons name="play" size={24} color="#FFFFFF" />
-              <Text style={styles.startButtonText}>START</Text>
+              <Text style={styles.startButtonText}>{t('arcade.sudoku.start')}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -593,17 +596,17 @@ const SudokuGame: React.FC<SudokuGameProps> = ({ onClose, onGameComplete, onRest
         <View style={styles.overlay}>
           <View style={styles.winCard}>
             <Ionicons name="trophy" size={64} color="#F59E0B" />
-            <Text style={styles.winTitle}>Puzzle Solved!</Text>
-            <Text style={styles.winScore}>Score: {score}</Text>
-            <Text style={styles.winTime}>Time: {formatTime(seconds)}</Text>
+            <Text style={styles.winTitle}>{t('arcade.sudoku.puzzleSolved')}</Text>
+            <Text style={styles.winScore}>{t('arcade.sudoku.score', { score })}</Text>
+            <Text style={styles.winTime}>{t('arcade.sudoku.time', { time: formatTime(seconds) })}</Text>
             <View style={styles.buttonRow}>
               <TouchableOpacity style={styles.restartButton} onPress={handleRestart}>
                 <Ionicons name="refresh" size={20} color="#FFFFFF" />
-                <Text style={styles.buttonText}>New Puzzle</Text>
+                <Text style={styles.buttonText}>{t('arcade.sudoku.newPuzzle')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.exitButton} onPress={handleClose}>
                 <Ionicons name="exit" size={20} color="#FFFFFF" />
-                <Text style={styles.buttonText}>Exit</Text>
+                <Text style={styles.buttonText}>{t('arcade.sudoku.exit')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -615,16 +618,16 @@ const SudokuGame: React.FC<SudokuGameProps> = ({ onClose, onGameComplete, onRest
         <View style={styles.overlay}>
           <View style={styles.gameOverCard}>
             <Ionicons name="close-circle" size={64} color="#EF4444" />
-            <Text style={styles.gameOverTitle}>Too Many Mistakes!</Text>
-            <Text style={styles.finalScore}>Score: {score}</Text>
+            <Text style={styles.gameOverTitle}>{t('arcade.sudoku.tooManyMistakes')}</Text>
+            <Text style={styles.finalScore}>{t('arcade.sudoku.score', { score })}</Text>
             <View style={styles.buttonRow}>
               <TouchableOpacity style={styles.restartButton} onPress={handleRestart}>
                 <Ionicons name="refresh" size={20} color="#FFFFFF" />
-                <Text style={styles.buttonText}>Try Again</Text>
+                <Text style={styles.buttonText}>{t('arcade.sudoku.tryAgain')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.exitButton} onPress={handleClose}>
                 <Ionicons name="exit" size={20} color="#FFFFFF" />
-                <Text style={styles.buttonText}>Exit</Text>
+                <Text style={styles.buttonText}>{t('arcade.sudoku.exit')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -636,10 +639,10 @@ const SudokuGame: React.FC<SudokuGameProps> = ({ onClose, onGameComplete, onRest
         <View style={styles.overlay}>
           <View style={styles.pausedCard}>
             <Ionicons name="pause-circle" size={64} color="#3B82F6" />
-            <Text style={styles.pausedTitle}>Paused</Text>
+            <Text style={styles.pausedTitle}>{t('arcade.sudoku.paused')}</Text>
             <TouchableOpacity style={styles.resumeButton} onPress={() => setIsPaused(false)}>
               <Ionicons name="play" size={20} color="#FFFFFF" />
-              <Text style={styles.buttonText}>Resume</Text>
+              <Text style={styles.buttonText}>{t('arcade.sudoku.resume')}</Text>
             </TouchableOpacity>
           </View>
         </View>

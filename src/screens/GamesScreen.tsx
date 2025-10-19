@@ -65,6 +65,7 @@ import SpeedChallengeGame from '../components/games/SpeedChallengeGame';
 import SentenceScrambleGame from '../components/games/SentenceScrambleGame';
 import SpeakingGame from '../components/games/SpeakingGame';
 import { getSpeechLanguageCode } from '../lib/languageService';
+import { useTranslation } from '../lib/i18n';
 
 const { width } = Dimensions.get('window');
 
@@ -76,6 +77,7 @@ export default function GamesScreen({ route }: { route?: any }) {
   const navigation = useNavigation();
   const { user, profile } = useAuth();
   const { refreshTrigger } = useRefresh();
+  const { t } = useTranslation();
   const [refreshing, setRefreshing] = useState(false);
   
   // Check if we need to launch a specific game from navigation params
@@ -96,10 +98,10 @@ export default function GamesScreen({ route }: { route?: any }) {
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
   const [selectedDifficulty, setSelectedDifficulty] = useState<string | null>(null);
   const [difficulties] = useState([
-    { id: 'all', name: 'All Difficulties', color: '#6366f1', description: 'Mix of all levels' },
-    { id: 'beginner', name: 'Beginner', color: '#059669', description: 'Basic concepts' },
-    { id: 'intermediate', name: 'Intermediate', color: '#f59e0b', description: 'Core principles' },
-    { id: 'expert', name: 'Expert', color: '#ef4444', description: 'Complex topics' },
+    { id: 'all', name: t('difficulty.all'), color: '#6366f1', description: t('difficulty.allDescription') },
+    { id: 'beginner', name: t('difficulty.beginner'), color: '#059669', description: t('difficulty.beginnerDescription') },
+    { id: 'intermediate', name: t('difficulty.intermediate'), color: '#f59e0b', description: t('difficulty.intermediateDescription') },
+    { id: 'expert', name: t('difficulty.expert'), color: '#ef4444', description: t('difficulty.expertDescription') },
   ]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadingStates, setLoadingStates] = useState({
@@ -1675,15 +1677,15 @@ export default function GamesScreen({ route }: { route?: any }) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <ConsistentHeader 
-          pageName="Games"
+          pageName={t('nav.games')}
         />
         <View style={styles.loadingContainer}>
           <View style={styles.loadingContent}>
             <View style={styles.loadingSpinner}>
               <Ionicons name="game-controller" size={48} color="#6366f1" />
             </View>
-            <Text style={styles.loadingTitle}>Loading Games</Text>
-            <Text style={styles.loadingSubtitle}>Preparing your gaming experience...</Text>
+            <Text style={styles.loadingTitle}>{t('games.loadingGames')}</Text>
+            <Text style={styles.loadingSubtitle}>{t('games.preparingExperience')}</Text>
             <View style={styles.loadingProgress}>
               <View style={styles.loadingProgressBar}>
                 <View style={styles.loadingProgressFill} />
@@ -1698,7 +1700,7 @@ export default function GamesScreen({ route }: { route?: any }) {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ConsistentHeader 
-        pageName="Games"
+        pageName={t('nav.games')}
       />
       
       <ScrollView 
@@ -1726,15 +1728,15 @@ export default function GamesScreen({ route }: { route?: any }) {
         {/* All Games - Horizontal Scroll */}
         <HorizontalGamesSection 
           games={[
-            { name: 'Flashcard Quiz', tag: 'Quiz', icon: 'help-circle', color: '#6366f1', bgColor: '#f0f4ff', onPress: startFlashcardQuiz },
-            { name: 'Memory Match', tag: 'Memory', icon: 'grid', color: '#059669', bgColor: '#f0fdf4', onPress: startMemoryMatch },
-            { name: 'Word Scramble', tag: 'Puzzle', icon: 'text', color: '#059669', bgColor: '#f0fdf4', onPress: startWordScramble },
-            { name: 'Hangman', tag: 'Word Game', icon: 'game-controller', color: '#8b5cf6', bgColor: '#f8fafc', onPress: startHangman },
-            { name: 'Speed Challenge', tag: 'Speed', icon: 'timer', color: '#dc2626', bgColor: '#fef2f2', onPress: startSpeedChallenge },
-            { name: 'Planet Defense', tag: 'Arcade', icon: 'planet', color: '#3b82f6', bgColor: '#dbeafe', onPress: startGravityGame },
-            { name: 'Listen & Type', tag: 'Listening', icon: 'ear', color: '#8b5cf6', bgColor: '#f3e8ff', onPress: startTypeWhatYouHear },
-            { name: 'Sentence Scramble', tag: 'Grammar', icon: 'document-text', color: '#ec4899', bgColor: '#fdf2f8', onPress: startSentenceScramble },
-            // { name: 'Speaking Game', tag: 'Pronunciation', icon: 'mic', color: '#f59e0b', bgColor: '#fffbeb', onPress: startSpeakingGame }, // Hidden to assess API usage costs
+            { name: t('games.flashcardQuiz'), tag: t('games.tag.quiz'), icon: 'help-circle', color: '#6366f1', bgColor: '#f0f4ff', onPress: startFlashcardQuiz },
+            { name: t('games.memoryMatch'), tag: t('games.tag.memory'), icon: 'grid', color: '#059669', bgColor: '#f0fdf4', onPress: startMemoryMatch },
+            { name: t('games.wordScramble'), tag: t('games.tag.puzzle'), icon: 'text', color: '#059669', bgColor: '#f0fdf4', onPress: startWordScramble },
+            { name: t('games.hangman'), tag: t('games.tag.wordGame'), icon: 'game-controller', color: '#8b5cf6', bgColor: '#f8fafc', onPress: startHangman },
+            { name: t('games.speedChallenge'), tag: t('games.tag.speed'), icon: 'timer', color: '#dc2626', bgColor: '#fef2f2', onPress: startSpeedChallenge },
+            { name: t('games.gravityGame'), tag: t('games.tag.arcade'), icon: 'planet', color: '#3b82f6', bgColor: '#dbeafe', onPress: startGravityGame },
+            { name: t('games.typeWhatYouHear'), tag: t('games.tag.listening'), icon: 'ear', color: '#8b5cf6', bgColor: '#f3e8ff', onPress: startTypeWhatYouHear },
+            { name: t('games.sentenceScramble'), tag: t('games.tag.grammar'), icon: 'document-text', color: '#ec4899', bgColor: '#fdf2f8', onPress: startSentenceScramble },
+            // { name: t('games.speakingGame'), tag: t('games.tag.pronunciation'), icon: 'mic', color: '#f59e0b', bgColor: '#fffbeb', onPress: startSpeakingGame }, // Hidden to assess API usage costs
           ].map((game) => ({
             id: game.name,
             title: game.name,
@@ -1750,10 +1752,10 @@ export default function GamesScreen({ route }: { route?: any }) {
         <View style={styles.section}>
           <View style={styles.sectionTitleContainer}>
             <Ionicons name="library" size={24} color="#6366f1" />
-            <Text style={styles.standardSectionTitle}>Review Your Flashcards</Text>
+            <Text style={styles.standardSectionTitle}>{t('flashcards.reviewYourFlashcards')}</Text>
           </View>
           <Text style={styles.sectionDescription}>
-            Browse and review all your created flashcards
+            {t('flashcards.reviewDescription')}
           </Text>
           
           <View style={styles.reviewFlashcardsCard}>
@@ -1762,14 +1764,14 @@ export default function GamesScreen({ route }: { route?: any }) {
                 <Ionicons name="book" size={20} color="#6366f1" />
                 <View style={styles.reviewStatTextContainer}>
                   <Text style={styles.reviewStatNumber}>{realFlashcardStats.totalCards}</Text>
-                  <Text style={styles.reviewStatLabel}>Total Cards</Text>
+                  <Text style={styles.reviewStatLabel}>{t('flashcards.totalCards')}</Text>
                 </View>
               </View>
               <View style={styles.reviewStatItem}>
                 <Ionicons name="bookmark" size={20} color="#6366f1" />
                 <View style={styles.reviewStatTextContainer}>
                   <Text style={styles.reviewStatNumber}>{topics.length}</Text>
-                  <Text style={styles.reviewStatLabel}>Topics</Text>
+                  <Text style={styles.reviewStatLabel}>{t('flashcards.topics')}</Text>
                 </View>
               </View>
             </View>
@@ -1780,7 +1782,7 @@ export default function GamesScreen({ route }: { route?: any }) {
                 onPress={loadBrowseFlashcards}
               >
                 <Ionicons name="play-circle" size={24} color="#6366f1" />
-                <Text style={styles.browseButtonText}>Start Flashcards</Text>
+                <Text style={styles.browseButtonText}>{t('games.flashcardForm.startFlashcards')}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -1794,7 +1796,7 @@ export default function GamesScreen({ route }: { route?: any }) {
               onPress={() => setShowCreateForm(!showCreateForm)}
             >
               <Ionicons name="add-circle" size={24} color="#6366f1" />
-              <Text style={[styles.sectionTitle, { textAlign: 'center', flex: 1 }]}>Create New Flashcards</Text>
+              <Text style={[styles.sectionTitle, { textAlign: 'center', flex: 1 }]}>{t('flashcards.createNew')}</Text>
               <Ionicons 
                 name={showCreateForm ? "chevron-up" : "chevron-down"} 
                 size={20} 
@@ -1807,19 +1809,19 @@ export default function GamesScreen({ route }: { route?: any }) {
             <>
               <TouchableOpacity style={styles.createButton} onPress={() => setShowCreateForm(true)}>
                 <Ionicons name="add" size={24} color="#6366f1" />
-                <Text style={styles.createButtonText}>Create Your Own Flashcards</Text>
+                <Text style={styles.createButtonText}>{t('flashcards.createYourOwn')}</Text>
               </TouchableOpacity>
               
               <TouchableOpacity style={styles.uploadNotesButton} onPress={() => navigation.navigate('Upload' as never)}>
                 <Ionicons name="document-text" size={24} color="#059669" />
-                <Text style={styles.uploadNotesButtonText}>Make AI Flashcards</Text>
+                <Text style={styles.uploadNotesButtonText}>{t('flashcards.makeAI')}</Text>
               </TouchableOpacity>
             </>
           ) : (
             <View style={styles.createForm}>
               {/* Topic selection */}
               <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Topic</Text>
+                <Text style={styles.inputLabel}>{t('games.flashcardForm.topic')}</Text>
                 {!showTopicInput ? (
                   <View style={styles.createFormTopicSelectionContainer}>
                     <TouchableOpacity
@@ -1827,7 +1829,7 @@ export default function GamesScreen({ route }: { route?: any }) {
                       onPress={() => setShowTopicPicker(!showTopicPicker)}
                     >
                       <Text style={styles.topicDropdownText}>
-                        {newFlashcard.topic || 'Select a topic'}
+                        {newFlashcard.topic || t('games.flashcardForm.selectTopic')}
                       </Text>
                       <Ionicons name="chevron-down" size={20} color="#64748b" />
                     </TouchableOpacity>
@@ -1836,14 +1838,14 @@ export default function GamesScreen({ route }: { route?: any }) {
                       onPress={() => setShowTopicInput(true)}
                     >
                       <Ionicons name="add" size={16} color="#6366f1" />
-                      <Text style={styles.newTopicButtonText}>New Topic</Text>
+                      <Text style={styles.newTopicButtonText}>{t('games.flashcardForm.newTopic')}</Text>
                     </TouchableOpacity>
                   </View>
                 ) : (
                   <View style={styles.newTopicInputContainer}>
                     <TextInput
                       style={styles.input}
-                      placeholder="Enter new topic name"
+                      placeholder={t('games.flashcardForm.enterNewTopicName')}
                       value={newTopicInput}
                       onChangeText={setNewTopicInput}
                     />
@@ -1852,7 +1854,7 @@ export default function GamesScreen({ route }: { route?: any }) {
                         setShowTopicInput(false);
                         setNewTopicInput('');
                       }}>
-                        <Text style={styles.cancelButtonText}>Cancel</Text>
+                        <Text style={styles.cancelButtonText}>{t('games.flashcardForm.cancel')}</Text>
                       </TouchableOpacity>
                       <TouchableOpacity style={styles.confirmButton} onPress={() => {
                         if (newTopicInput.trim()) {
@@ -1861,7 +1863,7 @@ export default function GamesScreen({ route }: { route?: any }) {
                           setNewTopicInput('');
                         }
                       }}>
-                        <Text style={styles.confirmButtonText}>Use New Topic</Text>
+                        <Text style={styles.confirmButtonText}>{t('games.flashcardForm.useNewTopic')}</Text>
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -1888,12 +1890,12 @@ export default function GamesScreen({ route }: { route?: any }) {
 
               {/* Front Text Input */}
               <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Front (Question/Term) *</Text>
+                <Text style={styles.inputLabel}>{t('games.flashcardForm.front')}</Text>
                 <TextInput
                   style={[styles.input, styles.textArea]}
                   value={newFlashcard.front}
                   onChangeText={(text) => setNewFlashcard(prev => ({ ...prev, front: text }))}
-                  placeholder="Enter the question or term"
+                  placeholder={t('games.flashcardForm.frontPlaceholder')}
                   multiline
                   numberOfLines={3}
                 />
@@ -1901,12 +1903,12 @@ export default function GamesScreen({ route }: { route?: any }) {
 
               {/* Back Text Input */}
               <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Back (Answer/Definition) *</Text>
+                <Text style={styles.inputLabel}>{t('games.flashcardForm.back')}</Text>
                 <TextInput
                   style={[styles.input, styles.textArea]}
                   value={newFlashcard.back}
                   onChangeText={(text) => setNewFlashcard(prev => ({ ...prev, back: text }))}
-                  placeholder="Enter the answer or definition"
+                  placeholder={t('games.flashcardForm.backPlaceholder')}
                   multiline
                   numberOfLines={3}
                 />
@@ -1914,12 +1916,12 @@ export default function GamesScreen({ route }: { route?: any }) {
 
               {/* Example Input */}
               <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Example *</Text>
+                <Text style={styles.inputLabel}>{t('games.flashcardForm.example')}</Text>
                 <TextInput
                   style={[styles.input, styles.textArea]}
                   value={newFlashcard.example}
                   onChangeText={(text) => setNewFlashcard(prev => ({ ...prev, example: text }))}
-                  placeholder="Provide an example sentence using the front term"
+                  placeholder={t('games.flashcardForm.examplePlaceholder')}
                   multiline
                   numberOfLines={2}
                 />
@@ -1927,18 +1929,18 @@ export default function GamesScreen({ route }: { route?: any }) {
 
               {/* Pronunciation Input */}
               <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Pronunciation (Optional)</Text>
+                <Text style={styles.inputLabel}>{t('games.flashcardForm.pronunciation')}</Text>
                 <TextInput
                   style={styles.input}
                   value={newFlashcard.pronunciation}
                   onChangeText={(text) => setNewFlashcard(prev => ({ ...prev, pronunciation: text }))}
-                  placeholder="e.g., /kɑːrˈdiːə/ for 'cardiac'"
+                  placeholder={t('games.flashcardForm.pronunciationPlaceholder')}
                 />
               </View>
 
               {/* Difficulty Selection */}
               <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Difficulty Level *</Text>
+                <Text style={styles.inputLabel}>{t('games.flashcardForm.difficultyLevel')}</Text>
                 <View style={styles.difficultyContainer}>
                   {['beginner', 'intermediate', 'expert'].map((level) => {
                     const levelConfig = {
@@ -1992,11 +1994,11 @@ export default function GamesScreen({ route }: { route?: any }) {
                   setShowTopicPicker(false);
                 }}>
                   <Ionicons name="close-circle-outline" size={20} color="#6b7280" style={styles.buttonIcon} />
-                  <Text style={styles.cancelFormButtonText}>Cancel</Text>
+                  <Text style={styles.cancelFormButtonText}>{t('games.flashcardForm.cancel')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.saveButton} onPress={createFlashcard}>
                   <Ionicons name="checkmark-circle" size={20} color="#ffffff" style={styles.buttonIcon} />
-                  <Text style={styles.saveButtonText}>Create Flashcard</Text>
+                  <Text style={styles.saveButtonText}>{t('games.flashcardForm.saveFlashcard')}</Text>
                 </TouchableOpacity>
               </View>
             </View>

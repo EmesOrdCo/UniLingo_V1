@@ -16,6 +16,7 @@ import {
   Share,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from '../lib/i18n';
 
 interface ContactSupportModalProps {
   visible: boolean;
@@ -23,6 +24,7 @@ interface ContactSupportModalProps {
 }
 
 export default function ContactSupportModal({ visible, onClose }: ContactSupportModalProps) {
+  const { t } = useTranslation();
   const [isSending, setIsSending] = useState(false);
 
   const handleContactSupport = async () => {
@@ -37,8 +39,8 @@ export default function ContactSupportModal({ visible, onClose }: ContactSupport
       if (canOpen) {
         await Linking.openURL(mailtoUrl);
         Alert.alert(
-          'Email App Opened!',
-          'Your email app should open with the "To" and "Subject" fields pre-filled. Just type your message and send!',
+          t('support.emailOpened'),
+          t('support.emailOpenedMessage'),
           [{ text: 'OK', onPress: () => {
             onClose();
           }}]
@@ -46,8 +48,8 @@ export default function ContactSupportModal({ visible, onClose }: ContactSupport
       } else {
         // Fallback - show email details
         Alert.alert(
-          'Support Request',
-          'Please send an email to: unilingo.help@gmail.com\n\nSubject: UniLingo Support Request\n\nJust describe your issue in the email body.',
+          t('support.supportRequest'),
+          t('support.emailFallback'),
           [{ text: 'OK', onPress: () => {
             onClose();
           }}]
@@ -55,7 +57,7 @@ export default function ContactSupportModal({ visible, onClose }: ContactSupport
       }
     } catch (error) {
       console.error('Error:', error);
-      Alert.alert('Error', 'Failed to open email app. Please send an email to unilingo.help@gmail.com');
+      Alert.alert(t('profile.picture.error'), t('support.emailError'));
     } finally {
       setIsSending(false);
     }
@@ -82,7 +84,7 @@ export default function ContactSupportModal({ visible, onClose }: ContactSupport
           >
             <View style={styles.modalContent}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Contact Support</Text>
+                <Text style={styles.modalTitle}>{t('support.title')}</Text>
                 <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
                   <Ionicons name="close" size={24} color="#64748b" />
                 </TouchableOpacity>
@@ -94,7 +96,7 @@ export default function ContactSupportModal({ visible, onClose }: ContactSupport
                 </View>
                 
                 <Text style={styles.description}>
-                  Tap the button below to open your email app with the support email pre-filled.
+                  {t('support.description')}
                 </Text>
 
                 <TouchableOpacity
@@ -108,7 +110,7 @@ export default function ContactSupportModal({ visible, onClose }: ContactSupport
                     color="white" 
                   />
                   <Text style={styles.sendButtonText}>
-                    {isSending ? 'Opening Email...' : 'Open Email App'}
+                    {isSending ? t('support.openingEmail') : t('support.openEmailButton')}
                   </Text>
                 </TouchableOpacity>
               </ScrollView>

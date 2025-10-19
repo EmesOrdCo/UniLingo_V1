@@ -13,6 +13,7 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { SubjectDataService, SubjectData } from '../lib/subjectDataService';
 import { GeneralLessonProgressService, GeneralLessonProgress } from '../lib/generalLessonProgressService';
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from '../lib/i18n';
 
 interface SubjectBoxProps {
   subject: SubjectData;
@@ -22,6 +23,7 @@ interface SubjectBoxProps {
 }
 
 const SubjectBox: React.FC<SubjectBoxProps> = ({ subject, onPress, isExpanded = false, progress }) => {
+  const { t } = useTranslation();
   const getSubjectIcon = (subjectName: string) => {
     const name = subjectName.toLowerCase();
     if (name.includes('medicine') || name.includes('medical')) return 'medical';
@@ -74,11 +76,11 @@ const SubjectBox: React.FC<SubjectBoxProps> = ({ subject, onPress, isExpanded = 
     >
       <View style={styles.subjectContent}>
         <View style={styles.subjectMainInfo}>
-          <Text style={styles.unitNumber}>Unit 1</Text>
+          <Text style={styles.unitNumber}>{t('subjectBoxes.unitNumber')}</Text>
           <Text style={styles.subjectTitle}>{String(subject.name || 'Unknown Subject')}</Text>
           <View style={styles.subjectMetaRow}>
             <Text style={styles.subjectMeta}>
-              {String(subject.cefrLevel || 'A1.1')} • Topic Group
+              {String(subject.cefrLevel || 'A1.1')} • {t('subjectBoxes.topicGroup')}
             </Text>
             <TouchableOpacity style={styles.downloadIcon}>
               <Ionicons name="download-outline" size={20} color="#9ca3af" />
@@ -120,13 +122,14 @@ export default function SubjectBoxes({ onSubjectSelect, maxSubjects = 6, selecte
   const [loading, setLoading] = useState(true);
   const [expandedSubject, setExpandedSubject] = useState<string | null>(null);
   const [subjectProgress, setSubjectProgress] = useState<Map<string, GeneralLessonProgress>>(new Map());
+  const { t } = useTranslation();
   
   const LESSONS = [
-    { id: 'Words', title: 'Words', icon: 'book', color: '#6466E9' },
-    { id: 'Listen', title: 'Listen', icon: 'headset', color: '#6466E9' },
-    { id: 'Speak', title: 'Speak', icon: 'mic', color: '#6466E9' },
-    { id: 'Write', title: 'Write', icon: 'create', color: '#6466E9' },
-    { id: 'Roleplay', title: 'Roleplay', icon: 'people', color: '#6466E9' },
+    { id: 'Words', title: t('subjectBoxes.lessonTypes.words'), icon: 'book', color: '#6466E9' },
+    { id: 'Listen', title: t('subjectBoxes.lessonTypes.listen'), icon: 'headset', color: '#6466E9' },
+    { id: 'Speak', title: t('subjectBoxes.lessonTypes.speak'), icon: 'mic', color: '#6466E9' },
+    { id: 'Write', title: t('subjectBoxes.lessonTypes.write'), icon: 'create', color: '#6466E9' },
+    { id: 'Roleplay', title: t('subjectBoxes.lessonTypes.roleplay'), icon: 'people', color: '#6466E9' },
   ];
 
   useEffect(() => {
@@ -196,12 +199,12 @@ export default function SubjectBoxes({ onSubjectSelect, maxSubjects = 6, selecte
       console.error('❌ Error loading subjects for subject boxes:', error);
       // Fallback to some basic subjects
       const fallbackSubjects = [
-        { name: 'Medicine', wordCount: 0, hasLessons: false, cefrLevel: selectedCefrLevel },
-        { name: 'Engineering', wordCount: 0, hasLessons: false, cefrLevel: selectedCefrLevel },
-        { name: 'Physics', wordCount: 0, hasLessons: false, cefrLevel: selectedCefrLevel },
-        { name: 'Biology', wordCount: 0, hasLessons: false, cefrLevel: selectedCefrLevel },
-        { name: 'Chemistry', wordCount: 0, hasLessons: false, cefrLevel: selectedCefrLevel },
-        { name: 'Mathematics', wordCount: 0, hasLessons: false, cefrLevel: selectedCefrLevel },
+        { name: t('subjects.medicine'), wordCount: 0, hasLessons: false, cefrLevel: selectedCefrLevel },
+        { name: t('subjects.engineering'), wordCount: 0, hasLessons: false, cefrLevel: selectedCefrLevel },
+        { name: t('subjects.physics'), wordCount: 0, hasLessons: false, cefrLevel: selectedCefrLevel },
+        { name: t('subjects.biology'), wordCount: 0, hasLessons: false, cefrLevel: selectedCefrLevel },
+        { name: t('subjects.chemistry'), wordCount: 0, hasLessons: false, cefrLevel: selectedCefrLevel },
+        { name: t('subjects.mathematics'), wordCount: 0, hasLessons: false, cefrLevel: selectedCefrLevel },
       ];
       setAllSubjects(fallbackSubjects);
       setSubjects(fallbackSubjects);
@@ -262,7 +265,7 @@ export default function SubjectBoxes({ onSubjectSelect, maxSubjects = 6, selecte
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#6366f1" />
-        <Text style={styles.loadingText}>Loading subjects...</Text>
+        <Text style={styles.loadingText}>{t('subjectBoxes.loadingSubjects')}</Text>
       </View>
     );
   }
@@ -293,7 +296,7 @@ export default function SubjectBoxes({ onSubjectSelect, maxSubjects = 6, selecte
                       styles.lessonCard,
                       index === LESSONS.length - 1 && { marginBottom: 0 }
                     ]}
-                    onPress={() => handleLessonPress(subject, lesson.title)}
+                    onPress={() => handleLessonPress(subject, lesson.id)}
                   >
                     <View style={styles.lessonContent}>
                       <Text style={styles.lessonTitle}>{lesson.title}</Text>
@@ -301,10 +304,10 @@ export default function SubjectBoxes({ onSubjectSelect, maxSubjects = 6, selecte
                     <View style={styles.lessonActions}>
                       <TouchableOpacity 
                         style={styles.startButton}
-                        onPress={() => handleLessonPress(subject, lesson.title)}
+                        onPress={() => handleLessonPress(subject, lesson.id)}
                       >
                         <Ionicons name="play" size={18} color="#ffffff" />
-                        <Text style={styles.startButtonText}>Start</Text>
+                        <Text style={styles.startButtonText}>{t('subjectBoxes.buttons.start')}</Text>
                       </TouchableOpacity>
                     </View>
                   </TouchableOpacity>
@@ -320,10 +323,10 @@ export default function SubjectBoxes({ onSubjectSelect, maxSubjects = 6, selecte
         <View style={styles.emptyState}>
           <Ionicons name="book-outline" size={48} color="#9ca3af" />
           <Text style={styles.emptyStateText}>
-            No subjects at {String(selectedCefrLevel)} level
+            {t('subjectBoxes.emptyState.noSubjects')} {String(selectedCefrLevel)} {t('subjectBoxes.emptyState.level')}
           </Text>
           <Text style={styles.emptyStateSubtext}>
-            Try selecting a different CEFR level
+            {t('subjectBoxes.emptyState.tryDifferentLevel')}
           </Text>
         </View>
       ) : null}

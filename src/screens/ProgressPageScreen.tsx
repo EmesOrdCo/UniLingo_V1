@@ -23,10 +23,12 @@ import ConsistentHeader from '../components/ConsistentHeader';
 import DailyGoalsWidget from '../components/DailyGoalsWidget';
 import { LessonService } from '../lib/lessonService';
 import { XPService } from '../lib/xpService';
+import { useTranslation } from '../lib/i18n';
 
 const { width } = Dimensions.get('window');
 
 export default function ProgressPageScreen() {
+  const { t } = useTranslation();
   const navigation = useNavigation();
   const { user } = useAuth();
   const { refreshTrigger } = useRefresh();
@@ -193,7 +195,7 @@ export default function ProgressPageScreen() {
       console.log('✅ Progress data loaded successfully');
     } catch (error) {
       console.error('Error loading progress data:', error);
-      setError('Failed to load progress data. Please try again.');
+      setError(t('progress.failedToLoad'));
     } finally {
       setLoading(false);
     }
@@ -244,6 +246,18 @@ export default function ProgressPageScreen() {
     }
   };
 
+  const getTranslatedLevelName = (level: string) => {
+    switch (level.toLowerCase()) {
+      case 'beginner': return t('progress.level.beginner');
+      case 'elementary': return t('progress.level.elementary');
+      case 'intermediate': return t('progress.level.intermediate');
+      case 'advanced': return t('progress.level.advanced');
+      case 'expert': return t('progress.level.expert');
+      case 'master': return t('progress.level.master');
+      default: return t('progress.level.beginner');
+    }
+  };
+
   // Skeleton loading component
   const SkeletonCard = ({ width = 100, height = 80 }: { width?: number, height?: number }) => (
     <View style={[styles.skeletonCard, { width, height }]}>
@@ -254,11 +268,11 @@ export default function ProgressPageScreen() {
   if (loading && !progressData) {
     return (
       <SafeAreaView style={styles.container}>
-        <ConsistentHeader pageName="Progress" />
+        <ConsistentHeader pageName={t('progress.title')} />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#6366f1" />
-          <Text style={styles.loadingText}>Loading your progress...</Text>
-          <Text style={styles.loadingSubtext}>Analyzing your learning journey</Text>
+          <Text style={styles.loadingText}>{t('progress.loading')}</Text>
+          <Text style={styles.loadingSubtext}>{t('progress.analyzingJourney')}</Text>
         </View>
       </SafeAreaView>
     );
@@ -268,7 +282,7 @@ export default function ProgressPageScreen() {
     <SafeAreaView style={styles.container}>
       {/* Consistent Header with Profile Avatar */}
       <ConsistentHeader 
-        pageName="Progress"
+        pageName={t('progress.title')}
         streakCount={progressData?.currentStreak || 0}
       />
 
@@ -278,7 +292,7 @@ export default function ProgressPageScreen() {
           <Ionicons name="warning" size={24} color="#ef4444" />
           <Text style={styles.errorText}>{error}</Text>
           <TouchableOpacity onPress={() => loadProgressData()} style={styles.retryButton}>
-            <Text style={styles.retryButtonText}>Retry</Text>
+            <Text style={styles.retryButtonText}>{t('progress.retry')}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -333,8 +347,8 @@ export default function ProgressPageScreen() {
                 <View style={styles.arcadeButtonLeft}>
                   <Ionicons name="game-controller" size={28} color="#FFFFFF" />
                   <View style={styles.arcadeButtonText}>
-                    <Text style={styles.arcadeButtonTitle}>Arcade Games</Text>
-                    <Text style={styles.arcadeButtonSubtitle}>Take a break and play classic arcade games - Spend your {availableXP.toLocaleString()} XP!</Text>
+                    <Text style={styles.arcadeButtonTitle}>{t('progress.arcadeGames')}</Text>
+                    <Text style={styles.arcadeButtonSubtitle}>{t('progress.arcadeSubtitle', { xp: availableXP.toLocaleString() })}</Text>
                   </View>
                 </View>
                 <Ionicons name="chevron-forward" size={24} color="#FFFFFF" />
@@ -352,27 +366,27 @@ export default function ProgressPageScreen() {
         <View style={styles.levelSection}>
           <View style={styles.sectionTitleContainer}>
             <Ionicons name={getLevelIcon(progressData?.levelProgress.currentLevel || 'Beginner')} size={24} color={getLevelColor(progressData?.levelProgress.currentLevel || 'Beginner')} />
-            <Text style={styles.sectionTitle}>Level Progress</Text>
+            <Text style={styles.sectionTitle}>{t('progress.levelProgress')}</Text>
           </View>
           
           <View style={styles.levelCard}>
             <View style={styles.levelInfoContainer}>
               <View style={styles.currentLevelContainer}>
-                <Text style={styles.levelLabel}>Current Level</Text>
+                <Text style={styles.levelLabel}>{t('progress.currentLevel')}</Text>
                 <Text style={[styles.levelName, { color: getLevelColor(progressData?.levelProgress.currentLevel || 'Beginner') }]}>
-                  {progressData?.levelProgress.currentLevel || 'Beginner'}
+                  {getTranslatedLevelName(progressData?.levelProgress.currentLevel || 'Beginner')}
                 </Text>
               </View>
 
               <View style={styles.xpContainer}>
-                <Text style={styles.xpLabel}>Experience Points</Text>
+                <Text style={styles.xpLabel}>{t('progress.experiencePoints')}</Text>
                 <Text style={styles.xpValue}>{progressData?.levelProgress.experiencePoints || 0} XP</Text>
               </View>
             </View>
 
             <View style={styles.progressContainer}>
               <View style={styles.progressHeader}>
-                <Text style={styles.progressLabel}>Progress to Next Level</Text>
+                <Text style={styles.progressLabel}>{t('progress.progressToNextLevel')}</Text>
                 <Text style={styles.progressPercentage}>{progressData?.levelProgress.progressPercentage || 0}%</Text>
               </View>
               
@@ -389,20 +403,20 @@ export default function ProgressPageScreen() {
               </View>
               
               <Text style={styles.nextLevelText}>
-                {(progressData?.levelProgress.nextLevelThreshold || 100) - (progressData?.levelProgress.experiencePoints || 0)} XP to next level
+                {(progressData?.levelProgress.nextLevelThreshold || 100) - (progressData?.levelProgress.experiencePoints || 0)} {t('progress.xpToNextLevel')}
               </Text>
             </View>
 
             <View style={styles.statsContainer}>
               <View style={styles.statItem}>
                 <Ionicons name="trending-up" size={16} color="#10b981" />
-                <Text style={styles.statLabel}>Total XP</Text>
+                <Text style={styles.statLabel}>{t('progress.totalXP')}</Text>
                 <Text style={styles.statValue}>{progressData?.levelProgress.experiencePoints || 0}</Text>
               </View>
               
               <View style={styles.statItem}>
                 <Ionicons name="flag" size={16} color="#3b82f6" />
-                <Text style={styles.statLabel}>Next Level</Text>
+                <Text style={styles.statLabel}>{t('progress.nextLevel')}</Text>
                 <Text style={styles.statValue}>{progressData?.levelProgress.nextLevelThreshold || 100}</Text>
               </View>
             </View>
@@ -460,7 +474,7 @@ export default function ProgressPageScreen() {
         <View style={styles.calendarSection}>
           <View style={styles.sectionTitleContainer}>
             <Ionicons name="calendar" size={24} color="#6366f1" />
-            <Text style={styles.sectionTitle}>Study Calendar</Text>
+            <Text style={styles.sectionTitle}>{t('progress.studyCalendar')}</Text>
           </View>
           <View style={styles.calendarWrapper}>
             <StudyCalendar studyDates={studyDates} />
@@ -473,7 +487,7 @@ export default function ProgressPageScreen() {
           <View style={styles.achievementsSection}>
             <View style={styles.sectionTitleContainer}>
               <Ionicons name="trophy" size={24} color="#f59e0b" />
-              <Text style={styles.sectionTitle}>Recent Achievements</Text>
+              <Text style={styles.sectionTitle}>{t('progress.achievements')}</Text>
             </View>
             <View style={styles.achievementsList}>
               {progressData?.achievements?.slice(0, 3).map((achievement, index) => (
@@ -506,7 +520,7 @@ export default function ProgressPageScreen() {
         <View style={styles.flashcardsProgressSection}>
           <View style={styles.sectionTitleContainer}>
             <Ionicons name="library" size={24} color="#6366f1" />
-            <Text style={styles.sectionTitle}>Flashcard Progress</Text>
+            <Text style={styles.sectionTitle}>{t('progress.flashcardStats')}</Text>
           </View>
           <View style={styles.flashcardsGrid}>
             <View style={styles.flashcardStatCard}>
@@ -514,42 +528,42 @@ export default function ProgressPageScreen() {
                 <Ionicons name="library-outline" size={28} color="#ffffff" />
               </View>
               <Text style={styles.flashcardStatNumber}>{progressData?.flashcardStats?.totalCards || 0}</Text>
-              <Text style={styles.flashcardStatLabel}>Total Cards</Text>
+              <Text style={styles.flashcardStatLabel}>{t('progress.totalCards')}</Text>
             </View>
             <View style={styles.flashcardStatCard}>
               <View style={[styles.flashcardStatIcon, styles.masteredCardsIcon]}>
                 <Ionicons name="star" size={28} color="#ffffff" />
               </View>
               <Text style={styles.flashcardStatNumber}>{progressData?.flashcardStats?.masteredCards || 0}</Text>
-              <Text style={styles.flashcardStatLabel}>Mastered</Text>
+              <Text style={styles.flashcardStatLabel}>{t('progress.masteredCards')}</Text>
             </View>
             <View style={styles.flashcardStatCard}>
               <View style={[styles.flashcardStatIcon, styles.accuracyIcon]}>
                 <Ionicons name="star" size={28} color="#ffffff" />
               </View>
               <Text style={styles.flashcardStatNumber}>{progressData?.flashcardStats?.averageAccuracy || 0}%</Text>
-              <Text style={styles.flashcardStatLabel}>Accuracy</Text>
+              <Text style={styles.flashcardStatLabel}>{t('progress.averageAccuracy')}</Text>
             </View>
             <View style={styles.flashcardStatCard}>
               <View style={[styles.flashcardStatIcon, styles.streakIcon]}>
                 <Ionicons name="flame" size={28} color="#ffffff" />
               </View>
               <Text style={styles.flashcardStatNumber}>{progressData?.flashcardStats?.dayStreak || 0}</Text>
-              <Text style={styles.flashcardStatLabel}>Streak</Text>
+              <Text style={styles.flashcardStatLabel}>{t('progress.dayStreak')}</Text>
             </View>
             <View style={styles.flashcardStatCard}>
               <View style={[styles.flashcardStatIcon, styles.bestTopicIcon]}>
                 <Ionicons name="medal" size={28} color="#ffffff" />
               </View>
               <Text style={styles.flashcardStatNumber}>{progressData?.flashcardStats?.bestTopic || 'None'}</Text>
-              <Text style={styles.flashcardStatLabel}>Best Topic</Text>
+              <Text style={styles.flashcardStatLabel}>{t('progress.bestTopic')}</Text>
             </View>
             <View style={styles.flashcardStatCard}>
               <View style={[styles.flashcardStatIcon, styles.needsWorkIcon]}>
                 <Ionicons name="bulb-outline" size={28} color="#ffffff" />
               </View>
               <Text style={styles.flashcardStatNumber}>{progressData?.flashcardStats?.weakestTopic || 'None'}</Text>
-              <Text style={styles.flashcardStatLabel}>Needs Work</Text>
+              <Text style={styles.flashcardStatLabel}>{t('progress.weakestTopic')}</Text>
             </View>
           </View>
         </View>

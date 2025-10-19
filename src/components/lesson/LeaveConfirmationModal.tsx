@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal } from 'react-native';
+import { useTranslation } from '../../lib/i18n';
 
 interface LeaveConfirmationModalProps {
   visible: boolean;
@@ -8,6 +9,8 @@ interface LeaveConfirmationModalProps {
 }
 
 export default function LeaveConfirmationModal({ visible, onLeave, onCancel }: LeaveConfirmationModalProps) {
+  const { t } = useTranslation();
+  
   return (
     <Modal
       visible={visible}
@@ -17,17 +20,17 @@ export default function LeaveConfirmationModal({ visible, onLeave, onCancel }: L
     >
       <View style={styles.overlay}>
         <View style={styles.modalContainer}>
-          <Text style={styles.title}>Are you sure you want to leave?</Text>
+          <Text style={styles.title}>{t('lessons.exitModal.title')}</Text>
           <Text style={styles.description}>
-            Your progress won't be saved for this lesson, and you'll have to start again when you return.
+            {t('lessons.exitModal.description')}
           </Text>
           
           <TouchableOpacity style={styles.leaveButton} onPress={onLeave}>
-            <Text style={styles.leaveButtonText}>Yes, I want to leave</Text>
+            <Text style={styles.leaveButtonText}>{t('lessons.exitModal.confirm')}</Text>
           </TouchableOpacity>
           
           <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
-            <Text style={styles.cancelButtonText}>Not Now</Text>
+            <Text style={styles.cancelButtonText}>{t('lessons.exitModal.cancel')}</Text>
           </TouchableOpacity>
         </View>
       </View>

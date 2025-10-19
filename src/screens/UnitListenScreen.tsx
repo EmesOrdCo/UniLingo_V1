@@ -16,11 +16,13 @@ import * as Speech from 'expo-speech';
 import { UnitDataAdapter, UnitVocabularyItem, UnitSentence } from '../lib/unitDataAdapter';
 import { logger } from '../lib/logger';
 import { getVocabularySpeechLanguage, getSpeechLanguageCode } from '../lib/languageService';
+import { useTranslation } from '../lib/i18n';
 
 export default function UnitListenScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const { user, profile } = useAuth();
+  const { t } = useTranslation();
   
   const { unitTitle, subjectName, cefrLevel } = (route.params as any) || { 
     unitTitle: 'Saying Hello', 
@@ -334,17 +336,17 @@ export default function UnitListenScreen() {
       <SafeAreaView style={styles.completionContainer}>
         <View style={styles.completionContent}>
           <Text style={styles.completionEmoji}>🎉</Text>
-          <Text style={styles.completionTitle}>Listening Complete!</Text>
-          <Text style={styles.completionSubtitle}>Great listening practice!</Text>
+          <Text style={styles.completionTitle}>{t('lessons.listen.complete')}</Text>
+          <Text style={styles.completionSubtitle}>{t('lessons.listen.greatPractice')}</Text>
           
           <View style={styles.completionStats}>
             <View style={styles.completionStatCard}>
               <Text style={styles.completionStatValue}>{score}/{totalQuestions}</Text>
-              <Text style={styles.completionStatLabel}>Correct</Text>
+              <Text style={styles.completionStatLabel}>{t('lessons.listen.correct')}</Text>
             </View>
             <View style={styles.completionStatCard}>
               <Text style={styles.completionStatValue}>{accuracyPercentage}%</Text>
-              <Text style={styles.completionStatLabel}>Accuracy</Text>
+              <Text style={styles.completionStatLabel}>{t('lessons.listen.accuracy')}</Text>
             </View>
           </View>
           
@@ -361,11 +363,11 @@ export default function UnitListenScreen() {
                 setAvailableWords([]);
               }}
             >
-              <Text style={styles.completionRetryButtonText}>Retry</Text>
+              <Text style={styles.completionRetryButtonText}>{t('lessons.listen.retry')}</Text>
             </TouchableOpacity>
             
             <TouchableOpacity style={styles.completionContinueButton} onPress={handleContinue}>
-              <Text style={styles.completionContinueButtonText}>Continue</Text>
+              <Text style={styles.completionContinueButtonText}>{t('lessons.listen.continue')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -380,12 +382,12 @@ export default function UnitListenScreen() {
           <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color="#000000" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>{unitTitle} - Listen</Text>
+          <Text style={styles.headerTitle}>{unitTitle} - {t('lessons.listen.title')}</Text>
           <View style={styles.headerSpacer} />
         </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#6366f1" />
-          <Text style={styles.loadingText}>Loading listen exercises...</Text>
+          <Text style={styles.loadingText}>{t('lessons.listen.loading')}</Text>
         </View>
       </SafeAreaView>
     );
@@ -399,12 +401,12 @@ export default function UnitListenScreen() {
           <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color="#000000" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>{unitTitle} - Listen</Text>
+          <Text style={styles.headerTitle}>{unitTitle} - {t('lessons.listen.title')}</Text>
           <View style={styles.headerSpacer} />
         </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#6366f1" />
-          <Text style={styles.loadingText}>Preparing exercises...</Text>
+          <Text style={styles.loadingText}>{t('lessons.listen.preparing')}</Text>
         </View>
       </SafeAreaView>
     );
@@ -416,7 +418,7 @@ export default function UnitListenScreen() {
         <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#000000" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{unitTitle} - Listen</Text>
+        <Text style={styles.headerTitle}>{unitTitle} - {t('lessons.listen.title')}</Text>
         <View style={styles.headerSpacer} />
       </View>
 
@@ -429,17 +431,17 @@ export default function UnitListenScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Are you sure you want to leave?</Text>
+            <Text style={styles.modalTitle}>{t('lessons.exitModal.title')}</Text>
             <Text style={styles.modalSubtitle}>
-              Your progress won't be saved for this lesson, and you'll have to start again when you return.
+              {t('lessons.exitModal.description')}
             </Text>
             
             <TouchableOpacity style={styles.modalConfirmButton} onPress={handleConfirmExit}>
-              <Text style={styles.modalConfirmButtonText}>Yes, I want to leave</Text>
+              <Text style={styles.modalConfirmButtonText}>{t('lessons.exitModal.confirm')}</Text>
             </TouchableOpacity>
             
             <TouchableOpacity style={styles.modalCancelButton} onPress={handleCancelExit}>
-              <Text style={styles.modalCancelButtonText}>Not Now</Text>
+              <Text style={styles.modalCancelButtonText}>{t('lessons.exitModal.cancel')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -464,13 +466,13 @@ export default function UnitListenScreen() {
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
         {/* Question Text */}
         {question.type === 'word-choice' && (
-          <Text style={styles.questionText}>Tap the correct answer</Text>
+          <Text style={styles.questionText}>{t('lessons.listen.tapCorrectAnswer')}</Text>
         )}
         {question.type === 'sentence-choice' && (
-          <Text style={styles.questionText}>Tap the correct answer</Text>
+          <Text style={styles.questionText}>{t('lessons.listen.tapCorrectAnswer')}</Text>
         )}
         {question.type === 'scramble' && (
-          <Text style={styles.questionText}>Tap what you hear</Text>
+          <Text style={styles.questionText}>{t('lessons.listen.tapWhatYouHear')}</Text>
         )}
 
         {/* Audio Play Button */}
@@ -542,7 +544,7 @@ export default function UnitListenScreen() {
                 </TouchableOpacity>
               ))}
               {userAnswer.length === 0 && (
-                <Text style={styles.placeholderText}>Tap the words below</Text>
+                <Text style={styles.placeholderText}>{t('lessons.listen.tapWordsBelow')}</Text>
               )}
             </View>
 
@@ -601,15 +603,15 @@ export default function UnitListenScreen() {
                 disabled={(question.type === 'scramble' && userAnswer.length === 0) || 
                          (question.type !== 'scramble' && !selectedAnswer)}
               >
-                <Text style={styles.checkButtonText}>Check</Text>
+                <Text style={styles.checkButtonText}>{t('lessons.listen.check')}</Text>
               </TouchableOpacity>
             ) : !isCorrect ? (
               <View style={styles.incorrectActions}>
                 <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
-                  <Text style={styles.retryButtonText}>Retry</Text>
+                  <Text style={styles.retryButtonText}>{t('lessons.listen.retry')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
-                  <Text style={styles.skipButtonText}>Skip</Text>
+                  <Text style={styles.skipButtonText}>{t('lessons.listen.skip')}</Text>
                   <Ionicons name="arrow-forward" size={20} color="#64748b" />
                 </TouchableOpacity>
               </View>
@@ -619,7 +621,7 @@ export default function UnitListenScreen() {
               style={styles.speedButton}
               onPress={() => playAudio(0.75)}
             >
-              <Text style={styles.speedButtonText}>0.75×</Text>
+              <Text style={styles.speedButtonText}>{t('lessons.listen.speed')}</Text>
             </TouchableOpacity>
           </>
         ) : null}

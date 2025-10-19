@@ -10,6 +10,7 @@ import { UnitDataService, UnitData } from '../lib/unitDataService';
 import SubjectBoxes from './SubjectBoxes';
 import { SubjectData } from '../lib/subjectDataService';
 import { CefrProgressService, CefrLevelProgress } from '../lib/cefrProgressService';
+import { useTranslation } from '../lib/i18n';
 
 interface DashboardContentProps {
   progressData: any;
@@ -26,6 +27,7 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
   const [cefrProgress, setCefrProgress] = useState<CefrLevelProgress | null>(null);
   const [loadingCefrProgress, setLoadingCefrProgress] = useState(false);
   const [cefrDropdownVisible, setCefrDropdownVisible] = useState(false);
+  const { t } = useTranslation();
 
   const CEFR_LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
   
@@ -78,8 +80,8 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
         // Fallback: create a basic Unit 1 structure
         defaultUnit = {
           unit_code: 'A1.1',
-          unit_title: 'Foundation',
-          topic_groups: ['Basic Concepts'],
+          unit_title: t('dashboard.fallback.foundation'),
+          topic_groups: [t('dashboard.fallback.basicConcepts')],
           total_words: 0,
           total_lessons: 5,
           lessons_completed: 0,
@@ -133,12 +135,12 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
   const handleLessonPress = async (unitCode: string, lessonTitle: string, topicGroup?: string) => {
     // Prevent multiple rapid taps
     if (isNavigating) {
-      Alert.alert('Please wait', 'Lesson is already loading...');
+      Alert.alert(t('dashboard.alerts.pleaseWait'), t('dashboard.alerts.lessonLoading'));
       return;
     }
 
     if (!user || !profile?.native_language) {
-      Alert.alert('Error', 'Please complete your profile setup first.');
+      Alert.alert(t('dashboard.alerts.error'), t('dashboard.alerts.completeProfile'));
       return;
     }
 
@@ -146,7 +148,7 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
 
     try {
       // Use the provided topic group or default to first topic group of selected unit
-      const selectedTopicGroup = topicGroup || selectedUnit?.topic_groups[0] || 'Basic Concepts';
+      const selectedTopicGroup = topicGroup || selectedUnit?.topic_groups[0] || t('dashboard.fallback.basicConcepts');
 
       // Navigate immediately - don't block on vocabulary check
       // The Unit screens will handle their own vocabulary loading with proper error handling
@@ -197,12 +199,12 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
           break;
           
         default:
-          Alert.alert('Error', 'Unknown lesson type. Please try again.');
+          Alert.alert(t('dashboard.alerts.error'), t('dashboard.alerts.unknownLessonType'));
       }
     } catch (error) {
       console.error('❌ Error handling lesson press:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      Alert.alert('Error', `Failed to start lesson: ${errorMessage}`);
+      Alert.alert(t('dashboard.alerts.error'), `${t('dashboard.alerts.failedToStartLesson')} ${errorMessage}`);
     } finally {
       // Reset navigation state after a longer delay to ensure screen has loaded
       setTimeout(() => {
@@ -255,7 +257,7 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
             color="#ffffff" 
           />
           <Text style={styles.startButtonText}>
-            {isNavigating ? 'Loading...' : 'Start'}
+            {isNavigating ? t('dashboard.buttons.loading') : t('dashboard.buttons.start')}
           </Text>
         </TouchableOpacity>
       );
@@ -265,26 +267,26 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
 
   const getCefrLevelTitle = (level: string): string => {
     const titles: { [key: string]: string } = {
-      'A1': 'Foundation',
-      'A2': 'Beginner',
-      'B1': 'Intermediate',
-      'B2': 'Advanced',
-      'C1': 'Expert',
-      'C2': 'Fluent',
+      'A1': t('dashboard.cefrLevels.A1'),
+      'A2': t('dashboard.cefrLevels.A2'),
+      'B1': t('dashboard.cefrLevels.B1'),
+      'B2': t('dashboard.cefrLevels.B2'),
+      'C1': t('dashboard.cefrLevels.C1'),
+      'C2': t('dashboard.cefrLevels.C2'),
     };
-    return titles[level] || 'General Subjects';
+    return titles[level] || t('dashboard.cefrLevels.default');
   };
 
   const getCefrLevelDescription = (level: string): string => {
     const descriptions: { [key: string]: string } = {
-      'A1': 'Start your journey with basic vocabulary and simple expressions for everyday situations.',
-      'A2': 'Build confidence with common phrases and vocabulary for familiar topics.',
-      'B1': 'Develop intermediate skills to handle most situations and express opinions clearly.',
-      'B2': 'Master complex topics and communicate fluently with detailed explanations.',
-      'C1': 'Achieve expert proficiency with sophisticated vocabulary and nuanced expressions.',
-      'C2': 'Perfect your mastery with native-level comprehension and expression.',
+      'A1': t('dashboard.descriptions.A1'),
+      'A2': t('dashboard.descriptions.A2'),
+      'B1': t('dashboard.descriptions.B1'),
+      'B2': t('dashboard.descriptions.B2'),
+      'C1': t('dashboard.descriptions.C1'),
+      'C2': t('dashboard.descriptions.C2'),
     };
-    return descriptions[level] || 'Learn essential vocabulary and practice with interactive exercises across various subjects.';
+    return descriptions[level] || t('dashboard.descriptions.default');
   };
 
   return (
@@ -294,7 +296,7 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
         <View style={styles.loadingOverlay}>
           <View style={styles.loadingContainer}>
             <Ionicons name="hourglass" size={24} color="#6466E9" />
-            <Text style={styles.loadingText}>Loading lesson...</Text>
+            <Text style={styles.loadingText}>{t('dashboard.loadingLesson')}</Text>
           </View>
         </View>
       )}
@@ -339,7 +341,7 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
                         styles.cefrDropdownItemText,
                         selectedCefrLevel === level && styles.cefrDropdownItemTextSelected
                       ]}>
-                        Level {level}
+                        {t('dashboard.levelPrefix')} {level}
                       </Text>
                       {selectedCefrLevel === level && (
                         <Ionicons name="checkmark" size={20} color="#6366f1" />

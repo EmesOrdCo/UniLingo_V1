@@ -27,10 +27,12 @@ import { TopicEditModal } from '../components/TopicEditModal';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { getBackendUrl, BACKEND_CONFIG } from '../config/backendConfig';
+import { useTranslation } from '../lib/i18n';
 
 const { width: screenWidth } = Dimensions.get('window');
 
 export default function UploadScreen() {
+  const { t } = useTranslation();
   const { triggerRefresh } = useRefresh();
   const [selectedTopic, setSelectedTopic] = useState('');
   const [showTopicInput, setShowTopicInput] = useState(false);
@@ -1377,7 +1379,7 @@ export default function UploadScreen() {
         >
           <Ionicons name="arrow-back" size={24} color="#1e293b" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>AI Flashcard Generation</Text>
+        <Text style={styles.headerTitle}>{t('aiFlashcards.title')}</Text>
         <View style={styles.headerSpacer} />
       </View>
 
@@ -1387,7 +1389,7 @@ export default function UploadScreen() {
         <View style={styles.topicSection}>
           <View style={styles.sectionTitleContainer}>
             <Ionicons name="folder" size={20} color="#6366f1" />
-            <Text style={styles.sectionTitle}>Select Topic</Text>
+            <Text style={styles.sectionTitle}>{t('aiFlashcards.selectTopic')}</Text>
           </View>
           {!showTopicInput ? (
             <View style={styles.topicSelectionContainer}>
@@ -1485,9 +1487,9 @@ export default function UploadScreen() {
           <View style={styles.uploadIcon}>
             <Ionicons name="cloud-upload" size={32} color="#6366f1" />
           </View>
-          <Text style={styles.uploadTitle}>Upload Your Course Notes</Text>
+          <Text style={styles.uploadTitle}>{t('aiFlashcards.uploadCourseNotes')}</Text>
           <Text style={styles.uploadSubtitle}>
-            Upload PDFs or take photos to automatically generate flashcards using AI
+            {t('aiFlashcards.uploadDescription')}
           </Text>
           
           {/* Upload Options */}
@@ -1504,7 +1506,7 @@ export default function UploadScreen() {
             >
               <Ionicons name="document" size={20} color="#ffffff" />
               <Text style={styles.uploadButtonText}>
-                {isProcessing ? 'Processing...' : selectedTopic === 'AI Selection' ? 'Choose PDF' : 'Upload PDF'}
+                {isProcessing ? 'Processing...' : selectedTopic === 'AI Selection' ? 'Choose PDF' : t('aiFlashcards.uploadPDF')}
               </Text>
             </TouchableOpacity>
 
@@ -1521,7 +1523,7 @@ export default function UploadScreen() {
               >
                 <Ionicons name="camera" size={20} color="#ffffff" />
                 <Text style={styles.uploadButtonText}>
-                  {isProcessing ? 'Processing...' : 'Take Photo'}
+                  {isProcessing ? 'Processing...' : t('aiFlashcards.takePhoto')}
                 </Text>
               </TouchableOpacity>
 
@@ -1536,7 +1538,7 @@ export default function UploadScreen() {
               >
                 <Ionicons name="images" size={20} color="#ffffff" />
                 <Text style={styles.uploadButtonText}>
-                  {isProcessing ? 'Processing...' : 'Choose Photos'}
+                  {isProcessing ? 'Processing...' : t('aiFlashcards.choosePhotos')}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -1546,31 +1548,31 @@ export default function UploadScreen() {
 
         {/* How it works */}
         <View style={styles.infoSection}>
-          <Text style={styles.infoTitle}>How it works</Text>
+          <Text style={styles.infoTitle}>{t('aiFlashcards.howItWorks')}</Text>
           <View style={styles.infoSteps}>
             <View style={styles.infoStep}>
               <View style={styles.stepNumber}>
                 <Text style={styles.stepNumberText}>1</Text>
               </View>
-              <Text style={styles.stepText}>Upload PDFs or take photos of your course notes</Text>
+              <Text style={styles.stepText}>{t('aiFlashcards.step1')}</Text>
             </View>
             <View style={styles.infoStep}>
               <View style={styles.stepNumber}>
                 <Text style={styles.stepNumberText}>2</Text>
               </View>
-              <Text style={styles.stepText}>AI extracts text and analyzes content for key concepts</Text>
+              <Text style={styles.stepText}>{t('aiFlashcards.step2')}</Text>
             </View>
             <View style={styles.infoStep}>
               <View style={styles.stepNumber}>
                 <Text style={styles.stepNumberText}>3</Text>
               </View>
-              <Text style={styles.stepText}>Review and edit generated flashcards</Text>
+              <Text style={styles.stepText}>{t('aiFlashcards.step3')}</Text>
             </View>
             <View style={styles.infoStep}>
               <View style={styles.stepNumber}>
                 <Text style={styles.stepNumberText}>4</Text>
               </View>
-              <Text style={styles.stepText}>Save to your personal collection</Text>
+              <Text style={styles.stepText}>{t('aiFlashcards.step4')}</Text>
             </View>
           </View>
         </View>

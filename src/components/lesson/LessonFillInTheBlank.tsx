@@ -6,6 +6,7 @@ import * as Haptics from 'expo-haptics';
 import { useAuth } from '../../contexts/AuthContext';
 import { VocabularyInterpretationService, InterpretedVocabulary } from '../../lib/vocabularyInterpretationService';
 import LeaveConfirmationModal from './LeaveConfirmationModal';
+import { useTranslation } from '../../lib/i18n';
 
 interface LessonFillInTheBlankProps {
   vocabulary: any[];
@@ -24,6 +25,7 @@ interface FillInTheBlankQuestion {
 }
 
 export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, onProgressUpdate, initialQuestionIndex = 0 }: LessonFillInTheBlankProps) {
+  const { t } = useTranslation();
   const [questions, setQuestions] = useState<FillInTheBlankQuestion[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(initialQuestionIndex);
   const [userAnswer, setUserAnswer] = useState('');
@@ -271,13 +273,13 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
           >
             <Ionicons name="close" size={24} color="#64748b" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Fill in the Blank</Text>
+          <Text style={styles.headerTitle}>{t('lessons.exercises.fillInBlank')}</Text>
           <View style={styles.placeholder} />
         </View>
         <View style={styles.noQuestionsContainer}>
-          <Text style={styles.noQuestionsText}>No questions available</Text>
+          <Text style={styles.noQuestionsText}>{t('lessons.fillBlank.noQuestions')}</Text>
           <Text style={styles.noQuestionsSubtext}>
-            This lesson doesn't have enough example sentences to create fill-in-the-blank questions.
+            {t('lessons.fillBlank.noQuestionsSubtext')}
           </Text>
         </View>
 
@@ -303,7 +305,7 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
           >
             <Ionicons name="close" size={24} color="#64748b" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Fill in the Blank Complete!</Text>
+          <Text style={styles.headerTitle}>{t('lessons.exercises.fillInBlank')} {t('lessons.exercises.completed')}!</Text>
           <View style={styles.placeholder} />
         </View>
 
@@ -316,7 +318,7 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
             
             {/* Completion Title */}
             <Text style={styles.completionTitle}>🎉 Outstanding Work!</Text>
-            <Text style={styles.completionSubtitle}>Fill in the Blank Complete</Text>
+            <Text style={styles.completionSubtitle}>{t('lessons.exercises.fillInBlank')} {t('lessons.exercises.completed')}</Text>
             
             {/* Stats Card */}
             <View style={styles.statsCard}>
@@ -368,12 +370,12 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
             <View style={styles.performanceContainer}>
               <Text style={styles.performanceText}>
                 {score === questions.length * 2
-                  ? "Perfect! You aced both rounds! 🌟"
+                  ? t('lessons.speak.perfectMessage')
                   : score >= questions.length * 2 * 0.8
-                  ? "Excellent! You're mastering vocabulary in context! 🎯"
+                  ? t('lessons.speak.excellentMessage')
                   : score >= questions.length * 2 * 0.6
-                  ? "Great job! Keep practicing to improve! 💪"
-                  : "Nice try! Practice makes perfect! 🚀"
+                  ? t('lessons.speak.greatJobMessage')
+                  : t('lessons.speak.niceTryMessage')
                 }
               </Text>
             </View>
@@ -382,11 +384,11 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
             <View style={styles.buttonContainer}>
               <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
                 <Ionicons name="refresh" size={20} color="#6366f1" />
-                <Text style={styles.retryButtonText}>Retry</Text>
+                <Text style={styles.retryButtonText}>{t('lessons.common.retry')}</Text>
               </TouchableOpacity>
               
               <TouchableOpacity style={styles.continueButton} onPress={handleContinue}>
-                <Text style={styles.continueButtonText}>Continue</Text>
+                <Text style={styles.continueButtonText}>{t('lessons.common.continue')}</Text>
                 <Ionicons name="arrow-forward" size={20} color="#ffffff" />
               </TouchableOpacity>
             </View>
@@ -424,7 +426,7 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
         >
           <Ionicons name="close" size={24} color="#6366f1" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Fill in the Blank</Text>
+        <Text style={styles.headerTitle}>{t('lessons.exercises.fillInBlank')}</Text>
         <View style={styles.placeholder} />
       </View>
 
@@ -433,7 +435,7 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
           <View style={[styles.progressFill, { width: `${progressPercentage}%` }]} />
         </View>
         <Text style={styles.progressText}>
-          Round {currentRound} - {currentQuestionIndex + 1} of {questions.length}
+          {currentRound === 1 ? t('lessons.fillBlank.round1') : t('lessons.fillBlank.round2')} - {currentQuestionIndex + 1} {t('lessons.common.of')} {questions.length}
         </Text>
       </View>
 
@@ -503,7 +505,7 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
               style={styles.textInput}
               value={userAnswer}
               onChangeText={setUserAnswer}
-              placeholder="Type your answer here..."
+              placeholder={t('lessons.wordScramble.enterAnswer')}
               placeholderTextColor="#9ca3af"
               autoCapitalize="none"
               autoCorrect={false}
@@ -530,21 +532,21 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
             currentRound === 1 ? null : (
               <>
                 <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
-                  <Text style={styles.skipButtonText}>Skip</Text>
+                  <Text style={styles.skipButtonText}>{t('lessons.common.skip')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity 
                   style={[styles.checkButton, { opacity: userAnswer.trim() ? 1 : 0.5 }]} 
                   onPress={handleCheckAnswer}
                   disabled={!userAnswer.trim()}
                 >
-                  <Text style={styles.checkButtonText}>Check</Text>
+                  <Text style={styles.checkButtonText}>{t('lessons.common.check')}</Text>
                 </TouchableOpacity>
               </>
             )
           ) : (
             <TouchableOpacity style={styles.nextButton} onPress={handleNextQuestion}>
               <Text style={styles.nextButtonText}>
-                {currentQuestionIndex < questions.length - 1 ? 'Next Question' : currentRound === 1 ? 'Start Round 2' : 'Finish'}
+                {currentQuestionIndex < questions.length - 1 ? t('lessons.common.next') + ' ' + t('lessons.common.question') : currentRound === 1 ? t('lessons.fillBlank.round2') + ' ' + t('lessons.common.start') : t('lessons.common.finish')}
               </Text>
             </TouchableOpacity>
           )}

@@ -11,6 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { UserFlashcardService } from '../lib/userFlashcardService';
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from '../lib/i18n';
 
 export interface FlashcardQuizSetupOptions {
   questionCount: number;
@@ -33,6 +34,7 @@ const FlashcardQuizSetup: React.FC<FlashcardQuizSetupProps> = ({
   availableCards,
 }) => {
   const { user, profile } = useAuth();
+  const { t } = useTranslation();
   const [questionCount, setQuestionCount] = useState<number>(10);
   const [languageMode, setLanguageMode] = useState<'native-to-target' | 'target-to-native' | 'mixed'>('mixed');
   const [selectedTopic, setSelectedTopic] = useState<string>('');
@@ -125,10 +127,10 @@ const FlashcardQuizSetup: React.FC<FlashcardQuizSetupProps> = ({
   const currentAvailableCards = getAvailableCardsCount();
 
   const questionCountOptions = [
-    { value: 5, label: '5 Questions' },
-    { value: 10, label: '10 Questions' },
-    { value: 15, label: '15 Questions' },
-    { value: 20, label: '20 Questions' },
+    { value: 5, label: `5 ${t('flashcardQuiz.questions')}` },
+    { value: 10, label: `10 ${t('flashcardQuiz.questions')}` },
+    { value: 15, label: `15 ${t('flashcardQuiz.questions')}` },
+    { value: 20, label: `20 ${t('flashcardQuiz.questions')}` },
   ];
 
   const languageModeOptions = [
@@ -142,22 +144,23 @@ const FlashcardQuizSetup: React.FC<FlashcardQuizSetupProps> = ({
     },
     {
       value: 'mixed' as const,
-      label: 'Mixed Mode',
+      label: t('flashcardQuiz.mixed'),
     },
   ];
 
   const handleStartGame = () => {
     if (currentAvailableCards === 0) {
       Alert.alert(
-        'No Cards Available',
-        'You need to create flashcards first. Go to the Upload page to create flashcards from PDFs.'
+        t('error.notFound'),
+        'You need to create flashcards first. Go to the Upload page to create flashcards from PDFs.',
+        [{ text: t('common.ok') }]
       );
       return;
     }
 
     if (questionCount > currentAvailableCards) {
       const topicText = selectedTopic ? ` in the "${selectedTopic}" topic` : '';
-      Alert.alert('Not Enough Cards', `You need at least ${questionCount} cards for this quiz. You currently have ${currentAvailableCards} cards${topicText}.`);
+      Alert.alert('Not Enough Cards', `You need at least ${questionCount} cards for this quiz. You currently have ${currentAvailableCards} cards${topicText}.`, [{ text: t('common.ok') }]);
       return;
     }
 
@@ -210,7 +213,7 @@ const FlashcardQuizSetup: React.FC<FlashcardQuizSetupProps> = ({
 
           {/* Topic Selection */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Topic *</Text>
+            <Text style={styles.sectionTitle}>{t('games.topic')} *</Text>
             
             <View style={styles.dropdownContainer}>
               <TouchableOpacity
@@ -303,7 +306,7 @@ const FlashcardQuizSetup: React.FC<FlashcardQuizSetupProps> = ({
 
           {/* Difficulty Selection */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Difficulty</Text>
+            <Text style={styles.sectionTitle}>{t('games.difficulty')}</Text>
             
             <View style={styles.dropdownContainer}>
               <TouchableOpacity
@@ -375,7 +378,7 @@ const FlashcardQuizSetup: React.FC<FlashcardQuizSetupProps> = ({
 
           {/* Question Count Selection */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Number of Questions</Text>
+            <Text style={styles.sectionTitle}>{t('flashcardQuiz.questionCount')}</Text>
             
             <View style={styles.optionsGrid}>
               {questionCountOptions.map((option) => {
@@ -406,7 +409,7 @@ const FlashcardQuizSetup: React.FC<FlashcardQuizSetupProps> = ({
 
           {/* Language Mode Selection */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Language Mode</Text>
+            <Text style={styles.sectionTitle}>{t('flashcardQuiz.languageMode')}</Text>
             
             <View style={styles.optionsGrid}>
               {languageModeOptions.map((option) => (
@@ -431,7 +434,7 @@ const FlashcardQuizSetup: React.FC<FlashcardQuizSetupProps> = ({
 
           {/* Start Button */}
           <TouchableOpacity style={styles.startButton} onPress={handleStartGame}>
-            <Text style={styles.startButtonText}>Start Quiz</Text>
+            <Text style={styles.startButtonText}>{t('games.startQuiz')}</Text>
             <Ionicons name="play" size={22} color="white" />
           </TouchableOpacity>
           </TouchableOpacity>

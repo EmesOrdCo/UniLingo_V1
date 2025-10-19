@@ -15,12 +15,14 @@ import ArcadeGameLauncher from './ArcadeGameLauncher';
 import { ArcadeGame, ArcadeService } from '../../lib/arcadeService';
 import { XPService } from '../../lib/xpService';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTranslation } from '../../lib/i18n';
 
 interface ArcadeSectionProps {
   onGamePlayed?: () => void;
 }
 
 export default function ArcadeSection({ onGamePlayed }: ArcadeSectionProps) {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [games, setGames] = useState<ArcadeGame[]>([]);
   const [highScores, setHighScores] = useState<Map<string, number>>(new Map());
@@ -99,14 +101,14 @@ export default function ArcadeSection({ onGamePlayed }: ArcadeSectionProps) {
       const playCheck = await ArcadeService.canPlayGame(user.id, game.id);
       
       if (!playCheck.canPlay) {
-        alert(playCheck.message || 'Cannot play this game');
+        alert(playCheck.message || t('arcade.error.cannotPlay'));
         return;
       }
 
       // Purchase the game (spend XP)
       const purchase = await ArcadeService.purchaseGame(user.id, game.id);
       if (!purchase.success) {
-        alert(purchase.message || 'Failed to purchase game');
+        alert(purchase.message || t('arcade.error.purchaseFailed'));
         return;
       }
 
@@ -128,11 +130,11 @@ export default function ArcadeSection({ onGamePlayed }: ArcadeSectionProps) {
   };
 
   const categories = [
-    { id: 'all', name: 'All Games', icon: 'grid-outline' },
-    { id: 'puzzle', name: 'Puzzle', icon: 'extension-puzzle-outline' },
-    { id: 'arcade', name: 'Arcade', icon: 'game-controller-outline' },
-    { id: 'classic', name: 'Classic', icon: 'trophy-outline' },
-    { id: 'action', name: 'Action', icon: 'flash-outline' },
+    { id: 'all', name: t('arcade.categories.all'), icon: 'grid-outline' },
+    { id: 'puzzle', name: t('arcade.categories.puzzle'), icon: 'extension-puzzle-outline' },
+    { id: 'arcade', name: t('arcade.categories.arcade'), icon: 'game-controller-outline' },
+    { id: 'classic', name: t('arcade.categories.classic'), icon: 'trophy-outline' },
+    { id: 'action', name: t('arcade.categories.action'), icon: 'flash-outline' },
   ];
 
   const filteredGames = selectedCategory === 'all'
@@ -143,7 +145,7 @@ export default function ArcadeSection({ onGamePlayed }: ArcadeSectionProps) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#6366F1" />
-        <Text style={styles.loadingText}>Loading arcade games...</Text>
+        <Text style={styles.loadingText}>{t('arcade.loadingGames')}</Text>
       </View>
     );
   }
@@ -155,7 +157,7 @@ export default function ArcadeSection({ onGamePlayed }: ArcadeSectionProps) {
         <View style={styles.xpBannerContent}>
           <Ionicons name="star" size={24} color="#F59E0B" />
           <View style={styles.xpTextContainer}>
-            <Text style={styles.xpLabel}>Available XP</Text>
+            <Text style={styles.xpLabel}>{t('arcade.availableXP')}</Text>
             <Text style={styles.xpAmount}>{availableXP.toLocaleString()}</Text>
           </View>
           <TouchableOpacity 
@@ -165,7 +167,7 @@ export default function ArcadeSection({ onGamePlayed }: ArcadeSectionProps) {
             <Ionicons name="information-circle-outline" size={20} color="#8B5CF6" />
           </TouchableOpacity>
         </View>
-        <Text style={styles.xpSubtext}>Spend XP to unlock games</Text>
+        <Text style={styles.xpSubtext}>{t('arcade.spendXPToUnlock')}</Text>
       </View>
 
       {/* Category Filter */}
@@ -214,11 +216,11 @@ export default function ArcadeSection({ onGamePlayed }: ArcadeSectionProps) {
         {filteredGames.length === 0 ? (
           <View style={styles.emptyContainer}>
             <Ionicons name="game-controller-outline" size={64} color="#D1D5DB" />
-            <Text style={styles.emptyTitle}>No Games Found</Text>
+            <Text style={styles.emptyTitle}>{t('arcade.noGamesFound')}</Text>
             <Text style={styles.emptyText}>
               {selectedCategory === 'all'
-                ? 'No arcade games available at the moment.'
-                : `No ${selectedCategory} games available.`}
+                ? t('arcade.noGamesAvailable')
+                : t('arcade.noCategoryGames', { category: selectedCategory })}
             </Text>
           </View>
         ) : (
@@ -259,7 +261,7 @@ export default function ArcadeSection({ onGamePlayed }: ArcadeSectionProps) {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>XP System Explained</Text>
+              <Text style={styles.modalTitle}>{t('arcade.xpModal.title')}</Text>
               <TouchableOpacity 
                 onPress={() => setShowXPInfoModal(false)}
                 style={styles.closeButton}
@@ -272,27 +274,27 @@ export default function ArcadeSection({ onGamePlayed }: ArcadeSectionProps) {
               <View style={styles.explanationItem}>
                 <View style={styles.explanationHeader}>
                   <Ionicons name="trending-up" size={20} color="#10b981" />
-                  <Text style={styles.explanationTitle}>Total Earned XP</Text>
+                  <Text style={styles.explanationTitle}>{t('arcade.xpModal.totalEarnedTitle')}</Text>
                 </View>
                 <Text style={styles.explanationText}>
-                  This is your lifetime XP - all the experience points you've earned from lessons, games, flashcards, and exercises since you started using UniLingo.
+                  {t('arcade.xpModal.totalEarnedDescription')}
                 </Text>
               </View>
 
               <View style={styles.explanationItem}>
                 <View style={styles.explanationHeader}>
                   <Ionicons name="star" size={20} color="#F59E0B" />
-                  <Text style={styles.explanationTitle}>Available XP</Text>
+                  <Text style={styles.explanationTitle}>{t('arcade.xpModal.availableTitle')}</Text>
                 </View>
                 <Text style={styles.explanationText}>
-                  This is your current "currency" - XP that you can spend on arcade games, power-ups, or special features. Available XP is earned from completing activities and can be used immediately.
+                  {t('arcade.xpModal.availableDescription')}
                 </Text>
               </View>
 
               <View style={styles.divider} />
 
               <Text style={styles.summaryText}>
-                💡 <Text style={styles.summaryBold}>Quick tip:</Text> Complete lessons and games to earn both Total XP (for leveling up) and Available XP (for spending on fun features)!
+                {t('arcade.xpModal.tip')} <Text style={styles.summaryBold}>{t('arcade.xpModal.tipText')}</Text>
               </Text>
             </View>
           </View>

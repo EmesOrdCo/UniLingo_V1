@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Animated, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { useTranslation } from '../../lib/i18n';
 
 interface MinesweeperGameProps {
   gameData?: any;
@@ -27,6 +28,8 @@ type Cell = {
 };
 
 const MinesweeperGame: React.FC<MinesweeperGameProps> = ({ onClose, onGameComplete, onRestart }) => {
+  const { t } = useTranslation();
+  
   // Game state
   const [grid, setGrid] = useState<Cell[][]>([]);
   const [gameOver, setGameOver] = useState(false);
@@ -292,7 +295,7 @@ const MinesweeperGame: React.FC<MinesweeperGameProps> = ({ onClose, onGameComple
         <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
           <Ionicons name="close-circle" size={28} color="#EF4444" />
         </TouchableOpacity>
-        <Text style={styles.title}>MINESWEEPER</Text>
+        <Text style={styles.title}>{t('arcade.minesweeper.title')}</Text>
         <TouchableOpacity onPress={handleRestart} style={styles.restartHeaderButton}>
           <Ionicons name="refresh-circle" size={28} color="#3B82F6" />
         </TouchableOpacity>
@@ -314,11 +317,11 @@ const MinesweeperGame: React.FC<MinesweeperGameProps> = ({ onClose, onGameComple
       <View style={styles.instructionsBar}>
         <View style={styles.instructionItem}>
           <Ionicons name="hand-left" size={16} color="#6B7280" />
-          <Text style={styles.instructionText}>Tap: Reveal</Text>
+          <Text style={styles.instructionText}>{t('arcade.minesweeper.tap')}</Text>
         </View>
         <View style={styles.instructionItem}>
           <Ionicons name="flag" size={16} color="#EF4444" />
-          <Text style={styles.instructionText}>Hold: Flag</Text>
+          <Text style={styles.instructionText}>{t('arcade.minesweeper.hold')}</Text>
         </View>
       </View>
 
@@ -385,25 +388,25 @@ const MinesweeperGame: React.FC<MinesweeperGameProps> = ({ onClose, onGameComple
       <View style={styles.legend}>
         <View style={styles.legendItem}>
           <View style={[styles.legendCell, styles.legendUnrevealed]} />
-          <Text style={styles.legendText}>Hidden</Text>
+          <Text style={styles.legendText}>{t('arcade.minesweeper.hidden')}</Text>
         </View>
         <View style={styles.legendItem}>
           <View style={[styles.legendCell, styles.legendRevealed]}>
             <Text style={styles.legendNumber}>3</Text>
           </View>
-          <Text style={styles.legendText}>Number</Text>
+          <Text style={styles.legendText}>{t('arcade.minesweeper.number')}</Text>
         </View>
         <View style={styles.legendItem}>
           <View style={[styles.legendCell, styles.legendFlagged]}>
             <Ionicons name="flag" size={12} color="#EF4444" />
           </View>
-          <Text style={styles.legendText}>Flag</Text>
+          <Text style={styles.legendText}>{t('arcade.minesweeper.flag')}</Text>
         </View>
         <View style={styles.legendItem}>
           <View style={[styles.legendCell, styles.legendMine]}>
             <Ionicons name="nuclear" size={12} color="#FFFFFF" />
           </View>
-          <Text style={styles.legendText}>Mine</Text>
+          <Text style={styles.legendText}>{t('arcade.minesweeper.mine')}</Text>
         </View>
       </View>
 
@@ -412,18 +415,18 @@ const MinesweeperGame: React.FC<MinesweeperGameProps> = ({ onClose, onGameComple
         <View style={styles.overlay}>
           <View style={styles.winCard}>
             <Ionicons name="trophy" size={64} color="#F59E0B" />
-            <Text style={styles.winTitle}>You Win!</Text>
-            <Text style={styles.winTime}>Time: {timer}s</Text>
-            <Text style={styles.winScore}>Score: {Math.max(1000 - timer * 10, 100)}</Text>
-            <Text style={styles.winSubtext}>Faster time = Higher score!</Text>
+            <Text style={styles.winTitle}>{t('arcade.minesweeper.youWin')}</Text>
+            <Text style={styles.winTime}>{t('arcade.minesweeper.time', { time: timer })}</Text>
+            <Text style={styles.winScore}>{t('arcade.minesweeper.score', { score: Math.max(1000 - timer * 10, 100) })}</Text>
+            <Text style={styles.winSubtext}>{t('arcade.minesweeper.fasterTime')}</Text>
             <View style={styles.buttonRow}>
               <TouchableOpacity style={styles.playAgainButton} onPress={handleRestart}>
                 <Ionicons name="refresh" size={20} color="#FFFFFF" />
-                <Text style={styles.buttonText}>Play Again</Text>
+                <Text style={styles.buttonText}>{t('arcade.minesweeper.playAgain')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.exitButton} onPress={handleClose}>
                 <Ionicons name="exit" size={20} color="#FFFFFF" />
-                <Text style={styles.buttonText}>Exit</Text>
+                <Text style={styles.buttonText}>{t('arcade.minesweeper.exit')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -435,17 +438,17 @@ const MinesweeperGame: React.FC<MinesweeperGameProps> = ({ onClose, onGameComple
         <View style={styles.overlay}>
           <View style={styles.gameOverCard}>
             <Ionicons name="nuclear" size={64} color="#EF4444" />
-            <Text style={styles.gameOverTitle}>Boom!</Text>
-            <Text style={styles.gameOverText}>You hit a mine!</Text>
-            <Text style={styles.gameOverTime}>Time survived: {timer}s</Text>
+            <Text style={styles.gameOverTitle}>{t('arcade.minesweeper.boom')}</Text>
+            <Text style={styles.gameOverText}>{t('arcade.minesweeper.youHitMine')}</Text>
+            <Text style={styles.gameOverTime}>{t('arcade.minesweeper.timeSurvived', { time: timer })}</Text>
             <View style={styles.buttonRow}>
               <TouchableOpacity style={styles.tryAgainButton} onPress={handleRestart}>
                 <Ionicons name="refresh" size={20} color="#FFFFFF" />
-                <Text style={styles.buttonText}>Try Again</Text>
+                <Text style={styles.buttonText}>{t('arcade.minesweeper.tryAgain')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.exitButton} onPress={handleClose}>
                 <Ionicons name="exit" size={20} color="#FFFFFF" />
-                <Text style={styles.buttonText}>Exit</Text>
+                <Text style={styles.buttonText}>{t('arcade.minesweeper.exit')}</Text>
               </TouchableOpacity>
             </View>
           </View>

@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Animated } from '
 import { Ionicons } from '@expo/vector-icons';
 import { PanGestureHandler, State } from 'react-native-gesture-handler';
 import * as Haptics from 'expo-haptics';
+import { useTranslation } from '../../lib/i18n';
 
 interface Game2048Props {
   gameData?: any;
@@ -28,6 +29,8 @@ type Tile = {
 };
 
 const Game2048: React.FC<Game2048Props> = ({ onClose, onGameComplete, onRestart }) => {
+  const { t } = useTranslation();
+  
   // Game state
   const [tiles, setTiles] = useState<Tile[]>([]);
   const [score, setScore] = useState(0);
@@ -429,11 +432,11 @@ const Game2048: React.FC<Game2048Props> = ({ onClose, onGameComplete, onRestart 
       {/* Score Board */}
       <View style={styles.scoreBoard}>
         <View style={styles.scoreBox}>
-          <Text style={styles.scoreLabel}>SCORE</Text>
+          <Text style={styles.scoreLabel}>{t('arcade.2048.score')}</Text>
           <Text style={styles.scoreValue}>{score}</Text>
         </View>
         <View style={styles.scoreBox}>
-          <Text style={styles.scoreLabel}>BEST</Text>
+          <Text style={styles.scoreLabel}>{t('arcade.2048.best')}</Text>
           <Text style={styles.scoreValue}>{bestScore}</Text>
         </View>
       </View>
@@ -506,7 +509,7 @@ const Game2048: React.FC<Game2048Props> = ({ onClose, onGameComplete, onRestart 
       {/* Instructions */}
       <View style={styles.instructions}>
         <Text style={styles.instructionsText}>
-          Swipe to move tiles. When two tiles with the same number touch, they merge!
+          {t('arcade.2048.instructions')}
         </Text>
       </View>
 
@@ -515,16 +518,16 @@ const Game2048: React.FC<Game2048Props> = ({ onClose, onGameComplete, onRestart 
         <View style={styles.overlay}>
           <View style={styles.winCard}>
             <Ionicons name="trophy" size={64} color="#EDC22E" />
-            <Text style={styles.winTitle}>You Win!</Text>
-            <Text style={styles.winScore}>Score: {score}</Text>
+            <Text style={styles.winTitle}>{t('arcade.2048.youWin')}</Text>
+            <Text style={styles.winScore}>{t('arcade.2048.scoreLabel', { score })}</Text>
             <View style={styles.buttonRow}>
               <TouchableOpacity style={styles.continueButton} onPress={handleContinue}>
                 <Ionicons name="play" size={20} color="#FFFFFF" />
-                <Text style={styles.buttonText}>Keep Going</Text>
+                <Text style={styles.buttonText}>{t('arcade.2048.keepGoing')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.newGameButton} onPress={handleRestart}>
                 <Ionicons name="refresh" size={20} color="#FFFFFF" />
-                <Text style={styles.buttonText}>New Game</Text>
+                <Text style={styles.buttonText}>{t('arcade.2048.newGame')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -536,17 +539,17 @@ const Game2048: React.FC<Game2048Props> = ({ onClose, onGameComplete, onRestart 
         <View style={styles.overlay}>
           <View style={styles.gameOverCard}>
             <Ionicons name="close-circle" size={64} color="#EF4444" />
-            <Text style={styles.gameOverTitle}>Game Over!</Text>
-            <Text style={styles.finalScore}>Final Score: {score}</Text>
-            {score > bestScore && <Text style={styles.newBestText}>New Best!</Text>}
+            <Text style={styles.gameOverTitle}>{t('arcade.2048.gameOver')}</Text>
+            <Text style={styles.finalScore}>{t('arcade.2048.finalScore', { score })}</Text>
+            {score > bestScore && <Text style={styles.newBestText}>{t('arcade.2048.newBest')}</Text>}
             <View style={styles.buttonRow}>
               <TouchableOpacity style={styles.tryAgainButton} onPress={handleRestart}>
                 <Ionicons name="refresh" size={20} color="#FFFFFF" />
-                <Text style={styles.buttonText}>Try Again</Text>
+                <Text style={styles.buttonText}>{t('arcade.2048.tryAgain')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.exitButton} onPress={handleClose}>
                 <Ionicons name="exit" size={20} color="#FFFFFF" />
-                <Text style={styles.buttonText}>Exit</Text>
+                <Text style={styles.buttonText}>{t('arcade.2048.exit')}</Text>
               </TouchableOpacity>
             </View>
           </View>

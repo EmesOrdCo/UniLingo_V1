@@ -5,88 +5,15 @@ import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { useSelectedUnit } from '../contexts/SelectedUnitContext';
 import { DailyChallengeService, DailyChallenge } from '../lib/dailyChallengeService';
+import { useTranslation } from '../lib/i18n';
 
 interface DailyChallengeBoxProps {
   refreshTrigger?: number;
 }
 
-// Define all available challenges
-const DAILY_CHALLENGES = [
-  {
-    id: 'flashcard_quiz',
-    title: 'Flashcard Quiz',
-    description: 'Test your vocabulary knowledge',
-    icon: 'card' as const,
-    color: '#8b5cf6',
-    type: 'game'
-  },
-  {
-    id: 'gravity_game',
-    title: 'Gravity Defense',
-    description: 'Destroy meteors with correct answers',
-    icon: 'planet' as const,
-    color: '#8b5cf6',
-    type: 'game'
-  },
-  {
-    id: 'hangman',
-    title: 'Hangman Challenge',
-    description: 'Guess the word letter by letter',
-    icon: 'help-circle' as const,
-    color: '#8b5cf6',
-    type: 'game'
-  },
-  {
-    id: 'memory_match',
-    title: 'Memory Match',
-    description: 'Match vocabulary pairs',
-    icon: 'grid' as const,
-    color: '#8b5cf6',
-    type: 'game'
-  },
-  {
-    id: 'sentence_scramble',
-    title: 'Sentence Scramble',
-    description: 'Unscramble the sentences',
-    icon: 'shuffle' as const,
-    color: '#8b5cf6',
-    type: 'game'
-  },
-  {
-    id: 'speed_challenge',
-    title: 'Speed Challenge',
-    description: 'Answer as fast as you can',
-    icon: 'flash' as const,
-    color: '#8b5cf6',
-    type: 'game'
-  },
-  {
-    id: 'type_what_you_hear',
-    title: 'Type What You Hear',
-    description: 'Listen and type the words',
-    icon: 'headset' as const,
-    color: '#8b5cf6',
-    type: 'game'
-  },
-  {
-    id: 'word_scramble',
-    title: 'Word Scramble',
-    description: 'Unscramble the vocabulary',
-    icon: 'text' as const,
-    color: '#8b5cf6',
-    type: 'game'
-  },
-  {
-    id: 'daily_vocab',
-    title: 'Daily Vocabulary',
-    description: 'Learn new words today',
-    icon: 'book' as const,
-    color: '#8b5cf6',
-    type: 'vocab'
-  }
-];
 
 export default function DailyChallengeBox({ refreshTrigger }: DailyChallengeBoxProps) {
+  const { t } = useTranslation();
   const [challenge, setChallenge] = useState<DailyChallenge | null>(null);
   const [isCompleted, setIsCompleted] = useState(false);
   const [isLaunching, setIsLaunching] = useState(false);
@@ -94,6 +21,82 @@ export default function DailyChallengeBox({ refreshTrigger }: DailyChallengeBoxP
   const navigation = useNavigation();
   const { user } = useAuth();
   const { selectedUnit } = useSelectedUnit();
+
+  // Define all available challenges with translations
+  const DAILY_CHALLENGES = [
+    {
+      id: 'flashcard_quiz',
+      title: t('games.flashcardQuiz'),
+      description: t('dailyChallenge.flashcardQuizDescription'),
+      icon: 'card' as const,
+      color: '#8b5cf6',
+      type: 'game'
+    },
+    {
+      id: 'gravity_game',
+      title: t('games.gravityGame'),
+      description: t('dailyChallenge.gravityGameDescription'),
+      icon: 'planet' as const,
+      color: '#8b5cf6',
+      type: 'game'
+    },
+    {
+      id: 'hangman',
+      title: t('games.hangman'),
+      description: t('dailyChallenge.hangmanDescription'),
+      icon: 'help-circle' as const,
+      color: '#8b5cf6',
+      type: 'game'
+    },
+    {
+      id: 'memory_match',
+      title: t('games.memoryMatch'),
+      description: t('dailyChallenge.memoryMatchDescription'),
+      icon: 'grid' as const,
+      color: '#8b5cf6',
+      type: 'game'
+    },
+    {
+      id: 'sentence_scramble',
+      title: t('games.sentenceScramble'),
+      description: t('dailyChallenge.sentenceScrambleDescription'),
+      icon: 'shuffle' as const,
+      color: '#8b5cf6',
+      type: 'game'
+    },
+    {
+      id: 'speed_challenge',
+      title: t('games.speedChallenge'),
+      description: t('dailyChallenge.speedChallengeDescription'),
+      icon: 'flash' as const,
+      color: '#8b5cf6',
+      type: 'game'
+    },
+    {
+      id: 'type_what_you_hear',
+      title: t('games.typeWhatYouHear'),
+      description: t('dailyChallenge.typeWhatYouHearDescription'),
+      icon: 'headset' as const,
+      color: '#8b5cf6',
+      type: 'game'
+    },
+    {
+      id: 'word_scramble',
+      title: t('games.wordScramble'),
+      description: t('dailyChallenge.wordScrambleDescription'),
+      icon: 'text' as const,
+      color: '#8b5cf6',
+      type: 'game'
+    },
+    {
+      id: 'daily_vocab',
+      title: t('dailyChallenge.dailyVocabulary'),
+      description: t('dailyChallenge.dailyVocabularyDescription'),
+      icon: 'book' as const,
+      color: '#8b5cf6',
+      type: 'vocab'
+    }
+  ];
 
   // Load today's challenge
   useEffect(() => {
@@ -255,7 +258,7 @@ export default function DailyChallengeBox({ refreshTrigger }: DailyChallengeBoxP
           difficulty: 'all',
           selectedTopic: 'All Topics'
         };
-      case 'Listen & Type':
+      case t('games.typeWhatYouHear'):
         return {
           wordCount: 10,
           difficulty: 'all',
@@ -281,7 +284,7 @@ export default function DailyChallengeBox({ refreshTrigger }: DailyChallengeBoxP
       case 'Hangman': return 'game-controller';
       case 'Speed Challenge': return 'timer';
       case 'Planet Defense': return 'planet';
-      case 'Listen & Type': return 'headset';
+      case t('games.typeWhatYouHear'): return 'headset';
       case 'Sentence Scramble': return 'shuffle';
       case 'Daily Vocabulary': return 'book';
       default: return 'trophy';
@@ -330,10 +333,30 @@ export default function DailyChallengeBox({ refreshTrigger }: DailyChallengeBoxP
                   />
                 </View>
                 <View style={styles.challengeInfo}>
-                  <Text style={styles.challengeTitle}>{challenge.game_type}</Text>
+                  <Text style={styles.challengeTitle}>
+                    {(() => {
+                      // Handle both old English names and new IDs
+                      const challengeData = DAILY_CHALLENGES.find(c => c.id === challenge.game_type);
+                      if (challengeData) {
+                        return challengeData.title;
+                      }
+                      // Fallback: try to find by old English name
+                      const oldNameMap: { [key: string]: string } = {
+                        'Listen & Type': t('games.typeWhatYouHear'),
+                        'Flashcard Quiz': t('games.flashcardQuiz'),
+                        'Memory Match': t('games.memoryMatch'),
+                        'Word Scramble': t('games.wordScramble'),
+                        'Hangman': t('games.hangman'),
+                        'Speed Challenge': t('games.speedChallenge'),
+                        'Planet Defense': t('games.gravityGame'),
+                        'Sentence Scramble': t('games.sentenceScramble'),
+                      };
+                      return oldNameMap[challenge.game_type] || challenge.game_type;
+                    })()}
+                  </Text>
                   <Text style={styles.challengeDescription}>
                     {isCompleted 
-                      ? `Completed! +${challenge.xp_reward} XP earned`
+                      ? `${t('dailyChallenge.completed')} +${challenge.xp_reward} ${t('dailyChallenge.xpEarned')}`
                       : `Complete to earn ${challenge.xp_reward} bonus XP`
                     }
                   </Text>

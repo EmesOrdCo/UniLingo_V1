@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Animated, PanResponder } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { useTranslation } from '../../lib/i18n';
 
 interface PongGameProps {
   gameData?: any;
@@ -31,6 +32,8 @@ type Ball = {
 };
 
 const PongGame: React.FC<PongGameProps> = ({ onClose, onGameComplete, onRestart }) => {
+  const { t } = useTranslation();
+  
   // Game state
   const [playerPaddleY, setPlayerPaddleY] = useState(GAME_HEIGHT / 2 - PADDLE_HEIGHT / 2);
   const [aiPaddleY, setAiPaddleY] = useState(GAME_HEIGHT / 2 - PADDLE_HEIGHT / 2);
@@ -411,7 +414,7 @@ const PongGame: React.FC<PongGameProps> = ({ onClose, onGameComplete, onRestart 
         <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
           <Ionicons name="close-circle" size={28} color="#EF4444" />
         </TouchableOpacity>
-        <Text style={styles.title}>PONG</Text>
+        <Text style={styles.title}>{t('arcade.pong.title')}</Text>
         <TouchableOpacity onPress={() => setIsPaused(!isPaused)} style={styles.pauseButton}>
           <Ionicons name={isPaused ? 'play-circle' : 'pause-circle'} size={28} color="#3B82F6" />
         </TouchableOpacity>
@@ -421,12 +424,12 @@ const PongGame: React.FC<PongGameProps> = ({ onClose, onGameComplete, onRestart 
       <View style={styles.scoreContainer}>
         <View style={styles.scoreDisplay}>
           <View style={styles.scoreSection}>
-            <Text style={styles.scoreLabel}>AI</Text>
+            <Text style={styles.scoreLabel}>{t('arcade.pong.ai')}</Text>
             <Text style={styles.scoreValue}>{aiScore}</Text>
           </View>
           <View style={styles.scoreDivider} />
           <View style={styles.scoreSection}>
-            <Text style={styles.scoreLabel}>YOU</Text>
+            <Text style={styles.scoreLabel}>{t('arcade.pong.you')}</Text>
             <Text style={styles.scoreValue}>{playerScore}</Text>
           </View>
         </View>
@@ -492,7 +495,7 @@ const PongGame: React.FC<PongGameProps> = ({ onClose, onGameComplete, onRestart 
             activeOpacity={0.9}
           >
             <View style={styles.startMessage}>
-              <Text style={styles.startText}>TAP TO START</Text>
+              <Text style={styles.startText}>{t('arcade.pong.tapToStart')}</Text>
               <Ionicons name="play-circle" size={48} color="#FFFFFF" />
             </View>
           </TouchableOpacity>
@@ -516,23 +519,23 @@ const PongGame: React.FC<PongGameProps> = ({ onClose, onGameComplete, onRestart 
               color={playerWon ? '#F59E0B' : '#EF4444'} 
             />
             <Text style={styles.resultTitle}>
-              {playerWon ? 'You Win!' : 'You Lose!'}
+              {playerWon ? t('arcade.pong.youWin') : t('arcade.pong.youLose')}
             </Text>
             <View style={styles.finalScoreDisplay}>
-              <Text style={styles.finalScoreText}>YOU</Text>
+              <Text style={styles.finalScoreText}>{t('arcade.pong.you')}</Text>
               <Text style={styles.finalScoreValue}>{playerScore}</Text>
               <Text style={styles.finalScoreDivider}>-</Text>
               <Text style={styles.finalScoreValue}>{aiScore}</Text>
-              <Text style={styles.finalScoreText}>AI</Text>
+              <Text style={styles.finalScoreText}>{t('arcade.pong.ai')}</Text>
             </View>
             <View style={styles.buttonRow}>
               <TouchableOpacity style={styles.restartButton} onPress={handleRestart}>
                 <Ionicons name="refresh" size={20} color="#FFFFFF" />
-                <Text style={styles.buttonText}>Play Again</Text>
+                <Text style={styles.buttonText}>{t('arcade.pong.playAgain')}</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.exitButton} onPress={handleClose}>
                 <Ionicons name="exit" size={20} color="#FFFFFF" />
-                <Text style={styles.buttonText}>Exit</Text>
+                <Text style={styles.buttonText}>{t('arcade.pong.exit')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -544,11 +547,11 @@ const PongGame: React.FC<PongGameProps> = ({ onClose, onGameComplete, onRestart 
         <View style={styles.overlay}>
           <View style={styles.pausedCard}>
             <Ionicons name="pause-circle" size={64} color="#3B82F6" />
-            <Text style={styles.pausedTitle}>Paused</Text>
+            <Text style={styles.pausedTitle}>{t('arcade.pong.paused')}</Text>
             <Text style={styles.pausedScore}>{aiScore} - {playerScore}</Text>
             <TouchableOpacity style={styles.resumeButton} onPress={() => setIsPaused(false)}>
               <Ionicons name="play" size={20} color="#FFFFFF" />
-              <Text style={styles.buttonText}>Resume</Text>
+              <Text style={styles.buttonText}>{t('arcade.pong.resume')}</Text>
             </TouchableOpacity>
           </View>
         </View>

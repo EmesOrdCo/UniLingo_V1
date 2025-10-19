@@ -425,7 +425,7 @@ export class GameDataService {
       return { isValid: false, error: 'No valid flashcards found' };
     }
     
-    if (validCards.length < 3 && gameType !== 'Memory Match') {
+    if (validCards.length < 3 && gameType !== 'memory_match') {
       return { isValid: false, error: 'Need at least 3 flashcards for this game' };
     }
     
