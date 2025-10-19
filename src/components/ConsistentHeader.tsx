@@ -92,7 +92,7 @@ export default function ConsistentHeader({
           style={styles.settingsButton}
           onPress={() => navigation.navigate('Settings' as never)}
         >
-          <Ionicons name="settings-outline" size={24} color={darkMode ? "#ffffff" : "#64748b"} />
+          <Ionicons name="language-outline" size={24} color={darkMode ? "#ffffff" : "#64748b"} />
         </TouchableOpacity>
         
         <TouchableOpacity 

@@ -53,62 +53,6 @@ export default function SettingsScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Demo Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Translation Demo</Text>
-          
-          <View style={styles.demoCard}>
-            <Text style={styles.demoTitle}>Common UI Elements</Text>
-            <View style={styles.demoRow}>
-              <Text style={styles.demoLabel}>Loading:</Text>
-              <Text style={styles.demoValue}>{t('common.loading')}</Text>
-            </View>
-            <View style={styles.demoRow}>
-              <Text style={styles.demoLabel}>Success:</Text>
-              <Text style={styles.demoValue}>{t('common.success')}</Text>
-            </View>
-            <View style={styles.demoRow}>
-              <Text style={styles.demoLabel}>Error:</Text>
-              <Text style={styles.demoValue}>{t('common.error')}</Text>
-            </View>
-            <View style={styles.demoRow}>
-              <Text style={styles.demoLabel}>Cancel:</Text>
-              <Text style={styles.demoValue}>{t('common.cancel')}</Text>
-            </View>
-          </View>
-
-          <View style={styles.demoCard}>
-            <Text style={styles.demoTitle}>Navigation</Text>
-            <View style={styles.demoRow}>
-              <Text style={styles.demoLabel}>Home:</Text>
-              <Text style={styles.demoValue}>{t('nav.home')}</Text>
-            </View>
-            <View style={styles.demoRow}>
-              <Text style={styles.demoLabel}>Games:</Text>
-              <Text style={styles.demoValue}>{t('nav.games')}</Text>
-            </View>
-            <View style={styles.demoRow}>
-              <Text style={styles.demoLabel}>Profile:</Text>
-              <Text style={styles.demoValue}>{t('nav.profile')}</Text>
-            </View>
-          </View>
-
-          <View style={styles.demoCard}>
-            <Text style={styles.demoTitle}>Games</Text>
-            <View style={styles.demoRow}>
-              <Text style={styles.demoLabel}>Flashcard Quiz:</Text>
-              <Text style={styles.demoValue}>{t('games.flashcardQuiz')}</Text>
-            </View>
-            <View style={styles.demoRow}>
-              <Text style={styles.demoLabel}>Hangman:</Text>
-              <Text style={styles.demoValue}>{t('games.hangman')}</Text>
-            </View>
-            <View style={styles.demoRow}>
-              <Text style={styles.demoLabel}>Start Quiz:</Text>
-              <Text style={styles.demoValue}>{t('games.startQuiz')}</Text>
-            </View>
-          </View>
-        </View>
       </ScrollView>
 
       <LanguageSelector
@@ -192,37 +136,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#64748b',
     marginTop: 2,
-  },
-  demoCard: {
-    backgroundColor: '#f8fafc',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
-  demoTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1e293b',
-    marginBottom: 12,
-  },
-  demoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 4,
-  },
-  demoLabel: {
-    fontSize: 14,
-    color: '#64748b',
-    flex: 1,
-  },
-  demoValue: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#1e293b',
-    flex: 1,
-    textAlign: 'right',
   },
 });
