@@ -26,12 +26,14 @@ import { ImageUploadService, ImageUploadProgress } from '../lib/imageUploadServi
 import ImagePreviewModal from '../components/ImagePreviewModal';
 import ImageProcessingModal from '../components/ImageProcessingModal';
 import HybridAudioLessonUsageService, { AudioLessonUsage } from '../lib/hybridAudioLessonUsageService';
+import { useI18n } from '../lib/i18n';
 
 const { width: screenWidth } = Dimensions.get('window');
 
 export default function AudioRecapScreen() {
   const navigation = useNavigation();
   const { user, profile } = useAuth();
+  const { t, currentLanguage } = useI18n();
   const [isUploading, setIsUploading] = useState(false);
   const [audioLessons, setAudioLessons] = useState<SimpleAudioLesson[]>([]);
   
@@ -69,8 +71,34 @@ export default function AudioRecapScreen() {
   const [usageAnimation] = useState(new Animated.Value(0));
 
   // Get user's language preferences from profile
-  const nativeLanguage = profile?.native_language || 'English';
-  const targetLanguage = profile?.target_language || 'English';
+  const nativeLanguage = profile?.native_language || 'en-GB';
+  const targetLanguage = profile?.target_language || 'en-GB';
+
+  // Function to translate usage status text
+  const getTranslatedUsageStatusText = (usage: AudioLessonUsage | null): string => {
+    if (!usage) return t('audioRecap.lowUsage');
+    
+    const percentage = HybridAudioLessonUsageService.getUsagePercentage(usage);
+    
+    if (percentage < 50) return t('audioRecap.lowUsage');
+    if (percentage < 75) return t('audioRecap.moderateUsage');
+    if (percentage < 90) return t('audioRecap.nearLimit');
+    if (percentage < 100) return t('audioRecap.almostFull');
+    return t('audioRecap.limitReached');
+  };
+
+  // Function to translate month display
+  const getTranslatedMonthYear = (monthYear: string): string => {
+    if (!monthYear) return 'Unknown';
+    
+    const [year, month] = monthYear.split('-');
+    const date = new Date(parseInt(year), parseInt(month) - 1);
+    
+    return date.toLocaleDateString(currentLanguage === 'de' ? 'de-DE' : 'en-US', { 
+      year: 'numeric', 
+      month: 'long' 
+    });
+  };
 
   // Load user's audio lessons and usage when user changes
   useEffect(() => {
@@ -137,7 +165,7 @@ export default function AudioRecapScreen() {
 
   const handleCreateAudioLesson = async () => {
     if (!user) {
-      Alert.alert('Error', 'Please log in to create audio lessons');
+      Alert.alert(t('common.error'), t('audioRecap.pleaseLogin'));
       return;
     }
 
@@ -161,7 +189,7 @@ export default function AudioRecapScreen() {
       setUsage(currentUsage);
     } catch (error) {
       console.error('Error checking usage limits:', error);
-      Alert.alert('Error', 'Failed to check usage limits. Please try again.');
+      Alert.alert(t('common.error'), t('audioRecap.failedToProcessImages'));
       return;
     }
 
@@ -177,7 +205,7 @@ export default function AudioRecapScreen() {
 
       // Check if we have a valid result with assets
       if (!result.assets || result.assets.length === 0) {
-        Alert.alert('Error', 'No file was selected');
+        Alert.alert(t('common.error'), t('audioRecap.failedToProcessImages'));
         return;
       }
 
@@ -192,13 +220,13 @@ export default function AudioRecapScreen() {
       setShowNameModal(true);
     } catch (error: any) {
       console.error('Error selecting file:', error);
-      Alert.alert('Error', error.message || 'Failed to select file');
+      Alert.alert(t('common.error'), error.message || t('audioRecap.failedToProcessImages'));
     }
   };
 
   const handleConfirmLessonName = async () => {
     if (!lessonName.trim()) {
-      Alert.alert('Error', 'Please enter a lesson name');
+      Alert.alert(t('common.error'), t('audioRecap.pleaseEnterName'));
       return;
     }
 
@@ -212,7 +240,7 @@ export default function AudioRecapScreen() {
       setShowProgressModal(true);
       setProgressStage('uploading');
       setProgressPercent(10);
-      setProgressMessage('Uploading your PDF file...');
+      setProgressMessage(t('audioRecap.uploadingPDF'));
 
       const file = selectedFile;
       let extractedText: string;
@@ -223,7 +251,7 @@ export default function AudioRecapScreen() {
         console.log('📸 Using text extracted from images...');
         setProgressStage('extracting');
         setProgressPercent(30);
-        setProgressMessage('Processing extracted text...');
+        setProgressMessage(t('audioRecap.processingText'));
         extractedText = file.extractedText;
         console.log(`✅ Using ${extractedText.length} characters from images`);
       } else {
@@ -239,7 +267,7 @@ export default function AudioRecapScreen() {
         console.log('📄 Extracting text from PDF...');
         setProgressStage('extracting');
         setProgressPercent(30);
-        setProgressMessage('Extracting text from your PDF...');
+        setProgressMessage(t('audioRecap.extractingText'));
         
         const pdfResponse = await fetch(getBackendUrl('/api/process-pdf'), {
           method: 'POST',
@@ -266,7 +294,7 @@ export default function AudioRecapScreen() {
       // Step 2: Generate lesson content
       setProgressStage('generating');
       setProgressPercent(50);
-      setProgressMessage('Generating lesson content with AI...');
+      setProgressMessage(t('audioRecap.generatingContent'));
       
       console.log('🎵 Creating audio lesson...');
       console.log('🎵 Creating audio lesson with:');
@@ -277,7 +305,7 @@ export default function AudioRecapScreen() {
       // Step 3: Create audio
       setProgressStage('creating-audio');
       setProgressPercent(70);
-      setProgressMessage('Creating audio files...');
+      setProgressMessage(t('audioRecap.creatingAudio'));
       
       const audioResult = await SimpleAudioLessonService.createAudioLessonFromPDF(
         extractedText,
@@ -290,11 +318,11 @@ export default function AudioRecapScreen() {
       // Step 4: Finalize
       setProgressStage('finalizing');
       setProgressPercent(90);
-      setProgressMessage('Finalizing your lesson...');
+      setProgressMessage(t('audioRecap.finalizing'));
 
       if (audioResult.success && audioResult.audioLesson) {
         setProgressPercent(100);
-        setProgressMessage('Lesson created successfully!');
+        setProgressMessage(t('audioRecap.lessonCreated'));
         
         // Wait a moment to show 100%
         await new Promise(resolve => setTimeout(resolve, 500));
@@ -305,9 +333,9 @@ export default function AudioRecapScreen() {
         setShowProgressModal(false);
         
         Alert.alert(
-          'Success!',
-          `Audio lesson "${audioResult.audioLesson.title}" created successfully!`,
-          [{ text: 'OK' }]
+          t('audioRecap.success'),
+          t('audioRecap.lessonCreatedSuccess', { lessonTitle: audioResult.audioLesson.title }),
+          [{ text: t('common.ok') }]
         );
       } else {
         throw new Error(audioResult.error || 'Failed to create audio lesson');
@@ -315,7 +343,7 @@ export default function AudioRecapScreen() {
     } catch (error: any) {
       console.error('Error creating audio lesson:', error);
       setShowProgressModal(false);
-      Alert.alert('Error', error.message || 'Failed to create audio lesson');
+      Alert.alert(t('common.error'), error.message || t('audioRecap.failedToProcessImages'));
     } finally {
       setIsUploading(false);
       setSelectedFile(null);
@@ -326,7 +354,7 @@ export default function AudioRecapScreen() {
   // Image handling functions
   const handleImagePick = async () => {
     if (!user) {
-      Alert.alert('Error', 'Please log in to create audio lessons');
+      Alert.alert(t('common.error'), t('audioRecap.pleaseLogin'));
       return;
     }
 
@@ -336,14 +364,14 @@ export default function AudioRecapScreen() {
       setShowImagePreview(true);
     } catch (error) {
       if (error instanceof Error && !error.message.includes('cancelled')) {
-        Alert.alert('Error', error.message);
+        Alert.alert(t('common.error'), error.message);
       }
     }
   };
 
   const handleTakePhoto = async () => {
     if (!user) {
-      Alert.alert('Error', 'Please log in to create audio lessons');
+      Alert.alert(t('common.error'), t('audioRecap.pleaseLogin'));
       return;
     }
 
@@ -353,7 +381,7 @@ export default function AudioRecapScreen() {
       setShowImagePreview(true);
     } catch (error) {
       if (error instanceof Error && !error.message.includes('cancelled')) {
-        Alert.alert('Error', error.message);
+        Alert.alert(t('common.error'), error.message);
       }
     }
   };
@@ -369,26 +397,26 @@ export default function AudioRecapScreen() {
       const combinedImages = [...selectedImages, ...newImages];
       
       if (combinedImages.length > 5) {
-        Alert.alert('Too Many Images', 'Maximum 5 images allowed. Please select fewer images.');
+        Alert.alert(t('audioRecap.tooManyImages'), t('audioRecap.maxImagesMessage'));
         return;
       }
       
       setSelectedImages(combinedImages);
     } catch (error) {
       if (error instanceof Error && !error.message.includes('cancelled')) {
-        Alert.alert('Error', error.message);
+        Alert.alert(t('common.error'), error.message);
       }
     }
   };
 
   const handleProcessImages = async () => {
     if (!user) {
-      Alert.alert('Error', 'Please log in to create audio lessons');
+      Alert.alert(t('common.error'), t('audioRecap.pleaseLogin'));
       return;
     }
 
     if (selectedImages.length === 0) {
-      Alert.alert('Error', 'Please select at least one image');
+      Alert.alert(t('common.error'), t('audioRecap.pleaseSelectImage'));
       return;
     }
 
@@ -429,7 +457,7 @@ export default function AudioRecapScreen() {
     } catch (error: any) {
       console.error('Error processing images:', error);
       setShowImageProcessingModal(false);
-      Alert.alert('Error', error.message || 'Failed to process images');
+      Alert.alert(t('common.error'), error.message || t('audioRecap.failedToProcessImages'));
     } finally {
       setIsUploading(false);
       setSelectedImages([]);
@@ -438,7 +466,7 @@ export default function AudioRecapScreen() {
 
   const handlePlayAudioLesson = (lesson: SimpleAudioLesson) => {
     if (!user) {
-      Alert.alert('Error', 'Please log in to play audio lessons');
+      Alert.alert(t('common.error'), t('audioRecap.pleaseLoginToPlay'));
       return;
     }
 
@@ -453,25 +481,25 @@ export default function AudioRecapScreen() {
     if (!user) return;
 
     Alert.alert(
-      'Delete Audio Lesson',
-      'Are you sure you want to delete this audio lesson?',
+      t('audioRecap.deleteLesson'),
+      t('audioRecap.deleteConfirmation'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         { 
-          text: 'Delete', 
+          text: t('common.delete'), 
           style: 'destructive',
           onPress: async () => {
             try {
                   const success = await SimpleAudioLessonService.deleteAudioLesson(lessonId, user.id);
               if (success) {
                 await loadAudioLessons(user.id);
-                Alert.alert('Success', 'Audio lesson deleted successfully');
+                Alert.alert(t('common.success'), t('audioRecap.deleteSuccess'));
               } else {
-                Alert.alert('Error', 'Failed to delete audio lesson');
+                Alert.alert(t('common.error'), t('audioRecap.deleteError'));
               }
             } catch (error) {
               console.error('Error deleting audio lesson:', error);
-              Alert.alert('Error', 'Failed to delete audio lesson');
+              Alert.alert(t('common.error'), t('audioRecap.deleteError'));
             }
           }
         }
@@ -483,12 +511,12 @@ export default function AudioRecapScreen() {
     if (!user) return;
     
     Alert.alert(
-      'Fix Audio Durations',
-      'This will check and fix the duration for all your audio lessons. Continue?',
+      t('audioRecap.fixDurations'),
+      t('audioRecap.fixDurationsConfirmation'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Fix Durations',
+          text: t('audioRecap.fixDurationsButton'),
           onPress: async () => {
             try {
               setIsFixingDurations(true);
@@ -500,18 +528,18 @@ export default function AudioRecapScreen() {
               
               if (result.success) {
                 Alert.alert(
-                  'Duration Fix Complete',
-                  `Updated ${result.updatedCount} audio lessons with correct durations.`,
-                  [{ text: 'OK' }]
+                  t('audioRecap.durationFixComplete'),
+                  t('audioRecap.durationFixSuccess', { count: result.updatedCount }),
+                  [{ text: t('common.ok') }]
                 );
                 // Refresh the list to show updated durations
                 await loadAudioLessons(user.id);
               } else {
-                Alert.alert('Error', result.error || 'Failed to fix durations');
+                Alert.alert(t('common.error'), result.error || t('audioRecap.failedToFixDurations'));
               }
             } catch (error) {
               console.error('Error fixing durations:', error);
-              Alert.alert('Error', 'Failed to fix durations');
+              Alert.alert(t('common.error'), t('audioRecap.failedToFixDurations'));
             } finally {
               setIsFixingDurations(false);
             }
@@ -531,7 +559,7 @@ export default function AudioRecapScreen() {
         >
           <Ionicons name="arrow-back" size={24} color="#ffffff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Audio Recap</Text>
+        <Text style={styles.headerTitle}>{t('audioRecap.title')}</Text>
         {audioLessons.length > 0 && (
           <TouchableOpacity
             style={styles.fixButton}
@@ -552,7 +580,7 @@ export default function AudioRecapScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Ionicons name="add-circle-outline" size={20} color="#8b5cf6" />
-            <Text style={styles.sectionTitle}>Create New Audio Lesson</Text>
+            <Text style={styles.sectionTitle}>{t('audioRecap.createNewAudioLesson')}</Text>
           </View>
           
           {/* PDF Upload Button */}
@@ -571,10 +599,10 @@ export default function AudioRecapScreen() {
               </View>
               <View style={styles.createButtonText}>
                 <Text style={styles.createButtonTitle}>
-                  {isUploading ? 'Processing...' : 'Upload PDF'}
+                  {isUploading ? t('audioRecap.processing') : t('audioRecap.uploadPDF')}
                 </Text>
                 <Text style={styles.createButtonSubtitle}>
-                  Convert your PDF into an audio lesson
+                  {t('audioRecap.uploadPDFDescription')}
                 </Text>
               </View>
             </View>
@@ -591,7 +619,7 @@ export default function AudioRecapScreen() {
               <View style={styles.cameraButtonIcon}>
                 <Ionicons name="camera" size={24} color="#ffffff" />
               </View>
-              <Text style={styles.cameraButtonText}>Take Photo</Text>
+              <Text style={styles.cameraButtonText}>{t('audioRecap.takePhoto')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -602,7 +630,7 @@ export default function AudioRecapScreen() {
               <View style={styles.cameraButtonIcon}>
                 <Ionicons name="images" size={24} color="#ffffff" />
               </View>
-              <Text style={styles.cameraButtonText}>Choose Photos</Text>
+              <Text style={styles.cameraButtonText}>{t('audioRecap.choosePhotos')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -611,7 +639,7 @@ export default function AudioRecapScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Ionicons name="headset-outline" size={20} color="#8b5cf6" />
-            <Text style={styles.sectionTitle}>My Audio Lessons</Text>
+            <Text style={styles.sectionTitle}>{t('audioRecap.myAudioLessons')}</Text>
             <Text style={styles.lessonCount}>{audioLessons.length}</Text>
           </View>
 
@@ -620,9 +648,9 @@ export default function AudioRecapScreen() {
               <View style={styles.emptyStateIcon}>
                 <Ionicons name="headset" size={48} color="#6b7280" />
               </View>
-              <Text style={styles.emptyStateTitle}>No Audio Lessons Yet</Text>
+              <Text style={styles.emptyStateTitle}>{t('audioRecap.noAudioLessonsYet')}</Text>
               <Text style={styles.emptyStateSubtitle}>
-                Upload your first PDF to create an audio lesson
+                {t('audioRecap.noAudioLessonsDescription')}
               </Text>
             </View>
           ) : (
@@ -644,7 +672,7 @@ export default function AudioRecapScreen() {
                     <View style={styles.lessonInfo}>
                       <Text style={styles.lessonTitle}>{lesson?.title || 'Unknown'}</Text>
                       <Text style={styles.lessonSubtitle}>
-                        Duration: {SimpleAudioLessonService.formatDuration(actualDurations[lesson.id] || lesson.audio_duration)} • Status: {SimpleAudioLessonService.getStatusText(lesson.status)}
+                        {t('audioRecap.duration')} {SimpleAudioLessonService.formatDuration(actualDurations[lesson.id] || lesson.audio_duration)} • {t('audioRecap.status')} {SimpleAudioLessonService.getStatusText(lesson.status)}
                       </Text>
                     </View>
                   </View>
@@ -667,7 +695,7 @@ export default function AudioRecapScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Ionicons name="help-circle-outline" size={20} color="#8b5cf6" />
-            <Text style={styles.sectionTitle}>How It Works</Text>
+            <Text style={styles.sectionTitle}>{t('audioRecap.howItWorks')}</Text>
           </View>
           
           <View style={styles.helpCard}>
@@ -675,21 +703,21 @@ export default function AudioRecapScreen() {
               <View style={styles.helpStepNumber}>
                 <Text style={styles.helpStepNumberText}>1</Text>
               </View>
-              <Text style={styles.helpStepText}>Upload a PDF document</Text>
+              <Text style={styles.helpStepText}>{t('audioRecap.helpStep1')}</Text>
             </View>
             
             <View style={styles.helpStep}>
               <View style={styles.helpStepNumber}>
                 <Text style={styles.helpStepNumberText}>2</Text>
               </View>
-              <Text style={styles.helpStepText}>AI converts it to audio</Text>
+              <Text style={styles.helpStepText}>{t('audioRecap.helpStep2')}</Text>
             </View>
             
             <View style={styles.helpStep}>
               <View style={styles.helpStepNumber}>
                 <Text style={styles.helpStepNumberText}>3</Text>
               </View>
-              <Text style={styles.helpStepText}>Listen hands-free anywhere</Text>
+              <Text style={styles.helpStepText}>{t('audioRecap.helpStep3')}</Text>
             </View>
           </View>
         </View>
@@ -710,16 +738,16 @@ export default function AudioRecapScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.nameModalContainer}>
-            <Text style={styles.nameModalTitle}>Name Your Lesson</Text>
+            <Text style={styles.nameModalTitle}>{t('audioRecap.nameYourLesson')}</Text>
             <Text style={styles.nameModalSubtitle}>
-              Choose a name for your audio lesson
+              {t('audioRecap.nameYourLessonDescription')}
             </Text>
             
             <TextInput
               style={styles.nameInput}
               value={lessonName}
               onChangeText={setLessonName}
-              placeholder="Enter lesson name..."
+              placeholder={t('audioRecap.enterLessonName')}
               placeholderTextColor="#9ca3af"
               autoFocus
               maxLength={100}
@@ -734,14 +762,14 @@ export default function AudioRecapScreen() {
                   setLessonName('');
                 }}
               >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
+                <Text style={styles.cancelButtonText}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               
               <TouchableOpacity
                 style={[styles.nameModalButton, styles.confirmButton]}
                 onPress={handleConfirmLessonName}
               >
-                <Text style={styles.confirmButtonText}>Create Lesson</Text>
+                <Text style={styles.confirmButtonText}>{t('audioRecap.createLesson')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -780,7 +808,7 @@ export default function AudioRecapScreen() {
           >
             <View style={styles.usageBoxHeaderContent}>
               <Ionicons name="analytics-outline" size={16} color="#8b5cf6" />
-              <Text style={styles.usageBoxTitle}>Monthly Usage</Text>
+              <Text style={styles.usageBoxTitle}>{t('audioRecap.monthlyUsage')}</Text>
               <Text style={styles.usageBoxSummary}>
                 {usage.total_usage || 0}/{HybridAudioLessonUsageService.getMonthlyLimit()}
               </Text>
@@ -807,17 +835,17 @@ export default function AudioRecapScreen() {
               <View style={styles.usageBoxStats}>
                 <View style={styles.usageBoxStat}>
                   <Text style={styles.usageBoxNumber}>{usage.total_usage || 0}</Text>
-                  <Text style={styles.usageBoxLabel}>Used</Text>
+                  <Text style={styles.usageBoxLabel}>{t('audioRecap.used')}</Text>
                 </View>
                 <View style={styles.usageBoxDivider} />
                 <View style={styles.usageBoxStat}>
                   <Text style={styles.usageBoxNumber}>{usage.remaining_lessons || 0}</Text>
-                  <Text style={styles.usageBoxLabel}>Remaining</Text>
+                  <Text style={styles.usageBoxLabel}>{t('audioRecap.remaining')}</Text>
                 </View>
                 <View style={styles.usageBoxDivider} />
                 <View style={styles.usageBoxStat}>
                   <Text style={styles.usageBoxNumber}>{HybridAudioLessonUsageService.getMonthlyLimit()}</Text>
-                  <Text style={styles.usageBoxLabel}>Limit</Text>
+                  <Text style={styles.usageBoxLabel}>{t('audioRecap.limit')}</Text>
                 </View>
               </View>
               
@@ -837,12 +865,12 @@ export default function AudioRecapScreen() {
                   styles.usageBoxStatus,
                   { color: HybridAudioLessonUsageService.getUsageStatusColor(usage) }
                 ]}>
-                  {HybridAudioLessonUsageService.getUsageStatusText(usage)}
+                  {getTranslatedUsageStatusText(usage)}
                 </Text>
               </View>
               
               <Text style={styles.usageBoxMonth}>
-                {HybridAudioLessonUsageService.formatMonthYear(HybridAudioLessonUsageService.getCurrentMonth())}
+                {getTranslatedMonthYear(HybridAudioLessonUsageService.getCurrentMonth())}
               </Text>
           </Animated.View>
         </View>

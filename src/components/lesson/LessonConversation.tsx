@@ -17,6 +17,8 @@ import { VoiceService } from '../../lib/voiceService';
 import { AWSPollyService } from '../../lib/awsPollyService';
 import * as Speech from 'expo-speech';
 import LeaveConfirmationModal from './LeaveConfirmationModal';
+import { useTranslation } from '../../lib/i18n';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface LessonConversationProps {
   vocabulary: any[];
@@ -38,6 +40,8 @@ export default function LessonConversation({
   onClose,
   userProfile,
 }: LessonConversationProps) {
+  const { t } = useTranslation();
+  const { profile } = useAuth();
   const scrollViewRef = useRef<ScrollView>(null);
 
   const [conversationHistory, setConversationHistory] = useState<
@@ -449,15 +453,15 @@ export default function LessonConversation({
           <View key={index}>
             {message.type === 'app' && (
               <View style={styles.chatMessageLeft}>
-                <Text style={styles.chatSenderName}>Thomas</Text>
+                <Text style={styles.chatSenderName}>{t('lessons.write.thomas')}</Text>
                 <View style={styles.chatBubbleThomas}>
                   <Text style={styles.chatBubblePrimary}>{message.message}</Text>
                   <View style={styles.chatBubbleActions}>
                     <TouchableOpacity 
                       style={[styles.chatActionIcon, isPlayingAudio && styles.chatActionIconActive]}
                       onPress={() => {
-                        // For target language text, use target language voice (English)
-                        handleNormalSpeedPlay(message.message, getSpeechLanguageCode('en-GB'));
+                        // For target language text, use target language voice
+                        handleNormalSpeedPlay(message.message, getSpeechLanguageCode(profile?.target_language || 'en-GB'));
                       }}
                     >
                       <Ionicons 
@@ -469,8 +473,8 @@ export default function LessonConversation({
                     <TouchableOpacity 
                       style={[styles.chatActionIcon, isPlayingAudio && styles.chatActionIconActive]}
                       onPress={() => {
-                        // For target language text, use target language voice (English)
-                        handleSlowSpeedPlay(message.message, getSpeechLanguageCode('en-GB'));
+                        // For target language text, use target language voice
+                        handleSlowSpeedPlay(message.message, getSpeechLanguageCode(profile?.target_language || 'en-GB'));
                       }}
                     >
                       <Ionicons 

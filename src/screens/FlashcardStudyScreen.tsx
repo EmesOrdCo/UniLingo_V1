@@ -25,6 +25,7 @@ import { VideoBackground } from '../components/VideoBackground';
 import { VideoCategory } from '../components/VideoControls';
 import { FlashcardSettingsModal } from '../components/FlashcardSettingsModal';
 import { AWSPollyService } from '../lib/awsPollyService';
+import { useTranslation } from '../lib/i18n';
 
 const { width } = Dimensions.get('window');
 
@@ -42,6 +43,7 @@ export default function FlashcardStudyScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const { user, profile } = useAuth();
+  const { t } = useTranslation();
   
   const { flashcards: initialFlashcards, topic, difficulty } = (route.params as any) || { flashcards: [] };
   
@@ -1023,7 +1025,7 @@ export default function FlashcardStudyScreen() {
             >
               <Ionicons name="arrow-back" size={24} color="#6366f1" />
             </TouchableOpacity>
-            <Text style={styles.studyTitle}>Study Session</Text>
+            <Text style={styles.studyTitle}>{t('studySession.title')}</Text>
             <View style={styles.progressContainer}>
               <Text style={styles.progressText}>
                 {studySession.currentIndex + 1} / {studySession.flashcards.length}
@@ -1043,11 +1045,11 @@ export default function FlashcardStudyScreen() {
           <View style={styles.gestureHintsContainer}>
             <View style={styles.gestureHintItem}>
               <Ionicons name="refresh" size={16} color="#6366f1" />
-              <Text style={styles.gestureHintText}>Tap to flip</Text>
+              <Text style={styles.gestureHintText}>{t('studySession.tapToFlip')}</Text>
             </View>
             <View style={styles.gestureHintItem}>
               <Ionicons name="swap-vertical" size={16} color="#6366f1" />
-              <Text style={styles.gestureHintText}>Swipe</Text>
+              <Text style={styles.gestureHintText}>{t('studySession.swipe')}</Text>
             </View>
             <View style={styles.gestureHintItem}>
               <Ionicons name="checkmark-circle" size={16} color="#10b981" />
@@ -1088,10 +1090,10 @@ export default function FlashcardStudyScreen() {
                 }
               </Text>
               <View style={styles.pronunciationContainer}>
-                {currentCard.pronunciation && (
+                {currentCard.pronunciation && !studySession.showAnswer && (
                   <Text style={styles.pronunciation}>{currentCard.pronunciation}</Text>
                 )}
-                {((!studySession.showAnswer && !studySession.showNativeLanguage) || (studySession.showAnswer && studySession.showNativeLanguage)) && (
+                {!studySession.showAnswer && (
                   <TouchableOpacity 
                     style={[styles.audioButton, isAudioPlaying && styles.audioButtonPlaying]} 
                     onPress={() => {
@@ -1111,7 +1113,7 @@ export default function FlashcardStudyScreen() {
                 )}
               </View>
               {currentCard.example && studySession.showAnswer && (
-                <Text style={styles.example}>Example: {currentCard.example}</Text>
+                <Text style={styles.example}>{t('browseFlashcards.example')} {currentCard.example}</Text>
               )}
             </View>
             
@@ -1124,7 +1126,7 @@ export default function FlashcardStudyScreen() {
                 onPress={() => handleAnswer('correct')}
               >
                 <Ionicons name="checkmark" size={24} color="#10b981" />
-                <Text style={[styles.answerButtonText, styles.correctButtonText]}>Correct</Text>
+                <Text style={[styles.answerButtonText, styles.correctButtonText]}>{t('studySession.correct')}</Text>
               </TouchableOpacity>
               
               <TouchableOpacity 
@@ -1132,7 +1134,7 @@ export default function FlashcardStudyScreen() {
                 onPress={() => handleAnswer('incorrect')}
               >
                 <Ionicons name="close" size={24} color="#ef4444" />
-                <Text style={[styles.answerButtonText, styles.incorrectButtonText]}>Incorrect</Text>
+                <Text style={[styles.answerButtonText, styles.incorrectButtonText]}>{t('studySession.incorrect')}</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -1146,6 +1148,7 @@ export default function FlashcardStudyScreen() {
           showNativeLanguage={studySession.showNativeLanguage}
           onToggleLanguage={toggleLanguage}
           nativeLanguage={profile?.native_language}
+          targetLanguage={profile?.target_language}
           videoCategory={videoCategory}
           onCategoryChange={setVideoCategory}
           isVideoMuted={isVideoMuted}
@@ -1198,12 +1201,12 @@ export default function FlashcardStudyScreen() {
             <View style={styles.statItem}>
               <Ionicons name="checkmark" size={24} color="#10b981" />
               <Text style={styles.reviewStatNumber}>{studySession.answers.filter(a => a === 'correct').length}</Text>
-              <Text style={styles.reviewStatLabel}>Correct</Text>
+              <Text style={styles.reviewStatLabel}>{t('studySession.correct')}</Text>
             </View>
             <View style={styles.statItem}>
               <Ionicons name="close" size={24} color="#ef4444" />
               <Text style={styles.reviewStatNumber}>{studySession.answers.filter(a => a === 'incorrect').length}</Text>
-              <Text style={styles.reviewStatLabel}>Incorrect</Text>
+              <Text style={styles.reviewStatLabel}>{t('studySession.incorrect')}</Text>
             </View>
           </View>
         </View>
@@ -1225,7 +1228,7 @@ export default function FlashcardStudyScreen() {
               onPress={() => setFilterType('correct')}
             >
               <Text style={[styles.filterButtonText, filterType === 'correct' && styles.activeFilterButtonText]}>
-                Correct ({correct})
+                {t('studySession.correct')} ({correct})
               </Text>
             </TouchableOpacity>
             <TouchableOpacity 
@@ -1233,7 +1236,7 @@ export default function FlashcardStudyScreen() {
               onPress={() => setFilterType('incorrect')}
             >
               <Text style={[styles.filterButtonText, filterType === 'incorrect' && styles.activeFilterButtonText]}>
-                Incorrect ({total - correct})
+                {t('studySession.incorrect')} ({total - correct})
               </Text>
             </TouchableOpacity>
           </View>
@@ -1241,8 +1244,8 @@ export default function FlashcardStudyScreen() {
         
         <ScrollView style={styles.reviewContent} showsVerticalScrollIndicator={false}>
           <Text style={styles.reviewSectionTitle}>
-            {filterType === 'all' ? 'All Cards' : 
-             filterType === 'correct' ? 'Correct Answers' : 'Incorrect Answers'} 
+            {filterType === 'all' ? t('studySession.allCards') : 
+             filterType === 'correct' ? t('studySession.correctAnswers') : t('studySession.incorrectAnswers')} 
             ({filteredCount})
           </Text>
           
@@ -1254,7 +1257,7 @@ export default function FlashcardStudyScreen() {
             return (
               <View key={originalIndex} style={[styles.reviewCard, isCorrect ? styles.correctReviewCard : styles.incorrectReviewCard]}>
                 <View style={styles.reviewCardHeader}>
-                  <Text style={styles.reviewCardNumber}>Card {originalIndex + 1}</Text>
+                  <Text style={styles.reviewCardNumber}>{t('studySession.card')} {originalIndex + 1}</Text>
                   <View style={[styles.answerBadge, isCorrect ? styles.correctBadge : styles.incorrectBadge]}>
                     <Ionicons 
                       name={isCorrect ? "checkmark-circle" : "close-circle"} 
@@ -1294,7 +1297,7 @@ export default function FlashcardStudyScreen() {
                  
                   {card.pronunciation && (
                     <View style={styles.reviewPronunciation}>
-                      <Text style={styles.reviewCardLabel}>Pronunciation:</Text>
+                      <Text style={styles.reviewCardLabel}>{t('browseFlashcards.pronunciation')}</Text>
                       <Text style={styles.reviewCardText}>{card.pronunciation}</Text>
                       <TouchableOpacity 
                         style={styles.reviewAudioButton} 
@@ -1307,7 +1310,7 @@ export default function FlashcardStudyScreen() {
                   
                   {card.example && (
                     <View style={styles.reviewExample}>
-                      <Text style={styles.reviewCardLabel}>Example:</Text>
+                      <Text style={styles.reviewCardLabel}>{t('browseFlashcards.example')}</Text>
                       <Text style={styles.reviewCardText}>{card.example}</Text>
                     </View>
                   )}
@@ -1366,7 +1369,7 @@ export default function FlashcardStudyScreen() {
               }}
             >
               <Ionicons name="close-circle" size={20} color="#ffffff" />
-              <Text style={styles.repeatIncorrectButtonText}>Repeat Wrong</Text>
+              <Text style={styles.repeatIncorrectButtonText}>{t('studySession.repeatWrong')}</Text>
             </TouchableOpacity>
           </View>
           
@@ -1393,12 +1396,12 @@ export default function FlashcardStudyScreen() {
     >
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>No flashcards available</Text>
+          <Text style={styles.errorText}>{t('lessons.flashcards.noFlashcardsAvailable')}</Text>
           <TouchableOpacity 
             style={styles.backButton}
             onPress={() => navigation.goBack()}
           >
-            <Text style={styles.backButtonText}>Go Back</Text>
+            <Text style={styles.backButtonText}>{t('lessons.flashcards.goBack')}</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>

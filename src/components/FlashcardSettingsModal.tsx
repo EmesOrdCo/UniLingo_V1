@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { VideoCategory } from './VideoControls';
+import { useTranslation } from '../lib/i18n';
 
 interface FlashcardSettingsModalProps {
   visible: boolean;
@@ -18,6 +19,7 @@ interface FlashcardSettingsModalProps {
   showNativeLanguage: boolean;
   onToggleLanguage: () => void;
   nativeLanguage?: string;
+  targetLanguage?: string;
   
   // Video settings
   videoCategory: VideoCategory;
@@ -32,11 +34,13 @@ export const FlashcardSettingsModal: React.FC<FlashcardSettingsModalProps> = ({
   showNativeLanguage,
   onToggleLanguage,
   nativeLanguage,
+  targetLanguage,
   videoCategory,
   onCategoryChange,
   isVideoMuted,
   onMuteToggle,
 }) => {
+  const { t } = useTranslation();
   return (
     <Modal
       visible={visible}
@@ -48,7 +52,7 @@ export const FlashcardSettingsModal: React.FC<FlashcardSettingsModalProps> = ({
         <View style={styles.modal}>
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.title}>Study Settings</Text>
+            <Text style={styles.title}>{t('studySettings.title')}</Text>
             <TouchableOpacity style={styles.closeButton} onPress={onClose}>
               <Ionicons name="close" size={24} color="#6b7280" />
             </TouchableOpacity>
@@ -56,11 +60,11 @@ export const FlashcardSettingsModal: React.FC<FlashcardSettingsModalProps> = ({
           
           {/* Language Settings */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Language Display</Text>
+            <Text style={styles.sectionTitle}>{t('studySettings.languageDisplay')}</Text>
             <View style={styles.settingRow}>
               <View style={styles.settingInfo}>
                 <Ionicons name="language" size={20} color="#6366f1" />
-                <Text style={styles.settingLabel}>Show Native Language</Text>
+                <Text style={styles.settingLabel}>{t('studySettings.showNativeLanguage')}</Text>
               </View>
               <Switch
                 value={showNativeLanguage}
@@ -70,13 +74,16 @@ export const FlashcardSettingsModal: React.FC<FlashcardSettingsModalProps> = ({
               />
             </View>
             <Text style={styles.settingDescription}>
-              Toggle between {nativeLanguage || 'Native'} and English display
+              {t('studySettings.toggleBetweenLanguages', { 
+                native: nativeLanguage || 'Native', 
+                target: targetLanguage || 'Target' 
+              })}
             </Text>
           </View>
           
           {/* Video Background Settings */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Video Background</Text>
+            <Text style={styles.sectionTitle}>{t('studySettings.videoBackground')}</Text>
             
             {/* Video Toggle */}
             <View style={styles.settingRow}>
@@ -86,7 +93,7 @@ export const FlashcardSettingsModal: React.FC<FlashcardSettingsModalProps> = ({
                   size={20} 
                   color={videoCategory ? "#6366f1" : "#6b7280"} 
                 />
-                <Text style={styles.settingLabel}>Enable Video Background</Text>
+                <Text style={styles.settingLabel}>{t('studySettings.enableVideoBackground')}</Text>
               </View>
               <Switch
                 value={!!videoCategory}
@@ -107,7 +114,7 @@ export const FlashcardSettingsModal: React.FC<FlashcardSettingsModalProps> = ({
                       size={20} 
                       color={isVideoMuted ? "#6b7280" : "#6366f1"} 
                     />
-                    <Text style={styles.settingLabel}>Video Audio</Text>
+                    <Text style={styles.settingLabel}>{t('studySettings.videoAudio')}</Text>
                   </View>
                   <Switch
                     value={!isVideoMuted}
@@ -117,7 +124,7 @@ export const FlashcardSettingsModal: React.FC<FlashcardSettingsModalProps> = ({
                   />
                 </View>
                 <Text style={styles.settingDescription}>
-                  {isVideoMuted ? 'Videos will play silently' : 'Videos will play with audio'}
+                  {isVideoMuted ? t('studySettings.videosPlaySilently') : t('studySettings.videosPlayWithAudio')}
                 </Text>
               </View>
             )}

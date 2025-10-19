@@ -13,6 +13,8 @@ import * as Speech from 'expo-speech';
 import { PronunciationService, PronunciationResult } from '../lib/pronunciationService';
 import { getSpeechLanguageCode } from '../lib/languageService';
 import { useTranslation } from '../lib/i18n';
+import { AWSPollyService } from '../lib/awsPollyService';
+import { useAuth } from '../contexts/AuthContext';
 
 interface PronunciationCheckProps {
   word: string;
@@ -40,6 +42,7 @@ const PronunciationCheck: React.FC<PronunciationCheckProps> = ({
   hideWordDisplay = false,
 }) => {
   const { t } = useTranslation();
+  const { profile } = useAuth();
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState<PronunciationResult | null>(null);
@@ -290,31 +293,56 @@ const PronunciationCheck: React.FC<PronunciationCheckProps> = ({
     try {
       setIsPlayingHint(true);
       
-      // Try to determine language from the word or use English as fallback
-      // For pronunciation hints, we typically want to speak in the target language
-      const targetLanguage = 'English'; // Default to English for pronunciation hints
-      const languageCode = getSpeechLanguageCode(targetLanguage);
+      // Get user's target language from profile and convert to proper language code
+      const userLanguageName = profile?.target_language;
+      if (!userLanguageName) {
+        throw new Error('User target language not found in profile');
+      }
       
-      // Use expo-speech for text-to-speech
-      await Speech.speak(word, {
-        language: languageCode,
+      const languageCode = AWSPollyService.getLanguageCodeFromName(userLanguageName);
+      const voiceId = AWSPollyService.getVoiceForLanguage(languageCode);
+      
+      console.log('🎤 Using AWS Polly for pronunciation hint with voice:', voiceId, 'for language:', languageCode, '(from user target language:', userLanguageName, ')');
+      
+      // Use AWS Polly directly for pronunciation hints (higher quality TTS)
+      await AWSPollyService.playSpeech(word, {
+        voiceId,
+        languageCode: languageCode,
+        engine: 'standard', // Use standard engine for cost efficiency
+        rate: 0.6, // Slower for better comprehension
         pitch: 1.0,
-        rate: 0.8,
-        volume: 1.0,
-        onDone: () => {
-          setIsPlayingHint(false);
-        },
-        onError: () => {
-          setIsPlayingHint(false);
-          Alert.alert('Hint Error', 'Could not play audio hint. Please try again.');
-        },
+        volume: 1.0
       });
       
-      console.log(`🔊 Speaking hint: ${word} in ${languageCode}`);
-    } catch (error) {
-      console.error('Hint playback error:', error);
+      console.log('✅ AWS Polly TTS completed for pronunciation hint');
       setIsPlayingHint(false);
-      Alert.alert('Hint Error', 'Could not play audio hint. Please try again.');
+      
+    } catch (error) {
+      console.error('❌ AWS Polly TTS error for pronunciation hint:', error);
+      console.log('🔄 Falling back to Expo Speech for pronunciation hint');
+      
+      // Fallback to Expo Speech if Polly fails
+      try {
+        const fallbackLanguageCode = getSpeechLanguageCode(profile?.target_language || 'en-GB');
+        await Speech.speak(word, {
+          language: fallbackLanguageCode,
+          pitch: 1.0,
+          rate: 0.6, // Slower for better comprehension
+          volume: 1.0,
+          onDone: () => {
+            setIsPlayingHint(false);
+          },
+          onError: () => {
+            setIsPlayingHint(false);
+            Alert.alert('Hint Error', 'Could not play audio hint. Please try again.');
+          },
+        });
+        console.log('✅ Expo Speech fallback completed for pronunciation hint');
+      } catch (fallbackError) {
+        console.error('❌ Expo Speech fallback also failed:', fallbackError);
+        setIsPlayingHint(false);
+        Alert.alert('Hint Error', 'Could not play audio hint. Please try again.');
+      }
     }
   };
 

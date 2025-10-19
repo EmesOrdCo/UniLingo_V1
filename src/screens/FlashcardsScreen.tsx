@@ -1307,7 +1307,7 @@ export default function FlashcardsScreen() {
                       onPress={() => setShowTopicPicker(!showTopicPicker)}
                     >
                       <Text style={styles.topicDropdownText}>
-                        {newFlashcard.topic || 'Select a topic'}
+                        {newFlashcard.topic || t('games.flashcardForm.selectTopic')}
                       </Text>
                       <Ionicons name="chevron-down" size={20} color="#64748b" />
                     </TouchableOpacity>
@@ -1316,14 +1316,14 @@ export default function FlashcardsScreen() {
                       onPress={() => setShowTopicInput(true)}
                     >
                       <Ionicons name="add" size={16} color="#6366f1" />
-                      <Text style={styles.newTopicButtonText}>New Topic</Text>
+                      <Text style={styles.newTopicButtonText}>{t('games.flashcardForm.newTopic')}</Text>
                     </TouchableOpacity>
                   </View>
                 ) : (
                   <View style={styles.newTopicInputContainer}>
                     <TextInput
                       style={styles.input}
-                      placeholder="Enter new topic name"
+                      placeholder={t('games.flashcardForm.enterNewTopicName')}
                       value={newTopicInput}
                       onChangeText={setNewTopicInput}
                     />
@@ -1332,7 +1332,7 @@ export default function FlashcardsScreen() {
                         setShowTopicInput(false);
                         setNewTopicInput('');
                       }}>
-                        <Text style={styles.cancelButtonText}>Cancel</Text>
+                        <Text style={styles.cancelButtonText}>{t('games.flashcardForm.cancel')}</Text>
                       </TouchableOpacity>
                       <TouchableOpacity style={styles.confirmButton} onPress={() => {
                         if (newTopicInput.trim()) {
@@ -1341,7 +1341,7 @@ export default function FlashcardsScreen() {
                           setNewTopicInput('');
                         }
                       }}>
-                        <Text style={styles.confirmButtonText}>Use New Topic</Text>
+                        <Text style={styles.confirmButtonText}>{t('games.flashcardForm.useNewTopic')}</Text>
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -1459,7 +1459,7 @@ export default function FlashcardsScreen() {
                   setNewTopicInput('');
                   setShowTopicPicker(false);
                 }}>
-                  <Text style={styles.cancelFormButtonText}>Cancel</Text>
+                  <Text style={styles.cancelFormButtonText}>{t('games.flashcardForm.cancel')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.saveButton} onPress={createFlashcard}>
                   <Text style={styles.saveButtonText}>Create Flashcard</Text>

@@ -10,6 +10,7 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from '../lib/i18n';
 
 interface TopicEditModalProps {
   visible: boolean;
@@ -26,6 +27,7 @@ export const TopicEditModal: React.FC<TopicEditModalProps> = ({
   onSave,
   onClose,
 }) => {
+  const { t } = useTranslation();
   const [editingTopic, setEditingTopic] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
 
@@ -76,7 +78,7 @@ export const TopicEditModal: React.FC<TopicEditModalProps> = ({
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
             <Ionicons name="close" size={24} color="#64748b" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Edit AI-Detected Topics</Text>
+          <Text style={styles.headerTitle}>{t('aiFlashcards.editAIDetectedTopics')}</Text>
           <View style={styles.headerSpacer} />
         </View>
 
@@ -85,12 +87,12 @@ export const TopicEditModal: React.FC<TopicEditModalProps> = ({
           <View style={styles.infoSection}>
             <Ionicons name="information-circle" size={20} color="#8b5cf6" />
             <Text style={styles.infoText}>
-              Review and edit the topics that AI detected from your content. You can modify topic names to better reflect your preferences.
+              {t('aiFlashcards.reviewEditTopicsInfo')}
             </Text>
           </View>
 
           <View style={styles.topicsSection}>
-            <Text style={styles.sectionTitle}>Topics ({topics.length})</Text>
+            <Text style={styles.sectionTitle}>{t('aiFlashcards.topicsCount', { count: topics.length })}</Text>
             
             {(topics || []).map((topic, index) => (
               <View key={index} style={styles.topicItem}>
@@ -141,7 +143,7 @@ export const TopicEditModal: React.FC<TopicEditModalProps> = ({
             onPress={handleSaveAll}
           >
             <Ionicons name="checkmark-circle" size={20} color="#ffffff" />
-            <Text style={styles.saveAllButtonText}>Continue to Review</Text>
+            <Text style={styles.saveAllButtonText}>{t('aiFlashcards.continueToReview')}</Text>
           </TouchableOpacity>
         </View>
       </View>

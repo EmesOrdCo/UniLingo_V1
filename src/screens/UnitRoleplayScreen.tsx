@@ -182,7 +182,7 @@ export default function UnitRoleplayScreen() {
       setLoading(true);
       logger.info(`🎭 Loading conversation and vocabulary for subject: ${subjectName} (${cefrLevel})`);
       
-      const targetLanguage = profile?.target_language || 'English';
+      const targetLanguage = profile?.target_language || 'en-GB';
       
       // Load vocabulary for exercise creation
       const vocabData = await UnitDataAdapter.getUnitVocabulary(subjectName, targetLanguage);
@@ -959,7 +959,7 @@ export default function UnitRoleplayScreen() {
           <View key={index}>
             {message.type === 'app' && (
               <View style={styles.chatMessageLeft}>
-                <Text style={styles.chatSenderName}>Thomas</Text>
+                <Text style={styles.chatSenderName}>{t('lessons.write.thomas')}</Text>
                 <View style={styles.chatBubbleThomas}>
                   {!hiddenMessages.has(index) && <Text style={styles.chatBubblePrimary}>{message.french}</Text>}
                   {showTranslation && !hiddenMessages.has(index) && <Text style={styles.chatBubbleSecondary}>{message.english}</Text>}
@@ -968,8 +968,8 @@ export default function UnitRoleplayScreen() {
                     <TouchableOpacity 
                       style={[styles.chatActionIcon, isPlayingAudio && styles.chatActionIconActive]}
                       onPress={() => {
-                        // For target language text, use target language voice (English)
-                        handleNormalSpeedPlay(message.french, getSpeechLanguageCode('en-GB'));
+                        // For target language text, use target language voice
+                        handleNormalSpeedPlay(message.french, getSpeechLanguageCode(profile?.target_language || 'en-GB'));
                       }}
                     >
                       <Ionicons 
@@ -981,8 +981,8 @@ export default function UnitRoleplayScreen() {
                     <TouchableOpacity 
                       style={[styles.chatActionIcon, isPlayingAudio && styles.chatActionIconActive]}
                       onPress={() => {
-                        // For target language text, use target language voice (English)
-                        handleSlowSpeedPlay(message.french, getSpeechLanguageCode('en-GB'));
+                        // For target language text, use target language voice
+                        handleSlowSpeedPlay(message.french, getSpeechLanguageCode(profile?.target_language || 'en-GB'));
                       }}
                     >
                       <Ionicons 
@@ -1031,8 +1031,8 @@ export default function UnitRoleplayScreen() {
                     <TouchableOpacity 
                       style={[styles.chatActionIcon, isPlayingAudio && styles.chatActionIconActive]}
                       onPress={() => {
-                        // For target language text, use target language voice (English)
-                        handleNormalSpeedPlay(message.french, getSpeechLanguageCode('en-GB'));
+                        // For target language text, use target language voice
+                        handleNormalSpeedPlay(message.french, getSpeechLanguageCode(profile?.target_language || 'en-GB'));
                       }}
                     >
                       <Ionicons 
@@ -1044,8 +1044,8 @@ export default function UnitRoleplayScreen() {
                     <TouchableOpacity 
                       style={[styles.chatActionIcon, isPlayingAudio && styles.chatActionIconActive]}
                       onPress={() => {
-                        // For target language text, use target language voice (English)
-                        handleSlowSpeedPlay(message.french, getSpeechLanguageCode('en-GB'));
+                        // For target language text, use target language voice
+                        handleSlowSpeedPlay(message.french, getSpeechLanguageCode(profile?.target_language || 'en-GB'));
                       }}
                     >
                       <Ionicons 
@@ -1135,8 +1135,8 @@ export default function UnitRoleplayScreen() {
             <TouchableOpacity 
               style={[styles.roundSpeakerButton, isPlayingAudio && styles.roundSpeakerButtonActive]}
               onPress={() => {
-                // For user's response (target language), use English speech
-                handleNormalSpeedPlay(currentExchange.userMessage.french, getSpeechLanguageCode('en-GB'));
+                // For user's response (target language), use target language speech
+                handleNormalSpeedPlay(currentExchange.userMessage.french, getSpeechLanguageCode(profile?.target_language || 'en-GB'));
               }}
             >
               <Ionicons name="volume-high" size={28} color="#ffffff" />
@@ -1147,8 +1147,8 @@ export default function UnitRoleplayScreen() {
             <TouchableOpacity 
               style={[styles.roundClockButton, isPlayingAudio && styles.roundClockButtonActive]}
               onPress={() => {
-                // For user's response (target language), use English speech
-                handleSlowSpeedPlay(currentExchange.userMessage.french, getSpeechLanguageCode('en-GB'));
+                // For user's response (target language), use target language speech
+                handleSlowSpeedPlay(currentExchange.userMessage.french, getSpeechLanguageCode(profile?.target_language || 'en-GB'));
               }}
             >
               <Ionicons name="time-outline" size={28} color="#ffffff" />

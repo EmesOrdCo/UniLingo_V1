@@ -5,7 +5,7 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
 import { LessonService, Lesson, LessonProgress } from '../lib/lessonService';
 import { logger } from '../lib/logger';
-import { useTranslation } from '../lib/i18n';
+import { useTranslation, useI18n } from '../lib/i18n';
 
 // Type definitions for better type safety
 interface LessonWithProgress extends Lesson {
@@ -24,6 +24,7 @@ export default function LessonsContent(props: LessonsContentProps = {}) {
   const navigation = useNavigation();
   const { user } = useAuth();
   const { t } = useTranslation();
+  const { currentLanguage } = useI18n();
 
   // Fetch user's lessons when component comes into focus
   useFocusEffect(
@@ -114,7 +115,7 @@ export default function LessonsContent(props: LessonsContentProps = {}) {
           <View style={styles.yourLessonsText}>
             <Text style={styles.yourLessonsTitle}>{t('lessons.yourLessons')}</Text>
             <Text style={styles.yourLessonsSubtitle}>
-              {lessons.length === 0 ? t('lessons.noLessonsYet') : `${lessons.length} lesson${lessons.length !== 1 ? 's' : ''} created`}
+              {lessons.length === 0 ? t('lessons.noLessonsYet') : t(lessons.length === 1 ? 'yourLessons.lessonsCreated.one' : 'yourLessons.lessonsCreated.other', { count: lessons.length })}
             </Text>
           </View>
         </View>

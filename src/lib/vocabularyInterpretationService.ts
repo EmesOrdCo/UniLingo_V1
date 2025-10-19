@@ -19,37 +19,66 @@ export class VocabularyInterpretationService {
    * Interpret vocabulary based on the user's language pair
    * This allows the same vocabulary data to work for any language direction
    */
+  /**
+   * Interpret vocabulary for flashcards (native term on front, target term on back)
+   */
+  static interpretVocabularyForFlashcards(
+    vocab: LessonVocabulary, 
+    languagePair: LanguagePair
+  ): InterpretedVocabulary {
+    return {
+      frontTerm: vocab.native_translation, // Native language term (front of card)
+      backTerm: vocab.keywords, // Target language term (back of card)
+      frontExample: vocab.example_sentence_target, // Target language example sentence
+      backExample: vocab.example_sentence_native, // Native language example sentence
+      definition: vocab.definition, // Definition in user's native language
+      keywords: vocab.native_translation
+    };
+  }
+
+  /**
+   * Interpret vocabulary for fill-in-the-blank (target term for blank, target options)
+   */
+  static interpretVocabularyForFillInBlank(
+    vocab: LessonVocabulary, 
+    languagePair: LanguagePair
+  ): InterpretedVocabulary {
+    return {
+      frontTerm: vocab.keywords, // Target language term (what gets blanked)
+      backTerm: vocab.native_translation, // Native language term (for hints)
+      frontExample: vocab.example_sentence_target, // Target language example sentence
+      backExample: vocab.example_sentence_native, // Native language example sentence
+      definition: vocab.definition, // Definition in user's native language
+      keywords: vocab.native_translation
+    };
+  }
+
+  /**
+   * Interpret vocabulary for listen exercise (target term for audio and options)
+   */
+  static interpretVocabularyForListen(
+    vocab: LessonVocabulary, 
+    languagePair: LanguagePair
+  ): InterpretedVocabulary {
+    return {
+      frontTerm: vocab.keywords, // Target language term (what gets played and selected)
+      backTerm: vocab.native_translation, // Native language term (for reference)
+      frontExample: vocab.example_sentence_target, // Target language example sentence
+      backExample: vocab.example_sentence_native, // Native language example sentence
+      definition: vocab.definition, // Definition in user's native language
+      keywords: vocab.keywords // Target language term for listen exercise
+    };
+  }
+
+  /**
+   * Interpret vocabulary based on the user's language pair (legacy method - defaults to flashcards)
+   */
   static interpretVocabulary(
     vocab: LessonVocabulary, 
     languagePair: LanguagePair
   ): InterpretedVocabulary {
-    const isEnglishTarget = languagePair.target === 'English' || languagePair.target === 'en-GB';
-    
-    if (isEnglishTarget) {
-      // English target language (current behavior)
-      // Use keywords field as it contains the actual target term
-      const targetTerm = typeof vocab.keywords === 'string' ? vocab.keywords : (vocab.english_term || '');
-      return {
-        frontTerm: targetTerm,
-        backTerm: vocab.native_translation,
-        frontExample: vocab.example_sentence_target,
-        backExample: vocab.example_sentence_native,
-        definition: vocab.definition,
-        keywords: targetTerm
-      };
-    } else {
-      // Non-English target language (reverse direction)
-      // Map the existing fields to the reverse direction
-      const targetTerm = typeof vocab.keywords === 'string' ? vocab.keywords : (vocab.english_term || '');
-      return {
-        frontTerm: vocab.native_translation, // Native language becomes the term to learn
-        backTerm: targetTerm, // Keywords field becomes the translation
-        frontExample: vocab.example_sentence_native, // Native example becomes the target example
-        backExample: vocab.example_sentence_target, // English example becomes the native example
-        definition: vocab.definition,
-        keywords: vocab.native_translation
-      };
-    }
+    // Default to flashcards behavior for backward compatibility
+    return this.interpretVocabularyForFlashcards(vocab, languagePair);
   }
 
   /**
@@ -60,11 +89,9 @@ export class VocabularyInterpretationService {
     targetLanguageName: string;
     nativeLanguageName: string;
   } {
-    const isEnglishTarget = languagePair.target === 'English' || languagePair.target === 'en-GB';
-    
     return {
-      isEnglishTarget,
-      targetLanguageName: isEnglishTarget ? 'English' : languagePair.target,
+      isEnglishTarget: languagePair.target === 'English' || languagePair.target === 'en-GB',
+      targetLanguageName: languagePair.target,
       nativeLanguageName: languagePair.native
     };
   }
@@ -85,6 +112,36 @@ export class VocabularyInterpretationService {
     };
     
     return languageMap[languageCode] || languageCode;
+  }
+
+  /**
+   * Interpret a list of vocabulary for fill-in-the-blank exercises
+   */
+  static interpretVocabularyListForFillInBlank(
+    vocabulary: LessonVocabulary[], 
+    languagePair: LanguagePair
+  ): InterpretedVocabulary[] {
+    return vocabulary.map(vocab => this.interpretVocabularyForFillInBlank(vocab, languagePair));
+  }
+
+  /**
+   * Interpret a list of vocabulary for listen exercises
+   */
+  static interpretVocabularyListForListen(
+    vocabulary: LessonVocabulary[], 
+    languagePair: LanguagePair
+  ): InterpretedVocabulary[] {
+    return vocabulary.map(vocab => this.interpretVocabularyForListen(vocab, languagePair));
+  }
+
+  /**
+   * Interpret a list of vocabulary for flashcard exercises
+   */
+  static interpretVocabularyListForFlashcards(
+    vocabulary: LessonVocabulary[], 
+    languagePair: LanguagePair
+  ): InterpretedVocabulary[] {
+    return vocabulary.map(vocab => this.interpretVocabularyForFlashcards(vocab, languagePair));
   }
 
   /**

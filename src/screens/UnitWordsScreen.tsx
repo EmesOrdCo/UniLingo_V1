@@ -48,8 +48,8 @@ export default function UnitWordsScreen() {
       setLoading(true);
       logger.info(`📚 Loading vocabulary for subject: ${subjectName}`);
       
-      const nativeLanguage = profile?.native_language || 'French';
-      const targetLanguage = profile?.target_language || 'English';
+      const nativeLanguage = profile?.native_language || 'en-GB';
+      const targetLanguage = profile?.target_language || 'en-GB';
       
       const vocabData = await UnitDataAdapter.getUnitVocabulary(subjectName, nativeLanguage, targetLanguage);
       

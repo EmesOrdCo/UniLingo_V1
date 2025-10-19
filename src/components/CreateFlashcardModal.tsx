@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, TextInput, ScrollView, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from '../lib/i18n';
 
 interface CreateFlashcardModalProps {
   visible: boolean;
@@ -15,6 +16,7 @@ export default function CreateFlashcardModal({
   onSubmit, 
   topics 
 }: CreateFlashcardModalProps) {
+  const { t } = useTranslation();
   const [newFlashcard, setNewFlashcard] = useState({
     topic: '',
     front: '',
@@ -70,7 +72,7 @@ export default function CreateFlashcardModal({
                   onPress={() => setShowTopicPicker(!showTopicPicker)}
                 >
                   <Text style={styles.topicDropdownText}>
-                    {newFlashcard.topic || 'Select a topic'}
+                    {newFlashcard.topic || t('games.flashcardForm.selectTopic')}
                   </Text>
                   <Ionicons name={showTopicPicker ? "chevron-up" : "chevron-down"} size={20} color="#64748b" />
                 </TouchableOpacity>
@@ -82,14 +84,14 @@ export default function CreateFlashcardModal({
                   }}
                 >
                   <Ionicons name="add" size={16} color="#6366f1" />
-                  <Text style={styles.newTopicButtonText}>New Topic</Text>
+                  <Text style={styles.newTopicButtonText}>{t('games.flashcardForm.newTopic')}</Text>
                 </TouchableOpacity>
               </View>
             ) : (
               <View style={styles.newTopicInputContainer}>
                 <TextInput
                   style={styles.input}
-                  placeholder="Enter new topic name"
+                  placeholder={t('games.flashcardForm.enterNewTopicName')}
                   value={newTopicInput}
                   onChangeText={setNewTopicInput}
                 />
@@ -101,7 +103,7 @@ export default function CreateFlashcardModal({
                       setNewTopicInput('');
                     }}
                   >
-                    <Text style={styles.cancelNewTopicButtonText}>Cancel</Text>
+                    <Text style={styles.cancelNewTopicButtonText}>{t('games.flashcardForm.cancel')}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity 
                     style={styles.confirmNewTopicButton}
@@ -113,7 +115,7 @@ export default function CreateFlashcardModal({
                       }
                     }}
                   >
-                    <Text style={styles.confirmNewTopicButtonText}>Use New</Text>
+                    <Text style={styles.confirmNewTopicButtonText}>{t('games.flashcardForm.useNewTopic')}</Text>
                   </TouchableOpacity>
                 </View>
               </View>

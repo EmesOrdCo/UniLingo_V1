@@ -35,8 +35,8 @@ export default function LessonSentenceScramble({ vocabulary, onComplete, onClose
 
   // Get user's language pair
   const languagePair = {
-    native: profile?.native_language || 'English',
-    target: profile?.target_language || 'English'
+    native: profile?.native_language || 'en-GB',
+    target: profile?.target_language || 'en-GB'
   };
 
   // Interpret vocabulary based on language pair

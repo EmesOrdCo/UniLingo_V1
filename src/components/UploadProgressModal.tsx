@@ -308,7 +308,13 @@ export default function UploadProgressModal({
               <View style={styles.titleUnderline} />
             </View>
             
-            <Text style={styles.message}>{progress.message}</Text>
+            <Text style={styles.message}>
+              {progress.message?.startsWith('aiFlashcards.') 
+                ? (progress.message === 'aiFlashcards.successfullyCreatedGeneric' 
+                   ? t('aiFlashcards.successfullyCreatedGeneric', { count: progress.cardsGenerated || 0 })
+                   : t(progress.message))
+                : progress.message}
+            </Text>
             
             {/* Animated dots for generating stage */}
             {progress.stage === 'generating' && (
@@ -354,7 +360,7 @@ export default function UploadProgressModal({
               </View>
               <View style={styles.progressInfo}>
                 <Text style={styles.progressText}>{progress.progress}%</Text>
-                <Text style={styles.progressLabel}>Complete</Text>
+                <Text style={styles.progressLabel}>{t('aiFlashcards.complete')}</Text>
               </View>
             </View>
           )}
@@ -369,7 +375,7 @@ export default function UploadProgressModal({
               </View>
               <View style={styles.cardsTextContainer}>
                 <Text style={styles.cardsText} numberOfLines={1}>
-                  {progress.cardsGenerated} flashcards
+                  {progress.cardsGenerated} {t('aiFlashcards.flashcards')}
                 </Text>
               </View>
             </Animated.View>
@@ -432,7 +438,9 @@ export default function UploadProgressModal({
                         fontWeight: isActive ? '700' : '500'
                       }
                     ]}>
-                      {stage.charAt(0).toUpperCase() + stage.slice(1)}
+                      {stage === 'uploading' ? t('aiFlashcards.uploading') :
+                       stage === 'processing' ? t('aiFlashcards.processingStage') :
+                       stage === 'generating' ? t('aiFlashcards.generating') : stage}
                     </Text>
                     
                     {/* Connecting line - only show between stages */}

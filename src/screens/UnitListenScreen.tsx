@@ -116,53 +116,53 @@ export default function UnitListenScreen() {
     
     // First: Words - multiple choice
     for (let i = 0; i < vocabulary.length; i++) {
-      const correctAnswer = vocabulary[i].english; // Target language text
+      const correctAnswer = vocabulary[i].french; // Target language text
       const wrongAnswers = vocabulary
         .filter((_, idx) => idx !== i)
-        .map(v => v.english) // Target language text
+        .map(v => v.french) // Target language text
         .sort(() => Math.random() - 0.5)
         .slice(0, 1);
       
       questions.push({
         type: 'word-choice' as const,
-        audio: vocabulary[i].english, // Target language text
+        audio: vocabulary[i].french, // Target language text
         correctAnswer,
         options: [correctAnswer, ...wrongAnswers].sort(() => Math.random() - 0.5),
-        translation: vocabulary[i].french, // Native language translation
+        translation: vocabulary[i].english, // Native language translation
       });
     }
     
     // Next: Sentences - multiple choice
     for (let i = 0; i < sentences.length; i++) {
-      const correctAnswer = sentences[i].english; // Target language text
+      const correctAnswer = sentences[i].french; // Target language text
       const wrongAnswers = sentences
         .filter((_, idx) => idx !== i)
-        .map(v => v.english) // Target language text
+        .map(v => v.french) // Target language text
         .sort(() => Math.random() - 0.5)
         .slice(0, 1);
       
       questions.push({
         type: 'sentence-choice' as const,
-        audio: sentences[i].english, // Target language text
+        audio: sentences[i].french, // Target language text
         correctAnswer,
         options: [correctAnswer, ...wrongAnswers].sort(() => Math.random() - 0.5),
-        translation: sentences[i].french, // Native language translation
+        translation: sentences[i].english, // Native language translation
       });
     }
     
     // Last: Sentence scramble
     const scrambleSentences = [...sentences, ...sentences, ...sentences].slice(0, Math.max(7, vocabulary.length));
     for (let i = 0; i < scrambleSentences.length; i++) {
-      const words = scrambleSentences[i].english.split(' '); // Split target language text
+      const words = scrambleSentences[i].french.split(' '); // Split target language text
       const scrambled = [...words].sort(() => Math.random() - 0.5);
       
       questions.push({
         type: 'scramble' as const,
-        audio: scrambleSentences[i].english, // Target language text
-        correctAnswer: scrambleSentences[i].english, // Target language text
+        audio: scrambleSentences[i].french, // Target language text
+        correctAnswer: scrambleSentences[i].french, // Target language text
         words: words,
         scrambled: scrambled,
-        translation: scrambleSentences[i].french, // Native language translation
+        translation: scrambleSentences[i].english, // Native language translation
       });
     }
     

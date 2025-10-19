@@ -88,12 +88,14 @@ function OverviewTab() {
 
 // Lessons tab component - placeholder for new lesson system
 function LessonsTab() {
+  const { t } = useTranslation();
+  
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
       
       <ConsistentHeader 
-        pageName="Lessons"
+        pageName={t('nav.lessons')}
       />
       
       <LessonsContent />

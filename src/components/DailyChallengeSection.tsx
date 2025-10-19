@@ -140,15 +140,15 @@ export default function DailyChallengeSection({ refreshTrigger }: DailyChallenge
       
       if (flashcards.length === 0) {
         Alert.alert(
-          'No Flashcards Available',
-          'Games require flashcards to work. Please create some flashcards first by going to the Flashcards section and adding vocabulary words.',
+          t('games.noFlashcardsModal.title'),
+          t('games.noFlashcardsModal.message'),
           [
             {
-              text: 'Go to Flashcards',
+              text: t('games.noFlashcardsModal.goToFlashcards'),
               onPress: () => navigation.navigate('Flashcards' as never)
             },
             {
-              text: 'OK',
+              text: t('games.noFlashcardsModal.ok'),
               style: 'cancel'
             }
           ]

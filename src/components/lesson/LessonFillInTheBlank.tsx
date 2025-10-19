@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, TextInput, Dimensions, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -41,14 +41,17 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   const { profile } = useAuth();
 
-  // Get user's language pair
-  const languagePair = {
-    native: profile?.native_language || 'English',
-    target: profile?.target_language || 'English'
-  };
+  // Get user's language pair - memoized to prevent unnecessary re-renders
+  const languagePair = useMemo(() => ({
+    native: profile?.native_language || 'en-GB',
+    target: profile?.target_language || 'en-GB'
+  }), [profile?.native_language, profile?.target_language]);
 
-  // Interpret vocabulary based on language pair
-  const interpretedVocabulary = VocabularyInterpretationService.interpretVocabularyList(vocabulary, languagePair);
+  // Interpret vocabulary based on language pair - memoized to prevent unnecessary re-renders
+  const interpretedVocabulary = useMemo(() => 
+    VocabularyInterpretationService.interpretVocabularyListForFillInBlank(vocabulary, languagePair),
+    [vocabulary, languagePair]
+  );
   const languageDirection = VocabularyInterpretationService.getLanguageDirection(languagePair);
 
   // Generate questions from vocabulary
@@ -92,7 +95,7 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
           id: index.toString(), // Use index as ID since we're working with interpreted vocabulary
           sentence: item.frontExample,
           blankWord: item.frontTerm,
-          hint: item.definition || `Translation: ${item.backTerm || 'N/A'}`,
+          hint: item.backExample, // Native translation of the whole sentence
           options: options
         };
       })
@@ -101,12 +104,10 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
     setQuestions(generatedQuestions);
   }, [interpretedVocabulary]);
 
-  // Update progress when question index changes
+  // Sync internal state with initialQuestionIndex prop changes
   React.useEffect(() => {
-    if (onProgressUpdate) {
-      onProgressUpdate(currentQuestionIndex);
-    }
-  }, [currentQuestionIndex]); // Removed onProgressUpdate from dependencies to prevent infinite loops
+    setCurrentQuestionIndex(initialQuestionIndex);
+  }, [initialQuestionIndex]);
 
   const handleClose = () => {
     setShowLeaveModal(true);
@@ -164,7 +165,11 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
     
     if (currentQuestionIndex < questions.length - 1) {
       // Move to next question in current round
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
+      const newIndex = currentQuestionIndex + 1;
+      setCurrentQuestionIndex(newIndex);
+      if (onProgressUpdate) {
+        onProgressUpdate(newIndex);
+      }
       setUserAnswer('');
       setSelectedOption(null);
       setShowResult(false);
@@ -175,6 +180,9 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
         // Start round 2
         setCurrentRound(2);
         setCurrentQuestionIndex(0);
+        if (onProgressUpdate) {
+          onProgressUpdate(0);
+        }
         setUserAnswer('');
         setSelectedOption(null);
         setShowResult(false);
@@ -192,6 +200,9 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
   const handleRetry = () => {
     // Reset all state to restart the exercise
     setCurrentQuestionIndex(0);
+    if (onProgressUpdate) {
+      onProgressUpdate(0);
+    }
     setUserAnswer('');
     setSelectedOption(null);
     setCurrentRound(1);
@@ -236,7 +247,11 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
 
   const handleSkip = () => {
     if (currentQuestionIndex < questions.length - 1) {
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
+      const newIndex = currentQuestionIndex + 1;
+      setCurrentQuestionIndex(newIndex);
+      if (onProgressUpdate) {
+        onProgressUpdate(newIndex);
+      }
       setUserAnswer('');
       setSelectedOption(null);
       setShowResult(false);
@@ -247,6 +262,9 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
         // Start round 2
         setCurrentRound(2);
         setCurrentQuestionIndex(0);
+        if (onProgressUpdate) {
+          onProgressUpdate(0);
+        }
         setUserAnswer('');
         setSelectedOption(null);
         setShowResult(false);

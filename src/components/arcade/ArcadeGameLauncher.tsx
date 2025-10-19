@@ -75,14 +75,38 @@ export default function ArcadeGameLauncher({ visible, game, onClose }: ArcadeGam
       const playCheck = await ArcadeService.canPlayGame(user.id, game.id);
       
       if (!playCheck.canPlay) {
-        alert(playCheck.message || t('arcade.gameLauncher.notEnoughXP'));
+        // Translate the message if it's the standard XP message
+        let message = playCheck.message;
+        if (message && message.includes('Need') && message.includes('XP') && message.includes('You have')) {
+          // Extract cost and available XP from the message
+          const costMatch = message.match(/Need (\d+) XP/);
+          const availableMatch = message.match(/You have (\d+) XP/);
+          if (costMatch && availableMatch) {
+            message = t('arcade.gameLauncher.needXP', { 
+              cost: costMatch[1], 
+              available: availableMatch[1] 
+            });
+          }
+        } else if (message === 'Game not found') {
+          message = t('arcade.gameLauncher.gameNotFound');
+        } else if (message === 'Error checking XP') {
+          message = t('arcade.gameLauncher.errorCheckingXP');
+        }
+        alert(message || t('arcade.gameLauncher.notEnoughXP'));
         return false; // Indicate restart failed
       }
 
       // Purchase the restart (spend XP again)
       const purchase = await ArcadeService.purchaseGame(user.id, game.id);
       if (!purchase.success) {
-        alert(purchase.message || t('arcade.gameLauncher.restartFailed'));
+        // Translate common error messages
+        let message = purchase.message;
+        if (message === 'Failed to spend XP') {
+          message = t('arcade.gameLauncher.failedToSpendXP');
+        } else if (message === 'Error processing purchase') {
+          message = t('arcade.gameLauncher.errorProcessingPurchase');
+        }
+        alert(message || t('arcade.gameLauncher.restartFailed'));
         return false; // Indicate restart failed
       }
 

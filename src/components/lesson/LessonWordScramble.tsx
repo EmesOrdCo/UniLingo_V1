@@ -45,7 +45,7 @@ export default function LessonWordScramble({ vocabulary, onComplete, onClose, on
     return () => {
       // Cleanup function for progress updates
     };
-  }, [currentQuestionIndex, onProgressUpdate]); // Added onProgressUpdate back with proper memoization
+  }, [currentQuestionIndex]); // Removed onProgressUpdate from dependencies to prevent infinite loops
 
   useEffect(() => {
     if (questions.length > 0) {

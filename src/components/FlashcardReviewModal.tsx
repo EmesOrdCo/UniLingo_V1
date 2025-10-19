@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { GeneratedFlashcard } from '../lib/uploadService';
+import { useTranslation } from '../lib/i18n';
 
 interface FlashcardReviewModalProps {
   visible: boolean;
@@ -31,6 +32,7 @@ export default function FlashcardReviewModal({
   onEdit,
   onEditTopics,
 }: FlashcardReviewModalProps) {
+  const { t } = useTranslation();
   
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editedFlashcard, setEditedFlashcard] = useState<GeneratedFlashcard | null>(null);
@@ -111,20 +113,22 @@ export default function FlashcardReviewModal({
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <Ionicons name="close" size={24} color="#64748b" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Review Generated Flashcards</Text>
+          <Text style={styles.headerTitle}>{t('aiFlashcards.reviewGeneratedFlashcards')}</Text>
           <View style={styles.headerSpacer} />
         </View>
 
         {/* Content */}
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           <View style={styles.summaryCard}>
-            <Text style={styles.summaryTitle}>Summary</Text>
+            <Text style={styles.summaryTitle}>{t('aiFlashcards.summary')}</Text>
             <Text style={styles.summaryText}>
-              {filteredFlashcards.length} flashcards {selectedTopic !== 'all' ? `in ${selectedTopic}` : 'generated'}
+              {selectedTopic !== 'all' 
+                ? t('aiFlashcards.flashcardsInTopic', { count: filteredFlashcards.length, topic: selectedTopic })
+                : t('aiFlashcards.flashcardsGenerated', { count: filteredFlashcards.length })}
             </Text>
             {selectedTopic !== 'all' && (
               <Text style={styles.summarySubtext}>
-                Showing {filteredFlashcards.length} of {flashcards.length} total flashcards
+                {t('aiFlashcards.showingOf', { count: filteredFlashcards.length, total: flashcards.length })}
               </Text>
             )}
             <View style={styles.difficultyBreakdown}>
@@ -139,7 +143,9 @@ export default function FlashcardReviewModal({
                       ]} 
                     />
                     <Text style={styles.difficultyText}>
-                      {diff.charAt(0).toUpperCase() + diff.slice(1)}: {count}
+                      {diff === 'beginner' ? t('difficulty.beginner') :
+                       diff === 'intermediate' ? t('difficulty.intermediate') :
+                       diff === 'expert' ? t('difficulty.expert') : diff}: {count}
                     </Text>
                   </View>
                 );
@@ -150,7 +156,7 @@ export default function FlashcardReviewModal({
           {/* Topic Filter */}
           <View style={styles.topicFilterSection}>
             <View style={styles.topicFilterHeader}>
-              <Text style={styles.topicFilterTitle}>Filter by Topic</Text>
+              <Text style={styles.topicFilterTitle}>{t('aiFlashcards.filterByTopic')}</Text>
             </View>
             
             <ScrollView 
@@ -171,7 +177,7 @@ export default function FlashcardReviewModal({
                       styles.topicFilterOptionText,
                       selectedTopic === topic && styles.topicFilterOptionTextActive
                     ]}>
-                      {topic === 'all' ? 'All Topics' : topic}
+                      {topic === 'all' ? t('aiFlashcards.allTopics') : topic}
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -238,7 +244,9 @@ export default function FlashcardReviewModal({
                           styles.difficultyBadgeText,
                           { color: getDifficultyColor(flashcard.difficulty) }
                         ]}>
-                          {flashcard.difficulty.charAt(0).toUpperCase() + flashcard.difficulty.slice(1)}
+                          {flashcard.difficulty === 'beginner' ? t('difficulty.beginner') :
+                           flashcard.difficulty === 'intermediate' ? t('difficulty.intermediate') :
+                           flashcard.difficulty === 'expert' ? t('difficulty.expert') : flashcard.difficulty}
                         </Text>
                       </View>
                       <View style={styles.actionButtons}>
@@ -258,15 +266,15 @@ export default function FlashcardReviewModal({
                     </View>
                     
                     <View style={styles.flashcardContent}>
-                      <Text style={styles.flashcardLabel}>Front:</Text>
+                      <Text style={styles.flashcardLabel}>{t('aiFlashcards.front')}</Text>
                       <Text style={styles.flashcardText}>{flashcard.front}</Text>
                       
-                      <Text style={styles.flashcardLabel}>Back:</Text>
+                      <Text style={styles.flashcardLabel}>{t('aiFlashcards.back')}</Text>
                       <Text style={styles.flashcardText}>{flashcard.back}</Text>
                       
                       {flashcard.example && (
                         <>
-                          <Text style={styles.flashcardLabel}>Example:</Text>
+                          <Text style={styles.flashcardLabel}>{t('aiFlashcards.example')}</Text>
                           <Text style={styles.flashcardText}>{flashcard.example}</Text>
                         </>
                       )}
@@ -288,7 +296,7 @@ export default function FlashcardReviewModal({
                 onPress={onEditTopics}
               >
                 <Ionicons name="create-outline" size={20} color="#8b5cf6" />
-                <Text style={styles.editTopicsButtonText}>Edit Topics</Text>
+                <Text style={styles.editTopicsButtonText}>{t('aiFlashcards.editTopics')}</Text>
               </TouchableOpacity>
             )}
             
@@ -300,7 +308,7 @@ export default function FlashcardReviewModal({
               }}
             >
               <Ionicons name="save-outline" size={20} color="#ffffff" />
-              <Text style={styles.saveButtonText}>Save All ({flashcards.length})</Text>
+              <Text style={styles.saveButtonText}>{t('aiFlashcards.saveAll', { count: flashcards.length })}</Text>
             </TouchableOpacity>
           </View>
         </View>

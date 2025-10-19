@@ -577,13 +577,13 @@ export default function UploadScreen() {
       setProgress({
         stage: 'generating',
         progress: 60,
-        message: 'Connecting to AI service...',
+        message: t('aiFlashcards.connectingToAI'),
       });
       
       setProgress({
         stage: 'generating',
         progress: 65,
-        message: 'Analyzing content and creating terminology flashcards...',
+        message: t('aiFlashcards.analyzingAndCreating'),
       });
       
       // Ensure progress modal stays visible during AI generation
@@ -592,7 +592,7 @@ export default function UploadScreen() {
       setProgress({
         stage: 'generating',
         progress: 70,
-        message: 'AI is analyzing your content... AI is analyzing your content.',
+        message: t('aiFlashcards.analyzingContent'),
         cardsGenerated: 0,
       });
       
@@ -612,7 +612,7 @@ export default function UploadScreen() {
         const elapsed = Math.floor((Date.now() - startTime) / 1000);
         setProgress(prev => ({
           ...prev,
-          message: `AI is analyzing your content... AI is analyzing your content. (${elapsed}s elapsed)`
+          message: `t('aiFlashcards.analyzingWithElapsed', { elapsed })`
         }));
       }, 5000); // Update every 5 seconds
       
@@ -666,7 +666,7 @@ export default function UploadScreen() {
       setProgress({
         stage: 'complete',
         progress: 100,
-        message: `Successfully created ${flashcards.length} terminology flashcards!`,
+        message: t('aiFlashcards.successfullyCreated', { count: flashcards.length }),
         cardsGenerated: flashcards.length,
       });
       
@@ -1173,7 +1173,7 @@ export default function UploadScreen() {
         const elapsed = Math.floor((Date.now() - startTime) / 1000);
         setProgress(prev => ({
           ...prev,
-          message: `AI is analyzing your content... AI is analyzing your content. (${elapsed}s elapsed)`
+          message: `t('aiFlashcards.analyzingWithElapsed', { elapsed })`
         }));
       }, 5000); // Update every 5 seconds
       
@@ -1240,7 +1240,7 @@ export default function UploadScreen() {
       setProgress({
         stage: 'complete',
         progress: 100,
-        message: `Successfully created ${flashcards.length} terminology flashcards from images!`,
+        message: t('aiFlashcards.successfullyCreatedImages', { count: flashcards.length }),
         cardsGenerated: flashcards.length,
       });
       
@@ -1398,7 +1398,7 @@ export default function UploadScreen() {
                 onPress={() => setShowTopicPicker(!showTopicPicker)}
               >
                 <Text style={styles.topicDropdownText}>
-                  {selectedTopic || 'Select a topic'}
+                  {selectedTopic === 'AI Selection' ? t('aiFlashcards.aiSelection') : selectedTopic || t('aiFlashcards.selectTopicPlaceholder')}
                 </Text>
                 <Ionicons name={showTopicPicker ? "chevron-up" : "chevron-down"} size={20} color="#64748b" />
               </TouchableOpacity>
@@ -1410,14 +1410,14 @@ export default function UploadScreen() {
                 }}
               >
                 <Ionicons name="add" size={16} color="#6366f1" />
-                <Text style={styles.newTopicButtonText}>New Topic</Text>
+                <Text style={styles.newTopicButtonText}>{t('aiFlashcards.newTopic')}</Text>
               </TouchableOpacity>
             </View>
           ) : (
             <View style={styles.newTopicInputContainer}>
               <TextInput
                 style={styles.input}
-                placeholder="Enter new topic name"
+                placeholder={t('aiFlashcards.enterNewTopicName')}
                 value={newTopicInput}
                 onChangeText={setNewTopicInput}
               />
@@ -1429,7 +1429,7 @@ export default function UploadScreen() {
                     setNewTopicInput('');
                   }}
                 >
-                  <Text style={styles.cancelNewTopicButtonText}>Cancel</Text>
+                  <Text style={styles.cancelNewTopicButtonText}>{t('aiFlashcards.cancel')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity 
                   style={styles.confirmNewTopicButton}
@@ -1441,7 +1441,7 @@ export default function UploadScreen() {
                     }
                   }}
                 >
-                  <Text style={styles.confirmNewTopicButtonText}>Use New</Text>
+                  <Text style={styles.confirmNewTopicButtonText}>{t('aiFlashcards.useNew')}</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -1459,8 +1459,8 @@ export default function UploadScreen() {
                 }}
               >
                 <Ionicons name="sparkles" size={16} color="#8b5cf6" />
-                <Text style={[styles.topicOptionText, styles.aiSelectionText]}>AI Selection</Text>
-                <Text style={styles.aiSelectionSubtext}>Auto-detect topics</Text>
+                <Text style={[styles.topicOptionText, styles.aiSelectionText]}>{t('aiFlashcards.aiSelection')}</Text>
+                <Text style={styles.aiSelectionSubtext}>{t('aiFlashcards.autoDetectTopics')}</Text>
               </TouchableOpacity>
               
               {/* Existing topics */}
@@ -1506,7 +1506,7 @@ export default function UploadScreen() {
             >
               <Ionicons name="document" size={20} color="#ffffff" />
               <Text style={styles.uploadButtonText}>
-                {isProcessing ? 'Processing...' : selectedTopic === 'AI Selection' ? 'Choose PDF' : t('aiFlashcards.uploadPDF')}
+                {isProcessing ? t('aiFlashcards.processing') : selectedTopic === 'AI Selection' ? t('aiFlashcards.choosePDF') : t('aiFlashcards.uploadPDF')}
               </Text>
             </TouchableOpacity>
 

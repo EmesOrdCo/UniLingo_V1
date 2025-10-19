@@ -121,7 +121,7 @@ export default function UnitWriteScreen() {
   const [score, setScore] = useState(0);
   const [completed, setCompleted] = useState(false);
   const [showExitModal, setShowExitModal] = useState(false);
-  const [checkButtonText, setCheckButtonText] = useState('Check');
+  const [checkButtonText, setCheckButtonText] = useState(t('lessons.write.check'));
   const [writeExercises, setWriteExercises] = useState<UnitWriteExercise[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -207,8 +207,8 @@ export default function UnitWriteScreen() {
       setLoading(true);
       logger.info(`📝 Loading write exercises and conversation data for subject: ${subjectName} (${cefrLevel})`);
       
-      const targetLanguage = profile?.target_language || 'English';
-      const nativeLanguage = profile?.native_language || 'English';
+      const targetLanguage = profile?.target_language || 'en-GB';
+      const nativeLanguage = profile?.native_language || 'en-GB';
       
       // Load write exercises
       const exercises = await UnitDataAdapter.getUnitWriteExercises(subjectName, cefrLevel, targetLanguage, nativeLanguage);
@@ -233,8 +233,8 @@ export default function UnitWriteScreen() {
         // Create conversation data from hardcoded conversation
         const fallbackConversation: ConversationData = {
           conversation: CONVERSATION.map((item, index) => [
-            { speaker: 'Assistant', message: item.appMessage.english },
-            { speaker: 'User', message: item.userMessage.english }
+            { speaker: 'Assistant', message: item.appMessage.french },
+            { speaker: 'User', message: item.userMessage.french }
           ]).flat()
         };
         setConversationData(fallbackConversation);
@@ -275,8 +275,8 @@ export default function UnitWriteScreen() {
       // Create fallback conversation
       const fallbackConversation: ConversationData = {
         conversation: CONVERSATION.map((item, index) => [
-          { speaker: 'Assistant', message: item.appMessage.english },
-          { speaker: 'User', message: item.userMessage.english }
+          { speaker: 'Assistant', message: item.appMessage.french },
+          { speaker: 'User', message: item.userMessage.french }
         ]).flat()
       };
       setConversationData(fallbackConversation);
@@ -299,7 +299,7 @@ export default function UnitWriteScreen() {
 
   // Function to translate target language text to native language
   const getUserMessageTranslation = (targetLanguageText: string, targetLanguage: string): string => {
-    // This translates FROM target language TO native language (English)
+    // This translates FROM target language TO native language
     const targetLang = targetLanguage.toLowerCase();
     
     if (targetLang.includes('chinese') || targetLang.includes('zh') || targetLang.includes('mandarin')) {
@@ -385,11 +385,11 @@ export default function UnitWriteScreen() {
       return spanishToEnglish[targetLanguageText] || targetLanguageText;
     }
     
-    // Default: assume it's already in English (native language)
+    // Default: assume it's already in native language
     return targetLanguageText;
   };
 
-  // Function to convert English text to target language for wrong options
+  // Function to convert native language text to target language for wrong options
   const convertToTargetLanguage = (englishText: string, targetLanguage: string): string => {
     const targetLang = targetLanguage.toLowerCase();
     
@@ -483,8 +483,8 @@ export default function UnitWriteScreen() {
     
     try {
       // Get user's language preferences
-      const nativeLanguage = profile?.native_language || 'English';
-      const targetLanguage = profile?.target_language || 'English';
+      const nativeLanguage = profile?.native_language || 'en-GB';
+      const targetLanguage = profile?.target_language || 'en-GB';
       
       // Get all user messages from the conversation for context
       const userMessages = conversationData?.conversation?.filter(msg => msg.speaker === 'User') || [];
@@ -668,7 +668,7 @@ export default function UnitWriteScreen() {
           ];
         }
       } else {
-        // Generic/English target language options
+        // Generic/native language target language options
         contextuallyRelevantOptions = [
           {text: 'I don\'t know', translation: 'I don\'t know'},
           {text: 'Maybe', translation: 'Maybe'},
@@ -697,7 +697,7 @@ export default function UnitWriteScreen() {
       
     } catch (error) {
       console.error('Error generating wrong options:', error);
-      const targetLanguage = profile?.target_language || 'English';
+      const targetLanguage = profile?.target_language || 'en-GB';
       
       // Language-agnostic fallback
       let fallbackText = 'I don\'t know';
@@ -865,7 +865,7 @@ export default function UnitWriteScreen() {
 
     if (correct) {
       setScore(score + 1);
-      setCheckButtonText('Correct! ✓');
+      setCheckButtonText(t('lessons.write.correct'));
       
       // After 1 second, add user's answer and next Thomas message to chat history
       setTimeout(() => {
@@ -903,7 +903,7 @@ export default function UnitWriteScreen() {
         setUserAnswer([]);
         setAvailableWords([]);
         setShowResult(false);
-        setCheckButtonText('Check');
+        setCheckButtonText(t('lessons.write.check'));
 
         if (isLastExchange) {
           // Show completion after brief delay
@@ -1387,7 +1387,7 @@ export default function UnitWriteScreen() {
       <SafeAreaView style={styles.completionContainer}>
         <View style={styles.completionContent}>
           <Text style={styles.completionEmoji}>🎉</Text>
-          <Text style={styles.completionTitle}>Write Complete!</Text>
+          <Text style={styles.completionTitle}>{t('lessons.write.title')} {t('lessons.write.complete')}</Text>
           <Text style={styles.completionSubtitle}>Great conversation practice!</Text>
           
           <View style={styles.completionStats}>
@@ -1419,7 +1419,7 @@ export default function UnitWriteScreen() {
                 setShowResult(false);
                 setUserAnswer([]);
                 setAvailableWords([]);
-                setCheckButtonText('Check');
+                setCheckButtonText(t('lessons.write.check'));
               }}
             >
               <Text style={styles.completionRetryButtonText}>Retry</Text>
@@ -1441,7 +1441,7 @@ export default function UnitWriteScreen() {
           <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color="#000000" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>{unitTitle} - Write</Text>
+          <Text style={styles.headerTitle}>{unitTitle} - {t('lessons.write.title')}</Text>
           <View style={styles.headerSpacer} />
         </View>
         <View style={styles.loadingContainer}>
@@ -1519,7 +1519,7 @@ export default function UnitWriteScreen() {
           <View key={index}>
             {message.type === 'app' && (
               <View style={styles.chatMessageLeft}>
-                <Text style={styles.chatSenderName}>Thomas</Text>
+                <Text style={styles.chatSenderName}>{t('lessons.write.thomas')}</Text>
                 <View style={styles.chatBubbleThomas}>
                   {!hiddenMessages.has(index) && <Text style={styles.chatBubblePrimary}>{message.french}</Text>}
                   {showTranslation && !hiddenMessages.has(index) && <Text style={styles.chatBubbleSecondary}>{message.english}</Text>}
@@ -1528,8 +1528,8 @@ export default function UnitWriteScreen() {
                     <TouchableOpacity 
                       style={[styles.chatActionIcon, isPlayingAudio && styles.chatActionIconActive]}
                       onPress={() => {
-                        // For target language text, use target language voice (English)
-                        handleNormalSpeedPlay(message.french, getSpeechLanguageCode('en-GB'));
+                        // For target language text, use target language voice
+                        handleNormalSpeedPlay(message.french, getSpeechLanguageCode(profile?.target_language || 'en-GB'));
                       }}
                     >
                       <Ionicons 
@@ -1541,8 +1541,8 @@ export default function UnitWriteScreen() {
                     <TouchableOpacity 
                       style={[styles.chatActionIcon, isPlayingAudio && styles.chatActionIconActive]}
                       onPress={() => {
-                        // For target language text, use target language voice (English)
-                        handleSlowSpeedPlay(message.french, getSpeechLanguageCode('en-GB'));
+                        // For target language text, use target language voice
+                        handleSlowSpeedPlay(message.french, getSpeechLanguageCode(profile?.target_language || 'en-GB'));
                       }}
                     >
                       <Ionicons 
@@ -1591,8 +1591,8 @@ export default function UnitWriteScreen() {
                     <TouchableOpacity 
                       style={[styles.chatActionIcon, isPlayingAudio && styles.chatActionIconActive]}
                       onPress={() => {
-                        // For target language text, use target language voice (English)
-                        handleNormalSpeedPlay(message.french, getSpeechLanguageCode('en-GB'));
+                        // For target language text, use target language voice
+                        handleNormalSpeedPlay(message.french, getSpeechLanguageCode(profile?.target_language || 'en-GB'));
                       }}
                     >
                       <Ionicons 
@@ -1604,8 +1604,8 @@ export default function UnitWriteScreen() {
                     <TouchableOpacity 
                       style={[styles.chatActionIcon, isPlayingAudio && styles.chatActionIconActive]}
                       onPress={() => {
-                        // For target language text, use target language voice (English)
-                        handleSlowSpeedPlay(message.french, getSpeechLanguageCode('en-GB'));
+                        // For target language text, use target language voice
+                        handleSlowSpeedPlay(message.french, getSpeechLanguageCode(profile?.target_language || 'en-GB'));
                       }}
                     >
                       <Ionicons 
@@ -1652,7 +1652,7 @@ export default function UnitWriteScreen() {
       {currentExchangeIndex < getTotalExchanges() && (
         <View style={styles.bottomPinnedSection}>
           <Text style={styles.questionLabel}>
-            {currentExchange.type === 'choice' ? 'TAP THE CORRECT ANSWER' : 'CORRECT THE ORDERING'}
+            {currentExchange.type === 'choice' ? t('lessons.write.tapCorrectAnswer') : t('lessons.write.correctOrdering')}
           </Text>
 
           {/* Answer Interface */}
@@ -1757,8 +1757,8 @@ export default function UnitWriteScreen() {
                 const textToSpeak = currentExchange.type === 'choice' 
                   ? (selectedAnswer || currentExchange.userMessage.french)
                   : (userAnswer.length > 0 ? userAnswer.join(' ') : currentExchange.userMessage.french);
-                // For user's arranged/selected answer (target language), use English speech
-                handleNormalSpeedPlay(textToSpeak, getSpeechLanguageCode('en-GB'));
+                // For user's arranged/selected answer (target language), use target language speech
+                handleNormalSpeedPlay(textToSpeak, getSpeechLanguageCode(profile?.target_language || 'en-GB'));
               }}
             >
               <Ionicons name="volume-high" size={28} color="#ffffff" />
@@ -1777,7 +1777,7 @@ export default function UnitWriteScreen() {
                   (currentExchange.type === 'scramble' && userAnswer.length === 0)
                 }
               >
-                <Text style={styles.checkButtonTextBottom}>Check</Text>
+                <Text style={styles.checkButtonTextBottom}>{t('lessons.write.check')}</Text>
               </TouchableOpacity>
             ) : (
               <View style={styles.retrySkipButtons}>
@@ -1796,8 +1796,8 @@ export default function UnitWriteScreen() {
                 const textToSpeak = currentExchange.type === 'choice' 
                   ? (selectedAnswer || currentExchange.userMessage.french)
                   : (userAnswer.length > 0 ? userAnswer.join(' ') : currentExchange.userMessage.french);
-                // For user's arranged/selected answer (target language), use English speech
-                handleSlowSpeedPlay(textToSpeak, getSpeechLanguageCode('en-GB'));
+                // For user's arranged/selected answer (target language), use target language speech
+                handleSlowSpeedPlay(textToSpeak, getSpeechLanguageCode(profile?.target_language || 'en-GB'));
               }}
             >
               <Ionicons name="time-outline" size={28} color="#ffffff" />

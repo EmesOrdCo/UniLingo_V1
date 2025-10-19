@@ -764,9 +764,9 @@ export default function LessonWalkthroughScreen() {
           </TouchableOpacity>
           <View style={styles.flowContainer}>
             <View style={styles.flowHeader}>
-              <Text style={styles.flowTitle}>Ready to Start?</Text>
+              <Text style={styles.flowTitle}>{t('lessonWalkthrough.readyToStart')}</Text>
               <Text style={styles.flowSubtitle}>
-                Here's what you'll be doing in this lesson
+                {t('lessonWalkthrough.whatYoullDo')}
               </Text>
               
               {/* Progress indicator for in-progress lessons */}
@@ -776,11 +776,14 @@ export default function LessonWalkthroughScreen() {
                     <Ionicons name="analytics" size={32} color="#6366f1" />
                   </View>
                   <View style={styles.progressBoxInfo}>
-                    <Text style={styles.progressBoxTitle}>Progress</Text>
+                    <Text style={styles.progressBoxTitle}>{t('lessonWalkthrough.progress')}</Text>
                     <Text style={styles.progressBoxDescription}>
                       {lessonProgress.total_score > 0 ? 
-                        `${lessonProgress.total_score}/${lessonVocabulary.length * 5} points earned` :
-                        'Lesson started - Ready to continue'
+                        t('lessonWalkthrough.pointsEarned', { 
+                          current: lessonProgress.total_score, 
+                          total: lessonVocabulary.length * 5 
+                        }) :
+                        t('lessonWalkthrough.lessonStartedReady')
                       }
                     </Text>
                     <View style={styles.progressBarContainer}>
@@ -793,8 +796,11 @@ export default function LessonWalkthroughScreen() {
                     </View>
                     <Text style={styles.progressBoxDuration}>
                       {lessonProgress.total_score > 0 ? 
-                        `${Math.floor(lessonProgress.total_score / lessonVocabulary.length)} of 5 exercises completed` :
-                        'Click "Resume Lesson" to continue where you left off'
+                        t('lessonWalkthrough.exercisesCompleted', { 
+                          completed: Math.floor(lessonProgress.total_score / lessonVocabulary.length), 
+                          total: 5 
+                        }) :
+                        t('lessonWalkthrough.clickResumeToContinue')
                       }
                     </Text>
                   </View>
@@ -821,11 +827,11 @@ export default function LessonWalkthroughScreen() {
                     <Ionicons name="card" size={32} color="#6366f1" />
                   </View>
                   <View style={styles.flowExerciseInfo}>
-                    <Text style={styles.flowExerciseTitle}>Flashcards</Text>
+                    <Text style={styles.flowExerciseTitle}>{t('lessonWalkthrough.flashcards')}</Text>
                     <Text style={styles.flowExerciseDescription}>
-                      Review all {lessonVocabulary.length} vocabulary terms with definitions, translations, and examples
+                      {t('lessonWalkthrough.flashcardsDescription', { count: lessonVocabulary.length })}
                     </Text>
-                    <Text style={styles.flowExerciseDuration}>~2-3 minutes</Text>
+                    <Text style={styles.flowExerciseDuration}>{t('lessonWalkthrough.duration2to3')}</Text>
                   </View>
                   <View style={styles.flowExerciseArrow}>
                     <Ionicons name="chevron-forward" size={20} color="#cbd5e1" />
@@ -851,11 +857,11 @@ export default function LessonWalkthroughScreen() {
                     <Ionicons name="help-circle" size={32} color="#6366f1" />
                   </View>
                   <View style={styles.flowExerciseInfo}>
-                    <Text style={styles.flowExerciseTitle}>Flashcard Quiz</Text>
+                    <Text style={styles.flowExerciseTitle}>{t('lessonWalkthrough.flashcardQuiz')}</Text>
                     <Text style={styles.flowExerciseDescription}>
-                      Test your knowledge with multiple choice questions about definitions and translations
+                      {t('lessonWalkthrough.flashcardQuizDescription')}
                     </Text>
-                    <Text style={styles.flowExerciseDuration}>~3-4 minutes</Text>
+                    <Text style={styles.flowExerciseDuration}>{t('lessonWalkthrough.duration3to4')}</Text>
                   </View>
                   <View style={styles.flowExerciseArrow}>
                     {!completedExercises.has('flashcards') && !lessonProgress?.completed_at ? (
@@ -885,11 +891,11 @@ export default function LessonWalkthroughScreen() {
                     <Ionicons name="create" size={32} color="#6366f1" />
                   </View>
                   <View style={styles.flowExerciseInfo}>
-                    <Text style={styles.flowExerciseTitle}>Fill in the Blank</Text>
+                    <Text style={styles.flowExerciseTitle}>{t('lessonWalkthrough.fillInTheBlank')}</Text>
                     <Text style={styles.flowExerciseDescription}>
-                      Complete example sentences by typing the missing vocabulary words
+                      {t('lessonWalkthrough.fillInTheBlankDescription')}
                     </Text>
-                    <Text style={styles.flowExerciseDuration}>~3-4 minutes</Text>
+                    <Text style={styles.flowExerciseDuration}>{t('lessonWalkthrough.duration3to4')}</Text>
                   </View>
                   <View style={styles.flowExerciseArrow}>
                     {!completedExercises.has('flashcard-quiz') && !lessonProgress?.completed_at ? (
@@ -919,11 +925,11 @@ export default function LessonWalkthroughScreen() {
                     <Ionicons name="volume-high" size={32} color="#6366f1" />
                   </View>
                   <View style={styles.flowExerciseInfo}>
-                    <Text style={styles.flowExerciseTitle}>Listen</Text>
+                    <Text style={styles.flowExerciseTitle}>{t('lessonWalkthrough.listen')}</Text>
                     <Text style={styles.flowExerciseDescription}>
-                      Listen to vocabulary words and type what you hear
+                      {t('lessonWalkthrough.listenDescription')}
                     </Text>
-                    <Text style={styles.flowExerciseDuration}>~3-4 minutes</Text>
+                    <Text style={styles.flowExerciseDuration}>{t('lessonWalkthrough.duration3to4')}</Text>
                   </View>
                   <View style={styles.flowExerciseArrow}>
                     {!completedExercises.has('fill-in-blank') && !lessonProgress?.completed_at ? (
@@ -953,11 +959,11 @@ export default function LessonWalkthroughScreen() {
                     <Ionicons name="mic" size={32} color="#6366f1" />
                   </View>
                   <View style={styles.flowExerciseInfo}>
-                    <Text style={styles.flowExerciseTitle}>Speak</Text>
+                    <Text style={styles.flowExerciseTitle}>{t('lessonWalkthrough.speak')}</Text>
                     <Text style={styles.flowExerciseDescription}>
-                      Practice pronunciation with AI-powered feedback
+                      {t('lessonWalkthrough.speakDescription')}
                     </Text>
-                    <Text style={styles.flowExerciseDuration}>~4-5 minutes</Text>
+                    <Text style={styles.flowExerciseDuration}>{t('lessonWalkthrough.duration4to5')}</Text>
                   </View>
                   <View style={styles.flowExerciseArrow}>
                     {!completedExercises.has('listen') && !lessonProgress?.completed_at ? (
@@ -987,11 +993,11 @@ export default function LessonWalkthroughScreen() {
                     <Ionicons name="chatbubbles" size={32} color="#6366f1" />
                   </View>
                   <View style={styles.flowExerciseInfo}>
-                    <Text style={styles.flowExerciseTitle}>Conversation</Text>
+                    <Text style={styles.flowExerciseTitle}>{t('lessonWalkthrough.conversation')}</Text>
                     <Text style={styles.flowExerciseDescription}>
-                      Practice with AI-generated conversation scripts
+                      {t('lessonWalkthrough.conversationDescription')}
                     </Text>
-                    <Text style={styles.flowExerciseDuration}>~2-3 minutes</Text>
+                    <Text style={styles.flowExerciseDuration}>{t('lessonWalkthrough.duration2to3')}</Text>
                   </View>
                   <View style={styles.flowExerciseArrow}>
                     {!completedExercises.has('speak') && !lessonProgress?.completed_at ? (
@@ -1012,7 +1018,7 @@ export default function LessonWalkthroughScreen() {
                     onPress={resumeLesson}
                   >
                     <Ionicons name="play" size={20} color="#ffffff" />
-                    <Text style={styles.resumeButtonText}>Resume Lesson</Text>
+                    <Text style={styles.resumeButtonText}>{t('lessonWalkthrough.resumeLesson')}</Text>
                   </TouchableOpacity>
                   
                   <TouchableOpacity 
@@ -1020,7 +1026,7 @@ export default function LessonWalkthroughScreen() {
                     onPress={startNewLesson}
                   >
                     <Ionicons name="refresh" size={20} color="#6366f1" />
-                    <Text style={styles.restartButtonText}>Restart Lesson</Text>
+                    <Text style={styles.restartButtonText}>{t('lessonWalkthrough.restartLesson')}</Text>
                   </TouchableOpacity>
                 </View>
               ) : lessonProgress && lessonProgress.completed_at ? (
@@ -1029,7 +1035,7 @@ export default function LessonWalkthroughScreen() {
                   onPress={redoLesson}
                 >
                   <Ionicons name="refresh" size={20} color="#ffffff" />
-                  <Text style={styles.redoButtonText}>Redo Lesson</Text>
+                  <Text style={styles.redoButtonText}>{t('lessonWalkthrough.redoLesson')}</Text>
                 </TouchableOpacity>
               ) : (
                 <TouchableOpacity 

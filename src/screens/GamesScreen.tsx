@@ -793,15 +793,15 @@ export default function GamesScreen({ route }: { route?: any }) {
   // Helper function to show popup error when no flashcards
   const showNoFlashcardsError = () => {
     Alert.alert(
-      'No Flashcards Available',
-      'Games require flashcards to work. Please create some flashcards first by going to the Flashcards section and adding vocabulary words.',
+      t('games.noFlashcardsModal.title'),
+      t('games.noFlashcardsModal.message'),
       [
         {
-          text: 'Go to Flashcards',
+          text: t('games.noFlashcardsModal.goToFlashcards'),
           onPress: () => navigation.navigate('Flashcards' as never)
         },
         {
-          text: 'OK',
+          text: t('games.noFlashcardsModal.ok'),
           style: 'cancel'
         }
       ]
@@ -996,7 +996,7 @@ export default function GamesScreen({ route }: { route?: any }) {
       // Validate flashcards
       const validation = GameDataService.validateFlashcards(filteredFlashcards, 'Memory Match');
       if (!validation.isValid) {
-        Alert.alert('Cannot Start Game', validation.error || 'Invalid flashcard data');
+        Alert.alert(t('games.cannotStartGame'), validation.error ? t(validation.error) : t('games.invalidFlashcardData'));
         return;
       }
       
@@ -1046,7 +1046,7 @@ export default function GamesScreen({ route }: { route?: any }) {
       // Validate filtered flashcards
       const validation = GameDataService.validateFlashcards(filteredFlashcards, 'Word Scramble');
       if (!validation.isValid) {
-        Alert.alert('Cannot Start Game', validation.error || 'Invalid flashcard data');
+        Alert.alert(t('games.cannotStartGame'), validation.error ? t(validation.error) : t('games.invalidFlashcardData'));
         return;
       }
       
@@ -1090,7 +1090,7 @@ export default function GamesScreen({ route }: { route?: any }) {
       // Validate filtered flashcards
       const validation = GameDataService.validateFlashcards(filteredFlashcards, 'Sentence Scramble');
       if (!validation.isValid) {
-        Alert.alert('Cannot Start Game', validation.error || 'Invalid flashcard data');
+        Alert.alert(t('games.cannotStartGame'), validation.error ? t(validation.error) : t('games.invalidFlashcardData'));
         return;
       }
       
@@ -1141,7 +1141,7 @@ export default function GamesScreen({ route }: { route?: any }) {
       // Validate filtered flashcards
       const validation = GameDataService.validateFlashcards(filteredFlashcards, 'Hangman');
       if (!validation.isValid) {
-        Alert.alert('Cannot Start Game', validation.error || 'Invalid flashcard data');
+        Alert.alert(t('games.cannotStartGame'), validation.error ? t(validation.error) : t('games.invalidFlashcardData'));
         return;
       }
       
@@ -1191,7 +1191,7 @@ export default function GamesScreen({ route }: { route?: any }) {
       // Validate filtered flashcards
       const validation = GameDataService.validateFlashcards(filteredFlashcards, 'Speed Challenge');
       if (!validation.isValid) {
-        Alert.alert('Cannot Start Game', validation.error || 'Invalid flashcard data');
+        Alert.alert(t('games.cannotStartGame'), validation.error ? t(validation.error) : t('games.invalidFlashcardData'));
         return;
       }
       
@@ -1251,7 +1251,7 @@ export default function GamesScreen({ route }: { route?: any }) {
       // Validate filtered flashcards
       const validation = GameDataService.validateFlashcards(filteredFlashcards, 'Listen & Type');
       if (!validation.isValid) {
-        Alert.alert('Cannot Start Game', validation.error || 'Invalid flashcard data');
+        Alert.alert(t('games.cannotStartGame'), validation.error ? t(validation.error) : t('games.invalidFlashcardData'));
         return;
       }
       
@@ -1301,7 +1301,7 @@ export default function GamesScreen({ route }: { route?: any }) {
       // Validate filtered flashcards
       const validation = GameDataService.validateFlashcards(filteredFlashcards, 'Planet Defense');
       if (!validation.isValid) {
-        Alert.alert('Cannot Start Game', validation.error || 'Invalid flashcard data');
+        Alert.alert(t('games.cannotStartGame'), validation.error ? t(validation.error) : t('games.invalidFlashcardData'));
         return;
       }
       
@@ -1351,7 +1351,7 @@ export default function GamesScreen({ route }: { route?: any }) {
       // Validate filtered flashcards
       const validation = GameDataService.validateFlashcards(filteredFlashcards, 'Speaking Game');
       if (!validation.isValid) {
-        Alert.alert('Cannot Start Game', validation.error || 'Invalid flashcard data');
+        Alert.alert(t('games.cannotStartGame'), validation.error ? t(validation.error) : t('games.invalidFlashcardData'));
         return;
       }
       

@@ -14,6 +14,7 @@ import * as Haptics from 'expo-haptics';
 import { useTranslation } from '../../lib/i18n';
 import { VoiceService } from '../../lib/voiceService';
 import { AWSPollyService } from '../../lib/awsPollyService';
+import { VocabularyInterpretationService } from '../../lib/vocabularyInterpretationService';
 import LeaveConfirmationModal from './LeaveConfirmationModal';
 
 interface LessonListenProps {
@@ -53,18 +54,30 @@ export default function LessonListen({
   const [gameComplete, setGameComplete] = useState(false);
   const [showLeaveModal, setShowLeaveModal] = useState(false);
 
+  // Get user's language pair - memoized to prevent unnecessary re-renders
+  const languagePair = React.useMemo(() => ({
+    native: userProfile?.native_language || 'en-GB',
+    target: userProfile?.target_language || 'en-GB'
+  }), [userProfile?.native_language, userProfile?.target_language]);
+
+  // Interpret vocabulary for listen exercise - memoized to prevent unnecessary re-renders
+  const interpretedVocabulary = React.useMemo(() => 
+    VocabularyInterpretationService.interpretVocabularyListForListen(vocabulary, languagePair),
+    [vocabulary, languagePair]
+  );
+
   // Generate questions with multiple choice options
   useEffect(() => {
-    const generatedQuestions: ListenQuestion[] = vocabulary.map((item, index, array) => {
+    const generatedQuestions: ListenQuestion[] = interpretedVocabulary.map((item, index, array) => {
       // Generate 3 wrong options from other vocabulary items
       const wrongOptions = array
-        .filter((v, i) => i !== index && (v.keywords || v.english_term || v.term))
-        .map(v => v.keywords || v.english_term || v.term)
+        .filter((v, i) => i !== index && v.frontTerm)
+        .map(v => v.frontTerm)
         .sort(() => Math.random() - 0.5)
         .slice(0, 3);
       
       // Combine with correct answer and shuffle
-      const correctAnswer = item.keywords || item.english_term || item.term;
+      const correctAnswer = item.frontTerm;
       const options = [correctAnswer, ...wrongOptions].sort(() => Math.random() - 0.5);
       
       return {
@@ -74,7 +87,7 @@ export default function LessonListen({
     });
     
     setQuestions(generatedQuestions);
-  }, [vocabulary]);
+  }, [interpretedVocabulary]);
 
   useEffect(() => {
     if (onProgressUpdate) {
@@ -92,8 +105,8 @@ export default function LessonListen({
   const playAudio = async () => {
     if (isPlaying || !currentVocab) return;
     
-    // Use keywords (AI-generated lessons) or english_term (general vocab)
-    const textToSpeak = currentVocab.keywords || currentVocab.english_term || currentVocab.term;
+    // Use frontTerm from interpreted vocabulary (target language term)
+    const textToSpeak = currentVocab.frontTerm;
     
     if (!textToSpeak || textToSpeak === 'undefined') {
       console.error('🔊 No valid text to speak! Vocab:', currentVocab);
@@ -120,7 +133,7 @@ export default function LessonListen({
         voiceId,
         languageCode: languageCode,
         engine: 'standard', // Use standard engine for cost efficiency
-        rate: 0.8, // Slightly slower for clarity
+        rate: 0.6, // Slower for better comprehension
         pitch: 1.0,
         volume: 1.0
       });
@@ -136,7 +149,7 @@ export default function LessonListen({
       try {
         await VoiceService.textToSpeechExpo(textToSpeak, {
           language: 'en-US',
-          rate: 0.8,
+          rate: 0.6,
           pitch: 1.0,
           volume: 1.0,
         });
@@ -150,7 +163,7 @@ export default function LessonListen({
   };
 
   const handleOptionSelect = (option: string) => {
-    const correctAnswer = currentVocab.keywords || currentVocab.english_term || currentVocab.term;
+    const correctAnswer = currentVocab.frontTerm;
     const correct = option === correctAnswer;
     
     setSelectedOption(option);
@@ -171,7 +184,7 @@ export default function LessonListen({
   const checkAnswer = () => {
     if (!userInput.trim()) return;
     
-    const correctAnswer = (currentVocab.keywords || currentVocab.english_term || currentVocab.term).toLowerCase().trim();
+    const correctAnswer = currentVocab.frontTerm.toLowerCase().trim();
     const userAnswer = userInput.toLowerCase().trim();
     
     const correct = userAnswer === correctAnswer;
@@ -229,15 +242,15 @@ export default function LessonListen({
     setIsCorrect(false);
     setGameComplete(false);
     
-    // Regenerate questions with new shuffled options
-    const generatedQuestions: ListenQuestion[] = vocabulary.map((item, index, array) => {
+    // Regenerate questions with new shuffled options using interpreted vocabulary
+    const generatedQuestions: ListenQuestion[] = interpretedVocabulary.map((item, index, array) => {
       const wrongOptions = array
-        .filter((v, i) => i !== index && (v.keywords || v.english_term || v.term))
-        .map(v => v.keywords || v.english_term || v.term)
+        .filter((v, i) => i !== index && v.frontTerm)
+        .map(v => v.frontTerm)
         .sort(() => Math.random() - 0.5)
         .slice(0, 3);
       
-      const correctAnswer = item.keywords || item.english_term || item.term;
+      const correctAnswer = item.frontTerm;
       const options = [correctAnswer, ...wrongOptions].sort(() => Math.random() - 0.5);
       
       return {
@@ -443,8 +456,8 @@ export default function LessonListen({
                   style={[
                     styles.optionButton,
                     selectedOption === option && styles.selectedOption,
-                    showResult && option === (currentVocab.keywords || currentVocab.english_term || currentVocab.term) && styles.correctOption,
-                    showResult && selectedOption === option && option !== (currentVocab.keywords || currentVocab.english_term || currentVocab.term) && styles.incorrectOption
+                    showResult && option === currentVocab.frontTerm && styles.correctOption,
+                    showResult && selectedOption === option && option !== currentVocab.frontTerm && styles.incorrectOption
                   ]}
                   onPress={() => !showResult && handleOptionSelect(option)}
                   disabled={showResult}
@@ -452,15 +465,15 @@ export default function LessonListen({
                   <Text style={[
                     styles.optionText,
                     selectedOption === option && styles.selectedOptionText,
-                    showResult && option === (currentVocab.keywords || currentVocab.english_term || currentVocab.term) && styles.correctOptionText,
-                    showResult && selectedOption === option && option !== (currentVocab.keywords || currentVocab.english_term || currentVocab.term) && styles.incorrectOptionText
+                    showResult && option === currentVocab.frontTerm && styles.correctOptionText,
+                    showResult && selectedOption === option && option !== currentVocab.frontTerm && styles.incorrectOptionText
                   ]}>
                     {option}
                   </Text>
-                  {showResult && option === (currentVocab.keywords || currentVocab.english_term || currentVocab.term) && (
+                  {showResult && option === currentVocab.frontTerm && (
                     <Ionicons name="checkmark-circle" size={20} color="#10b981" />
                   )}
-                  {showResult && selectedOption === option && option !== (currentVocab.keywords || currentVocab.english_term || currentVocab.term) && (
+                  {showResult && selectedOption === option && option !== currentVocab.frontTerm && (
                     <Ionicons name="close-circle" size={20} color="#ef4444" />
                   )}
                 </TouchableOpacity>

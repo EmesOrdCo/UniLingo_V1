@@ -74,8 +74,8 @@ export default function UnitSpeakScreen() {
       setLoading(true);
       logger.info(`🎤 Loading speak data for subject: ${subjectName} (${cefrLevel})`);
       
-      const nativeLanguage = profile?.native_language || 'French';
-      const targetLanguage = profile?.target_language || 'English';
+      const nativeLanguage = profile?.native_language || 'en-GB';
+      const targetLanguage = profile?.target_language || 'en-GB';
       
       // Load vocabulary and sentences
       const [vocabData, sentenceData] = await Promise.all([
@@ -377,20 +377,20 @@ export default function UnitSpeakScreen() {
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
         {/* Question Type Indicator */}
         <Text style={styles.questionTypeLabel}>
-          {currentQuestion.type === 'word' ? 'Say the word' : 'Say the sentence'}
+          {currentQuestion.type === 'word' ? t('lessons.speak.sayTheWordInstruction') : t('lessons.speak.sayTheSentenceInstruction')}
         </Text>
 
         {/* Pronunciation Check Component */}
         {currentQuestion && (
-          <PronunciationCheck
-            key={`${currentQuestionIndex}-${attemptKey}`}
-            word={currentQuestion.english}
-            onComplete={handlePronunciationComplete}
-            maxRecordingDuration={currentQuestion.type === 'word' ? 3000 : 8000}
-            showAlerts={false}
-            translation={currentQuestion.french}
-            hideScoreRing={true}
-          />
+        <PronunciationCheck
+          key={`${currentQuestionIndex}-${attemptKey}`}
+          word={currentQuestion.french}
+          onComplete={handlePronunciationComplete}
+          maxRecordingDuration={currentQuestion.type === 'word' ? 3000 : 8000}
+          showAlerts={false}
+          translation={currentQuestion.english}
+          hideScoreRing={true}
+        />
         )}
 
         {/* Result Message - appears below PronunciationCheck */}

@@ -16,8 +16,11 @@ import { useRefresh } from '../contexts/RefreshContext';
 import { LessonService, Lesson, LessonProgress } from '../lib/lessonService';
 import { supabase } from '../lib/supabase';
 import { useTranslation } from '../lib/i18n';
+import { useI18n } from '../lib/i18n';
 
 export default function YourLessonsScreen() {
+  const { t } = useTranslation();
+  const { currentLanguage } = useI18n();
   const [lessons, setLessons] = useState<(Lesson & { vocab_count: number; progress?: LessonProgress })[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedSources, setExpandedSources] = useState<Set<string>>(new Set());
@@ -25,7 +28,6 @@ export default function YourLessonsScreen() {
   const navigation = useNavigation();
   const { user } = useAuth();
   const { refreshTrigger } = useRefresh();
-  const { t } = useTranslation();
 
   // Fetch user's lessons when component comes into focus
   useFocusEffect(
@@ -174,7 +176,7 @@ export default function YourLessonsScreen() {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
+    return date.toLocaleDateString(currentLanguage === 'de' ? 'de-DE' : 'en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -294,7 +296,7 @@ export default function YourLessonsScreen() {
                       <View style={styles.sourceInfo}>
                         <Text style={styles.sourceName} numberOfLines={1}>{source}</Text>
                         <Text style={styles.sourceStats}>
-                          {totalLessons} lesson{totalLessons !== 1 ? 's' : ''} • {totalWords} words
+                          {totalLessons} {totalLessons !== 1 ? t('yourLessons.lessons') : t('yourLessons.lesson')} • {totalWords} {t('yourLessons.words')}
                         </Text>
                       </View>
                     </View>
@@ -336,7 +338,7 @@ export default function YourLessonsScreen() {
                         <View style={styles.lessonDetailItem}>
                           <Ionicons name="document-text" size={16} color="#6b7280" />
                           <Text style={styles.lessonDetailText}>
-                            {lesson.vocab_count} words
+                            {lesson.vocab_count} {t('yourLessons.words')}
                           </Text>
                         </View>
                         <View style={styles.lessonDetailItem}>
@@ -351,7 +353,7 @@ export default function YourLessonsScreen() {
                       {lesson.progress && (
                         <View style={styles.progressSection}>
                           <View style={styles.progressHeader}>
-                            <Text style={styles.progressLabel}>Progress</Text>
+                            <Text style={styles.progressLabel}>{t('yourLessons.progress')}</Text>
                             <Text style={styles.progressPercentage}>
                               {getProgressPercentage(lesson.progress)}%
                             </Text>
@@ -369,10 +371,10 @@ export default function YourLessonsScreen() {
                           </View>
                           <Text style={styles.progressText}>
                             {lesson.progress.completed_at 
-                              ? 'Completed' 
+                              ? t('yourLessons.completed')
                               : lesson.progress.started_at 
-                                ? `${lesson.progress.total_score}/${lesson.progress.max_possible_score} points`
-                                : 'Start'
+                                ? `${lesson.progress.total_score}/${lesson.progress.max_possible_score} ${t('yourLessons.points')}`
+                                : t('yourLessons.start')
                             }
                           </Text>
                         </View>
@@ -383,12 +385,12 @@ export default function YourLessonsScreen() {
                           {lesson.progress && lesson.progress.started_at ? (
                             <View style={styles.statusBadge}>
                               <Ionicons name="play-circle" size={16} color="#6366f1" />
-                              <Text style={styles.statusText}>Continue</Text>
+                              <Text style={styles.statusText}>{t('yourLessons.continue')}</Text>
                             </View>
                           ) : (
                             <View style={styles.statusBadge}>
                               <Ionicons name="play-circle" size={16} color="#6366f1" />
-                              <Text style={styles.statusText}>Start</Text>
+                              <Text style={styles.statusText}>{t('yourLessons.start')}</Text>
                             </View>
                           )}
                         </View>

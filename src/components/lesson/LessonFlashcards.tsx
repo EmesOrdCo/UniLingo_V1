@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Animated, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -30,32 +30,33 @@ export default function LessonFlashcards({ vocabulary, onComplete, onClose, onPr
   if (!vocabulary || vocabulary.length === 0) {
     return (
       <View style={styles.container}>
-        <Text style={styles.errorText}>No vocabulary data available</Text>
+        <Text style={styles.errorText}>{t('lessonFlashcards.noVocabularyData')}</Text>
         <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-          <Text style={styles.closeButtonText}>Close</Text>
+          <Text style={styles.closeButtonText}>{t('lessonFlashcards.close')}</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
-  // Get user's language pair
-  const languagePair = {
-    native: profile?.native_language || 'English',
-    target: profile?.target_language || 'English'
-  };
+  // Get user's language pair - memoized to prevent unnecessary re-renders
+  const languagePair = useMemo(() => ({
+    native: profile?.native_language || 'en-GB',
+    target: profile?.target_language || 'en-GB'
+  }), [profile?.native_language, profile?.target_language]);
 
-  // Interpret vocabulary based on language pair
-  const interpretedVocabulary = VocabularyInterpretationService.interpretVocabularyList(vocabulary, languagePair);
+  // Interpret vocabulary based on language pair - memoized to prevent unnecessary re-renders
+  const interpretedVocabulary = useMemo(() => 
+    VocabularyInterpretationService.interpretVocabularyList(vocabulary, languagePair),
+    [vocabulary, languagePair]
+  );
   const languageDirection = VocabularyInterpretationService.getLanguageDirection(languagePair);
   
   const currentCard = interpretedVocabulary[currentIndex];
 
-  // Update progress when card index changes
+  // Sync internal state with initialQuestionIndex prop changes
   useEffect(() => {
-    if (onProgressUpdate) {
-      onProgressUpdate(currentIndex);
-    }
-  }, [currentIndex, onProgressUpdate]);
+    setCurrentIndex(initialQuestionIndex);
+  }, [initialQuestionIndex]);
 
   const handleClose = () => {
     setShowLeaveModal(true);
@@ -79,7 +80,11 @@ export default function LessonFlashcards({ vocabulary, onComplete, onClose, onPr
 
   const nextCard = () => {
     if (currentIndex < interpretedVocabulary.length - 1) {
-      setCurrentIndex(currentIndex + 1);
+      const newIndex = currentIndex + 1;
+      setCurrentIndex(newIndex);
+      if (onProgressUpdate) {
+        onProgressUpdate(newIndex);
+      }
       setIsFlipped(false);
       flipAnimation.setValue(0);
     } else {
@@ -90,7 +95,11 @@ export default function LessonFlashcards({ vocabulary, onComplete, onClose, onPr
 
   const previousCard = () => {
     if (currentIndex > 0) {
-      setCurrentIndex(currentIndex - 1);
+      const newIndex = currentIndex - 1;
+      setCurrentIndex(newIndex);
+      if (onProgressUpdate) {
+        onProgressUpdate(newIndex);
+      }
       setIsFlipped(false);
       flipAnimation.setValue(0);
     }
@@ -147,7 +156,7 @@ export default function LessonFlashcards({ vocabulary, onComplete, onClose, onPr
         <TouchableOpacity style={styles.card} onPress={flipCard} activeOpacity={0.9}>
           <Animated.View style={[styles.cardFace, styles.cardFront, frontAnimatedStyle]}>
             <View style={styles.cardContent}>
-              <Text style={styles.cardTitle}>{languageDirection.targetLanguageName} Term</Text>
+              <Text style={styles.cardTitle}>{t('lessonFlashcards.nativeTranslation', { language: languageDirection.nativeLanguageName })}</Text>
               <Text style={styles.cardText}>{currentCard?.frontTerm || t('lessons.flashcards.noTermAvailable')}</Text>
               <View style={styles.flipHint}>
                 <Ionicons name="sync" size={16} color="#64748b" />
@@ -158,7 +167,7 @@ export default function LessonFlashcards({ vocabulary, onComplete, onClose, onPr
 
           <Animated.View style={[styles.cardFace, styles.cardBack, backAnimatedStyle]}>
             <View style={styles.cardContent}>
-              <Text style={styles.cardTitle}>{languageDirection.nativeLanguageName} Translation</Text>
+              <Text style={styles.cardTitle}>{t('lessonFlashcards.targetTerm', { language: languageDirection.targetLanguageName })}</Text>
               <Text style={styles.cardText}>{currentCard?.backTerm || t('lessons.flashcards.noTranslationAvailable')}</Text>
               {currentCard?.definition && (
                 <Text style={styles.definitionText}>{t('lessons.flashcards.definition')}: {currentCard.definition}</Text>
@@ -184,13 +193,13 @@ export default function LessonFlashcards({ vocabulary, onComplete, onClose, onPr
         >
           <Ionicons name="chevron-back" size={24} color={currentIndex === 0 ? "#cbd5e1" : "#6366f1"} />
           <Text style={[styles.navButtonText, currentIndex === 0 && styles.navButtonTextDisabled]}>
-            Previous
+            {t('lessonFlashcards.previous')}
           </Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.navButton} onPress={nextCard}>
           <Text style={styles.navButtonText}>
-            {currentIndex === vocabulary.length - 1 ? 'Complete' : 'Next'}
+            {currentIndex === vocabulary.length - 1 ? t('lessonFlashcards.complete') : t('lessonFlashcards.next')}
           </Text>
           <Ionicons name="chevron-forward" size={24} color="#6366f1" />
         </TouchableOpacity>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -36,14 +36,17 @@ export default function LessonFlashcardQuiz({ vocabulary, onComplete, onClose, o
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   const { profile } = useAuth();
 
-  // Get user's language pair
-  const languagePair = {
-    native: profile?.native_language || 'English',
-    target: profile?.target_language || 'English'
-  };
+  // Get user's language pair - memoized to prevent unnecessary re-renders
+  const languagePair = useMemo(() => ({
+    native: profile?.native_language || 'en-GB',
+    target: profile?.target_language || 'en-GB'
+  }), [profile?.native_language, profile?.target_language]);
 
-  // Interpret vocabulary based on language pair
-  const interpretedVocabulary = VocabularyInterpretationService.interpretVocabularyList(vocabulary, languagePair);
+  // Interpret vocabulary based on language pair - memoized to prevent unnecessary re-renders
+  const interpretedVocabulary = useMemo(() => 
+    VocabularyInterpretationService.interpretVocabularyList(vocabulary, languagePair),
+    [vocabulary, languagePair]
+  );
   const languageDirection = VocabularyInterpretationService.getLanguageDirection(languagePair);
 
   useEffect(() => {
@@ -55,23 +58,31 @@ export default function LessonFlashcardQuiz({ vocabulary, onComplete, onClose, o
     return () => {
       // Cleanup function for vocabulary changes
     };
-  }, [vocabulary]);
+  }, [generateQuestions]); // Use memoized function as dependency
 
-  // Update progress when question index changes
+  // Sync internal state with initialQuestionIndex prop changes
   useEffect(() => {
-    try {
-      if (onProgressUpdate) {
-        onProgressUpdate(currentQuestion);
-      }
-    } catch (error) {
-      console.error('Error updating progress:', error);
-    }
-    return () => {
-      // Cleanup function for progress updates
-    };
-  }, [currentQuestion, onProgressUpdate]); // Added onProgressUpdate back with proper memoization
+    setCurrentQuestion(initialQuestionIndex);
+  }, [initialQuestionIndex]);
 
-  const generateQuestions = () => {
+  // Helper function to get translated language name - memoized to prevent infinite loops
+  const getTranslatedLanguageName = useCallback((languageCode: string): string => {
+    const languageMap: { [key: string]: string } = {
+      'English': 'languages.english',
+      'Spanish': 'languages.spanish', 
+      'German': 'languages.german',
+      'Italian': 'languages.italian',
+      'French': 'languages.french',
+      'Portuguese': 'languages.portuguese',
+      'Swedish': 'languages.swedish',
+      'Turkish': 'languages.turkish'
+    };
+    
+    const translationKey = languageMap[languageCode];
+    return translationKey ? t(translationKey) : languageCode;
+  }, [t]);
+
+  const generateQuestions = useCallback(() => {
     const quizQuestions: QuizQuestion[] = [];
     
     interpretedVocabulary.forEach((vocab) => {
@@ -113,7 +124,10 @@ export default function LessonFlashcardQuiz({ vocabulary, onComplete, onClose, o
       const shuffledTranslationOptions = translationOptions.sort(() => Math.random() - 0.5);
       
       quizQuestions.push({
-        question: `What is the ${languageDirection.nativeLanguageName.toLowerCase()} translation of "${vocab.frontTerm}"?`,
+        question: t('lessonQuiz.whatIsTranslation', { 
+          targetLanguage: getTranslatedLanguageName(languageDirection.targetLanguageName).toLowerCase(),
+          term: vocab.frontTerm 
+        }),
         correctAnswer: vocab.backTerm,
         options: shuffledTranslationOptions,
         type: 'translation'
@@ -123,7 +137,7 @@ export default function LessonFlashcardQuiz({ vocabulary, onComplete, onClose, o
     // Shuffle all questions
     const shuffledQuestions = quizQuestions.sort(() => Math.random() - 0.5);
     setQuestions(shuffledQuestions);
-  };
+  }, [interpretedVocabulary, getTranslatedLanguageName, t]);
 
   const handleAnswerSelect = (answer: string) => {
     const newUserAnswers = [...userAnswers];
@@ -151,7 +165,11 @@ export default function LessonFlashcardQuiz({ vocabulary, onComplete, onClose, o
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       
       if (currentQuestion < questions.length - 1) {
-        setCurrentQuestion(currentQuestion + 1);
+        const newIndex = currentQuestion + 1;
+        setCurrentQuestion(newIndex);
+        if (onProgressUpdate) {
+          onProgressUpdate(newIndex);
+        }
         setSelectedAnswer(null);
         setShowResult(false);
       } else {
@@ -172,6 +190,9 @@ export default function LessonFlashcardQuiz({ vocabulary, onComplete, onClose, o
   const handleRetry = () => {
     // Reset quiz state
     setCurrentQuestion(0);
+    if (onProgressUpdate) {
+      onProgressUpdate(0);
+    }
     setScore(0);
     setSelectedAnswer(null);
     setShowResult(false);

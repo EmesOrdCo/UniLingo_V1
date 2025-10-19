@@ -414,7 +414,7 @@ export class GameDataService {
    */
   static validateFlashcards(flashcards: UserFlashcard[], gameType: string): { isValid: boolean; error?: string } {
     if (!flashcards || flashcards.length === 0) {
-      return { isValid: false, error: 'No flashcards available' };
+      return { isValid: false, error: 'lessons.flashcards.noFlashcardsAvailable' };
     }
     
     const validCards = flashcards.filter(card => 

@@ -9,7 +9,7 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useI18n, SupportedLanguage, i18nConfig, getLanguageDisplayName, getLanguageFlag } from '../lib/i18n';
+import { useI18n, SupportedLanguage, i18nConfig, getLanguageDisplayName, getLanguageFlag, getTranslation } from '../lib/i18n';
 
 interface LanguageSelectorProps {
   visible: boolean;
@@ -29,17 +29,18 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({ visible, onC
       await setLanguage(selectedLanguage);
       onClose();
       
-      // Show success message
+      // Show success message using the new language context
+      const languageDisplayName = getLanguageDisplayName(selectedLanguage);
       Alert.alert(
-        t('common.success'),
-        `Language changed to ${getLanguageDisplayName(selectedLanguage)}`,
-        [{ text: t('common.ok') }]
+        getTranslation('common.success', selectedLanguage),
+        getTranslation('common.languageChanged', selectedLanguage, { language: languageDisplayName }),
+        [{ text: getTranslation('common.ok', selectedLanguage) }]
       );
     } catch (error) {
       Alert.alert(
-        t('common.error'),
-        'Failed to change language. Please try again.',
-        [{ text: t('common.ok') }]
+        getTranslation('common.error', selectedLanguage),
+        getTranslation('common.languageChangeFailed', selectedLanguage),
+        [{ text: getTranslation('common.ok', selectedLanguage) }]
       );
     }
   };

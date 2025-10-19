@@ -53,6 +53,123 @@ export interface LessonProgress {
 }
 
 export class LessonService {
+  // Translate subject names to the user's native language
+  static translateSubject(subject: string, nativeLanguage: string): string {
+    if (nativeLanguage === 'English' || nativeLanguage === 'en-GB') {
+      return subject;
+    }
+
+    const subjectTranslations: { [key: string]: { [key: string]: string } } = {
+      'Medicine': {
+        'German': 'Medizin',
+        'Spanish': 'Medicina',
+        'French': 'Médecine',
+        'Italian': 'Medicina',
+        'Portuguese': 'Medicina',
+        'Dutch': 'Geneeskunde',
+        'Swedish': 'Medicin',
+        'Norwegian': 'Medisin',
+        'Danish': 'Medicin',
+        'Finnish': 'Lääketiede',
+        'Polish': 'Medycyna',
+        'Russian': 'Медицина',
+        'Chinese': '医学',
+        'Japanese': '医学',
+        'Korean': '의학',
+        'Arabic': 'الطب',
+        'Hindi': 'चिकित्सा',
+        'Turkish': 'Tıp'
+      },
+      'Engineering': {
+        'German': 'Ingenieurwesen',
+        'Spanish': 'Ingeniería',
+        'French': 'Ingénierie',
+        'Italian': 'Ingegneria',
+        'Portuguese': 'Engenharia',
+        'Dutch': 'Techniek',
+        'Swedish': 'Teknik',
+        'Norwegian': 'Teknologi',
+        'Danish': 'Teknik',
+        'Finnish': 'Tekniikka',
+        'Polish': 'Inżynieria',
+        'Russian': 'Инженерия',
+        'Chinese': '工程学',
+        'Japanese': '工学',
+        'Korean': '공학',
+        'Arabic': 'الهندسة',
+        'Hindi': 'अभियांत्रिकी',
+        'Turkish': 'Mühendislik'
+      },
+      'Business': {
+        'German': 'Wirtschaft',
+        'Spanish': 'Negocios',
+        'French': 'Commerce',
+        'Italian': 'Business',
+        'Portuguese': 'Negócios',
+        'Dutch': 'Zaken',
+        'Swedish': 'Företagande',
+        'Norwegian': 'Bedrift',
+        'Danish': 'Forretning',
+        'Finnish': 'Liiketoiminta',
+        'Polish': 'Biznes',
+        'Russian': 'Бизнес',
+        'Chinese': '商业',
+        'Japanese': 'ビジネス',
+        'Korean': '비즈니스',
+        'Arabic': 'الأعمال',
+        'Hindi': 'व्यापार',
+        'Turkish': 'İş'
+      },
+      'Law': {
+        'German': 'Recht',
+        'Spanish': 'Derecho',
+        'French': 'Droit',
+        'Italian': 'Diritto',
+        'Portuguese': 'Direito',
+        'Dutch': 'Recht',
+        'Swedish': 'Juridik',
+        'Norwegian': 'Juss',
+        'Danish': 'Jura',
+        'Finnish': 'Oikeustiede',
+        'Polish': 'Prawo',
+        'Russian': 'Право',
+        'Chinese': '法律',
+        'Japanese': '法学',
+        'Korean': '법학',
+        'Arabic': 'القانون',
+        'Hindi': 'कानून',
+        'Turkish': 'Hukuk'
+      },
+      'Psychology': {
+        'German': 'Psychologie',
+        'Spanish': 'Psicología',
+        'French': 'Psychologie',
+        'Italian': 'Psicologia',
+        'Portuguese': 'Psicologia',
+        'Dutch': 'Psychologie',
+        'Swedish': 'Psykologi',
+        'Norwegian': 'Psykologi',
+        'Danish': 'Psykologi',
+        'Finnish': 'Psykologia',
+        'Polish': 'Psychologia',
+        'Russian': 'Психология',
+        'Chinese': '心理学',
+        'Japanese': '心理学',
+        'Korean': '심리학',
+        'Arabic': 'علم النفس',
+        'Hindi': 'मनोविज्ञान',
+        'Turkish': 'Psikoloji'
+      }
+    };
+
+    const translations = subjectTranslations[subject];
+    if (translations && translations[nativeLanguage]) {
+      return translations[nativeLanguage];
+    }
+
+    // If no translation found, return the original subject
+    return subject;
+  }
 
   /**
    * Convert PDF to text using backend server
@@ -410,7 +527,8 @@ Return ONLY a JSON array of strings with no explanations, markdown, or formattin
    */
   static async groupKeywordsIntoTopic(
     keywords: string[],
-    subject: string
+    subject: string,
+    nativeLanguage: string = 'English'
   ): Promise<Array<{ topicName: string; keywords: string[] }>> {
     try {
       console.log('🔍 Grouping keywords into topics...');
@@ -423,14 +541,17 @@ Return ONLY a JSON array of strings with no explanations, markdown, or formattin
       const prompt = `Group these ${subject} keywords into logical topics. Each topic should have 3-30 keywords. Return ONLY a JSON array:
 
 Keywords: ${keywords.join(', ')}
+User's Native Language: ${nativeLanguage}
+
+CRITICAL: Generate topic names in the user's native language (${nativeLanguage}). Do NOT use English for topic names unless the user's native language is English.
 
 Format:
-[{"topicName": "Topic Name", "keywords": ["keyword1", "keyword2", ...]}]
+[{"topicName": "Topic Name in ${nativeLanguage}", "keywords": ["keyword1", "keyword2", ...]}]
 
 Requirements:
 - Each topic should have 3-30 keywords
 - Group related keywords together
-- Create meaningful topic names based on the keywords
+- Create meaningful topic names based on the keywords in ${nativeLanguage}
 - Ensure all keywords are included in exactly one topic
 - Let the content determine the number of topics (no fixed count)
 - Return ONLY the JSON array:`;
@@ -439,7 +560,7 @@ Requirements:
       const messages = [
         {
           role: 'system',
-          content: 'You are an expert educational content organizer. You MUST return ONLY a JSON array of objects with no explanations, markdown, or text outside the JSON. Your response must start with [ and end with ]. Do NOT use backticks, code blocks, or any markdown formatting. Return raw JSON only.'
+          content: 'You are an expert educational content organizer. CRITICAL: Generate all topic names in the user\'s native language. You MUST return ONLY a JSON array of objects with no explanations, markdown, or text outside the JSON. Your response must start with [ and end with ]. Do NOT use backticks, code blocks, or any markdown formatting. Return raw JSON only.'
         },
         {
           role: 'user',
@@ -625,7 +746,8 @@ Requirements:
   static async generateVocabularyFromTopics(
     topics: Array<{ topicName: string; keywords: string[] }>,
     subject: string,
-    nativeLanguage: string
+    nativeLanguage: string,
+    targetLanguage: string
   ): Promise<Array<{ topicName: string; vocabulary: Omit<LessonVocabulary, 'id' | 'lesson_id' | 'created_at'>[] }>> {
     try {
       console.log('🔍 Generating vocabulary from topics...');
@@ -634,10 +756,18 @@ Requirements:
 
 Topics: ${topics.map(topic => `${topic.topicName}: ${topic.keywords.join(', ')}`).join('\n')}
 Subject: ${subject}
-Language: ${nativeLanguage}
+User's Native Language: ${nativeLanguage}
+User's Target Language: ${targetLanguage}
+
+IMPORTANT: The user is learning ${targetLanguage}, so:
+- english_term: The English translation (for reference)
+- native_translation: The term in ${targetLanguage} (what the user is learning)
+- definition: Definition in ${nativeLanguage} ONLY (NOT in ${targetLanguage})
+- example_sentence_target: Example sentence in ${targetLanguage}
+- example_sentence_native: Example sentence in the user's native language (${nativeLanguage})
 
 Format:
-[{"topicName": "Topic Name", "vocabulary": [{"english_term": "word", "definition": "meaning", "native_translation": "translation", "example_sentence_target": "example", "example_sentence_native": "translated example"}]}]
+[{"topicName": "Topic Name", "vocabulary": [{"english_term": "English translation", "definition": "definition in ${nativeLanguage} ONLY", "native_translation": "term in ${targetLanguage}", "example_sentence_target": "example in ${targetLanguage}", "example_sentence_native": "example in ${nativeLanguage}"}]}]
 
 Return ONLY the JSON array:`;
 
@@ -723,7 +853,8 @@ Return ONLY the JSON array:`;
   static async generateVocabularyFromKeywords(
     keywords: string[],
     subject: string,
-    nativeLanguage: string
+    nativeLanguage: string,
+    targetLanguage: string
   ): Promise<Omit<LessonVocabulary, 'id' | 'lesson_id' | 'created_at'>[]> {
     try {
       console.log('🔍 Generating vocabulary from keywords...');
@@ -732,10 +863,17 @@ Return ONLY the JSON array:`;
 
 Keywords: ${keywords.join(', ')}
 Subject: ${subject}
-Language: ${nativeLanguage}
+User's Native Language: ${nativeLanguage}
+
+IMPORTANT: The user is learning ${targetLanguage}, so:
+- english_term: The English translation (for reference)
+- native_translation: The term in ${targetLanguage} (what the user is learning)
+- definition: Definition in ${nativeLanguage} ONLY (NOT in ${targetLanguage})
+- example_sentence_target: Example sentence in ${targetLanguage}
+- example_sentence_native: Example sentence in the user's native language (${nativeLanguage})
 
 Format:
-[{"english_term": "word", "definition": "meaning", "native_translation": "translation", "example_sentence_target": "example", "example_sentence_native": "translated example"}]
+[{"english_term": "English translation", "definition": "definition in ${nativeLanguage} ONLY", "native_translation": "term in ${targetLanguage}", "example_sentence_target": "example in ${targetLanguage}", "example_sentence_native": "example in ${nativeLanguage}"}]
 
 Return ONLY the JSON array:`;
         
@@ -823,7 +961,8 @@ Return ONLY the JSON array:`;
     pdfName: string,
     userId: string,
     subject: string,
-    nativeLanguage: string
+    nativeLanguage: string,
+    targetLanguage: string
   ): Promise<Lesson> {
     try {
       console.log('🚀 Creating lesson from PDF...');
@@ -832,10 +971,10 @@ Return ONLY the JSON array:`;
       const keywords = await this.extractKeywordsFromPDF(pdfText, subject, nativeLanguage);
       
       // Step 2: Group keywords into topics
-      const topics = await this.groupKeywordsIntoTopic(keywords, subject);
+      const topics = await this.groupKeywordsIntoTopic(keywords, subject, nativeLanguage);
       
       // Step 3: Generate vocabulary from topics
-      const topicVocabulary = await this.generateVocabularyFromTopics(topics, subject, nativeLanguage);
+      const topicVocabulary = await this.generateVocabularyFromTopics(topics, subject, nativeLanguage, targetLanguage);
 
       // Create separate lesson for each topic
       const createdLessons = [];
@@ -846,7 +985,7 @@ Return ONLY the JSON array:`;
           .from('esp_lessons')
           .insert([{
             user_id: userId,
-            title: `${subject} - ${topic.topicName}`,
+            title: `${this.translateSubject(subject, nativeLanguage)} - ${topic.topicName}`,
             subject: subject,
             source_pdf_name: topic.topicName,
             native_language: nativeLanguage

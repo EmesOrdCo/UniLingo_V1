@@ -848,7 +848,7 @@ export class UploadService {
       onProgress?.({
         stage: 'complete',
         progress: 100,
-        message: `Successfully created ${totalCards} flashcards!`,
+        message: 'aiFlashcards.successfullyCreatedGeneric',
         cardsGenerated: totalCards,
       });
     } catch (error) {

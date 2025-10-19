@@ -19,6 +19,7 @@ import { UserFlashcardService } from '../lib/userFlashcardService';
 import { supabase } from '../lib/supabase';
 import { VoiceService } from '../lib/voiceService';
 import { AWSPollyService } from '../lib/awsPollyService';
+import { useTranslation } from '../lib/i18n';
 
 interface BrowseFlashcardsScreenProps {
   route: {
@@ -30,6 +31,7 @@ interface BrowseFlashcardsScreenProps {
 }
 
 export default function BrowseFlashcardsScreen() {
+  const { t } = useTranslation();
   const navigation = useNavigation();
   const route = useRoute();
   const { user, profile } = useAuth();
@@ -51,10 +53,10 @@ export default function BrowseFlashcardsScreen() {
 
   // Available difficulties (these are standard)
   const availableDifficulties = [
-    { id: 'all', name: 'All Difficulties', color: '#6366f1', description: 'Mix of all levels' },
-    { id: 'beginner', name: 'Beginner', color: '#10b981', description: 'Basic concepts' },
-    { id: 'intermediate', name: 'Intermediate', color: '#f59e0b', description: 'Core principles' },
-    { id: 'expert', name: 'Expert', color: '#ef4444', description: 'Complex topics' },
+    { id: 'all', name: t('browseFlashcards.allDifficulties'), color: '#6366f1', description: t('browseFlashcards.mixOfAllLevels') },
+    { id: 'beginner', name: t('difficulty.beginner'), color: '#10b981', description: t('browseFlashcards.basicConcepts') },
+    { id: 'intermediate', name: t('difficulty.intermediate'), color: '#f59e0b', description: t('browseFlashcards.corePrinciples') },
+    { id: 'expert', name: t('difficulty.expert'), color: '#ef4444', description: t('browseFlashcards.complexTopics') },
   ];
 
   // Load flashcards on component mount
@@ -107,16 +109,16 @@ export default function BrowseFlashcardsScreen() {
         id: topicName.toLowerCase().replace(/\s+/g, '-'),
         name: topicName,
         color: colors[index % colors.length],
-        description: `${count} cards`,
+        description: t('browseFlashcards.cardsCount', { count }),
         count: count
       }));
 
       // Add "All Topics" option at the beginning
       const allTopicsOption = {
         id: 'all',
-        name: 'All Topics',
+        name: t('browseFlashcards.allTopics'),
         color: '#6366f1',
-        description: `Browse all ${userFlashcards.length} flashcards`,
+        description: t('browseFlashcards.browseAll', { count: userFlashcards.length }),
         count: userFlashcards.length
       };
 
@@ -256,8 +258,8 @@ export default function BrowseFlashcardsScreen() {
     // Navigate to FlashcardStudyScreen with filtered flashcards
     navigation.navigate('FlashcardStudy', {
       flashcards: flashcards.sort(() => Math.random() - 0.5), // Shuffle cards
-      topic: selectedTopic === 'all' ? 'All Topics' : realTopics.find(t => t.id === selectedTopic)?.name || 'All Topics',
-      difficulty: selectedDifficulty === 'all' ? 'All Difficulties' : availableDifficulties.find(d => d.id === selectedDifficulty)?.name || 'All Difficulties'
+      topic: selectedTopic === 'all' ? t('browseFlashcards.allTopics') : realTopics.find(t => t.id === selectedTopic)?.name || t('browseFlashcards.allTopics'),
+      difficulty: selectedDifficulty === 'all' ? t('browseFlashcards.allDifficulties') : availableDifficulties.find(d => d.id === selectedDifficulty)?.name || t('browseFlashcards.allDifficulties')
     });
   };
 
@@ -271,9 +273,9 @@ export default function BrowseFlashcardsScreen() {
         >
           <Ionicons name="arrow-back" size={24} color="#6366f1" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Browse Flashcards</Text>
+        <Text style={styles.headerTitle}>{t('browseFlashcards.title')}</Text>
         <View style={styles.headerRight}>
-          <Text style={styles.cardCount}>{filteredCardCount} cards</Text>
+          <Text style={styles.cardCount}>{filteredCardCount} {t('browseFlashcards.cards')}</Text>
         </View>
       </View>
 
@@ -282,13 +284,13 @@ export default function BrowseFlashcardsScreen() {
         <View style={styles.filterRow}>
           {/* Topic Filter */}
           <View style={styles.filterGroup}>
-            <Text style={styles.filterLabel}>Topic:</Text>
+            <Text style={styles.filterLabel}>{t('browseFlashcards.topic')}</Text>
             <TouchableOpacity 
               style={styles.filterButton}
               onPress={() => setShowTopicDropdown(!showTopicDropdown)}
             >
               <Text style={styles.filterButtonText}>
-                {selectedTopic ? realTopics.find(t => t.id === selectedTopic)?.name : 'All Topics'}
+                {selectedTopic ? realTopics.find(t => t.id === selectedTopic)?.name : t('browseFlashcards.allTopics')}
               </Text>
               <Ionicons name="chevron-down" size={16} color="#6b7280" />
             </TouchableOpacity>
@@ -322,7 +324,7 @@ export default function BrowseFlashcardsScreen() {
                           </Text>
                           {topic.id !== 'all' && (
                             <Text style={styles.dropdownItemCount}>
-                              {topicFilteredCounts[topic.id] || 0} cards
+                              {t('browseFlashcards.cardsCount', { count: topicFilteredCounts[topic.id] || 0 })}
                             </Text>
                           )}
                         </View>
@@ -336,13 +338,13 @@ export default function BrowseFlashcardsScreen() {
 
           {/* Difficulty Filter */}
           <View style={styles.filterGroup}>
-            <Text style={styles.filterLabel}>Difficulty:</Text>
+            <Text style={styles.filterLabel}>{t('browseFlashcards.difficulty')}</Text>
             <TouchableOpacity 
               style={styles.filterButton}
               onPress={() => setShowDifficultyDropdown(!showDifficultyDropdown)}
             >
               <Text style={styles.filterButtonText}>
-                {selectedDifficulty ? availableDifficulties.find(d => d.id === selectedDifficulty)?.name : 'All Difficulties'}
+                {selectedDifficulty ? availableDifficulties.find(d => d.id === selectedDifficulty)?.name : t('browseFlashcards.allDifficulties')}
               </Text>
               <Ionicons name="chevron-down" size={16} color="#6b7280" />
             </TouchableOpacity>
@@ -394,7 +396,7 @@ export default function BrowseFlashcardsScreen() {
           >
             <Ionicons name="play" size={24} color="#ffffff" />
             <Text style={styles.studyButtonText}>
-              Study {filteredCardCount} Cards
+              {t('browseFlashcards.studyCards', { count: filteredCardCount })}
             </Text>
           </TouchableOpacity>
         </View>
@@ -426,7 +428,7 @@ export default function BrowseFlashcardsScreen() {
         ) : (
           <>
             <Text style={styles.sectionTitle}>
-              {selectedTopic === 'all' ? 'All Topics' : realTopics.find(t => t.id === selectedTopic)?.name} 
+              {selectedTopic === 'all' ? t('browseFlashcards.allTopics') : realTopics.find(t => t.id === selectedTopic)?.name} 
               {selectedDifficulty !== 'all' && ` • ${availableDifficulties.find(d => d.id === selectedDifficulty)?.name}`}
             </Text>
             
@@ -456,19 +458,19 @@ export default function BrowseFlashcardsScreen() {
                 <View style={styles.flashcardContent}>
                   <View style={styles.flashcardSide}>
                     <Text style={styles.flashcardLabel}>
-                      {profile?.native_language || 'Native'}:
+                      {profile?.native_language === 'German' ? t('browseFlashcards.german') : profile?.native_language || 'Native'}:
                     </Text>
                     <Text style={styles.flashcardText}>{card.back}</Text>
                   </View>
                   
                   <View style={styles.flashcardSide}>
-                    <Text style={styles.flashcardLabel}>English:</Text>
+                    <Text style={styles.flashcardLabel}>{t('browseFlashcards.targetLanguage', { language: profile?.target_language?.toUpperCase() || 'TARGET' })}</Text>
                     <Text style={styles.flashcardText}>{card.front}</Text>
                   </View>
                   
                   {card.pronunciation && (
                     <View style={styles.pronunciationContainer}>
-                      <Text style={styles.flashcardLabel}>Pronunciation:</Text>
+                      <Text style={styles.flashcardLabel}>{t('browseFlashcards.pronunciation')}</Text>
                       <View style={styles.pronunciationContent}>
                         <Text style={[styles.flashcardText, { flex: 1 }]}>{card.pronunciation}</Text>
                         <TouchableOpacity 
@@ -483,7 +485,7 @@ export default function BrowseFlashcardsScreen() {
                   
                   {card.example && (
                     <View style={styles.exampleContainer}>
-                      <Text style={styles.flashcardLabel}>Example:</Text>
+                      <Text style={styles.flashcardLabel}>{t('browseFlashcards.example')}</Text>
                       <Text style={styles.flashcardText}>{card.example}</Text>
                     </View>
                   )}

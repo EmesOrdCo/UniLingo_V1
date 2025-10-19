@@ -266,7 +266,13 @@ export default function ImageProcessingModal({
               <View style={styles.titleUnderline} />
             </View>
             
-            <Text style={styles.message}>{progress.message}</Text>
+            <Text style={styles.message}>
+              {progress.message?.startsWith('aiFlashcards.') 
+                ? (progress.message === 'aiFlashcards.successfullyCreatedGeneric' 
+                   ? t('aiFlashcards.successfullyCreatedGeneric', { count: progress.cardsGenerated || 0 })
+                   : t(progress.message))
+                : progress.message}
+            </Text>
             
             {/* Animated dots for processing stage */}
             {progress.stage === 'processing' && (
@@ -327,7 +333,7 @@ export default function ImageProcessingModal({
               </View>
               <View style={styles.imagesTextContainer}>
                 <Text style={styles.imagesText} numberOfLines={1}>
-                  {progress.imagesProcessed}/{progress.totalImages} images processed
+                  {progress.imagesProcessed}/{progress.totalImages} {t('aiFlashcards.imagesProcessed')}
                 </Text>
               </View>
             </Animated.View>
@@ -390,7 +396,9 @@ export default function ImageProcessingModal({
                         fontWeight: isActive ? '700' : '500'
                       }
                     ]}>
-                      {stage.charAt(0).toUpperCase() + stage.slice(1)}
+                      {stage === 'uploading' ? t('aiFlashcards.uploading') :
+                       stage === 'processing' ? t('aiFlashcards.processingStage') :
+                       stage === 'generating' ? t('aiFlashcards.generating') : stage}
                     </Text>
                     
                     {/* Connecting line - only show between stages */}

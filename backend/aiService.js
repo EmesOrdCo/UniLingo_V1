@@ -129,6 +129,123 @@ async function executeRequest(executeFn, priority = 0, estimatedTokens = 0) {
 
 // AI Service functions
 class AIService {
+  // Translate subject names to the user's native language
+  static translateSubject(subject, nativeLanguage) {
+    if (nativeLanguage === 'English' || nativeLanguage === 'en-GB') {
+      return subject;
+    }
+
+    const subjectTranslations = {
+      'Medicine': {
+        'German': 'Medizin',
+        'Spanish': 'Medicina',
+        'French': 'Médecine',
+        'Italian': 'Medicina',
+        'Portuguese': 'Medicina',
+        'Dutch': 'Geneeskunde',
+        'Swedish': 'Medicin',
+        'Norwegian': 'Medisin',
+        'Danish': 'Medicin',
+        'Finnish': 'Lääketiede',
+        'Polish': 'Medycyna',
+        'Russian': 'Медицина',
+        'Chinese': '医学',
+        'Japanese': '医学',
+        'Korean': '의학',
+        'Arabic': 'الطب',
+        'Hindi': 'चिकित्सा',
+        'Turkish': 'Tıp'
+      },
+      'Engineering': {
+        'German': 'Ingenieurwesen',
+        'Spanish': 'Ingeniería',
+        'French': 'Ingénierie',
+        'Italian': 'Ingegneria',
+        'Portuguese': 'Engenharia',
+        'Dutch': 'Techniek',
+        'Swedish': 'Teknik',
+        'Norwegian': 'Teknologi',
+        'Danish': 'Teknik',
+        'Finnish': 'Tekniikka',
+        'Polish': 'Inżynieria',
+        'Russian': 'Инженерия',
+        'Chinese': '工程学',
+        'Japanese': '工学',
+        'Korean': '공학',
+        'Arabic': 'الهندسة',
+        'Hindi': 'अभियांत्रिकी',
+        'Turkish': 'Mühendislik'
+      },
+      'Business': {
+        'German': 'Wirtschaft',
+        'Spanish': 'Negocios',
+        'French': 'Commerce',
+        'Italian': 'Business',
+        'Portuguese': 'Negócios',
+        'Dutch': 'Zaken',
+        'Swedish': 'Företagande',
+        'Norwegian': 'Bedrift',
+        'Danish': 'Forretning',
+        'Finnish': 'Liiketoiminta',
+        'Polish': 'Biznes',
+        'Russian': 'Бизнес',
+        'Chinese': '商业',
+        'Japanese': 'ビジネス',
+        'Korean': '비즈니스',
+        'Arabic': 'الأعمال',
+        'Hindi': 'व्यापार',
+        'Turkish': 'İş'
+      },
+      'Law': {
+        'German': 'Recht',
+        'Spanish': 'Derecho',
+        'French': 'Droit',
+        'Italian': 'Diritto',
+        'Portuguese': 'Direito',
+        'Dutch': 'Recht',
+        'Swedish': 'Juridik',
+        'Norwegian': 'Juss',
+        'Danish': 'Jura',
+        'Finnish': 'Oikeustiede',
+        'Polish': 'Prawo',
+        'Russian': 'Право',
+        'Chinese': '法律',
+        'Japanese': '法学',
+        'Korean': '법학',
+        'Arabic': 'القانون',
+        'Hindi': 'कानून',
+        'Turkish': 'Hukuk'
+      },
+      'Psychology': {
+        'German': 'Psychologie',
+        'Spanish': 'Psicología',
+        'French': 'Psychologie',
+        'Italian': 'Psicologia',
+        'Portuguese': 'Psicologia',
+        'Dutch': 'Psychologie',
+        'Swedish': 'Psykologi',
+        'Norwegian': 'Psykologi',
+        'Danish': 'Psykologi',
+        'Finnish': 'Psykologia',
+        'Polish': 'Psychologia',
+        'Russian': 'Психология',
+        'Chinese': '心理学',
+        'Japanese': '心理学',
+        'Korean': '심리학',
+        'Arabic': 'علم النفس',
+        'Hindi': 'मनोविज्ञान',
+        'Turkish': 'Psikoloji'
+      }
+    };
+
+    const translations = subjectTranslations[subject];
+    if (translations && translations[nativeLanguage]) {
+      return translations[nativeLanguage];
+    }
+
+    // If no translation found, return the original subject
+    return subject;
+  }
   static async generateFlashcards(content, subject, topic, userId, nativeLanguage = 'English', targetLanguage = 'English') {
     // Match frontend prompt structure exactly
     let prompt;
@@ -597,7 +714,7 @@ class AIService {
       console.log(`📊 Keywords extracted: ${keywords.length} (proportional to content)`);
       
       // Step 2: Group keywords into topics
-      const topics = await this.groupKeywordsIntoTopic(keywords, subject, userId);
+      const topics = await this.groupKeywordsIntoTopic(keywords, subject, nativeLanguage, userId);
       
       console.log('🔍 Step 3: Generating vocabulary from topics...');
       console.log(`📚 Topics created: ${topics.length} (proportional to ${keywords.length} keywords)`);
@@ -614,7 +731,7 @@ class AIService {
           .from('esp_lessons')
           .insert([{
             user_id: userId,
-            title: `${subject} - ${topic.topicName}`,
+            title: `${this.translateSubject(subject, nativeLanguage)} - ${topic.topicName}`,
             subject: subject,
             source_pdf_name: sourceFileName,
             native_language: nativeLanguage
@@ -824,10 +941,11 @@ Content: ${content}`;
   }
 
   // Step 2: Group keywords into topics (matches frontend groupKeywordsIntoTopic)
-  static async groupKeywordsIntoTopic(keywords, subject, userId) {
+  static async groupKeywordsIntoTopic(keywords, subject, nativeLanguage, userId) {
     const prompt = `Group these ${subject} keywords into logical topics. Return ONLY a JSON array:
 
 Keywords: ${keywords.join(', ')}
+User's Native Language: ${nativeLanguage}
 
 IMPORTANT: The number of topics should be PROPORTIONAL to the number of keywords:
 - 5-15 keywords: Create 1-2 topics
@@ -837,13 +955,15 @@ IMPORTANT: The number of topics should be PROPORTIONAL to the number of keywords
 
 DO NOT create many small topics if there are only a few keywords. It's better to have fewer, well-organized topics than many sparse ones.
 
+CRITICAL: Generate topic names in the user's native language (${nativeLanguage}). Do NOT use English for topic names unless the user's native language is English.
+
 Format:
-[{"topicName": "Topic Name", "keywords": ["keyword1", "keyword2", ...]}]
+[{"topicName": "Topic Name in ${nativeLanguage}", "keywords": ["keyword1", "keyword2", ...]}]
 
 Requirements:
 - Each topic should ideally have 5-30 keywords (minimum 3 for small content)
 - Group related keywords together
-- Create meaningful topic names based on the keywords
+- Create meaningful topic names based on the keywords in ${nativeLanguage}
 - Ensure all keywords are included in exactly one topic
 - Adapt the number of topics to the keyword count
 - Return ONLY the JSON array:`;
@@ -851,7 +971,7 @@ Requirements:
     const messages = [
       {
         role: 'system',
-        content: 'You are an expert educational content organizer. IMPORTANT: Create a number of topics proportional to the keyword count. Fewer keywords = fewer topics. Do not create many sparse topics. You MUST return ONLY a JSON array of objects with no explanations, markdown, or text outside the JSON. Your response must start with [ and end with ]. Do NOT use backticks, code blocks, or any markdown formatting. Return raw JSON only.'
+        content: 'You are an expert educational content organizer. IMPORTANT: Create a number of topics proportional to the keyword count. Fewer keywords = fewer topics. Do not create many sparse topics. CRITICAL: Generate all topic names in the user\'s native language. You MUST return ONLY a JSON array of objects with no explanations, markdown, or text outside the JSON. Your response must start with [ and end with ]. Do NOT use backticks, code blocks, or any markdown formatting. Return raw JSON only.'
       },
       {
         role: 'user',

@@ -94,28 +94,30 @@ async function translateSubject(subject, targetLanguage) {
 }
 
 /**
- * Get all records that need subject translation
+ * Get unique subjects that need translation
  */
-async function getRecordsNeedingTranslation() {
-  // Get records where at least one subject translation column is null
+async function getUniqueSubjectsNeedingTranslation() {
+  // Get unique subjects where at least one translation column is null
   const { data, error } = await supabase
     .from('subject_words')
-    .select('id, subject')
+    .select('subject')
     .not('subject', 'is', null)
     .or(`subject_french.is.null,subject_spanish.is.null,subject_german.is.null,subject_chinese_simplified.is.null,subject_hindi.is.null,subject_italian.is.null,subject_cantonese.is.null,subject_chinese_traditional.is.null`)
-    .order('id');
+    .order('subject');
 
   if (error) {
-    throw new Error(`Failed to fetch records needing translation: ${error.message}`);
+    throw new Error(`Failed to fetch subjects needing translation: ${error.message}`);
   }
 
-  return data || [];
+  // Get unique subjects
+  const uniqueSubjects = [...new Set(data.map(item => item.subject))];
+  return uniqueSubjects.sort();
 }
 
 /**
- * Update subject translations for a specific record
+ * Update subject translations for all records with the same subject
  */
-async function updateRecordTranslations(id, translations) {
+async function updateSubjectTranslations(subject, translations) {
   const updateData = {};
   
   // Build update object with all language translations
@@ -128,18 +130,18 @@ async function updateRecordTranslations(id, translations) {
   const { error } = await supabase
     .from('subject_words')
     .update(updateData)
-    .eq('id', id);
+    .eq('subject', subject);
 
   if (error) {
-    throw new Error(`Failed to update subject translations for record ${id}: ${error.message}`);
+    throw new Error(`Failed to update subject translations for "${subject}": ${error.message}`);
   }
 }
 
 /**
- * Process a single record for subject translation
+ * Process a single subject for translation
  */
-async function processRecord(record) {
-  console.log(`\n📚 Processing record ${record.id}: "${record.subject}"`);
+async function processSubject(subject) {
+  console.log(`\n📚 Processing subject: "${subject}"`);
   
   try {
     // Translate subject to all languages
@@ -147,25 +149,25 @@ async function processRecord(record) {
     
     for (const lang of languages) {
       console.log(`  🔄 Translating to ${lang.name}...`);
-      translations[lang.code] = await translateSubject(record.subject, lang.code);
+      translations[lang.code] = await translateSubject(subject, lang.code);
       console.log(`    ✓ ${lang.name}: "${translations[lang.code]}"`);
       
       // Add delay to avoid rate limiting
       await delay(1000);
     }
     
-    // Update this specific record
+    // Update all records with this subject
     if (!isDryRun) {
-      await updateRecordTranslations(record.id, translations);
-      console.log(`  ✓ Updated record ${record.id}`);
+      await updateSubjectTranslations(subject, translations);
+      console.log(`  ✓ Updated all records with subject "${subject}"`);
     } else {
-      console.log(`  ⚠️  DRY RUN - Would update record ${record.id}`);
+      console.log(`  ⚠️  DRY RUN - Would update all records with subject "${subject}"`);
     }
     
-    return { success: true, record, translations };
+    return { success: true, subject, translations };
   } catch (error) {
-    console.error(`  ❌ Error processing record ${record.id}:`, error.message);
-    return { success: false, record, error };
+    console.error(`  ❌ Error processing subject "${subject}":`, error.message);
+    return { success: false, subject, error };
   }
 }
 
@@ -188,34 +190,34 @@ async function main() {
   }
   
   try {
-    // Get records that need subject translation
-    console.log('\n📋 Fetching records that need subject translation...');
-    const records = await getRecordsNeedingTranslation();
+    // Get unique subjects that need translation
+    console.log('\n📋 Fetching unique subjects that need translation...');
+    const subjects = await getUniqueSubjectsNeedingTranslation();
     
-    if (records.length === 0) {
-      console.log('✅ No records need subject translation!');
+    if (subjects.length === 0) {
+      console.log('✅ No subjects need translation!');
       return;
     }
     
-    console.log(`Found ${records.length} records that need subject translation`);
+    console.log(`Found ${subjects.length} unique subjects that need translation`);
     
     // Apply limit if specified
-    const recordsToProcess = limit ? records.slice(0, limit) : records;
+    const subjectsToProcess = limit ? subjects.slice(0, limit) : subjects;
     
     if (limit) {
-      console.log(`Processing ${recordsToProcess.length} records (limited by --limit=${limit})`);
+      console.log(`Processing ${subjectsToProcess.length} subjects (limited by --limit=${limit})`);
     }
     
-    // Process each record
+    // Process each unique subject
     console.log('\n🔄 Starting translation process...');
     let successCount = 0;
     let errorCount = 0;
     
-    for (let i = 0; i < recordsToProcess.length; i++) {
-      const record = recordsToProcess[i];
-      console.log(`\n[${i + 1}/${recordsToProcess.length}]`);
+    for (let i = 0; i < subjectsToProcess.length; i++) {
+      const subject = subjectsToProcess[i];
+      console.log(`\n[${i + 1}/${subjectsToProcess.length}]`);
       
-      const result = await processRecord(record);
+      const result = await processSubject(subject);
       
       if (result.success) {
         successCount++;
@@ -223,8 +225,8 @@ async function main() {
         errorCount++;
       }
       
-      // Add delay between records to avoid rate limiting (except for the last item)
-      if (i < recordsToProcess.length - 1) {
+      // Add delay between subjects to avoid rate limiting (except for the last item)
+      if (i < subjectsToProcess.length - 1) {
         await delay(2000);
       }
     }
@@ -234,7 +236,7 @@ async function main() {
     console.log('==========');
     console.log(`✅ Successfully processed: ${successCount}`);
     console.log(`❌ Errors: ${errorCount}`);
-    console.log(`📝 Total records: ${recordsToProcess.length}`);
+    console.log(`📝 Total subjects: ${subjectsToProcess.length}`);
     console.log(`🌍 Languages: ${languages.length} (${languages.map(l => l.name).join(', ')})`);
     
     if (isDryRun) {
@@ -256,7 +258,7 @@ if (process.argv.includes('--help') || process.argv.includes('-h')) {
   console.log('  node populate_subject_translations.js [options]');
   console.log('\nOptions:');
   console.log('  --dry-run           Show what would be translated without making changes');
-  console.log('  --limit=N          Limit the number of records to process (for testing)');
+  console.log('  --limit=N          Limit the number of subjects to process (for testing)');
   console.log('  --help, -h         Show this help message');
   console.log('\nSupported Languages:');
   languages.forEach(lang => {
