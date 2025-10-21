@@ -953,7 +953,10 @@ export default function FlashcardsScreen() {
                     : (studySession.showNativeLanguage ? currentCard.back : currentCard.front)
                   }
           </Text>
-                              {currentCard.pronunciation && (
+                              {/* Only show pronunciation and audio on target side */}
+                              {currentCard.pronunciation && 
+                               ((!studySession.showAnswer && !studySession.showNativeLanguage) || 
+                                (studySession.showAnswer && studySession.showNativeLanguage)) && (
                   <View style={styles.pronunciationContainer}>
                     <Text style={styles.pronunciation}>{currentCard.pronunciation}</Text>
                                          <TouchableOpacity 
@@ -972,7 +975,10 @@ export default function FlashcardsScreen() {
                       </TouchableOpacity>
         </View>
                 )}
-               {currentCard.example && studySession.showAnswer && (
+               {/* Only show example on target side */}
+               {currentCard.example && 
+                ((!studySession.showAnswer && !studySession.showNativeLanguage) || 
+                 (studySession.showAnswer && studySession.showNativeLanguage)) && (
                  <Text style={styles.example}>Example: {currentCard.example}</Text>
                )}
              </View>

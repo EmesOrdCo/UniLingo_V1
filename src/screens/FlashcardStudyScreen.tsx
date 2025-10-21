@@ -1089,19 +1089,18 @@ export default function FlashcardStudyScreen() {
                   : (studySession.showNativeLanguage ? currentCard.back : currentCard.front)
                 }
               </Text>
-              <View style={styles.pronunciationContainer}>
-                {currentCard.pronunciation && !studySession.showAnswer && (
-                  <Text style={styles.pronunciation}>{currentCard.pronunciation}</Text>
-                )}
-                {!studySession.showAnswer && (
+              {/* Only show pronunciation and audio on target side */}
+              {((!studySession.showAnswer && !studySession.showNativeLanguage) || 
+                (studySession.showAnswer && studySession.showNativeLanguage)) && (
+                <View style={styles.pronunciationContainer}>
+                  {currentCard.pronunciation && (
+                    <Text style={styles.pronunciation}>{currentCard.pronunciation}</Text>
+                  )}
                   <TouchableOpacity 
                     style={[styles.audioButton, isAudioPlaying && styles.audioButtonPlaying]} 
                     onPress={() => {
-                      // Play the word that's currently being shown (target language only)
-                      const textToSpeak = studySession.showAnswer 
-                        ? (studySession.showNativeLanguage ? currentCard.front : currentCard.back)
-                        : (studySession.showNativeLanguage ? currentCard.back : currentCard.front);
-                      playPronunciation(textToSpeak);
+                      // Always play the target language word (front)
+                      playPronunciation(currentCard.front);
                     }}
                   >
                     <Ionicons 
@@ -1110,9 +1109,12 @@ export default function FlashcardStudyScreen() {
                       color={isAudioPlaying ? "#64748b" : "#6366f1"} 
                     />
                   </TouchableOpacity>
-                )}
-              </View>
-              {currentCard.example && studySession.showAnswer && (
+                </View>
+              )}
+              {/* Only show example on target side */}
+              {currentCard.example && 
+               ((!studySession.showAnswer && !studySession.showNativeLanguage) || 
+                (studySession.showAnswer && studySession.showNativeLanguage)) && (
                 <Text style={styles.example}>{t('browseFlashcards.example')} {currentCard.example}</Text>
               )}
             </View>
