@@ -154,7 +154,12 @@ export default function LevelProgressWidget({ onRefresh }: LevelProgressWidgetPr
       <View style={styles.levelInfo}>
         <View style={styles.currentLevelContainer}>
           <Text style={styles.levelLabel}>Current Level</Text>
-          <Text style={[styles.levelName, { color: levelColor }]}>
+          <Text 
+            style={[styles.levelName, { color: levelColor }]}
+            numberOfLines={1}
+            adjustsFontSizeToFit={true}
+            minimumFontScale={0.7}
+          >
             {levelInfo.currentLevel}
           </Text>
         </View>

@@ -373,7 +373,12 @@ export default function ProgressPageScreen() {
             <View style={styles.levelInfoContainer}>
               <View style={styles.currentLevelContainer}>
                 <Text style={styles.levelLabel}>{t('progress.currentLevel')}</Text>
-                <Text style={[styles.levelName, { color: getLevelColor(progressData?.levelProgress.currentLevel || 'Beginner') }]}>
+                <Text 
+                  style={[styles.levelName, { color: getLevelColor(progressData?.levelProgress.currentLevel || 'Beginner') }]}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit={true}
+                  minimumFontScale={0.7}
+                >
                   {getTranslatedLevelName(progressData?.levelProgress.currentLevel || 'Beginner')}
                 </Text>
               </View>
