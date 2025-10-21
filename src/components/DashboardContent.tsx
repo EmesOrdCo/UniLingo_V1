@@ -306,7 +306,11 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
         {/* Course Overview Section */}
           <View style={styles.courseOverview}>
             <View style={styles.courseOverviewHeader}>
-              <Text style={styles.courseTitle}>{getCefrLevelTitle(selectedCefrLevel)} {selectedCefrLevel}</Text>
+              <View style={styles.courseTitleContainer}>
+                <Text style={styles.courseTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
+                  {getCefrLevelTitle(selectedCefrLevel)} {selectedCefrLevel}
+                </Text>
+              </View>
               <TouchableOpacity 
                 style={styles.cefrSelectorButton}
                 onPress={() => setCefrDropdownVisible(!cefrDropdownVisible)}
@@ -408,6 +412,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
+  },
+  courseTitleContainer: {
+    flex: 1,
+    marginRight: 12,
   },
   courseLevel: {
     fontSize: 14,
