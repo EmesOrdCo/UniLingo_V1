@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Svg, { Path, Circle, Line } from 'react-native-svg';
 import * as Haptics from 'expo-haptics';
+import { useTranslation } from '../../lib/i18n';
 
 interface HangmanGameProps {
   gameData: any;
@@ -12,6 +13,7 @@ interface HangmanGameProps {
 }
 
 const HangmanGame: React.FC<HangmanGameProps> = ({ gameData, onClose, onGameComplete, onPlayAgain }) => {
+  const { t } = useTranslation();
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [guessedLetters, setGuessedLetters] = useState<string[]>([]);
   const [wrongGuesses, setWrongGuesses] = useState(0);
@@ -152,27 +154,27 @@ const HangmanGame: React.FC<HangmanGameProps> = ({ gameData, onClose, onGameComp
     return (
       <View style={styles.gameContainer}>
         <View style={styles.completionContainer}>
-          <Text style={styles.completionTitle}>🎉 Hangman Complete!</Text>
-          <Text style={styles.completionSubtitle}>Great job!</Text>
+          <Text style={styles.completionTitle}>{t('gameCompletion.title.hangman')}</Text>
+          <Text style={styles.completionSubtitle}>{t('gameCompletion.subtitle.greatJob')}</Text>
           
           <View style={styles.statsContainer}>
             <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Score</Text>
+              <Text style={styles.statLabel}>{t('gameCompletion.stats.score')}</Text>
               <Text style={styles.statValue}>{score}/{gameData.questions.length}</Text>
             </View>
             <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Percentage</Text>
+              <Text style={styles.statLabel}>{t('gameCompletion.stats.percentage')}</Text>
               <Text style={styles.statValue}>{Math.round((score / gameData.questions.length) * 100)}%</Text>
             </View>
           </View>
           
           <View style={styles.actionButtons}>
             <TouchableOpacity style={styles.resetButton} onPress={handlePlayAgain}>
-              <Text style={styles.resetButtonText}>Play Again</Text>
+              <Text style={styles.resetButtonText}>{t('gameCompletion.buttons.playAgain')}</Text>
             </TouchableOpacity>
             
             <TouchableOpacity style={styles.exitButton} onPress={handleReturnToMenu}>
-              <Text style={styles.exitButtonText}>Return to Menu</Text>
+              <Text style={styles.exitButtonText}>{t('gameCompletion.buttons.returnToMenu')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -383,9 +385,9 @@ const HangmanGame: React.FC<HangmanGameProps> = ({ gameData, onClose, onGameComp
       {/* Game Status */}
       <View style={styles.statusContainer}>
         <Text style={styles.statusText}>
-          Wrong guesses: {wrongGuesses}/{maxWrongGuesses}
+          {t('gameCompletion.stats.wrongGuesses')}: {wrongGuesses}/{maxWrongGuesses}
         </Text>
-        <Text style={styles.scoreText}>Score: {score}</Text>
+        <Text style={styles.scoreText}>{t('gameCompletion.stats.score')}: {score}</Text>
       </View>
 
       {/* Letter Grid */}

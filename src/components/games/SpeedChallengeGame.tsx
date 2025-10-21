@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, TextInput, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { useTranslation } from '../../lib/i18n';
 
 interface SpeedChallengeGameProps {
   gameData: any;
@@ -12,6 +13,7 @@ interface SpeedChallengeGameProps {
 }
 
 const SpeedChallengeGame: React.FC<SpeedChallengeGameProps> = ({ gameData, onClose, onGameComplete, onPlayAgain, timeLimit = 60 }) => {
+  const { t } = useTranslation();
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userAnswer, setUserAnswer] = useState('');
   const [score, setScore] = useState(0);
@@ -142,33 +144,33 @@ const SpeedChallengeGame: React.FC<SpeedChallengeGameProps> = ({ gameData, onClo
     return (
       <View style={styles.gameContainer}>
         <View style={styles.completionContainer}>
-          <Text style={styles.completionTitle}>🎉 Speed Challenge Complete!</Text>
-          <Text style={styles.completionSubtitle}>Great job!</Text>
+          <Text style={styles.completionTitle}>{t('gameCompletion.title.speedChallenge')}</Text>
+          <Text style={styles.completionSubtitle}>{t('gameCompletion.subtitle.greatJob')}</Text>
           
           <View style={styles.statsContainer}>
             <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Score</Text>
+              <Text style={styles.statLabel}>{t('gameCompletion.stats.score')}</Text>
               <Text style={styles.statValue}>{score}</Text>
             </View>
             <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Time</Text>
+              <Text style={styles.statLabel}>{t('gameCompletion.stats.time')}</Text>
               <Text style={styles.statValue}>{elapsedTime}s</Text>
             </View>
             <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Speed</Text>
+              <Text style={styles.statLabel}>{t('gameCompletion.stats.speed')}</Text>
               <Text style={styles.statValue}>
-                {elapsedTime > 0 ? Math.round((score / elapsedTime) * 60) : 0} q/min
+                {elapsedTime > 0 ? Math.round((score / elapsedTime) * 60) : 0} {t('gameCompletion.stats.questionsPerMinute')}
               </Text>
             </View>
           </View>
           
           <View style={styles.actionButtons}>
             <TouchableOpacity style={styles.resetButton} onPress={handlePlayAgain}>
-              <Text style={styles.resetButtonText}>Play Again</Text>
+              <Text style={styles.resetButtonText}>{t('gameCompletion.buttons.playAgain')}</Text>
             </TouchableOpacity>
             
             <TouchableOpacity style={styles.exitButton} onPress={handleReturnToMenu}>
-              <Text style={styles.exitButtonText}>Return to Menu</Text>
+              <Text style={styles.exitButtonText}>{t('gameCompletion.buttons.returnToMenu')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -183,8 +185,8 @@ const SpeedChallengeGame: React.FC<SpeedChallengeGameProps> = ({ gameData, onClo
       {/* Game Header */}
       <View style={styles.gameHeader}>
         <View style={styles.headerInfo}>
-          <Text style={styles.scoreText}>Score: {score}</Text>
-          <Text style={styles.timeText}>Time: {elapsedTime}s / {timeLimit}s</Text>
+          <Text style={styles.scoreText}>{t('gameCompletion.stats.score')}: {score}</Text>
+          <Text style={styles.timeText}>{t('gameCompletion.stats.time')}: {elapsedTime}s / {timeLimit}s</Text>
         </View>
         <Text style={styles.questionCounter}>
           Question {currentQuestionIndex + 1}
@@ -215,7 +217,7 @@ const SpeedChallengeGame: React.FC<SpeedChallengeGameProps> = ({ gameData, onClo
           style={styles.answerInput}
           value={userAnswer}
           onChangeText={setUserAnswer}
-          placeholder="Type your answer..."
+          placeholder={t('gameUI.placeholders.typeAnswer')}
           placeholderTextColor="#94a3b8"
           autoCapitalize="none"
           autoCorrect={false}

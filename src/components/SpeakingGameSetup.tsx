@@ -11,6 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { UserFlashcardService } from '../lib/userFlashcardService';
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from '../lib/i18n';
 
 export interface SpeakingGameSetupOptions {
   wordCount: number;
@@ -32,6 +33,7 @@ const SpeakingGameSetup: React.FC<SpeakingGameSetupProps> = ({
   availableCards,
 }) => {
   const { user, profile } = useAuth();
+  const { t } = useTranslation();
   const [wordCount, setWordCount] = useState<number>(10);
   const [selectedTopic, setSelectedTopic] = useState<string>('');
   const [selectedDifficulty, setSelectedDifficulty] = useState<'beginner' | 'intermediate' | 'expert' | 'all'>('all');
@@ -124,10 +126,10 @@ const SpeakingGameSetup: React.FC<SpeakingGameSetupProps> = ({
   };
 
   const wordCountOptions = [
-    { value: 5, label: '5 Words' },
-    { value: 10, label: '10 Words' },
-    { value: 15, label: '15 Words' },
-    { value: 20, label: '20 Words' },
+    { value: 5, label: `5 ${t('gameSetup.options.words')}` },
+    { value: 10, label: `10 ${t('gameSetup.options.words')}` },
+    { value: 15, label: `15 ${t('gameSetup.options.words')}` },
+    { value: 20, label: `20 ${t('gameSetup.options.words')}` },
   ].filter(option => option.value <= getAvailableCardsCount());
 
 
@@ -135,14 +137,14 @@ const SpeakingGameSetup: React.FC<SpeakingGameSetupProps> = ({
     const currentAvailableCards = getAvailableCardsCount();
     
     if (wordCount > currentAvailableCards) {
-      Alert.alert('Not Enough Cards', `You need at least ${wordCount} cards for this game. You currently have ${currentAvailableCards} cards.`);
+      Alert.alert(t('gameSetup.alerts.notEnoughCards'), t('gameSetup.alerts.needAtLeastCards', { required: wordCount, available: currentAvailableCards }));
       return;
     }
 
     const options: SpeakingGameSetupOptions = {
       wordCount,
       difficulty: selectedDifficulty,
-      selectedTopic: selectedTopic || 'All Topics',
+      selectedTopic: selectedTopic || t('gameSetup.dropdown.allTopics'),
     };
 
     onStartGame(options);
@@ -160,7 +162,7 @@ const SpeakingGameSetup: React.FC<SpeakingGameSetupProps> = ({
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <Ionicons name="close" size={24} color="#64748b" />
           </TouchableOpacity>
-          <Text style={styles.title}>Speaking Game Setup</Text>
+          <Text style={styles.title}>{t('gameSetup.title.speakingGame')}</Text>
           <View style={styles.placeholder} />
         </View>
 
@@ -170,32 +172,32 @@ const SpeakingGameSetup: React.FC<SpeakingGameSetupProps> = ({
             <View style={styles.infoRow}>
               <Ionicons name="information-circle" size={20} color="#6366f1" />
               <Text style={styles.infoText}>
-                Available Cards: {getAvailableCardsCount()}
-                {selectedTopic && selectedTopic !== '' ? ` (${selectedTopic} topic)` : ' (All topics)'}
-                {selectedDifficulty && selectedDifficulty !== 'all' ? `, ${selectedDifficulty} difficulty` : ''}
+                {t('gameSetup.info.availableCards')} {getAvailableCardsCount()}
+                {selectedTopic && selectedTopic !== '' ? ` (${selectedTopic} ${t('gameSetup.info.topic')})` : ` ${t('gameSetup.info.allTopics')}`}
+                {selectedDifficulty && selectedDifficulty !== 'all' ? `, ${selectedDifficulty} ${t('gameSetup.info.difficulty')}` : ''}
               </Text>
             </View>
           </View>
 
           {/* Topic Selection */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Topic *</Text>
+            <Text style={styles.sectionTitle}>{t('gameSetup.sections.topic')} *</Text>
             
             <View style={styles.topicDropdownContainer}>
               <TouchableOpacity
                 style={styles.dropdown}
                 onPress={() => {
                   if (loadingTopics) {
-                    Alert.alert('Loading', 'Please wait while topics are loading...');
+                    Alert.alert(t('gameSetup.dropdown.loading'), t('gameSetup.dropdown.pleaseWait'));
                     return;
                   }
                   
                   if (topics.length === 0) {
                     Alert.alert(
-                      'No Topics Available',
-                      'You need to create flashcards first. Go to the Upload page to create flashcards from PDFs.',
+                      t('gameSetup.alerts.noTopicsAvailable'),
+                      t('gameSetup.alerts.createFlashcardsFirst'),
                       [
-                        { text: 'OK', onPress: () => {} }
+                        { text: t('common.ok'), onPress: () => {} }
                       ]
                     );
                     return;
@@ -211,8 +213,8 @@ const SpeakingGameSetup: React.FC<SpeakingGameSetupProps> = ({
                   !selectedTopic && styles.dropdownPlaceholder
                 ]}>
                   {selectedTopic 
-                    ? `${selectedTopic} (${topicCardCounts[selectedTopic] || 0} cards)`
-                    : `All Topics (${availableCards} cards)`
+                    ? `${selectedTopic} (${topicCardCounts[selectedTopic] || 0} ${t('gameSetup.info.cards')})`
+                    : `${t('gameSetup.dropdown.allTopics')} (${availableCards} ${t('gameSetup.info.cards')})`
                   }
                 </Text>
                 <Ionicons 
@@ -241,7 +243,7 @@ const SpeakingGameSetup: React.FC<SpeakingGameSetupProps> = ({
                         styles.dropdownOptionText,
                         !selectedTopic && styles.dropdownOptionTextSelected
                       ]}>
-                        All Topics ({availableCards} cards)
+                        {t('gameSetup.dropdown.allTopics')} ({availableCards} {t('gameSetup.info.cards')})
                       </Text>
                     </TouchableOpacity>
                     
@@ -262,7 +264,7 @@ const SpeakingGameSetup: React.FC<SpeakingGameSetupProps> = ({
                           styles.dropdownOptionText,
                           selectedTopic === topic && styles.dropdownOptionTextSelected
                         ]}>
-                          {topic} ({topicCardCounts[topic] || 0} cards)
+                          {topic} ({topicCardCounts[topic] || 0} {t('gameSetup.info.cards')})
                         </Text>
                       </TouchableOpacity>
                     ))}
@@ -274,7 +276,7 @@ const SpeakingGameSetup: React.FC<SpeakingGameSetupProps> = ({
 
           {/* Difficulty Selection */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Difficulty Level *</Text>
+            <Text style={styles.sectionTitle}>{t('gameSetup.sections.difficulty')} *</Text>
             
             <View style={styles.difficultyDropdownContainer}>
               <TouchableOpacity
@@ -290,7 +292,7 @@ const SpeakingGameSetup: React.FC<SpeakingGameSetupProps> = ({
                   selectedDifficulty === 'all' && styles.dropdownPlaceholder
                 ]}>
                   {selectedDifficulty === 'all' 
-                    ? 'All Difficulty'
+                    ? t('gameSetup.dropdown.allDifficulty')
                     : selectedDifficulty.charAt(0).toUpperCase() + selectedDifficulty.slice(1)
                   }
                 </Text>
@@ -320,7 +322,7 @@ const SpeakingGameSetup: React.FC<SpeakingGameSetupProps> = ({
                         styles.dropdownOptionText,
                         selectedDifficulty === 'all' && styles.dropdownOptionTextSelected
                       ]}>
-                        All Difficulty
+                        {t('gameSetup.dropdown.allDifficulty')}
                       </Text>
                     </TouchableOpacity>
                     
@@ -353,7 +355,7 @@ const SpeakingGameSetup: React.FC<SpeakingGameSetupProps> = ({
 
           {/* Word Count Selection */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Number of Words</Text>
+            <Text style={styles.sectionTitle}>{t('gameSetup.sections.numberOfWords')}</Text>
             
             <View style={styles.optionsGrid}>
               {wordCountOptions.map((option) => {
@@ -389,7 +391,7 @@ const SpeakingGameSetup: React.FC<SpeakingGameSetupProps> = ({
 
           {/* Start Button */}
           <TouchableOpacity style={styles.startButton} onPress={handleStartGame}>
-            <Text style={styles.startButtonText}>Start Speaking Game</Text>
+            <Text style={styles.startButtonText}>{t('gameSetup.buttons.startSpeakingGame')}</Text>
             <Ionicons name="mic" size={20} color="white" />
           </TouchableOpacity>
         </View>

@@ -11,6 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { UserFlashcardService } from '../lib/userFlashcardService';
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from '../lib/i18n';
 
 export interface MemoryMatchSetupOptions {
   cardCount: number;
@@ -32,6 +33,7 @@ const MemoryMatchSetup: React.FC<MemoryMatchSetupProps> = ({
   availableCards,
 }) => {
   const { user, profile } = useAuth();
+  const { t } = useTranslation();
   const [cardCount, setCardCount] = useState<number>(12);
   const [selectedTopic, setSelectedTopic] = useState<string>('');
   const [selectedDifficulty, setSelectedDifficulty] = useState<'beginner' | 'intermediate' | 'expert' | 'all'>('all');
@@ -124,10 +126,10 @@ const MemoryMatchSetup: React.FC<MemoryMatchSetupProps> = ({
   };
 
   const cardCountOptions = [
-    { value: 8, label: '8 Cards (4 pairs)' },
-    { value: 12, label: '12 Cards (6 pairs)' },
-    { value: 16, label: '16 Cards (8 pairs)' },
-    { value: 20, label: '20 Cards (10 pairs)' },
+    { value: 8, label: `8 ${t('gameSetup.options.cards')} (4 ${t('gameSetup.options.pairs')})` },
+    { value: 12, label: `12 ${t('gameSetup.options.cards')} (6 ${t('gameSetup.options.pairs')})` },
+    { value: 16, label: `16 ${t('gameSetup.options.cards')} (8 ${t('gameSetup.options.pairs')})` },
+    { value: 20, label: `20 ${t('gameSetup.options.cards')} (10 ${t('gameSetup.options.pairs')})` },
   ].filter(option => (option.value / 2) <= getAvailableCardsCount());
 
   const handleStartGame = () => {
@@ -135,14 +137,14 @@ const MemoryMatchSetup: React.FC<MemoryMatchSetupProps> = ({
     const requiredPairs = cardCount / 2;
     
     if (requiredPairs > currentAvailableCards) {
-      Alert.alert('Not Enough Cards', `You need at least ${requiredPairs} cards for this game. You currently have ${currentAvailableCards} cards.`);
+      Alert.alert(t('gameSetup.alerts.notEnoughCards'), t('gameSetup.alerts.needAtLeastCards', { required: requiredPairs, available: currentAvailableCards }));
       return;
     }
 
     const options: MemoryMatchSetupOptions = {
       cardCount,
       difficulty: selectedDifficulty,
-      selectedTopic: selectedTopic || 'All Topics',
+      selectedTopic: selectedTopic || t('gameSetup.dropdown.allTopics'),
     };
 
     onStartGame(options);
@@ -160,7 +162,7 @@ const MemoryMatchSetup: React.FC<MemoryMatchSetupProps> = ({
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <Ionicons name="close" size={24} color="#64748b" />
           </TouchableOpacity>
-          <Text style={styles.title}>Memory Match Setup</Text>
+          <Text style={styles.title}>{t('gameSetup.title.memoryMatch')}</Text>
           <View style={styles.placeholder} />
         </View>
 
@@ -170,32 +172,32 @@ const MemoryMatchSetup: React.FC<MemoryMatchSetupProps> = ({
             <View style={styles.infoRow}>
               <Ionicons name="information-circle" size={20} color="#6366f1" />
               <Text style={styles.infoText}>
-                Available Cards: {getAvailableCardsCount()}
-                {selectedTopic && selectedTopic !== '' ? ` (${selectedTopic} topic)` : ' (All topics)'}
-                {selectedDifficulty && selectedDifficulty !== 'all' ? `, ${selectedDifficulty} difficulty` : ''}
+                {t('gameSetup.info.availableCards')} {getAvailableCardsCount()}
+                {selectedTopic && selectedTopic !== '' ? ` (${selectedTopic} ${t('gameSetup.info.topic')})` : ` ${t('gameSetup.info.allTopics')}`}
+                {selectedDifficulty && selectedDifficulty !== 'all' ? `, ${selectedDifficulty} ${t('gameSetup.info.difficulty')}` : ''}
               </Text>
             </View>
           </View>
 
           {/* Topic Selection */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Topic *</Text>
+            <Text style={styles.sectionTitle}>{t('gameSetup.sections.topic')} *</Text>
             
             <View style={styles.dropdownContainer}>
               <TouchableOpacity
                 style={styles.dropdown}
                 onPress={() => {
                   if (loadingTopics) {
-                    Alert.alert('Loading', 'Please wait while topics are loading...');
+                    Alert.alert(t('gameSetup.dropdown.loading'), t('gameSetup.dropdown.pleaseWait'));
                     return;
                   }
                   
                   if (topics.length === 0) {
                     Alert.alert(
-                      'No Topics Available',
-                      'You need to create flashcards first. Go to the Upload page to create flashcards from PDFs.',
+                      t('gameSetup.alerts.noTopicsAvailable'),
+                      t('gameSetup.alerts.createFlashcardsFirst'),
                       [
-                        { text: 'OK', onPress: () => {} }
+                        { text: t('common.ok'), onPress: () => {} }
                       ]
                     );
                     return;
@@ -209,8 +211,8 @@ const MemoryMatchSetup: React.FC<MemoryMatchSetupProps> = ({
                   !selectedTopic && styles.dropdownPlaceholder
                 ]}>
                   {selectedTopic 
-                    ? `${selectedTopic} (${topicCardCounts[selectedTopic] || 0} cards)`
-                    : `All Topics (${availableCards} cards)`
+                    ? `${selectedTopic} (${topicCardCounts[selectedTopic] || 0} ${t('gameSetup.info.cards')})`
+                    : `${t('gameSetup.dropdown.allTopics')} (${availableCards} ${t('gameSetup.info.cards')})`
                   }
                 </Text>
                 <Ionicons 
@@ -239,7 +241,7 @@ const MemoryMatchSetup: React.FC<MemoryMatchSetupProps> = ({
                         styles.dropdownOptionText,
                         !selectedTopic && styles.dropdownOptionTextSelected
                       ]}>
-                        All Topics ({availableCards} cards)
+                        {t('gameSetup.dropdown.allTopics')} ({availableCards} {t('gameSetup.info.cards')})
                       </Text>
                     </TouchableOpacity>
                     
@@ -260,7 +262,7 @@ const MemoryMatchSetup: React.FC<MemoryMatchSetupProps> = ({
                           styles.dropdownOptionText,
                           selectedTopic === topic && styles.dropdownOptionTextSelected
                         ]}>
-                          {topic} ({topicCardCounts[topic] || 0} cards)
+                          {topic} ({topicCardCounts[topic] || 0} {t('gameSetup.info.cards')})
                         </Text>
                       </TouchableOpacity>
                     ))}
@@ -272,7 +274,7 @@ const MemoryMatchSetup: React.FC<MemoryMatchSetupProps> = ({
 
           {/* Difficulty Selection */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Difficulty Level *</Text>
+            <Text style={styles.sectionTitle}>{t('gameSetup.sections.difficulty')} *</Text>
             
             <View style={styles.dropdownContainer}>
               <TouchableOpacity
@@ -284,7 +286,7 @@ const MemoryMatchSetup: React.FC<MemoryMatchSetupProps> = ({
                   selectedDifficulty === 'all' && styles.dropdownPlaceholder
                 ]}>
                   {selectedDifficulty === 'all' 
-                    ? 'All Difficulty'
+                    ? t('gameSetup.dropdown.allDifficulty')
                     : selectedDifficulty.charAt(0).toUpperCase() + selectedDifficulty.slice(1)
                   }
                 </Text>
@@ -314,7 +316,7 @@ const MemoryMatchSetup: React.FC<MemoryMatchSetupProps> = ({
                         styles.dropdownOptionText,
                         selectedDifficulty === 'all' && styles.dropdownOptionTextSelected
                       ]}>
-                        All Difficulty
+                        {t('gameSetup.dropdown.allDifficulty')}
                       </Text>
                     </TouchableOpacity>
                     
@@ -345,7 +347,7 @@ const MemoryMatchSetup: React.FC<MemoryMatchSetupProps> = ({
             </View>
           </View>
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Number of Cards</Text>
+            <Text style={styles.sectionTitle}>{t('gameSetup.sections.numberOfCards')}</Text>
             
             <View style={styles.optionsGrid}>
               {cardCountOptions.map((option) => {
@@ -380,7 +382,7 @@ const MemoryMatchSetup: React.FC<MemoryMatchSetupProps> = ({
 
           {/* Start Button */}
           <TouchableOpacity style={styles.startButton} onPress={handleStartGame}>
-            <Text style={styles.startButtonText}>Start Memory Match</Text>
+            <Text style={styles.startButtonText}>{t('gameSetup.buttons.startMemoryMatch')}</Text>
             <Ionicons name="play" size={20} color="white" />
           </TouchableOpacity>
         </View>

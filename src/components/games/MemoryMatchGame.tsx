@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { useTranslation } from '../../lib/i18n';
 
 interface MemoryMatchGameProps {
   gameData: any;
@@ -11,6 +12,7 @@ interface MemoryMatchGameProps {
 }
 
 const MemoryMatchGame: React.FC<MemoryMatchGameProps> = ({ gameData, onClose, onGameComplete, onPlayAgain }) => {
+  const { t } = useTranslation();
   const [cards, setCards] = useState<any[]>([]);
   const [flippedCards, setFlippedCards] = useState<number[]>([]);
   const [matchedPairs, setMatchedPairs] = useState<number[]>([]);
@@ -207,8 +209,8 @@ const MemoryMatchGame: React.FC<MemoryMatchGameProps> = ({ gameData, onClose, on
           <View style={styles.completionIcon}>
             <Ionicons name="trophy" size={48} color="#f59e0b" />
           </View>
-          <Text style={styles.completionTitle}>Memory Match Complete!</Text>
-          <Text style={styles.completionSubtitle}>Excellent work! You've matched all pairs.</Text>
+          <Text style={styles.completionTitle}>{t('gameCompletion.title.memoryMatch')}</Text>
+          <Text style={styles.completionSubtitle}>{t('gameCompletion.subtitle.matchedAllPairs')}</Text>
           
           <View style={styles.statsContainer}>
             <View style={styles.statItem}>
@@ -216,26 +218,26 @@ const MemoryMatchGame: React.FC<MemoryMatchGameProps> = ({ gameData, onClose, on
                 <Ionicons name="refresh" size={20} color="#6366f1" />
               </View>
               <Text style={styles.statValue}>{moves}</Text>
-              <Text style={styles.statLabel}>Moves</Text>
+              <Text style={styles.statLabel}>{t('gameCompletion.stats.moves')}</Text>
             </View>
             <View style={styles.statItem}>
               <View style={styles.statIconContainer}>
                 <Ionicons name="time" size={20} color="#059669" />
               </View>
               <Text style={styles.statValue}>{gameTime}s</Text>
-              <Text style={styles.statLabel}>Time</Text>
+              <Text style={styles.statLabel}>{t('gameCompletion.stats.time')}</Text>
             </View>
           </View>
           
           <View style={styles.actionButtons}>
             <TouchableOpacity style={styles.playAgainButton} onPress={handlePlayAgain}>
               <Ionicons name="refresh" size={20} color="#ffffff" />
-              <Text style={styles.playAgainButtonText}>Play Again</Text>
+              <Text style={styles.playAgainButtonText}>{t('gameCompletion.buttons.playAgain')}</Text>
             </TouchableOpacity>
             
             <TouchableOpacity style={styles.exitButton} onPress={handleReturnToMenu}>
               <Ionicons name="home" size={20} color="#64748b" />
-              <Text style={styles.exitButtonText}>Return to Menu</Text>
+              <Text style={styles.exitButtonText}>{t('gameCompletion.buttons.returnToMenu')}</Text>
             </TouchableOpacity>
           </View>
         </View>

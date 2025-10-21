@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Speech from 'expo-speech';
 import * as Haptics from 'expo-haptics';
 import GameCompletionTracker from '../../lib/gameCompletionTracker';
+import { useTranslation } from '../../lib/i18n';
 import { getSpeechLanguageCode } from '../../lib/languageService';
 
 interface TypeWhatYouHearGameProps {
@@ -14,6 +15,7 @@ interface TypeWhatYouHearGameProps {
 }
 
 const TypeWhatYouHearGame: React.FC<TypeWhatYouHearGameProps> = ({ gameData, onClose, onGameComplete, onPlayAgain }) => {
+  const { t } = useTranslation();
   const componentId = React.useMemo(() => Math.random().toString(36).substr(2, 9), []);
   
   console.log(`🎧 [${componentId}] TypeWhatYouHearGame component mounted/rendered`);
@@ -170,27 +172,27 @@ const TypeWhatYouHearGame: React.FC<TypeWhatYouHearGameProps> = ({ gameData, onC
     return (
       <View style={styles.gameContainer}>
         <View style={styles.completionContainer}>
-          <Text style={styles.completionTitle}>🎉 Listen & Type Complete!</Text>
-          <Text style={styles.completionSubtitle}>Great job!</Text>
+          <Text style={styles.completionTitle}>{t('gameCompletion.title.typeWhatYouHear')}</Text>
+          <Text style={styles.completionSubtitle}>{t('gameCompletion.subtitle.greatJob')}</Text>
           
           <View style={styles.statsContainer}>
             <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Score</Text>
+              <Text style={styles.statLabel}>{t('gameCompletion.stats.score')}</Text>
               <Text style={styles.statValue}>{score}/{gameData.questions.length}</Text>
             </View>
             <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Percentage</Text>
+              <Text style={styles.statLabel}>{t('gameCompletion.stats.percentage')}</Text>
               <Text style={styles.statValue}>{Math.round((score / gameData.questions.length) * 100)}%</Text>
             </View>
           </View>
           
           <View style={styles.completionActionButtons}>
             <TouchableOpacity style={styles.resetButton} onPress={handlePlayAgain}>
-              <Text style={styles.resetButtonText}>Play Again</Text>
+              <Text style={styles.resetButtonText}>{t('gameCompletion.buttons.playAgain')}</Text>
             </TouchableOpacity>
             
             <TouchableOpacity style={styles.exitButton} onPress={handleReturnToMenu}>
-              <Text style={styles.exitButtonText}>Return to Menu</Text>
+              <Text style={styles.exitButtonText}>{t('gameCompletion.buttons.returnToMenu')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -218,7 +220,7 @@ const TypeWhatYouHearGame: React.FC<TypeWhatYouHearGameProps> = ({ gameData, onC
       {/* Question */}
       <View style={styles.questionContainer}>
         <Text style={styles.questionText}>
-          {currentQuestion.question || 'Listen and type what you hear:'}
+          {currentQuestion.question || t('gameUI.labels.listenAndType')}
         </Text>
       </View>
 
@@ -236,7 +238,7 @@ const TypeWhatYouHearGame: React.FC<TypeWhatYouHearGameProps> = ({ gameData, onC
           />
         </TouchableOpacity>
         <Text style={styles.audioLabel}>
-          {isPlaying ? 'Playing...' : 'Tap to hear the word'}
+          {isPlaying ? t('gameUI.labels.playing') : t('gameUI.labels.tapToHear')}
         </Text>
       </View>
 
@@ -247,7 +249,7 @@ const TypeWhatYouHearGame: React.FC<TypeWhatYouHearGameProps> = ({ gameData, onC
           style={styles.answerInput}
           value={userAnswer}
           onChangeText={setUserAnswer}
-          placeholder="Type the word you heard..."
+          placeholder={t('gameUI.placeholders.typeWordHeard')}
           placeholderTextColor="#94a3b8"
           autoCapitalize="none"
           autoCorrect={false}
@@ -292,7 +294,7 @@ const TypeWhatYouHearGame: React.FC<TypeWhatYouHearGameProps> = ({ gameData, onC
             styles.resultText,
             isCorrect ? styles.resultTextCorrect : styles.resultTextIncorrect
           ]}>
-            {isCorrect ? 'Correct! 🎉' : 'Incorrect! 😔'}
+            {isCorrect ? t('gameUI.feedback.correct') : t('gameUI.feedback.incorrect')}
           </Text>
           
           <Text style={styles.correctAnswerText}>

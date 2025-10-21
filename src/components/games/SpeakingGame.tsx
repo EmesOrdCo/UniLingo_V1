@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { useTranslation } from '../../lib/i18n';
 import PronunciationCheck from '../PronunciationCheck';
 
 interface SpeakingGameProps {
@@ -24,6 +25,7 @@ const SpeakingGame: React.FC<SpeakingGameProps> = ({
   onGameComplete, 
   onPlayAgain 
 }) => {
+  const { t } = useTranslation();
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
   const [wordResults, setWordResults] = useState<WordResult[]>([]);
   const [gameComplete, setGameComplete] = useState(false);
@@ -159,22 +161,22 @@ const SpeakingGame: React.FC<SpeakingGameProps> = ({
     return (
       <View style={styles.container}>
         <View style={styles.completionContainer}>
-          <Text style={styles.completionTitle}>Speaking Game Complete! 🎉</Text>
+          <Text style={styles.completionTitle}>{t('gameCompletion.title.speakingGame')}</Text>
           <Text style={styles.completionSubtitle}>
-            Great job practicing your pronunciation!
+            {t('gameCompletion.subtitle.practicingPronunciation')}
           </Text>
           
           <View style={styles.statsContainer}>
             <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Words Passed</Text>
+              <Text style={styles.statLabel}>{t('gameCompletion.stats.wordsPassed')}</Text>
               <Text style={styles.statValue}>{passedWords}/{totalWords}</Text>
             </View>
             <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Avg Score</Text>
+              <Text style={styles.statLabel}>{t('gameCompletion.stats.avgScore')}</Text>
               <Text style={styles.statValue}>{averageScore}</Text>
             </View>
             <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Total Score</Text>
+              <Text style={styles.statLabel}>{t('gameCompletion.stats.totalScore')}</Text>
               <Text style={styles.statValue}>{Math.round(totalScore)}</Text>
             </View>
           </View>
@@ -186,10 +188,10 @@ const SpeakingGame: React.FC<SpeakingGameProps> = ({
 
           <View style={styles.actionButtons}>
             <TouchableOpacity style={styles.resetButton} onPress={handlePlayAgain}>
-              <Text style={styles.resetButtonText}>Play Again</Text>
+              <Text style={styles.resetButtonText}>{t('gameCompletion.buttons.playAgain')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.exitButton} onPress={handleExit}>
-              <Text style={styles.exitButtonText}>Exit</Text>
+              <Text style={styles.exitButtonText}>{t('gameCompletion.buttons.exit')}</Text>
             </TouchableOpacity>
           </View>
         </View>

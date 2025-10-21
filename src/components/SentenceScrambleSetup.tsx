@@ -11,6 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { UserFlashcardService } from '../lib/userFlashcardService';
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from '../lib/i18n';
 
 export interface SentenceScrambleSetupOptions {
   sentenceCount: number;
@@ -32,6 +33,7 @@ const SentenceScrambleSetup: React.FC<SentenceScrambleSetupProps> = React.memo((
   availableCards,
 }) => {
   const { user, profile } = useAuth();
+  const { t } = useTranslation();
   const [sentenceCount, setSentenceCount] = useState<number>(10);
   const [selectedTopic, setSelectedTopic] = useState<string>('');
   const [selectedDifficulty, setSelectedDifficulty] = useState<'beginner' | 'intermediate' | 'expert' | 'all'>('all');
@@ -124,24 +126,24 @@ const SentenceScrambleSetup: React.FC<SentenceScrambleSetupProps> = React.memo((
   };
 
   const sentenceCountOptions = [
-    { value: 5, label: '5 Sentences' },
-    { value: 10, label: '10 Sentences' },
-    { value: 15, label: '15 Sentences' },
-    { value: 20, label: '20 Sentences' },
+    { value: 5, label: `5 ${t('gameSetup.options.sentences')}` },
+    { value: 10, label: `10 ${t('gameSetup.options.sentences')}` },
+    { value: 15, label: `15 ${t('gameSetup.options.sentences')}` },
+    { value: 20, label: `20 ${t('gameSetup.options.sentences')}` },
   ].filter(option => option.value <= getAvailableCardsCount());
 
   const handleStartGame = () => {
     const currentAvailableCards = getAvailableCardsCount();
     
     if (sentenceCount > currentAvailableCards) {
-      Alert.alert('Not Enough Cards', `You need at least ${sentenceCount} cards for this game. You currently have ${currentAvailableCards} cards.`);
+      Alert.alert(t('gameSetup.alerts.notEnoughCards'), t('gameSetup.alerts.needAtLeastCards', { required: sentenceCount, available: currentAvailableCards }));
       return;
     }
 
     const options: SentenceScrambleSetupOptions = {
       sentenceCount,
       difficulty: selectedDifficulty,
-      selectedTopic: selectedTopic || 'All Topics',
+      selectedTopic: selectedTopic || t('gameSetup.dropdown.allTopics'),
     };
 
     onStartGame(options);
@@ -159,7 +161,7 @@ const SentenceScrambleSetup: React.FC<SentenceScrambleSetupProps> = React.memo((
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <Ionicons name="close" size={24} color="#64748b" />
           </TouchableOpacity>
-          <Text style={styles.title}>Sentence Scramble Setup</Text>
+          <Text style={styles.title}>{t('gameSetup.title.sentenceScramble')}</Text>
           <View style={styles.placeholder} />
         </View>
 
@@ -169,32 +171,32 @@ const SentenceScrambleSetup: React.FC<SentenceScrambleSetupProps> = React.memo((
             <View style={styles.infoRow}>
               <Ionicons name="information-circle" size={20} color="#6366f1" />
               <Text style={styles.infoText}>
-                Available Cards: {getAvailableCardsCount()}
-                {selectedTopic && selectedTopic !== '' ? ` (${selectedTopic} topic)` : ' (All topics)'}
-                {selectedDifficulty && selectedDifficulty !== 'all' ? `, ${selectedDifficulty} difficulty` : ''}
+                {t('gameSetup.info.availableCards')} {getAvailableCardsCount()}
+                {selectedTopic && selectedTopic !== '' ? ` (${selectedTopic} ${t('gameSetup.info.topic')})` : ` ${t('gameSetup.info.allTopics')}`}
+                {selectedDifficulty && selectedDifficulty !== 'all' ? `, ${selectedDifficulty} ${t('gameSetup.info.difficulty')}` : ''}
               </Text>
             </View>
           </View>
 
           {/* Topic Selection */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Topic *</Text>
+            <Text style={styles.sectionTitle}>{t('gameSetup.sections.topic')} *</Text>
             
             <View style={styles.topicDropdownContainer}>
               <TouchableOpacity
                 style={styles.dropdown}
                 onPress={() => {
                   if (loadingTopics) {
-                    Alert.alert('Loading', 'Please wait while topics are loading...');
+                    Alert.alert(t('gameSetup.dropdown.loading'), t('gameSetup.dropdown.pleaseWait'));
                     return;
                   }
                   
                   if (topics.length === 0) {
                     Alert.alert(
-                      'No Topics Available',
-                      'You need to create flashcards first. Go to the Upload page to create flashcards from PDFs.',
+                      t('gameSetup.alerts.noTopicsAvailable'),
+                      t('gameSetup.alerts.createFlashcardsFirst'),
                       [
-                        { text: 'OK', onPress: () => {} }
+                        { text: t('common.ok'), onPress: () => {} }
                       ]
                     );
                     return;
@@ -210,8 +212,8 @@ const SentenceScrambleSetup: React.FC<SentenceScrambleSetupProps> = React.memo((
                   !selectedTopic && styles.dropdownPlaceholder
                 ]}>
                   {selectedTopic 
-                    ? `${selectedTopic} (${topicCardCounts[selectedTopic] || 0} cards)`
-                    : `All Topics (${availableCards} cards)`
+                    ? `${selectedTopic} (${topicCardCounts[selectedTopic] || 0} ${t('gameSetup.info.cards')})`
+                    : `${t('gameSetup.dropdown.allTopics')} (${availableCards} ${t('gameSetup.info.cards')})`
                   }
                 </Text>
                 <Ionicons 
@@ -240,7 +242,7 @@ const SentenceScrambleSetup: React.FC<SentenceScrambleSetupProps> = React.memo((
                         styles.dropdownOptionText,
                         !selectedTopic && styles.dropdownOptionTextSelected
                       ]}>
-                        All Topics ({availableCards} cards)
+                        {t('gameSetup.dropdown.allTopics')} ({availableCards} {t('gameSetup.info.cards')})
                       </Text>
                     </TouchableOpacity>
                     
@@ -261,7 +263,7 @@ const SentenceScrambleSetup: React.FC<SentenceScrambleSetupProps> = React.memo((
                           styles.dropdownOptionText,
                           selectedTopic === topic && styles.dropdownOptionTextSelected
                         ]}>
-                          {topic} ({topicCardCounts[topic] || 0} cards)
+                          {topic} ({topicCardCounts[topic] || 0} {t('gameSetup.info.cards')})
                         </Text>
                       </TouchableOpacity>
                     ))}
@@ -273,7 +275,7 @@ const SentenceScrambleSetup: React.FC<SentenceScrambleSetupProps> = React.memo((
 
           {/* Difficulty Selection */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Difficulty Level *</Text>
+            <Text style={styles.sectionTitle}>{t('gameSetup.sections.difficulty')} *</Text>
             
             <View style={styles.difficultyDropdownContainer}>
               <TouchableOpacity
@@ -289,7 +291,7 @@ const SentenceScrambleSetup: React.FC<SentenceScrambleSetupProps> = React.memo((
                   selectedDifficulty === 'all' && styles.dropdownPlaceholder
                 ]}>
                   {selectedDifficulty === 'all' 
-                    ? 'All Difficulty'
+                    ? t('gameSetup.dropdown.allDifficulty')
                     : selectedDifficulty.charAt(0).toUpperCase() + selectedDifficulty.slice(1)
                   }
                 </Text>
@@ -319,7 +321,7 @@ const SentenceScrambleSetup: React.FC<SentenceScrambleSetupProps> = React.memo((
                         styles.dropdownOptionText,
                         selectedDifficulty === 'all' && styles.dropdownOptionTextSelected
                       ]}>
-                        All Difficulty
+                        {t('gameSetup.dropdown.allDifficulty')}
                       </Text>
                     </TouchableOpacity>
                     
@@ -352,7 +354,7 @@ const SentenceScrambleSetup: React.FC<SentenceScrambleSetupProps> = React.memo((
 
           {/* Sentence Count Selection */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Number of Sentences</Text>
+            <Text style={styles.sectionTitle}>{t('gameSetup.sections.numberOfSentences')}</Text>
             
             <View style={styles.optionsGrid}>
               {sentenceCountOptions.map((option) => {
@@ -396,7 +398,7 @@ const SentenceScrambleSetup: React.FC<SentenceScrambleSetupProps> = React.memo((
             accessibilityHint="Begin playing the sentence scramble game with your selected settings"
             accessibilityRole="button"
           >
-            <Text style={styles.startButtonText}>Start Sentence Scramble</Text>
+            <Text style={styles.startButtonText}>{t('gameSetup.buttons.startSentenceScramble')}</Text>
             <Ionicons name="play" size={20} color="white" />
           </TouchableOpacity>
         </View>

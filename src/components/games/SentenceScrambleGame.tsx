@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { useTranslation } from '../../lib/i18n';
 
 interface SentenceScrambleGameProps {
   gameData: any;
@@ -11,6 +12,7 @@ interface SentenceScrambleGameProps {
 }
 
 const SentenceScrambleGame: React.FC<SentenceScrambleGameProps> = ({ gameData, onClose, onGameComplete, onPlayAgain }) => {
+  const { t } = useTranslation();
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [scrambledWords, setScrambledWords] = useState<string[]>([]);
   const [selectedWords, setSelectedWords] = useState<string[]>([]);
@@ -136,27 +138,27 @@ const SentenceScrambleGame: React.FC<SentenceScrambleGameProps> = ({ gameData, o
     return (
       <View style={styles.gameContainer}>
         <View style={styles.completionContainer}>
-          <Text style={styles.completionTitle}>🎉 Sentence Scramble Complete!</Text>
-          <Text style={styles.completionSubtitle}>Great job!</Text>
+          <Text style={styles.completionTitle}>{t('gameCompletion.title.sentenceScramble')}</Text>
+          <Text style={styles.completionSubtitle}>{t('gameCompletion.subtitle.greatJob')}</Text>
           
           <View style={styles.statsContainer}>
             <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Score</Text>
+              <Text style={styles.statLabel}>{t('gameCompletion.stats.score')}</Text>
               <Text style={styles.statValue}>{score}/{gameData.questions.length}</Text>
             </View>
             <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Percentage</Text>
+              <Text style={styles.statLabel}>{t('gameCompletion.stats.percentage')}</Text>
               <Text style={styles.statValue}>{Math.round((score / gameData.questions.length) * 100)}%</Text>
             </View>
           </View>
           
           <View style={styles.actionButtons}>
             <TouchableOpacity style={styles.resetButton} onPress={handlePlayAgain}>
-              <Text style={styles.resetButtonText}>Play Again</Text>
+              <Text style={styles.resetButtonText}>{t('gameCompletion.buttons.playAgain')}</Text>
             </TouchableOpacity>
             
             <TouchableOpacity style={styles.exitButton} onPress={handleReturnToMenu}>
-              <Text style={styles.exitButtonText}>Return to Menu</Text>
+              <Text style={styles.exitButtonText}>{t('gameCompletion.buttons.returnToMenu')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -186,7 +188,7 @@ const SentenceScrambleGame: React.FC<SentenceScrambleGameProps> = ({ gameData, o
       {/* Question */}
       <View style={styles.questionContainer}>
         <Text style={styles.questionText}>
-          {currentQuestion.question || 'Unscramble the sentence:'}
+          {currentQuestion.question || t('gameUI.labels.unscrambleSentence')}
         </Text>
       </View>
 
@@ -264,7 +266,7 @@ const SentenceScrambleGame: React.FC<SentenceScrambleGameProps> = ({ gameData, o
             styles.resultText,
             isCorrect ? styles.resultTextCorrect : styles.resultTextIncorrect
           ]}>
-            {isCorrect ? 'Correct! 🎉' : 'Incorrect! 😔'}
+            {isCorrect ? t('gameUI.feedback.correct') : t('gameUI.feedback.incorrect')}
           </Text>
           
           <Text style={styles.correctAnswerText}>

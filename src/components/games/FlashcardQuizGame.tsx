@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { useTranslation } from '../../lib/i18n';
 
 interface FlashcardQuizGameProps {
   gameData: any;
@@ -16,10 +17,11 @@ const FlashcardQuizGame: React.FC<FlashcardQuizGameProps> = ({
   gameData, 
   onClose, 
   onGameComplete, 
-  onPlayAgain,
-  userProfile,
-  onStartNextGame
+  onPlayAgain, 
+  userProfile, 
+  onStartNextGame 
 }) => {
+  const { t } = useTranslation();
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [score, setScore] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
@@ -120,27 +122,27 @@ const FlashcardQuizGame: React.FC<FlashcardQuizGameProps> = ({
     return (
       <View style={styles.gameContainer}>
         <View style={styles.completionContainer}>
-          <Text style={styles.completionTitle}>🎉 Flashcard Quiz Complete!</Text>
-          <Text style={styles.completionSubtitle}>Great job!</Text>
+          <Text style={styles.completionTitle}>{t('gameCompletion.title.flashcardQuiz')}</Text>
+          <Text style={styles.completionSubtitle}>{t('gameCompletion.subtitle.greatJob')}</Text>
           
           <View style={styles.statsContainer}>
             <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Score</Text>
+              <Text style={styles.statLabel}>{t('gameCompletion.stats.score')}</Text>
               <Text style={styles.statValue}>{score}/{gameData.questions.length}</Text>
             </View>
             <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Percentage</Text>
+              <Text style={styles.statLabel}>{t('gameCompletion.stats.percentage')}</Text>
               <Text style={styles.statValue}>{Math.round((score / gameData.questions.length) * 100)}%</Text>
             </View>
           </View>
           
           <View style={styles.actionButtons}>
             <TouchableOpacity style={styles.resetButton} onPress={handlePlayAgain}>
-              <Text style={styles.resetButtonText}>Play Again</Text>
+              <Text style={styles.resetButtonText}>{t('gameCompletion.buttons.playAgain')}</Text>
             </TouchableOpacity>
             
             <TouchableOpacity style={styles.exitButton} onPress={handleReturnToMenu}>
-              <Text style={styles.exitButtonText}>Return to Menu</Text>
+              <Text style={styles.exitButtonText}>{t('gameCompletion.buttons.returnToMenu')}</Text>
             </TouchableOpacity>
           </View>
         </View>

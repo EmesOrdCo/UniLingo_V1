@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Dimensions, TextInput, Animat
 import { Ionicons } from '@expo/vector-icons';
 import Svg, { Circle, Path, Polygon, Defs, RadialGradient, Stop } from 'react-native-svg';
 import * as Haptics from 'expo-haptics';
+import { useTranslation } from '../../lib/i18n';
 
 interface GravityGameProps {
   gameData: any;
@@ -13,6 +14,7 @@ interface GravityGameProps {
 const { width, height } = Dimensions.get('window');
 
 const GravityGame: React.FC<GravityGameProps> = ({ gameData, onClose, onGameComplete }) => {
+  const { t } = useTranslation();
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(5); // More lives for better gameplay
   const [gameOver, setGameOver] = useState(false);
@@ -353,27 +355,27 @@ const GravityGame: React.FC<GravityGameProps> = ({ gameData, onClose, onGameComp
     return (
       <View style={styles.gameContainer}>
         <View style={styles.completionContainer}>
-          <Text style={styles.completionTitle}>🎉 Planet Defence Complete!</Text>
-          <Text style={styles.completionSubtitle}>Great job defending the planet!</Text>
+          <Text style={styles.completionTitle}>{t('gameCompletion.title.gravityGame')}</Text>
+          <Text style={styles.completionSubtitle}>{t('gameCompletion.subtitle.defendingPlanet')}</Text>
           
           <View style={styles.statsContainer}>
             <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Meteors Destroyed</Text>
+              <Text style={styles.statLabel}>{t('gameCompletion.stats.meteorsDestroyed')}</Text>
               <Text style={styles.statValue}>{score}</Text>
             </View>
             <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Wave Reached</Text>
+              <Text style={styles.statLabel}>{t('gameCompletion.stats.waveReached')}</Text>
               <Text style={styles.statValue}>{currentWave}</Text>
             </View>
           </View>
           
           <View style={styles.actionButtons}>
             <TouchableOpacity style={styles.resetButton} onPress={resetGame}>
-              <Text style={styles.resetButtonText}>Play Again</Text>
+              <Text style={styles.resetButtonText}>{t('gameCompletion.buttons.playAgain')}</Text>
             </TouchableOpacity>
             
             <TouchableOpacity style={styles.exitButton} onPress={handleReturnToMenu}>
-              <Text style={styles.exitButtonText}>Return to Menu</Text>
+              <Text style={styles.exitButtonText}>{t('gameCompletion.buttons.returnToMenu')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -398,12 +400,12 @@ const GravityGame: React.FC<GravityGameProps> = ({ gameData, onClose, onGameComp
           {/* Stats */}
           <View style={styles.gameOverStats}>
             <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Meteors Destroyed</Text>
+              <Text style={styles.statLabel}>{t('gameCompletion.stats.meteorsDestroyed')}</Text>
               <Text style={styles.statValue}>{score}</Text>
             </View>
             
             <View style={styles.statItem}>
-              <Text style={styles.statLabel}>Wave Reached</Text>
+              <Text style={styles.statLabel}>{t('gameCompletion.stats.waveReached')}</Text>
               <Text style={styles.statValue}>{currentWave}</Text>
             </View>
           </View>
@@ -411,11 +413,11 @@ const GravityGame: React.FC<GravityGameProps> = ({ gameData, onClose, onGameComp
           {/* Actions */}
           <View style={styles.gameOverActions}>
             <TouchableOpacity style={styles.playAgainButton} onPress={resetGame}>
-              <Text style={styles.playAgainButtonText}>Play Again</Text>
+              <Text style={styles.playAgainButtonText}>{t('gameCompletion.buttons.playAgain')}</Text>
             </TouchableOpacity>
             
             <TouchableOpacity style={styles.returnButton} onPress={handleReturnToMenu}>
-              <Text style={styles.returnButtonText}>Return to Menu</Text>
+              <Text style={styles.returnButtonText}>{t('gameCompletion.buttons.returnToMenu')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -918,7 +920,7 @@ const GravityGame: React.FC<GravityGameProps> = ({ gameData, onClose, onGameComp
           value={userInput}
           onChangeText={setUserInput}
           onSubmitEditing={handleInputSubmit}
-          placeholder="Type your answer..."
+          placeholder={t('gameUI.placeholders.typeAnswer')}
           placeholderTextColor="#94a3b8"
           autoCapitalize="none"
           autoCorrect={false}

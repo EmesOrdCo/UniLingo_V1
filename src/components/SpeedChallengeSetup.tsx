@@ -11,6 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { UserFlashcardService } from '../lib/userFlashcardService';
 import { useAuth } from '../contexts/AuthContext';
+import { useTranslation } from '../lib/i18n';
 
 export interface SpeedChallengeSetupOptions {
   timeLimit: number;
@@ -32,6 +33,7 @@ const SpeedChallengeSetup: React.FC<SpeedChallengeSetupProps> = ({
   availableCards,
 }) => {
   const { user, profile } = useAuth();
+  const { t } = useTranslation();
   const [timeLimit, setTimeLimit] = useState<number>(60);
   const [selectedTopic, setSelectedTopic] = useState<string>('');
   const [selectedDifficulty, setSelectedDifficulty] = useState<'beginner' | 'intermediate' | 'expert' | 'all'>('all');
@@ -113,10 +115,10 @@ const SpeedChallengeSetup: React.FC<SpeedChallengeSetupProps> = ({
   };
 
   const timeLimitOptions = [
-    { value: 30, label: '30 Seconds' },
-    { value: 60, label: '1 Minute' },
-    { value: 90, label: '1.5 Minutes' },
-    { value: 120, label: '2 Minutes' },
+    { value: 30, label: `30 ${t('gameSetup.options.seconds')}` },
+    { value: 60, label: `1 ${t('gameSetup.options.minute')}` },
+    { value: 90, label: `1.5 ${t('gameSetup.options.minutes')}` },
+    { value: 120, label: `2 ${t('gameSetup.options.minutes')}` },
   ];
 
 
@@ -124,14 +126,14 @@ const SpeedChallengeSetup: React.FC<SpeedChallengeSetupProps> = ({
     const currentAvailableCards = getAvailableCardsCount();
     
     if (currentAvailableCards === 0) {
-      Alert.alert('No Cards Available', 'You need at least 1 card for this game. Please create flashcards first.');
+      Alert.alert(t('gameSetup.alerts.noCardsAvailable'), t('gameSetup.alerts.needAtLeastOneCard'));
       return;
     }
 
     const options: SpeedChallengeSetupOptions = {
       timeLimit,
       difficulty: selectedDifficulty,
-      selectedTopic: selectedTopic || 'All Topics',
+      selectedTopic: selectedTopic || t('gameSetup.dropdown.allTopics'),
     };
 
     onStartGame(options);
@@ -149,7 +151,7 @@ const SpeedChallengeSetup: React.FC<SpeedChallengeSetupProps> = ({
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <Ionicons name="close" size={24} color="#64748b" />
           </TouchableOpacity>
-          <Text style={styles.title}>Speed Challenge Setup</Text>
+          <Text style={styles.title}>{t('gameSetup.title.speedChallenge')}</Text>
           <View style={styles.placeholder} />
         </View>
 
@@ -159,38 +161,38 @@ const SpeedChallengeSetup: React.FC<SpeedChallengeSetupProps> = ({
             <View style={styles.infoRow}>
               <Ionicons name="information-circle" size={20} color="#6366f1" />
               <Text style={styles.infoText}>
-                Available Cards: {getAvailableCardsCount()}
-                {selectedTopic && selectedTopic !== '' ? ` (${selectedTopic} topic)` : ' (All topics)'}
-                {selectedDifficulty && selectedDifficulty !== 'all' ? `, ${selectedDifficulty} difficulty` : ''}
+                {t('gameSetup.info.availableCards')} {getAvailableCardsCount()}
+                {selectedTopic && selectedTopic !== '' ? ` (${selectedTopic} ${t('gameSetup.info.topic')})` : ` ${t('gameSetup.info.allTopics')}`}
+                {selectedDifficulty && selectedDifficulty !== 'all' ? `, ${selectedDifficulty} ${t('gameSetup.info.difficulty')}` : ''}
               </Text>
             </View>
             <View style={styles.infoRow}>
               <Ionicons name="time" size={20} color="#6366f1" />
               <Text style={styles.infoText}>
-                Answer as many questions as possible in {timeLimit} seconds
+                {t('gameSetup.info.answerAsManyAsPossible', { time: timeLimit })}
               </Text>
             </View>
           </View>
 
           {/* Topic Selection */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Topic *</Text>
+            <Text style={styles.sectionTitle}>{t('gameSetup.sections.topic')} *</Text>
             
             <View style={styles.topicDropdownContainer}>
               <TouchableOpacity
                 style={styles.dropdown}
                 onPress={() => {
                   if (loadingTopics) {
-                    Alert.alert('Loading', 'Please wait while topics are loading...');
+                    Alert.alert(t('gameSetup.dropdown.loading'), t('gameSetup.dropdown.pleaseWait'));
                     return;
                   }
                   
                   if (topics.length === 0) {
                     Alert.alert(
-                      'No Topics Available',
-                      'You need to create flashcards first. Go to the Upload page to create flashcards from PDFs.',
+                      t('gameSetup.alerts.noTopicsAvailable'),
+                      t('gameSetup.alerts.createFlashcardsFirst'),
                       [
-                        { text: 'OK', onPress: () => {} }
+                        { text: t('common.ok'), onPress: () => {} }
                       ]
                     );
                     return;
@@ -206,8 +208,8 @@ const SpeedChallengeSetup: React.FC<SpeedChallengeSetupProps> = ({
                   !selectedTopic && styles.dropdownPlaceholder
                 ]}>
                   {selectedTopic 
-                    ? `${selectedTopic} (${topicCardCounts[selectedTopic] || 0} cards)`
-                    : `All Topics (${availableCards} cards)`
+                    ? `${selectedTopic} (${topicCardCounts[selectedTopic] || 0} ${t('gameSetup.info.cards')})`
+                    : `${t('gameSetup.dropdown.allTopics')} (${availableCards} ${t('gameSetup.info.cards')})`
                   }
                 </Text>
                 <Ionicons 
@@ -236,7 +238,7 @@ const SpeedChallengeSetup: React.FC<SpeedChallengeSetupProps> = ({
                         styles.dropdownOptionText,
                         !selectedTopic && styles.dropdownOptionTextSelected
                       ]}>
-                        All Topics ({availableCards} cards)
+                        {t('gameSetup.dropdown.allTopics')} ({availableCards} {t('gameSetup.info.cards')})
                       </Text>
                     </TouchableOpacity>
                     
@@ -257,7 +259,7 @@ const SpeedChallengeSetup: React.FC<SpeedChallengeSetupProps> = ({
                           styles.dropdownOptionText,
                           selectedTopic === topic && styles.dropdownOptionTextSelected
                         ]}>
-                          {topic} ({topicCardCounts[topic] || 0} cards)
+                          {topic} ({topicCardCounts[topic] || 0} {t('gameSetup.info.cards')})
                         </Text>
                       </TouchableOpacity>
                     ))}
@@ -269,7 +271,7 @@ const SpeedChallengeSetup: React.FC<SpeedChallengeSetupProps> = ({
 
           {/* Difficulty Selection */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Difficulty Level *</Text>
+            <Text style={styles.sectionTitle}>{t('gameSetup.sections.difficulty')} *</Text>
             
             <View style={styles.difficultyDropdownContainer}>
               <TouchableOpacity
@@ -285,7 +287,7 @@ const SpeedChallengeSetup: React.FC<SpeedChallengeSetupProps> = ({
                   selectedDifficulty === 'all' && styles.dropdownPlaceholder
                 ]}>
                   {selectedDifficulty === 'all' 
-                    ? 'All Difficulty'
+                    ? t('gameSetup.dropdown.allDifficulty')
                     : selectedDifficulty.charAt(0).toUpperCase() + selectedDifficulty.slice(1)
                   }
                 </Text>
@@ -315,7 +317,7 @@ const SpeedChallengeSetup: React.FC<SpeedChallengeSetupProps> = ({
                         styles.dropdownOptionText,
                         selectedDifficulty === 'all' && styles.dropdownOptionTextSelected
                       ]}>
-                        All Difficulty
+                        {t('gameSetup.dropdown.allDifficulty')}
                       </Text>
                     </TouchableOpacity>
                     
@@ -348,7 +350,7 @@ const SpeedChallengeSetup: React.FC<SpeedChallengeSetupProps> = ({
 
           {/* Time Limit Selection */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Total Time Limit</Text>
+            <Text style={styles.sectionTitle}>{t('gameSetup.sections.totalTimeLimit')}</Text>
             
             <View style={styles.optionsGrid}>
               {timeLimitOptions.map((option) => (
@@ -373,7 +375,7 @@ const SpeedChallengeSetup: React.FC<SpeedChallengeSetupProps> = ({
 
           {/* Start Button */}
           <TouchableOpacity style={styles.startButton} onPress={handleStartGame}>
-            <Text style={styles.startButtonText}>Start Speed Challenge</Text>
+            <Text style={styles.startButtonText}>{t('gameSetup.buttons.startSpeedChallenge')}</Text>
             <Ionicons name="play" size={20} color="white" />
           </TouchableOpacity>
         </View>

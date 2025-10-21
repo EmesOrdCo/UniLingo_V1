@@ -152,7 +152,7 @@ const FlashcardQuizSetup: React.FC<FlashcardQuizSetupProps> = ({
     if (currentAvailableCards === 0) {
       Alert.alert(
         t('error.notFound'),
-        'You need to create flashcards first. Go to the Upload page to create flashcards from PDFs.',
+        t('gameSetup.alerts.createFlashcardsFirst'),
         [{ text: t('common.ok') }]
       );
       return;
@@ -160,14 +160,14 @@ const FlashcardQuizSetup: React.FC<FlashcardQuizSetupProps> = ({
 
     if (questionCount > currentAvailableCards) {
       const topicText = selectedTopic ? ` in the "${selectedTopic}" topic` : '';
-      Alert.alert('Not Enough Cards', `You need at least ${questionCount} cards for this quiz. You currently have ${currentAvailableCards} cards${topicText}.`, [{ text: t('common.ok') }]);
+      Alert.alert(t('gameSetup.alerts.notEnoughCards'), t('gameSetup.alerts.needAtLeastCards', { required: questionCount, available: currentAvailableCards }), [{ text: t('common.ok') }]);
       return;
     }
 
     const options: FlashcardQuizSetupOptions = {
       questionCount,
       languageMode,
-      selectedTopic: selectedTopic || 'All Topics',
+      selectedTopic: selectedTopic || t('gameSetup.dropdown.allTopics'),
       difficulty: selectedDifficulty,
     };
 
@@ -186,7 +186,7 @@ const FlashcardQuizSetup: React.FC<FlashcardQuizSetupProps> = ({
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <Ionicons name="close" size={26} color="#64748b" />
           </TouchableOpacity>
-          <Text style={styles.title}>Flashcard Quiz Setup</Text>
+          <Text style={styles.title}>{t('gameSetup.title.flashcardQuiz')}</Text>
           <View style={styles.placeholder} />
         </View>
 
@@ -204,32 +204,32 @@ const FlashcardQuizSetup: React.FC<FlashcardQuizSetupProps> = ({
             <View style={styles.infoRow}>
               <Ionicons name="information-circle" size={20} color="#6366f1" />
               <Text style={styles.infoText}>
-                Available Cards: {currentAvailableCards}
-                {selectedTopic && selectedTopic !== '' ? ` (${selectedTopic} topic)` : ' (All topics)'}
-                {selectedDifficulty && selectedDifficulty !== 'all' ? `, ${selectedDifficulty} difficulty` : ''}
+                {t('gameSetup.info.availableCards')} {currentAvailableCards}
+                {selectedTopic && selectedTopic !== '' ? ` (${selectedTopic} ${t('gameSetup.info.topic')})` : ` ${t('gameSetup.info.allTopics')}`}
+                {selectedDifficulty && selectedDifficulty !== 'all' ? `, ${selectedDifficulty} ${t('gameSetup.info.difficulty')}` : ''}
               </Text>
             </View>
           </View>
 
           {/* Topic Selection */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>{t('games.topic')} *</Text>
+            <Text style={styles.sectionTitle}>{t('gameSetup.sections.topic')} *</Text>
             
             <View style={styles.dropdownContainer}>
               <TouchableOpacity
                 style={styles.dropdown}
                 onPress={() => {
                   if (loadingTopics) {
-                    Alert.alert('Loading', 'Please wait while topics are loading...');
+                    Alert.alert(t('gameSetup.dropdown.loading'), t('gameSetup.dropdown.pleaseWait'));
                     return;
                   }
                   
                   if (topics.length === 0) {
                     Alert.alert(
-                      'No Topics Available',
-                      'You need to create flashcards first. Go to the Upload page to create flashcards from PDFs.',
+                      t('gameSetup.alerts.noTopicsAvailable'),
+                      t('gameSetup.alerts.createFlashcardsFirst'),
                       [
-                        { text: 'OK', onPress: () => {} }
+                        { text: t('common.ok'), onPress: () => {} }
                       ]
                     );
                     return;
@@ -243,8 +243,8 @@ const FlashcardQuizSetup: React.FC<FlashcardQuizSetupProps> = ({
                   !selectedTopic && styles.dropdownPlaceholder
                 ]}>
                   {selectedTopic 
-                    ? `${selectedTopic} (${topicCardCounts[selectedTopic] || 0} cards)`
-                    : `All Topics (${availableCards} cards)`
+                    ? `${selectedTopic} (${topicCardCounts[selectedTopic] || 0} ${t('gameSetup.info.cards')})`
+                    : `${t('gameSetup.dropdown.allTopics')} (${availableCards} ${t('gameSetup.info.cards')})`
                   }
                 </Text>
                 <Ionicons 
@@ -273,7 +273,7 @@ const FlashcardQuizSetup: React.FC<FlashcardQuizSetupProps> = ({
                         styles.dropdownOptionText,
                         !selectedTopic && styles.dropdownOptionTextSelected
                       ]}>
-                        All Topics ({availableCards} cards)
+                        {t('gameSetup.dropdown.allTopics')} ({availableCards} {t('gameSetup.info.cards')})
                       </Text>
                     </TouchableOpacity>
                     
@@ -294,7 +294,7 @@ const FlashcardQuizSetup: React.FC<FlashcardQuizSetupProps> = ({
                           styles.dropdownOptionText,
                           selectedTopic === topic && styles.dropdownOptionTextSelected
                         ]}>
-                          {topic} ({topicCardCounts[topic] || 0} cards)
+                          {topic} ({topicCardCounts[topic] || 0} {t('gameSetup.info.cards')})
                         </Text>
                       </TouchableOpacity>
                     ))}
@@ -306,7 +306,7 @@ const FlashcardQuizSetup: React.FC<FlashcardQuizSetupProps> = ({
 
           {/* Difficulty Selection */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>{t('games.difficulty')}</Text>
+            <Text style={styles.sectionTitle}>{t('gameSetup.sections.difficulty')}</Text>
             
             <View style={styles.dropdownContainer}>
               <TouchableOpacity
@@ -315,7 +315,7 @@ const FlashcardQuizSetup: React.FC<FlashcardQuizSetupProps> = ({
               >
                 <Text style={styles.dropdownText}>
                   {selectedDifficulty === 'all' 
-                    ? 'All Difficulty' 
+                    ? t('gameSetup.dropdown.allDifficulty')
                     : selectedDifficulty.charAt(0).toUpperCase() + selectedDifficulty.slice(1)
                   }
                 </Text>
@@ -345,7 +345,7 @@ const FlashcardQuizSetup: React.FC<FlashcardQuizSetupProps> = ({
                         styles.dropdownOptionText,
                         selectedDifficulty === 'all' && styles.dropdownOptionTextSelected
                       ]}>
-                        All Difficulty
+                        {t('gameSetup.dropdown.allDifficulty')}
                       </Text>
                     </TouchableOpacity>
                     
@@ -434,7 +434,7 @@ const FlashcardQuizSetup: React.FC<FlashcardQuizSetupProps> = ({
 
           {/* Start Button */}
           <TouchableOpacity style={styles.startButton} onPress={handleStartGame}>
-            <Text style={styles.startButtonText}>{t('games.startQuiz')}</Text>
+            <Text style={styles.startButtonText}>{t('gameSetup.buttons.startFlashcardQuiz')}</Text>
             <Ionicons name="play" size={22} color="white" />
           </TouchableOpacity>
           </TouchableOpacity>

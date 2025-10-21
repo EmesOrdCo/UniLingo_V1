@@ -612,7 +612,7 @@ export default function UploadScreen() {
         const elapsed = Math.floor((Date.now() - startTime) / 1000);
         setProgress(prev => ({
           ...prev,
-          message: `t('aiFlashcards.analyzingWithElapsed', { elapsed })`
+          message: t('aiFlashcards.analyzingWithElapsed', { elapsed })
         }));
       }, 5000); // Update every 5 seconds
       
@@ -1173,7 +1173,7 @@ export default function UploadScreen() {
         const elapsed = Math.floor((Date.now() - startTime) / 1000);
         setProgress(prev => ({
           ...prev,
-          message: `t('aiFlashcards.analyzingWithElapsed', { elapsed })`
+          message: t('aiFlashcards.analyzingWithElapsed', { elapsed })
         }));
       }, 5000); // Update every 5 seconds
       
