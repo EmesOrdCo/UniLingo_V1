@@ -111,10 +111,11 @@ interface SubjectBoxesProps {
   onSubjectSelect?: (subject: SubjectData) => void;
   maxSubjects?: number;
   selectedCefrLevel?: string;
+  selectedSubLevel?: string | null;
   onCefrLevelChange?: (level: string) => void;
 }
 
-export default function SubjectBoxes({ onSubjectSelect, maxSubjects = 6, selectedCefrLevel = 'A1', onCefrLevelChange }: SubjectBoxesProps) {
+export default function SubjectBoxes({ onSubjectSelect, maxSubjects = 6, selectedCefrLevel = 'A1', selectedSubLevel = null, onCefrLevelChange }: SubjectBoxesProps) {
   const navigation = useNavigation();
   const { user } = useAuth();
   const [allSubjects, setAllSubjects] = useState<SubjectData[]>([]);
@@ -134,9 +135,9 @@ export default function SubjectBoxes({ onSubjectSelect, maxSubjects = 6, selecte
   ];
 
   useEffect(() => {
-    // Load subjects whenever CEFR level or language changes
+    // Load subjects whenever CEFR level, sub-level, or language changes
     loadSubjects();
-  }, [selectedCefrLevel, currentLanguage]);
+  }, [selectedCefrLevel, selectedSubLevel, currentLanguage]);
 
   // Load progress data when component focuses
   useFocusEffect(
@@ -173,9 +174,17 @@ export default function SubjectBoxes({ onSubjectSelect, maxSubjects = 6, selecte
     try {
       setLoading(true);
       
-      // OPTIMIZATION: Only load the currently selected CEFR level for fast initial display
-      console.log(`🚀 Fast loading: Fetching only ${selectedCefrLevel} subjects in ${currentLanguage}...`);
-      const subjectsWithMetadata = await SubjectDataService.getSubjectsForCefrLevel(selectedCefrLevel, currentLanguage);
+      // Load subjects based on CEFR level and sub-level
+      console.log(`🚀 Loading subjects: ${selectedCefrLevel}${selectedSubLevel ? ` (${selectedSubLevel})` : ''} in ${currentLanguage}...`);
+      
+      let subjectsWithMetadata;
+      if (selectedSubLevel) {
+        // Load subjects for specific sub-level
+        subjectsWithMetadata = await SubjectDataService.getSubjectsForCefrSubLevel(selectedSubLevel, currentLanguage);
+      } else {
+        // Load subjects for main CEFR level
+        subjectsWithMetadata = await SubjectDataService.getSubjectsForCefrLevel(selectedCefrLevel, currentLanguage);
+      }
       
       console.log('🔍 Raw subjects data:', subjectsWithMetadata.slice(0, 3));
       
@@ -195,7 +204,7 @@ export default function SubjectBoxes({ onSubjectSelect, maxSubjects = 6, selecte
         });
       
       setAllSubjects(filteredSubjects);
-      console.log(`✅ Loaded ${filteredSubjects.length} subjects for ${selectedCefrLevel}`);
+      console.log(`✅ Loaded ${filteredSubjects.length} subjects for ${selectedCefrLevel}${selectedSubLevel ? ` (${selectedSubLevel})` : ''}`);
     } catch (error) {
       console.error('❌ Error loading subjects for subject boxes:', error);
       // Fallback to some basic subjects

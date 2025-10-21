@@ -891,6 +891,12 @@ export const en: Record<string, string> = {
   'dashboard.descriptions.C2': 'Perfect your mastery with native-level comprehension and expression.',
   'dashboard.descriptions.default': 'Learn essential vocabulary and practice with interactive exercises across various subjects.',
   'dashboard.levelPrefix': 'Level',
+  
+  // Two-Level CEFR Filter
+  'dashboard.filters.mainLevel': 'Level',
+  'dashboard.filters.subLevel': 'Sub-Level',
+  'dashboard.filters.allSubLevels': 'All Sub-Levels',
+  'dashboard.filters.showing': 'Showing',
   'dashboard.loadingLesson': 'Loading lesson...',
   'dashboard.buttons.start': 'Start',
   'dashboard.buttons.loading': 'Loading...',
@@ -900,6 +906,12 @@ export const en: Record<string, string> = {
   'dashboard.alerts.completeProfile': 'Please complete your profile setup first.',
   'dashboard.alerts.unknownLessonType': 'Unknown lesson type. Please try again.',
   'dashboard.alerts.failedToStartLesson': 'Failed to start lesson:',
+
+  // Two-Level CEFR Filter
+  'dashboard.filters.mainLevel': 'Level',
+  'dashboard.filters.subLevel': 'Sub-Level',
+  'dashboard.filters.allSubLevels': 'All Sub-Levels',
+  'dashboard.filters.showing': 'Showing',
 
   // Subject Boxes
   'subjectBoxes.unitNumber': 'Unit 1',

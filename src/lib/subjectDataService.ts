@@ -237,6 +237,130 @@ export class SubjectDataService {
   }
 
   /**
+   * Get subjects for a specific CEFR sub-level (e.g., A1.1, A2.3, B1.5)
+   * OPTIMIZED for fast initial load - only queries one CEFR sub-level
+   */
+  static async getSubjectsForCefrSubLevel(cefrSubLevel: string, language: string = 'en'): Promise<SubjectData[]> {
+    try {
+      console.log(`🔍 Fetching subjects for CEFR sub-level: ${cefrSubLevel} in ${language} (OPTIMIZED for speed)...`);
+      const startTime = Date.now();
+
+      // Get subjects with lessons for this specific CEFR sub-level
+      const { data: lessonData, error: lessonError } = await supabase
+        .from('lesson_scripts')
+        .select('subject_name, cefr_sub_level, order_index')
+        .eq('cefr_sub_level', cefrSubLevel)
+        .not('subject_name', 'is', null)
+        .order('order_index', { ascending: true });
+
+      if (lessonError) {
+        console.warn('⚠️ Error fetching lesson data:', lessonError);
+        return [];
+      }
+
+      if (!lessonData || lessonData.length === 0) {
+        console.log(`⚠️ No lessons found for CEFR sub-level: ${cefrSubLevel}`);
+        return [];
+      }
+
+      // Get word counts for these subjects from subject_words table
+      const subjectColumn = this.getSubjectColumnName(language);
+      const subjectNames = lessonData.map(row => row.subject_name).filter(Boolean);
+      
+      const { data: wordData, error: wordError } = await supabase
+        .from('subject_words')
+        .select(`subject, ${subjectColumn}, cefr_level`)
+        .in('subject', subjectNames)
+        .not('subject', 'is', null);
+
+      if (wordError) {
+        console.warn('⚠️ Error fetching word data:', wordError);
+      }
+
+      // Normalize subject names and track canonical names
+      const normalizeSubjectName = (name: string): string => name.trim().toLowerCase();
+      const canonicalNames: { [normalized: string]: string } = {};
+      const subjectsWithLessons = new Set<string>();
+      const orderIndexBySubject: { [normalized: string]: number } = {};
+
+      // Process lesson data and store order_index
+      lessonData.forEach(row => {
+        if (row.subject_name) {
+          const normalized = normalizeSubjectName(row.subject_name);
+          if (!canonicalNames[normalized]) {
+            canonicalNames[normalized] = row.subject_name.trim();
+          }
+          subjectsWithLessons.add(normalized);
+          if (row.order_index !== null) {
+            orderIndexBySubject[normalized] = row.order_index;
+          }
+        }
+      });
+
+      // Process word data and count words per subject
+      const wordCountBySubject: { [englishName: string]: { count: number; translatedName: string } } = {};
+      
+      if (wordData) {
+        wordData.forEach(row => {
+          if (row.subject) {
+            const englishName = row.subject.trim();
+            const normalized = normalizeSubjectName(englishName);
+            
+            if (!canonicalNames[normalized]) {
+              canonicalNames[normalized] = englishName;
+            }
+            
+            if (!wordCountBySubject[englishName]) {
+              wordCountBySubject[englishName] = {
+                count: 0,
+                translatedName: row[subjectColumn] || englishName
+              };
+            }
+            wordCountBySubject[englishName].count++;
+          }
+        });
+      }
+
+      // Build subjects array using translated names for display
+      const subjectsWithMetadata: SubjectData[] = Object.entries(wordCountBySubject)
+        .filter(([_, data]) => data.count > 0)
+        .map(([englishName, data]) => {
+          const englishNormalized = normalizeSubjectName(englishName);
+          return {
+            name: data.translatedName, // Display translated name
+            englishName: englishName, // Store English name for database operations
+            wordCount: data.count,
+            hasLessons: Boolean(subjectsWithLessons.has(englishNormalized)), // Check against English name
+            cefrLevel: cefrSubLevel, // Use the specific sub-level
+            orderIndex: orderIndexBySubject[englishNormalized] // Use English name for order index
+          };
+        });
+
+      // Sort by order_index (if available), otherwise by word count
+      subjectsWithMetadata.sort((a, b) => {
+        // If both have order_index, sort by that
+        if (a.orderIndex !== undefined && b.orderIndex !== undefined) {
+          return a.orderIndex - b.orderIndex;
+        }
+        // If only one has order_index, prioritize it
+        if (a.orderIndex !== undefined) return -1;
+        if (b.orderIndex !== undefined) return 1;
+        // Otherwise, sort by word count
+        return (b.wordCount || 0) - (a.wordCount || 0);
+      });
+
+      const duration = Date.now() - startTime;
+      console.log(`✅ Found ${subjectsWithMetadata.length} subjects for ${cefrSubLevel} in ${duration}ms`);
+
+      return subjectsWithMetadata;
+
+    } catch (error) {
+      console.error(`❌ Error fetching subjects for CEFR sub-level ${cefrSubLevel}:`, error);
+      return [];
+    }
+  }
+
+  /**
    * Get subjects with additional metadata using the same counting logic as SubjectLessonService
    */
   static async getSubjectsWithAccurateCounts(language: string = 'en'): Promise<SubjectData[]> {

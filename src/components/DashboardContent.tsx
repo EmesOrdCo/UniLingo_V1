@@ -7,6 +7,7 @@ import { useSelectedUnit } from '../contexts/SelectedUnitContext';
 import { useRefresh } from '../contexts/RefreshContext';
 import { GeneralVocabService } from '../lib/generalVocabService';
 import { UnitDataService, UnitData } from '../lib/unitDataService';
+import { supabase } from '../lib/supabase';
 import SubjectBoxes from './SubjectBoxes';
 import { SubjectData } from '../lib/subjectDataService';
 import { CefrProgressService, CefrLevelProgress } from '../lib/cefrProgressService';
@@ -24,8 +25,10 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
   const { selectedUnit, setSelectedUnit } = useSelectedUnit();
   const { refreshTrigger } = useRefresh();
   const [selectedCefrLevel, setSelectedCefrLevel] = useState<string>('A1');
+  const [selectedSubLevel, setSelectedSubLevel] = useState<string | null>(null);
   const [cefrProgress, setCefrProgress] = useState<CefrLevelProgress | null>(null);
   const [loadingCefrProgress, setLoadingCefrProgress] = useState(false);
+  const [availableSubLevels, setAvailableSubLevels] = useState<string[]>([]);
   const [cefrDropdownVisible, setCefrDropdownVisible] = useState(false);
   const { t } = useTranslation();
 
@@ -47,6 +50,7 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
   useEffect(() => {
     if (user?.id) {
       loadCefrProgress(selectedCefrLevel);
+      loadAvailableSubLevels();
     }
   }, [user?.id, selectedCefrLevel]);
 
@@ -93,6 +97,40 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
       setSelectedUnit(defaultUnit);
     } catch (error) {
       console.error('Error loading Unit 1:', error);
+    }
+  };
+
+  const loadAvailableSubLevels = async () => {
+    try {
+      // Get all available CEFR sub-levels from lesson_scripts table
+      const { data, error } = await supabase
+        .from('lesson_scripts')
+        .select('cefr_sub_level')
+        .not('cefr_sub_level', 'is', null);
+
+      if (error) {
+        console.error('Error loading available sub-levels:', error);
+        return;
+      }
+
+      // Extract unique sub-levels and sort them properly
+      const subLevels = [...new Set(data?.map(item => item.cefr_sub_level) || [])]
+        .sort((a, b) => {
+          // First sort by main level (A1, A2, B1, etc.)
+          const aMain = a.split('.')[0];
+          const bMain = b.split('.')[0];
+          if (aMain !== bMain) {
+            return aMain.localeCompare(bMain);
+          }
+          // Then sort by sub-level number (1, 2, ..., 10, 11, etc.)
+          const aNum = parseInt(a.split('.')[1] || '0');
+          const bNum = parseInt(b.split('.')[1] || '0');
+          return aNum - bNum;
+        });
+      setAvailableSubLevels(subLevels);
+      console.log('📊 Loaded available sub-levels (sorted):', subLevels);
+    } catch (error) {
+      console.error('Error loading available sub-levels:', error);
     }
   };
 
@@ -309,14 +347,19 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
               <View style={styles.courseTitleContainer}>
                 <Text style={styles.courseTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
                   {getCefrLevelTitle(selectedCefrLevel)} {selectedCefrLevel}
+                  {selectedSubLevel && ` • ${selectedSubLevel}`}
                 </Text>
               </View>
+              
+              {/* Integrated CEFR Level Selector */}
               <TouchableOpacity 
                 style={styles.cefrSelectorButton}
                 onPress={() => setCefrDropdownVisible(!cefrDropdownVisible)}
                 activeOpacity={0.7}
               >
-                <Text style={styles.cefrSelectorButtonText}>{selectedCefrLevel}</Text>
+                <Text style={styles.cefrSelectorButtonText}>
+                  {selectedCefrLevel}{selectedSubLevel ? ` • ${selectedSubLevel}` : ''}
+                </Text>
                 <Ionicons 
                   name={cefrDropdownVisible ? "chevron-up" : "chevron-down"} 
                   size={20} 
@@ -325,34 +368,92 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
               </TouchableOpacity>
             </View>
 
-            {/* CEFR Dropdown Menu */}
+            {/* Integrated CEFR Dropdown Menu */}
             {cefrDropdownVisible && (
               <View style={styles.cefrDropdownContainer}>
-                <ScrollView style={styles.cefrDropdownMenu} nestedScrollEnabled>
-                  {CEFR_LEVELS.map((level) => (
-                    <TouchableOpacity
-                      key={level}
-                      style={[
-                        styles.cefrDropdownItem,
-                        selectedCefrLevel === level && styles.cefrDropdownItemSelected
-                      ]}
-                      onPress={() => {
-                        setSelectedCefrLevel(level);
-                        setCefrDropdownVisible(false);
-                      }}
-                    >
-                      <Text style={[
-                        styles.cefrDropdownItemText,
-                        selectedCefrLevel === level && styles.cefrDropdownItemTextSelected
-                      ]}>
-                        {t('dashboard.levelPrefix')} {level}
-                      </Text>
-                      {selectedCefrLevel === level && (
-                        <Ionicons name="checkmark" size={20} color="#6366f1" />
-                      )}
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
+                {/* Main Level Selection */}
+                <View style={styles.dropdownSection}>
+                  <Text style={styles.dropdownSectionTitle}>{t('dashboard.filters.mainLevel')}</Text>
+                  <ScrollView style={styles.dropdownMenu} nestedScrollEnabled horizontal showsHorizontalScrollIndicator={false}>
+                    {CEFR_LEVELS.map((level) => (
+                      <TouchableOpacity
+                        key={level}
+                        style={[
+                          styles.cefrDropdownItem,
+                          selectedCefrLevel === level && styles.cefrDropdownItemSelected
+                        ]}
+                        onPress={() => {
+                          setSelectedCefrLevel(level);
+                          setSelectedSubLevel(null); // Reset sub-level when main level changes
+                        }}
+                      >
+                        <Text style={[
+                          styles.cefrDropdownItemText,
+                          selectedCefrLevel === level && styles.cefrDropdownItemTextSelected
+                        ]}>
+                          {level}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+
+                {/* Sub-Level Selection */}
+                {selectedCefrLevel && availableSubLevels.filter(level => level.startsWith(selectedCefrLevel + '.')).length > 0 && (
+                  <View style={styles.dropdownSection}>
+                    <Text style={styles.dropdownSectionTitle}>{t('dashboard.filters.subLevel')}</Text>
+                    <ScrollView style={styles.dropdownMenu} nestedScrollEnabled horizontal showsHorizontalScrollIndicator={false}>
+                      {/* All Sub-Levels Option */}
+                      <TouchableOpacity
+                        style={[
+                          styles.cefrDropdownItem,
+                          !selectedSubLevel && styles.cefrDropdownItemSelected
+                        ]}
+                        onPress={() => {
+                          setSelectedSubLevel(null);
+                          setCefrDropdownVisible(false);
+                        }}
+                      >
+                        <Text style={[
+                          styles.cefrDropdownItemText,
+                          !selectedSubLevel && styles.cefrDropdownItemTextSelected
+                        ]}>
+                          {t('dashboard.filters.allSubLevels')}
+                        </Text>
+                      </TouchableOpacity>
+                      
+                      {/* Individual Sub-Levels */}
+                      {availableSubLevels
+                        .filter(level => level.startsWith(selectedCefrLevel + '.'))
+                        .sort((a, b) => {
+                          // Extract the numeric part after the dot (e.g., "1" from "A1.1")
+                          const aNum = parseInt(a.split('.')[1] || '0');
+                          const bNum = parseInt(b.split('.')[1] || '0');
+                          return aNum - bNum;
+                        })
+                        .map((level) => (
+                        <TouchableOpacity
+                          key={level}
+                          style={[
+                            styles.cefrDropdownItem,
+                            selectedSubLevel === level && styles.cefrDropdownItemSelected
+                          ]}
+                          onPress={() => {
+                            setSelectedSubLevel(level);
+                            setCefrDropdownVisible(false);
+                          }}
+                        >
+                          <Text style={[
+                            styles.cefrDropdownItemText,
+                            selectedSubLevel === level && styles.cefrDropdownItemTextSelected
+                          ]}>
+                            {level}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
+                )}
               </View>
             )}
             
@@ -382,6 +483,7 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
           <SubjectBoxes 
             maxSubjects={6}
             selectedCefrLevel={selectedCefrLevel}
+            selectedSubLevel={selectedSubLevel}
           />
       </>
 
@@ -483,9 +585,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   cefrDropdownContainer: {
-    position: 'absolute',
-    top: 50,
-    right: 24,
     backgroundColor: '#ffffff',
     borderRadius: 12,
     borderWidth: 1,
@@ -495,26 +594,38 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 5,
-    zIndex: 1000,
-    minWidth: 150,
+    marginTop: 16,
+    padding: 16,
+  },
+  dropdownSection: {
+    marginBottom: 16,
+  },
+  dropdownSectionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 8,
   },
   cefrDropdownMenu: {
-    maxHeight: 250,
+    maxHeight: 60,
   },
   cefrDropdownItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    backgroundColor: '#f8fafc',
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    marginRight: 8,
+    minWidth: 60,
+    alignItems: 'center',
   },
   cefrDropdownItemSelected: {
-    backgroundColor: '#f0f1ff',
+    backgroundColor: '#f0f9ff',
+    borderColor: '#6366f1',
   },
   cefrDropdownItemText: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#374151',
     fontWeight: '500',
   },

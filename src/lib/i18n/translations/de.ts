@@ -851,6 +851,12 @@ export const de: Record<string, string> = {
   'dashboard.descriptions.C2': 'Perfektionieren Sie Ihre Meisterschaft mit muttersprachlichem Verständnis und Ausdruck.',
   'dashboard.descriptions.default': 'Lernen Sie wesentliches Vokabular und üben Sie mit interaktiven Übungen in verschiedenen Fächern.',
   'dashboard.levelPrefix': 'Stufe',
+  
+  // Two-Level CEFR Filter
+  'dashboard.filters.mainLevel': 'Stufe',
+  'dashboard.filters.subLevel': 'Unterstufe',
+  'dashboard.filters.allSubLevels': 'Alle Unterstufen',
+  'dashboard.filters.showing': 'Zeige',
   'dashboard.loadingLesson': 'Lektion wird geladen...',
   'dashboard.buttons.start': 'Starten',
   'dashboard.buttons.loading': 'Laden...',
