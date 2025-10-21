@@ -1564,7 +1564,7 @@ export default function ConversationLessonScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#6366f1" />
-          <Text style={styles.loadingText}>Loading conversation...</Text>
+          <Text style={styles.loadingText}>{t('lessons.common.loadingConversation')}</Text>
         </View>
       </SafeAreaView>
     );

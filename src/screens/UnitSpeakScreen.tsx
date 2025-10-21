@@ -17,6 +17,7 @@ import { PronunciationResult } from '../lib/pronunciationService';
 import { UnitDataAdapter, UnitVocabularyItem, UnitSentence } from '../lib/unitDataAdapter';
 import { logger } from '../lib/logger';
 import { useTranslation } from '../lib/i18n';
+import { GeneralLessonProgressService } from '../lib/generalLessonProgressService';
 
 // TODO: Move to database or configuration file
 // Hardcoded vocabulary for "Saying Hello" - should be loaded from database
@@ -198,6 +199,32 @@ export default function UnitSpeakScreen() {
     }
   };
 
+  const recordExerciseCompletion = async () => {
+    if (!user || !subjectName || !cefrLevel) return;
+    
+    try {
+      const accuracy = totalQuestions > 0 ? (score / totalQuestions) * 100 : 0;
+      const timeSpentSeconds = 60; // Default time, could be improved with actual timing
+      
+      await GeneralLessonProgressService.recordExerciseCompletion(
+        user.id,
+        subjectName,
+        cefrLevel,
+        {
+          exerciseName: 'Speak',
+          score: score,
+          maxScore: totalQuestions,
+          accuracy: accuracy,
+          timeSpentSeconds: timeSpentSeconds
+        }
+      );
+      
+      logger.info(`✅ Exercise completion recorded: ${subjectName} - Speak (${score}/${totalQuestions})`);
+    } catch (error) {
+      logger.error('Error recording exercise completion:', error);
+    }
+  };
+
   const handleNext = () => {
     if (currentQuestionIndex < totalQuestions - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
@@ -206,6 +233,8 @@ export default function UnitSpeakScreen() {
       setLastResult(null);
     } else {
       setCompleted(true);
+      // Record exercise completion when finished
+      recordExerciseCompletion();
     }
   };
 
@@ -273,11 +302,11 @@ export default function UnitSpeakScreen() {
                 setAttemptKey(0);
               }}
             >
-              <Text style={styles.completionRetryButtonText}>Retry</Text>
+              <Text style={styles.completionRetryButtonText}>{t('lessons.common.retry')}</Text>
             </TouchableOpacity>
             
             <TouchableOpacity style={styles.completionContinueButton} onPress={handleContinue}>
-              <Text style={styles.completionContinueButtonText}>Continue</Text>
+              <Text style={styles.completionContinueButtonText}>{t('lessons.common.continue')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -297,7 +326,7 @@ export default function UnitSpeakScreen() {
         </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#6366f1" />
-          <Text style={styles.loadingText}>Loading speak exercises...</Text>
+          <Text style={styles.loadingText}>{t('lessons.common.loadingExercises')}</Text>
         </View>
       </SafeAreaView>
     );
@@ -317,7 +346,7 @@ export default function UnitSpeakScreen() {
         </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#6366f1" />
-          <Text style={styles.loadingText}>Preparing exercises...</Text>
+          <Text style={styles.loadingText}>{t('lessons.common.preparingExercises')}</Text>
         </View>
       </SafeAreaView>
     );
@@ -400,16 +429,16 @@ export default function UnitSpeakScreen() {
               styles.resultTitle,
               isCorrect ? styles.resultTitleCorrect : styles.resultTitleIncorrect
             ]}>
-              {isCorrect ? 'You got this 🙌' : 'Incorrect! 😔'}
+              {isCorrect ? t('lessons.common.youGotThis') : t('lessons.common.incorrectMessage')}
             </Text>
             
             {!isCorrect && lastResult?.assessment && (
               <>
                 <Text style={styles.resultSubtitle}>
-                  It sounded as if you said:
+                  {t('lessons.common.itSoundedAsIf')}
                 </Text>
                 <Text style={styles.recognizedSpeech}>
-                  {lastResult.assessment.recognizedText || 'No speech detected'}
+                  {lastResult.assessment.recognizedText || t('lessons.common.noSpeechDetected')}
                 </Text>
               </>
             )}
@@ -421,10 +450,10 @@ export default function UnitSpeakScreen() {
       {showResult && !isCorrect && (
         <View style={styles.bottomActions}>
           <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
-            <Text style={styles.retryButtonText}>Retry</Text>
+            <Text style={styles.retryButtonText}>{t('lessons.common.retry')}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
-            <Text style={styles.skipButtonText}>Skip</Text>
+            <Text style={styles.skipButtonText}>{t('lessons.common.skip')}</Text>
             <Ionicons name="arrow-forward" size={20} color="#64748b" />
           </TouchableOpacity>
         </View>

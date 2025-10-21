@@ -138,7 +138,7 @@ const PronunciationCheck: React.FC<PronunciationCheckProps> = ({
             } else if (!assessmentResult.success) {
               Alert.alert(
                 'Assessment Failed',
-                assessmentResult.error || 'Could not assess pronunciation. Please try again.',
+                assessmentResult.error || t('lessons.common.couldNotAssessTryAgain'),
                 [{ text: 'OK' }]
               );
             }
@@ -149,22 +149,22 @@ const PronunciationCheck: React.FC<PronunciationCheckProps> = ({
           setIsProcessing(false);
           
           // Provide more specific error messages
-          let errorMessage = 'Failed to assess pronunciation. Please try again.';
+          let errorMessage = t('lessons.common.failedToAssessPronunciation');
           
-          if (error.message?.includes('No speech recognized')) {
-            errorMessage = 'No speech detected. Please speak clearly and try again.';
-          } else if (error.message?.includes('No reference text')) {
-            errorMessage = 'Missing word to pronounce. Please restart the game.';
-          } else if (error.message?.includes('No audio recorded')) {
-            errorMessage = 'No audio was recorded. Please check your microphone and try again.';
-          } else if (error.message?.includes('permission')) {
-            errorMessage = 'Microphone permission required. Please enable microphone access in settings.';
-          }
+      if (error.message?.includes('No speech recognized')) {
+        errorMessage = t('lessons.common.noSpeechDetectedTryAgain');
+      } else if (error.message?.includes('No reference text')) {
+        errorMessage = t('lessons.common.missingWordToPronounce');
+      } else if (error.message?.includes('No audio recorded')) {
+        errorMessage = t('lessons.common.noAudioRecorded');
+      } else if (error.message?.includes('permission')) {
+        errorMessage = t('lessons.common.microphonePermissionRequired');
+      }
           
           Alert.alert(
-            'Pronunciation Assessment Error',
+            t('lessons.common.pronunciationAssessmentError'),
             errorMessage,
-            [{ text: 'OK' }]
+            [{ text: t('lessons.common.ok') }]
           );
         }
       });
@@ -172,18 +172,18 @@ const PronunciationCheck: React.FC<PronunciationCheckProps> = ({
       console.error('Recording error:', error);
       setIsRecording(false);
       
-      let errorMessage = 'Could not start recording. Please check microphone permissions.';
+      let errorMessage = t('lessons.common.failedToAssessPronunciation');
       
       if (error.message?.includes('permission')) {
-        errorMessage = 'Microphone permission required. Please enable microphone access in settings.';
+        errorMessage = t('lessons.common.microphonePermissionRequired');
       } else if (error.message?.includes('busy')) {
-        errorMessage = 'Microphone is busy. Please try again in a moment.';
+        errorMessage = t('lessons.common.microphoneIsBusy');
       }
       
       Alert.alert(
-        'Recording Failed',
+        t('lessons.common.assessmentFailed'),
         errorMessage,
-        [{ text: 'OK' }]
+        [{ text: t('lessons.common.ok') }]
       );
     }
   };
@@ -236,23 +236,23 @@ const PronunciationCheck: React.FC<PronunciationCheckProps> = ({
           if (score >= 75) {
             // Good pronunciation - brief success message
             Alert.alert(
-              '🌟 Great Job!',
+              t('lessons.common.greatJobExclamation'),
               assessmentResult.feedback.overall,
-              [{ text: 'Continue' }]
+              [{ text: t('lessons.common.continue') }]
             );
           } else {
             // Needs improvement - show detailed feedback
             Alert.alert(
-              '📚 Keep Practicing',
+              t('lessons.common.keepPracticing'),
               `${assessmentResult.feedback.overall}\n\n${assessmentResult.feedback.accuracy}`,
-              [{ text: 'OK' }]
+              [{ text: t('lessons.common.ok') }]
             );
           }
         } else if (!assessmentResult.success) {
           Alert.alert(
-            'Assessment Failed',
-            assessmentResult.error || 'Could not assess pronunciation. Please try again.',
-            [{ text: 'OK' }]
+            t('lessons.common.assessmentFailed'),
+            assessmentResult.error || t('lessons.common.couldNotAssess'),
+            [{ text: t('lessons.common.ok') }]
           );
         }
       }
@@ -262,22 +262,22 @@ const PronunciationCheck: React.FC<PronunciationCheckProps> = ({
       setIsProcessing(false);
       
       // Provide more specific error messages
-      let errorMessage = 'Failed to assess pronunciation. Please try again.';
+      let errorMessage = t('lessons.common.failedToAssessPronunciation');
       
       if (error.message?.includes('No speech recognized')) {
-        errorMessage = 'No speech detected. Please speak clearly and try again.';
+        errorMessage = t('lessons.common.noSpeechDetectedTryAgain');
       } else if (error.message?.includes('No reference text')) {
-        errorMessage = 'Missing word to pronounce. Please restart the game.';
+        errorMessage = t('lessons.common.missingWordToPronounce');
       } else if (error.message?.includes('No audio recorded')) {
-        errorMessage = 'No audio was recorded. Please check your microphone and try again.';
+        errorMessage = t('lessons.common.noAudioRecorded');
       } else if (error.message?.includes('permission')) {
-        errorMessage = 'Microphone permission required. Please enable microphone access in settings.';
+        errorMessage = t('lessons.common.microphonePermissionRequired');
       }
       
       Alert.alert(
-        'Pronunciation Assessment Error',
+        t('lessons.common.pronunciationAssessmentError'),
         errorMessage,
-        [{ text: 'OK' }]
+        [{ text: t('lessons.common.ok') }]
       );
     }
   };
@@ -334,14 +334,14 @@ const PronunciationCheck: React.FC<PronunciationCheckProps> = ({
           },
           onError: () => {
             setIsPlayingHint(false);
-            Alert.alert('Hint Error', 'Could not play audio hint. Please try again.');
+            Alert.alert(t('lessons.common.hintError'), t('lessons.common.couldNotPlayHint'));
           },
         });
         console.log('✅ Expo Speech fallback completed for pronunciation hint');
       } catch (fallbackError) {
         console.error('❌ Expo Speech fallback also failed:', fallbackError);
         setIsPlayingHint(false);
-        Alert.alert('Hint Error', 'Could not play audio hint. Please try again.');
+        Alert.alert(t('lessons.common.hintError'), t('lessons.common.couldNotPlayHint'));
       }
     }
   };
@@ -437,12 +437,12 @@ const PronunciationCheck: React.FC<PronunciationCheckProps> = ({
                 <Ionicons name="mic" size={32} color="#ef4444" />
                 <View style={styles.recordingDot} />
               </View>
-              <Text style={styles.recordingText}>Recording...</Text>
+              <Text style={styles.recordingText}>{t('lessons.common.recording')}</Text>
               <TouchableOpacity
                 style={styles.stopButton}
                 onPress={handleStopRecording}
               >
-                <Text style={styles.stopButtonText}>Stop</Text>
+                <Text style={styles.stopButtonText}>{t('lessons.common.stop')}</Text>
               </TouchableOpacity>
             </Animated.View>
           )}
@@ -453,7 +453,7 @@ const PronunciationCheck: React.FC<PronunciationCheckProps> = ({
       {isProcessing && (
         <View style={styles.processingContainer}>
           <ActivityIndicator size="large" color="#6366f1" />
-          <Text style={styles.processingText}>Analyzing pronunciation...</Text>
+          <Text style={styles.processingText}>{t('lessons.common.analyzingPronunciation')}</Text>
         </View>
       )}
 
@@ -484,19 +484,19 @@ const PronunciationCheck: React.FC<PronunciationCheckProps> = ({
 
           <View style={styles.detailsContainer}>
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Accuracy:</Text>
+              <Text style={styles.detailLabel}>{t('lessons.common.accuracy')}:</Text>
               <Text style={styles.detailValue}>
                 {Math.round(result.assessment.accuracyScore)}/100
               </Text>
             </View>
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Fluency:</Text>
+              <Text style={styles.detailLabel}>{t('lessons.common.fluency')}:</Text>
               <Text style={styles.detailValue}>
                 {Math.round(result.assessment.fluencyScore)}/100
               </Text>
             </View>
             <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>You said:</Text>
+              <Text style={styles.detailLabel}>{t('lessons.common.youSaid')}:</Text>
               <Text style={styles.recognizedText}>"{result.assessment.recognizedText}"</Text>
             </View>
           </View>

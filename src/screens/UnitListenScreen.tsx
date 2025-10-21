@@ -17,6 +17,7 @@ import { UnitDataAdapter, UnitVocabularyItem, UnitSentence } from '../lib/unitDa
 import { logger } from '../lib/logger';
 import { getVocabularySpeechLanguage, getSpeechLanguageCode } from '../lib/languageService';
 import { useTranslation } from '../lib/i18n';
+import { GeneralLessonProgressService } from '../lib/generalLessonProgressService';
 
 export default function UnitListenScreen() {
   const navigation = useNavigation();
@@ -281,6 +282,32 @@ export default function UnitListenScreen() {
     }
   };
 
+  const recordExerciseCompletion = async () => {
+    if (!user || !subjectName || !cefrLevel) return;
+    
+    try {
+      const accuracy = totalQuestions > 0 ? (score / totalQuestions) * 100 : 0;
+      const timeSpentSeconds = 60; // Default time, could be improved with actual timing
+      
+      await GeneralLessonProgressService.recordExerciseCompletion(
+        user.id,
+        subjectName,
+        cefrLevel,
+        {
+          exerciseName: 'Listen',
+          score: score,
+          maxScore: totalQuestions,
+          accuracy: accuracy,
+          timeSpentSeconds: timeSpentSeconds
+        }
+      );
+      
+      logger.info(`✅ Exercise completion recorded: ${subjectName} - Listen (${score}/${totalQuestions})`);
+    } catch (error) {
+      logger.error('Error recording exercise completion:', error);
+    }
+  };
+
   const handleNext = () => {
     if (currentQuestion < totalQuestions - 1) {
       setCurrentQuestion(currentQuestion + 1);
@@ -291,6 +318,8 @@ export default function UnitListenScreen() {
       setAvailableWords([]);
     } else {
       setCompleted(true);
+      // Record exercise completion when finished
+      recordExerciseCompletion();
     }
   };
 
@@ -571,11 +600,11 @@ export default function UnitListenScreen() {
               styles.resultTitle,
               isCorrect ? styles.resultTitleCorrect : styles.resultTitleIncorrect
             ]}>
-              {isCorrect ? 'Correct! 🎉' : 'Incorrect! 😔'}
+              {isCorrect ? t('lessons.common.correctMessage') : t('lessons.common.incorrectMessage')}
             </Text>
             
             <Text style={styles.resultSubtitle}>
-              {isCorrect ? 'Great job!' : `The correct answer is: ${question.correctAnswer}`}
+              {isCorrect ? t('lessons.common.greatJob') : `${t('lessons.common.correctAnswerIs')} ${question.correctAnswer}`}
             </Text>
           </View>
         )}

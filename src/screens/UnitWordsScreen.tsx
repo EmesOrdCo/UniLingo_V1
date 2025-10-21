@@ -18,6 +18,7 @@ import { logger } from '../lib/logger';
 import { getVocabularySpeechLanguage, getNativeLanguageSpeechCode, getTargetLanguageSpeechCode } from '../lib/languageService';
 import * as Speech from 'expo-speech';
 import { useTranslation } from '../lib/i18n';
+import { GeneralLessonProgressService } from '../lib/generalLessonProgressService';
 
 export default function UnitWordsScreen() {
   const navigation = useNavigation();
@@ -25,7 +26,7 @@ export default function UnitWordsScreen() {
   const { user, profile } = useAuth();
   const { t } = useTranslation();
   
-  const { unitTitle, subjectName } = (route.params as any) || { unitTitle: 'Saying Hello', subjectName: 'Asking About Location' };
+  const { unitTitle, subjectName, cefrLevel } = (route.params as any) || { unitTitle: 'Saying Hello', subjectName: 'Asking About Location', cefrLevel: 'A1' };
   
   const [vocabulary, setVocabulary] = useState<UnitVocabularyItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -224,6 +225,32 @@ export default function UnitWordsScreen() {
     }
   };
 
+  const recordExerciseCompletion = async () => {
+    if (!user || !subjectName || !cefrLevel) return;
+    
+    try {
+      const accuracy = totalQuestions > 0 ? (score / totalQuestions) * 100 : 0;
+      const timeSpentSeconds = 60; // Default time, could be improved with actual timing
+      
+      await GeneralLessonProgressService.recordExerciseCompletion(
+        user.id,
+        subjectName,
+        cefrLevel,
+        {
+          exerciseName: 'Words',
+          score: score,
+          maxScore: totalQuestions,
+          accuracy: accuracy,
+          timeSpentSeconds: timeSpentSeconds
+        }
+      );
+      
+      logger.info(`✅ Exercise completion recorded: ${subjectName} - Words (${score}/${totalQuestions})`);
+    } catch (error) {
+      logger.error('Error recording exercise completion:', error);
+    }
+  };
+
   const handleNext = () => {
     if (currentQuestion < totalQuestions - 1) {
       setCurrentQuestion(currentQuestion + 1);
@@ -232,6 +259,8 @@ export default function UnitWordsScreen() {
       setIsCorrect(false);
     } else {
       setCompleted(true);
+      // Record exercise completion when finished
+      recordExerciseCompletion();
     }
   };
 
@@ -330,7 +359,7 @@ export default function UnitWordsScreen() {
         </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#6366f1" />
-          <Text style={styles.loadingText}>Loading vocabulary...</Text>
+          <Text style={styles.loadingText}>{t('lessons.common.loadingWords')}</Text>
         </View>
       </SafeAreaView>
     );
@@ -393,17 +422,17 @@ export default function UnitWordsScreen() {
       <SafeAreaView style={styles.completionContainer}>
         <View style={styles.completionContent}>
           <Text style={styles.completionEmoji}>🎉</Text>
-          <Text style={styles.completionTitle}>Word Intro Complete!</Text>
-          <Text style={styles.completionSubtitle}>Great job learning new words!</Text>
+          <Text style={styles.completionTitle}>{t('lessons.common.wordIntroComplete')}</Text>
+          <Text style={styles.completionSubtitle}>{t('lessons.common.greatJobLearningWords')}</Text>
           
           <View style={styles.completionStats}>
             <View style={styles.completionStatCard}>
               <Text style={styles.completionStatValue}>{score}/{totalQuestions}</Text>
-              <Text style={styles.completionStatLabel}>Correct</Text>
+              <Text style={styles.completionStatLabel}>{t('lessons.common.correct')}</Text>
             </View>
             <View style={styles.completionStatCard}>
               <Text style={styles.completionStatValue}>{accuracyPercentage}%</Text>
-              <Text style={styles.completionStatLabel}>Accuracy</Text>
+              <Text style={styles.completionStatLabel}>{t('lessons.common.accuracy')}</Text>
             </View>
           </View>
           
@@ -603,11 +632,11 @@ export default function UnitWordsScreen() {
               styles.resultTitle,
               isCorrect ? styles.resultTitleCorrect : styles.resultTitleIncorrect
             ]}>
-              {isCorrect ? 'Correct! 🎉' : 'Incorrect! 😔'}
+              {isCorrect ? t('lessons.common.correctMessage') : t('lessons.common.incorrectMessage')}
             </Text>
             
             <Text style={styles.resultSubtitle}>
-              {isCorrect ? 'Great job!' : 'Better luck next time'}
+              {isCorrect ? t('lessons.common.greatJob') : t('lessons.common.betterLuck')}
             </Text>
           </View>
         )}
@@ -626,10 +655,10 @@ export default function UnitWordsScreen() {
         ) : !isCorrect ? (
           <View style={styles.incorrectActions}>
             <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
-              <Text style={styles.retryButtonText}>Retry</Text>
+              <Text style={styles.retryButtonText}>{t('lessons.common.retry')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
-              <Text style={styles.skipButtonText}>Skip</Text>
+              <Text style={styles.skipButtonText}>{t('lessons.common.skip')}</Text>
               <Ionicons name="arrow-forward" size={20} color="#64748b" />
             </TouchableOpacity>
           </View>

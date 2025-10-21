@@ -64,8 +64,13 @@ export default function ConsistentHeader({
           </TouchableOpacity>
         )}
         {isOverview ? (
-          <Text style={[styles.greetingText, darkMode && styles.greetingTextDark]}>
-            Hi, {profile?.name || user?.email?.split('@')[0] || 'User'}
+          <Text 
+            style={[styles.greetingText, darkMode && styles.greetingTextDark]}
+            adjustsFontSizeToFit={true}
+            minimumFontScale={0.7}
+            numberOfLines={1}
+          >
+            {t('dashboard.greeting', { name: profile?.name || user?.email?.split('@')[0] || 'User' })}
           </Text>
         ) : (
           <View style={styles.pageTitleContainer}>
@@ -157,6 +162,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#1f2937',
     fontFamily: 'System',
+    flexShrink: 1,
   },
   pageNameText: {
     fontSize: 28,

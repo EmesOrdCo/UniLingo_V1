@@ -23,6 +23,7 @@ import { PronunciationResult } from '../lib/pronunciationService';
 import { UnitDataAdapter, UnitConversationExchange } from '../lib/unitDataAdapter';
 import { logger } from '../lib/logger';
 import { useTranslation } from '../lib/i18n';
+import { GeneralLessonProgressService } from '../lib/generalLessonProgressService';
 import { getAppropriateSpeechLanguage, getTargetLanguageSpeechCode, getNativeLanguageSpeechCode } from '../lib/languageService';
 import { VoiceService } from '../lib/voiceService';
 import * as Speech from 'expo-speech';
@@ -389,6 +390,8 @@ export default function UnitRoleplayScreen() {
           // Show completion after brief delay
           setTimeout(() => {
             setCompleted(true);
+            // Record exercise completion when finished
+            recordExerciseCompletion();
           }, 500);
         }
       }, 1000);
@@ -441,6 +444,8 @@ export default function UnitRoleplayScreen() {
     if (isLastExchange) {
       setTimeout(() => {
         setCompleted(true);
+        // Record exercise completion when finished
+        recordExerciseCompletion();
       }, 500);
     }
   };
@@ -727,9 +732,38 @@ export default function UnitRoleplayScreen() {
     }
   }, []);
 
+  const recordExerciseCompletion = async () => {
+    if (!user || !subjectName || !cefrLevel) return;
+    
+    try {
+      const totalExchanges = getTotalExchanges();
+      const accuracy = totalExchanges > 0 ? (score / totalExchanges) * 100 : 0;
+      const timeSpentSeconds = 60; // Default time, could be improved with actual timing
+      
+      await GeneralLessonProgressService.recordExerciseCompletion(
+        user.id,
+        subjectName,
+        cefrLevel,
+        {
+          exerciseName: 'Roleplay',
+          score: score,
+          maxScore: totalExchanges,
+          accuracy: accuracy,
+          timeSpentSeconds: timeSpentSeconds
+        }
+      );
+      
+      logger.info(`✅ Exercise completion recorded: ${subjectName} - Roleplay (${score}/${totalExchanges})`);
+    } catch (error) {
+      logger.error('Error recording exercise completion:', error);
+    }
+  };
+
   const handleConversationComplete = () => {
     console.log('🎉 Conversation completed!');
     setCompleted(true);
+    // Record exercise completion when finished
+    recordExerciseCompletion();
   };
 
   // Update refs when state changes
@@ -833,7 +867,7 @@ export default function UnitRoleplayScreen() {
     return (
       <View style={styles.completionContainer}>
         <Text style={styles.completionTitle}>🎉 {t('lessons.roleplay.complete')}</Text>
-        <Text style={styles.completionSubtitle}>Great job!</Text>
+        <Text style={styles.completionSubtitle}>{t('lessons.common.greatJob')}</Text>
         
         <View style={styles.statsContainer}>
           <View style={styles.statItem}>
@@ -886,7 +920,7 @@ export default function UnitRoleplayScreen() {
         </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#6366f1" />
-          <Text style={styles.loadingText}>Loading conversation...</Text>
+          <Text style={styles.loadingText}>{t('lessons.common.loadingConversation')}</Text>
         </View>
       </SafeAreaView>
     );

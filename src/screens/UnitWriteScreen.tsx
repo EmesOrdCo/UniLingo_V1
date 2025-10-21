@@ -22,6 +22,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { UnitDataAdapter, UnitWriteExercise, UnitConversationExchange } from '../lib/unitDataAdapter';
 import { logger } from '../lib/logger';
 import { useTranslation } from '../lib/i18n';
+import { GeneralLessonProgressService } from '../lib/generalLessonProgressService';
 import { getAppropriateSpeechLanguage, getTargetLanguageSpeechCode, getNativeLanguageSpeechCode } from '../lib/languageService';
 import { VoiceService } from '../lib/voiceService';
 import * as Speech from 'expo-speech';
@@ -909,6 +910,8 @@ export default function UnitWriteScreen() {
           // Show completion after brief delay
           setTimeout(() => {
             setCompleted(true);
+            // Record exercise completion when finished
+            recordExerciseCompletion();
           }, 500);
         }
       }, 1000);
@@ -973,6 +976,8 @@ export default function UnitWriteScreen() {
     if (isLastExchange) {
       setTimeout(() => {
         setCompleted(true);
+        // Record exercise completion when finished
+        recordExerciseCompletion();
       }, 500);
     }
   };
@@ -1272,9 +1277,38 @@ export default function UnitWriteScreen() {
     }
   }, []);
 
+  const recordExerciseCompletion = async () => {
+    if (!user || !subjectName || !cefrLevel) return;
+    
+    try {
+      const totalExchanges = getTotalExchanges();
+      const accuracy = totalExchanges > 0 ? (score / totalExchanges) * 100 : 0;
+      const timeSpentSeconds = 60; // Default time, could be improved with actual timing
+      
+      await GeneralLessonProgressService.recordExerciseCompletion(
+        user.id,
+        subjectName,
+        cefrLevel,
+        {
+          exerciseName: 'Write',
+          score: score,
+          maxScore: totalExchanges,
+          accuracy: accuracy,
+          timeSpentSeconds: timeSpentSeconds
+        }
+      );
+      
+      logger.info(`✅ Exercise completion recorded: ${subjectName} - Write (${score}/${totalExchanges})`);
+    } catch (error) {
+      logger.error('Error recording exercise completion:', error);
+    }
+  };
+
   const handleConversationComplete = () => {
     console.log('🎉 Conversation completed!');
     setCompleted(true);
+    // Record exercise completion when finished
+    recordExerciseCompletion();
   };
 
   // Update refs when state changes
@@ -1388,16 +1422,16 @@ export default function UnitWriteScreen() {
         <View style={styles.completionContent}>
           <Text style={styles.completionEmoji}>🎉</Text>
           <Text style={styles.completionTitle}>{t('lessons.write.title')} {t('lessons.write.complete')}</Text>
-          <Text style={styles.completionSubtitle}>Great conversation practice!</Text>
+          <Text style={styles.completionSubtitle}>{t('lessons.common.greatConversationPractice')}</Text>
           
           <View style={styles.completionStats}>
             <View style={styles.completionStatCard}>
               <Text style={styles.completionStatValue}>{score}/{totalExchanges}</Text>
-              <Text style={styles.completionStatLabel}>Correct</Text>
+              <Text style={styles.completionStatLabel}>{t('lessons.common.correct')}</Text>
             </View>
             <View style={styles.completionStatCard}>
               <Text style={styles.completionStatValue}>{accuracyPercentage}%</Text>
-              <Text style={styles.completionStatLabel}>Accuracy</Text>
+              <Text style={styles.completionStatLabel}>{t('lessons.common.accuracy')}</Text>
             </View>
           </View>
           
@@ -1446,7 +1480,7 @@ export default function UnitWriteScreen() {
         </View>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#6366f1" />
-          <Text style={styles.loadingText}>Loading write exercises...</Text>
+          <Text style={styles.loadingText}>{t('lessons.common.loadingWrite')}</Text>
         </View>
       </SafeAreaView>
     );
@@ -1708,7 +1742,7 @@ export default function UnitWriteScreen() {
                     </TouchableOpacity>
                   ))
                 ) : (
-                  <Text style={styles.scramblePlaceholder}>Tap words to arrange them</Text>
+                  <Text style={styles.scramblePlaceholder}>{t('lessons.common.tapWordsToArrange')}</Text>
                 )}
                 {userAnswer.length > 0 && (
                   <TouchableOpacity 
@@ -1743,10 +1777,10 @@ export default function UnitWriteScreen() {
 
           {/* Feedback */}
           {showResult && !isCorrect && (
-            <Text style={styles.feedbackIncorrect}>❌ Incorrect - Try again!</Text>
+            <Text style={styles.feedbackIncorrect}>{t('lessons.common.incorrectTryAgain')}</Text>
           )}
           {showResult && isCorrect && (
-            <Text style={styles.feedbackCorrect}>✓ Correct!</Text>
+            <Text style={styles.feedbackCorrect}>{t('lessons.common.correctCheckmark')}</Text>
           )}
 
           {/* Bottom Action Buttons */}
