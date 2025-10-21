@@ -13,7 +13,7 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { SubjectDataService, SubjectData } from '../lib/subjectDataService';
 import { GeneralLessonProgressService, GeneralLessonProgress } from '../lib/generalLessonProgressService';
 import { useAuth } from '../contexts/AuthContext';
-import { useTranslation } from '../lib/i18n';
+import { useTranslation, useI18n } from '../lib/i18n';
 
 interface SubjectBoxProps {
   subject: SubjectData;
@@ -123,6 +123,7 @@ export default function SubjectBoxes({ onSubjectSelect, maxSubjects = 6, selecte
   const [expandedSubject, setExpandedSubject] = useState<string | null>(null);
   const [subjectProgress, setSubjectProgress] = useState<Map<string, GeneralLessonProgress>>(new Map());
   const { t } = useTranslation();
+  const { currentLanguage } = useI18n();
   
   const LESSONS = [
     { id: 'Words', title: t('subjectBoxes.lessonTypes.words'), icon: 'book', color: '#6466E9' },
@@ -133,9 +134,9 @@ export default function SubjectBoxes({ onSubjectSelect, maxSubjects = 6, selecte
   ];
 
   useEffect(() => {
-    // Load subjects whenever CEFR level changes
+    // Load subjects whenever CEFR level or language changes
     loadSubjects();
-  }, [selectedCefrLevel]);
+  }, [selectedCefrLevel, currentLanguage]);
 
   // Load progress data when component focuses
   useFocusEffect(
@@ -173,8 +174,8 @@ export default function SubjectBoxes({ onSubjectSelect, maxSubjects = 6, selecte
       setLoading(true);
       
       // OPTIMIZATION: Only load the currently selected CEFR level for fast initial display
-      console.log(`🚀 Fast loading: Fetching only ${selectedCefrLevel} subjects...`);
-      const subjectsWithMetadata = await SubjectDataService.getSubjectsForCefrLevel(selectedCefrLevel);
+      console.log(`🚀 Fast loading: Fetching only ${selectedCefrLevel} subjects in ${currentLanguage}...`);
+      const subjectsWithMetadata = await SubjectDataService.getSubjectsForCefrLevel(selectedCefrLevel, currentLanguage);
       
       console.log('🔍 Raw subjects data:', subjectsWithMetadata.slice(0, 3));
       
@@ -233,10 +234,11 @@ export default function SubjectBoxes({ onSubjectSelect, maxSubjects = 6, selecte
     console.log(`🎯 Selected ${lessonTitle} for ${subject.name}`);
     
     // Navigate to the appropriate Unit screen based on lesson type
+    // Use English name for database operations, but display translated name
     const navigationParams = {
       unitId: 1,
-      unitTitle: subject.name,
-      subjectName: subject.name, // Pass subject name for database lookup
+      unitTitle: subject.name, // Display name (translated)
+      subjectName: subject.englishName || subject.name, // Use English name for database lookup
       cefrLevel: subject.cefrLevel || 'A1', // Pass CEFR level for lesson scripts
       topicGroup: 'General',
       unitCode: 'A1.1',

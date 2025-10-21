@@ -2,7 +2,8 @@ import { supabase } from './supabase';
 import { SubjectLessonService } from './subjectLessonService';
 
 export interface SubjectData {
-  name: string;
+  name: string; // Display name (translated)
+  englishName?: string; // English name for database operations
   wordCount?: number;
   hasLessons?: boolean;
   cefrLevel?: string;
@@ -31,6 +32,23 @@ export class SubjectDataService {
   private static cachedSubjects: string[] | null = null;
   private static cacheTimestamp: number | null = null;
   private static readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+  /**
+   * Map UI language codes to database column names
+   */
+  private static getSubjectColumnName(language: string): string {
+    const columnMap: { [key: string]: string } = {
+      'en': 'subject',
+      'de': 'subject_german',
+      'fr': 'subject_french',
+      'es': 'subject_spanish',
+      'it': 'subject_italian',
+      'zh': 'subject_chinese_simplified',
+      'hi': 'subject_hindi'
+    };
+    
+    return columnMap[language] || 'subject'; // Fallback to English
+  }
 
   /**
    * Get all available subjects from database tables
@@ -106,15 +124,17 @@ export class SubjectDataService {
    * Get subjects with metadata for a specific CEFR level only
    * OPTIMIZED for fast initial load - only queries one CEFR level
    */
-  static async getSubjectsForCefrLevel(cefrLevel: string): Promise<SubjectData[]> {
+  static async getSubjectsForCefrLevel(cefrLevel: string, language: string = 'en'): Promise<SubjectData[]> {
     try {
-      console.log(`🔍 Fetching subjects for CEFR level: ${cefrLevel} (OPTIMIZED for speed)...`);
+      console.log(`🔍 Fetching subjects for CEFR level: ${cefrLevel} in ${language} (OPTIMIZED for speed)...`);
       const startTime = Date.now();
 
-      // OPTIMIZATION: Only fetch data for the specific CEFR level
+      // ALWAYS query using English subject names for database consistency
+      // But also fetch the translated names for display
+      const subjectColumn = this.getSubjectColumnName(language);
       const { data: wordData, error: wordError } = await supabase
         .from('subject_words')
-        .select('subject, cefr_level')
+        .select(`subject, ${subjectColumn}, cefr_level`)
         .eq('cefr_level', cefrLevel)
         .not('subject', 'is', null);
 
@@ -142,6 +162,7 @@ export class SubjectDataService {
       const orderIndexBySubject: { [normalized: string]: number } = {};
 
       // Process lesson data and store order_index
+      // Note: lesson_scripts uses subject_name which should be English names
       if (lessonData) {
         lessonData.forEach(row => {
           if (row.subject_name) {
@@ -159,34 +180,35 @@ export class SubjectDataService {
       }
 
       // Count words per subject for this CEFR level
-      const wordCountBySubject: { [subject: string]: number } = {};
+      // Use English names for counting (database consistency) but store translated names for display
+      const wordCountBySubject: { [englishName: string]: { count: number, translatedName: string } } = {};
       
       if (wordData) {
-        wordData.forEach(row => {
-          if (row.subject) {
-            const displayName = row.subject.trim();
-            const normalized = normalizeSubjectName(displayName);
-            
-            if (!canonicalNames[normalized]) {
-              canonicalNames[normalized] = displayName;
+        wordData.forEach((row: any) => {
+          const englishName = row.subject?.trim();
+          const translatedName = row[subjectColumn]?.trim() || englishName; // Fallback to English if no translation
+          
+          if (englishName) {
+            if (!wordCountBySubject[englishName]) {
+              wordCountBySubject[englishName] = { count: 0, translatedName };
             }
-            
-            wordCountBySubject[displayName] = (wordCountBySubject[displayName] || 0) + 1;
+            wordCountBySubject[englishName].count++;
           }
         });
       }
 
-      // Build subjects array
+      // Build subjects array using translated names for display
       const subjectsWithMetadata: SubjectData[] = Object.entries(wordCountBySubject)
-        .filter(([_, count]) => count > 0)
-        .map(([displayName, wordCount]) => {
-          const normalized = normalizeSubjectName(displayName);
+        .filter(([_, data]) => data.count > 0)
+        .map(([englishName, data]) => {
+          const englishNormalized = normalizeSubjectName(englishName);
           return {
-            name: String(displayName).trim(),
-            wordCount: Number(wordCount),
-            hasLessons: Boolean(subjectsWithLessons.has(normalized)),
+            name: data.translatedName, // Display translated name
+            englishName: englishName, // Store English name for database operations
+            wordCount: data.count,
+            hasLessons: Boolean(subjectsWithLessons.has(englishNormalized)), // Check against English name
             cefrLevel: String(cefrLevel).trim(),
-            orderIndex: orderIndexBySubject[normalized]
+            orderIndex: orderIndexBySubject[englishNormalized] // Use English name for order index
           };
         });
 
@@ -217,7 +239,7 @@ export class SubjectDataService {
   /**
    * Get subjects with additional metadata using the same counting logic as SubjectLessonService
    */
-  static async getSubjectsWithAccurateCounts(): Promise<SubjectData[]> {
+  static async getSubjectsWithAccurateCounts(language: string = 'en'): Promise<SubjectData[]> {
     try {
       console.log('🔍 Fetching subjects with accurate word counts using SubjectLessonService logic...');
 
@@ -230,7 +252,12 @@ export class SubjectDataService {
 
       if (wordError) {
         console.warn('⚠️ Error fetching word data:', wordError);
-        return this.getFallbackSubjects();
+        return this.getFallbackSubjects().map(name => ({
+          name,
+          englishName: name,
+          wordCount: 0,
+          hasLessons: false
+        }));
       }
 
       // Get subjects with lessons
@@ -341,14 +368,19 @@ export class SubjectDataService {
 
     } catch (error) {
       console.error('❌ Error fetching subjects with accurate counts:', error);
-      return this.getFallbackSubjects();
+      return this.getFallbackSubjects().map(name => ({
+        name,
+        englishName: name,
+        wordCount: 0,
+        hasLessons: false
+      }));
     }
   }
 
   /**
    * Get subjects with additional metadata (word count, lesson availability, CEFR level)
    */
-  static async getSubjectsWithMetadata(): Promise<SubjectData[]> {
+  static async getSubjectsWithMetadata(language: string = 'en'): Promise<SubjectData[]> {
     try {
       console.log('🔍 Fetching subjects with metadata...');
 
@@ -476,6 +508,7 @@ export class SubjectDataService {
       // Return fallback subjects as basic data
       return this.getFallbackSubjects().map(name => ({
         name,
+        englishName: name,
         wordCount: 0,
         hasLessons: false
       }));
@@ -595,14 +628,15 @@ export class SubjectDataService {
   /**
    * Get popular subjects (subjects with most vocabulary)
    */
-  static async getPopularSubjects(limit: number = 10): Promise<SubjectData[]> {
+  static async getPopularSubjects(limit: number = 10, language: string = 'en'): Promise<SubjectData[]> {
     try {
-      const subjectsWithMetadata = await this.getSubjectsWithMetadata();
+      const subjectsWithMetadata = await this.getSubjectsWithMetadata(language);
       return subjectsWithMetadata.slice(0, limit);
     } catch (error) {
       console.error('❌ Error fetching popular subjects:', error);
       return this.getFallbackSubjects().slice(0, limit).map(name => ({
         name,
+        englishName: name,
         wordCount: 0,
         hasLessons: false
       }));
