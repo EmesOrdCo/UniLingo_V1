@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Image, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import * as Haptics from 'expo-haptics';
 import { useAuth } from '../contexts/AuthContext';
 import { useSelectedUnit } from '../contexts/SelectedUnitContext';
 import { useRefresh } from '../contexts/RefreshContext';
@@ -354,7 +355,11 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
               {/* Integrated CEFR Level Selector */}
               <TouchableOpacity 
                 style={styles.cefrSelectorButton}
-                onPress={() => setCefrDropdownVisible(!cefrDropdownVisible)}
+                onPress={() => {
+                  // Light haptic feedback for dropdown toggle
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setCefrDropdownVisible(!cefrDropdownVisible);
+                }}
                 activeOpacity={0.7}
               >
                 <Text style={styles.cefrSelectorButtonText}>
@@ -383,6 +388,8 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
                           selectedCefrLevel === level && styles.cefrDropdownItemSelected
                         ]}
                         onPress={() => {
+                          // Light haptic feedback for level selection
+                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                           setSelectedCefrLevel(level);
                           setSelectedSubLevel(null); // Reset sub-level when main level changes
                         }}
@@ -410,6 +417,8 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
                           !selectedSubLevel && styles.cefrDropdownItemSelected
                         ]}
                         onPress={() => {
+                          // Light haptic feedback for sub-level selection
+                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                           setSelectedSubLevel(null);
                           setCefrDropdownVisible(false);
                         }}
@@ -439,6 +448,8 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
                             selectedSubLevel === level && styles.cefrDropdownItemSelected
                           ]}
                           onPress={() => {
+                            // Light haptic feedback for sub-level selection
+                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                             setSelectedSubLevel(level);
                             setCefrDropdownVisible(false);
                           }}

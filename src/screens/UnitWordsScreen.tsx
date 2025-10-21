@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import * as Haptics from 'expo-haptics';
 import { useAuth } from '../contexts/AuthContext';
 import { UnitDataAdapter, UnitVocabularyItem } from '../lib/unitDataAdapter';
 import { logger } from '../lib/logger';
@@ -214,6 +215,13 @@ export default function UnitWordsScreen() {
     const correct = selectedAnswer === question.correctAnswer;
     setIsCorrect(correct);
     setShowResult(true);
+    
+    // Haptic feedback based on answer
+    if (correct) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } else {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    }
     
     if (correct) {
       setScore(score + 1);

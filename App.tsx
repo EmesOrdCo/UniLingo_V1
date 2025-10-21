@@ -18,6 +18,8 @@ import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { NotificationService } from './src/lib/notificationService';
 import SubscriptionGate from './src/components/SubscriptionGate';
 import { setupGlobalErrorHandling } from './src/lib/errorHandler';
+import BreakReminderModal from './src/components/BreakReminderModal';
+import { useSessionTimer } from './src/hooks/useSessionTimer';
 
 // Import screens
 import HomeScreen from './src/screens/HomeScreen';
@@ -251,6 +253,7 @@ function RefreshSetup() {
 // App navigator that handles auth state and profile completion
 function AppNavigator() {
   const { user, loading, profile, profileLoading, isNewUser, clearNewUserFlag, refreshProfile } = useAuth();
+  const { showBreakReminder, sessionTime, onCloseBreakReminder, onGoToArcade } = useSessionTimer();
 
   if (__DEV__) {
     console.log('🧭 AppNavigator - Loading:', loading, 'User:', user ? user.email : 'No user', 'Profile:', profile ? 'Complete' : 'Incomplete', 'IsNewUser:', isNewUser);
@@ -285,6 +288,13 @@ function AppNavigator() {
         <SubscriptionGate>
           <MainNavigator />
         </SubscriptionGate>
+        
+        {/* Break Reminder Modal */}
+        <BreakReminderModal
+          visible={showBreakReminder}
+          onClose={onCloseBreakReminder}
+          sessionTime={sessionTime}
+        />
       </>
     );
   } else {

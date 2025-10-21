@@ -348,8 +348,14 @@ export default function UnitRoleplayScreen() {
     setIsCorrect(passed);
     setShowResult(true);
     
+    // Haptic feedback based on pronunciation result
     if (passed) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } else {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    }
+    
+    if (passed) {
       setScore(score + 1);
       
       // After 1 second, add user response to chat and then add next Thomas question

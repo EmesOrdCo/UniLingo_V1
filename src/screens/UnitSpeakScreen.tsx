@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import * as Haptics from 'expo-haptics';
 import { useAuth } from '../contexts/AuthContext';
 import PronunciationCheck from '../components/PronunciationCheck';
 import { PronunciationResult } from '../lib/pronunciationService';
@@ -189,6 +190,13 @@ export default function UnitSpeakScreen() {
     const passed = pronunciationScore >= 60;
     setIsCorrect(passed);
     setShowResult(true);
+    
+    // Haptic feedback based on pronunciation result
+    if (passed) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } else {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    }
     
     if (passed) {
       setScore(score + 1);

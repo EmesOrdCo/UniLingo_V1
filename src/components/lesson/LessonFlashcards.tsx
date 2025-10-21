@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Animated, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { useAuth } from '../../contexts/AuthContext';
 import { VocabularyInterpretationService, InterpretedVocabulary } from '../../lib/vocabularyInterpretationService';
 import LeaveConfirmationModal from './LeaveConfirmationModal';
@@ -65,6 +66,9 @@ export default function LessonFlashcards({ vocabulary, onComplete, onClose, onPr
   const flipCard = () => {
     const toValue = isFlipped ? 0 : 1;
     
+    // Light haptic feedback for card flip
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    
     Animated.spring(flipAnimation, {
       toValue,
       useNativeDriver: true,
@@ -80,6 +84,9 @@ export default function LessonFlashcards({ vocabulary, onComplete, onClose, onPr
 
   const nextCard = () => {
     if (currentIndex < interpretedVocabulary.length - 1) {
+      // Light haptic feedback for navigation
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      
       const newIndex = currentIndex + 1;
       setCurrentIndex(newIndex);
       if (onProgressUpdate) {
@@ -95,6 +102,9 @@ export default function LessonFlashcards({ vocabulary, onComplete, onClose, onPr
 
   const previousCard = () => {
     if (currentIndex > 0) {
+      // Light haptic feedback for navigation
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      
       const newIndex = currentIndex - 1;
       setCurrentIndex(newIndex);
       if (onProgressUpdate) {

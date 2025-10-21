@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import * as Haptics from 'expo-haptics';
 import { useAuth } from '../contexts/AuthContext';
 import * as Speech from 'expo-speech';
 import { UnitDataAdapter, UnitVocabularyItem, UnitSentence } from '../lib/unitDataAdapter';
@@ -260,6 +261,13 @@ export default function UnitListenScreen() {
       setIsCorrect(correct);
       setShowResult(true);
       
+      // Haptic feedback based on answer
+      if (correct) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } else {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      }
+      
       if (correct) {
         setScore(score + 1);
         setTimeout(() => {
@@ -272,6 +280,13 @@ export default function UnitListenScreen() {
       const correct = selectedAnswer === question.correctAnswer;
       setIsCorrect(correct);
       setShowResult(true);
+      
+      // Haptic feedback based on answer
+      if (correct) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } else {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      }
       
       if (correct) {
         setScore(score + 1);

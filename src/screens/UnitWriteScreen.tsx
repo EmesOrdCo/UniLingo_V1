@@ -864,6 +864,13 @@ export default function UnitWriteScreen() {
     setIsCorrect(correct);
     setShowResult(true);
 
+    // Haptic feedback based on answer
+    if (correct) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } else {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    }
+
     if (correct) {
       setScore(score + 1);
       setCheckButtonText(t('lessons.write.correct'));

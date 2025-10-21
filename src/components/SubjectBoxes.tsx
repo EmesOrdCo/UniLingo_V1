@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import * as Haptics from 'expo-haptics';
 import { SubjectDataService, SubjectData } from '../lib/subjectDataService';
 import { GeneralLessonProgressService, GeneralLessonProgress } from '../lib/generalLessonProgressService';
 import { useAuth } from '../contexts/AuthContext';
@@ -231,6 +232,9 @@ export default function SubjectBoxes({ onSubjectSelect, maxSubjects = 6, selecte
   const handleSubjectPress = (subject: SubjectData) => {
     console.log('📚 Subject pressed:', subject.name);
     
+    // Light haptic feedback for subject expansion
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    
     if (onSubjectSelect) {
       onSubjectSelect(subject);
     } else {
@@ -241,6 +245,9 @@ export default function SubjectBoxes({ onSubjectSelect, maxSubjects = 6, selecte
 
   const handleLessonPress = (subject: SubjectData, lessonTitle: string) => {
     console.log(`🎯 Selected ${lessonTitle} for ${subject.name}`);
+    
+    // Light haptic feedback for lesson selection
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     
     // Navigate to the appropriate Unit screen based on lesson type
     // Use English name for database operations, but display translated name
