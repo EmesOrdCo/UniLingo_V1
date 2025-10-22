@@ -1,12 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Modal, Image, Alert, Linking } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Modal, Alert, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../contexts/AuthContext';
-import { useProfilePicture } from '../contexts/ProfilePictureContext';
 import { HolisticProgressService } from '../lib/holisticProgressService';
-import { ProfilePictureService } from '../lib/profilePictureService';
-import ProfileAvatar from './ProfileAvatar';
+import Avatar from './avatar/Avatar';
 
 interface ProfileModalProps {
   visible: boolean;
@@ -15,9 +12,7 @@ interface ProfileModalProps {
 
 export default function ProfileModal({ visible, onClose }: ProfileModalProps) {
   const { user, profile, signOut } = useAuth();
-  const { triggerRefresh, refreshTrigger } = useProfilePicture();
   const [currentStreak, setCurrentStreak] = useState(0);
-  const [profileImage, setProfileImage] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchStreak = async () => {
@@ -31,68 +26,10 @@ export default function ProfileModal({ visible, onClose }: ProfileModalProps) {
       }
     };
 
-    const loadProfilePicture = async () => {
-      if (!user?.id) return;
-      
-      try {
-        const savedImageUri = await ProfilePictureService.loadProfilePicture(user.id);
-        if (savedImageUri) {
-          setProfileImage(savedImageUri);
-        }
-      } catch (error) {
-        console.error('Error loading profile picture:', error);
-      }
-    };
 
     fetchStreak();
-    loadProfilePicture();
   }, [visible, user?.id]);
 
-  const pickImage = async () => {
-    try {
-      // Request permission
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      
-      if (status !== 'granted') {
-        Alert.alert(
-          'Permission Required',
-          'Sorry, we need camera roll permissions to make this work!',
-          [{ text: 'OK' }]
-        );
-        return;
-      }
-
-      // Launch image picker
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: 'images',
-        allowsEditing: true,
-        aspect: [1, 1], // Square aspect ratio for profile picture
-        quality: 0.8,
-      });
-
-      if (!result.canceled && result.assets && result.assets[0]) {
-        const imageUri = result.assets[0].uri;
-        setProfileImage(imageUri);
-        
-        // Save to persistent storage
-        try {
-          if (!user?.id) {
-            Alert.alert('Error', 'User not authenticated');
-            return;
-          }
-          await ProfilePictureService.saveProfilePicture(imageUri, user.id);
-          triggerRefresh(); // Use global refresh trigger
-          Alert.alert('Success', 'Profile picture updated!');
-        } catch (error) {
-          console.error('Error saving profile picture:', error);
-          Alert.alert('Error', 'Failed to save profile picture. Please try again.');
-        }
-      }
-    } catch (error) {
-      // Don't log cancellation errors - they're normal user actions
-      Alert.alert('Error', 'Failed to pick image. Please try again.');
-    }
-  };
 
   const handleSignOut = async () => {
     try {
@@ -136,14 +73,8 @@ export default function ProfileModal({ visible, onClose }: ProfileModalProps) {
           </View>
           
           <View style={styles.profileInfo}>
-                    <TouchableOpacity style={styles.profileAvatarContainer} onPress={pickImage}>
-          <ProfileAvatar 
-            size={80} 
-            color="#ffffff" 
-            onPress={pickImage}
-            showCameraIcon={true}
-            refreshTrigger={refreshTrigger}
-          />
+                    <TouchableOpacity style={styles.profileAvatarContainer} onPress={() => {}}>
+          <Avatar size={80} />
         </TouchableOpacity>
             <Text style={styles.profileName}>{profile?.name || user?.email?.split('@')[0] || 'User'}</Text>
             <Text style={styles.profileEmail}>{user?.email || 'No email'}</Text>

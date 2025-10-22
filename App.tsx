@@ -69,6 +69,7 @@ import AudioRecapScreen from './src/screens/AudioRecapScreen';
 import AudioPlayerScreen from './src/screens/AudioPlayerScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import AvatarEditorScreen from './src/screens/AvatarEditorScreen';
+import AvatarSubcategoryScreen from './src/screens/AvatarSubcategoryScreen';
 
 const Stack = createStackNavigator();
 
@@ -124,6 +125,7 @@ function MainNavigator() {
       <Stack.Screen name="AudioPlayer" component={AudioPlayerScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
       <Stack.Screen name="AvatarEditor" component={AvatarEditorScreen} />
+      <Stack.Screen name="AvatarSubcategory" component={AvatarSubcategoryScreen} />
     </Stack.Navigator>
   );
 }

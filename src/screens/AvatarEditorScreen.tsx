@@ -3,9 +3,10 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
   Alert,
+  Dimensions,
+  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,16 +19,18 @@ import Avatar from '../components/avatar/Avatar';
 import AvatarCustomizer from '../components/avatar/AvatarCustomizer';
 import { loadAvatarOptions } from '../store/slices/avatarSlice';
 
+const { width, height } = Dimensions.get('window');
+
 /**
- * Avatar Editor Screen - Full avatar customization system
- * Integrates the real avatar system from fe-react-avatar-maker
+ * Avatar Editor Screen - Modern, streamlined avatar customization
+ * Clean, intuitive interface for avatar personalization
  */
 const AvatarEditorScreen: React.FC = () => {
   const { t } = useTranslation();
   const navigation = useNavigation();
   const dispatch = useDispatch();
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'preview' | 'customize'>('preview');
+  const [avatarScale] = useState(new Animated.Value(1));
 
   // Load saved avatar options when component mounts
   useEffect(() => {
@@ -46,61 +49,63 @@ const AvatarEditorScreen: React.FC = () => {
   }, [dispatch]);
 
   const handleSave = () => {
+    // Animate avatar on save
+    Animated.sequence([
+      Animated.timing(avatarScale, {
+        toValue: 1.1,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+      Animated.timing(avatarScale, {
+        toValue: 1,
+        duration: 150,
+        useNativeDriver: true,
+      }),
+    ]).start();
+
     Alert.alert(
-      'Avatar Saved',
-      'Your avatar has been saved successfully!',
-      [{ text: 'OK' }]
+      '✨ Avatar Saved!',
+      'Your personalized avatar has been saved successfully!',
+      [{ text: 'Awesome!', style: 'default' }]
     );
   };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
+      {/* Modern Header */}
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-back" size={24} color="#000000" />
+          <Ionicons name="arrow-back" size={24} color="#1f2937" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{t('profile.menu.customizeAvatar')}</Text>
-        <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-          <Text style={styles.saveButtonText}>Save</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Tab Navigation */}
-      <View style={styles.tabContainer}>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'preview' && styles.activeTab]}
-          onPress={() => setActiveTab('preview')}
-        >
-          <Text style={[styles.tabText, activeTab === 'preview' && styles.activeTabText]}>
-            Preview
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'customize' && styles.activeTab]}
-          onPress={() => setActiveTab('customize')}
-        >
-          <Text style={[styles.tabText, activeTab === 'customize' && styles.activeTabText]}>
-            Customize
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Content */}
-      {activeTab === 'preview' ? (
-        <View style={styles.previewContainer}>
-          <Text style={styles.previewTitle}>Your Avatar</Text>
-          <Avatar size={250} />
-          <Text style={styles.previewDescription}>
-            Customize your avatar using the options in the Customize tab
-          </Text>
+        
+        <View style={styles.headerCenter}>
+          <Text style={styles.headerTitle}>Customize Avatar</Text>
+          <Text style={styles.headerSubtitle}>Tap categories to customize</Text>
         </View>
-      ) : (
+        
+        <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+          <Ionicons name="checkmark" size={20} color="#ffffff" />
+        </TouchableOpacity>
+      </View>
+
+      {/* Avatar Preview Section */}
+      <View style={styles.previewSection}>
+        <View style={styles.avatarContainer}>
+          <Animated.View style={[styles.avatarFrame, { transform: [{ scale: avatarScale }] }]}>
+            <Avatar size={Math.min(width * 0.4, 200)} />
+          </Animated.View>
+        </View>
+        
+        <Text style={styles.previewText}>Tap any category below to customize</Text>
+      </View>
+
+      {/* Customizer */}
+      <View style={styles.customizerContainer}>
         <AvatarCustomizer />
-      )}
+      </View>
     </SafeAreaView>
   );
 };
@@ -108,82 +113,86 @@ const AvatarEditorScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#f8fafc',
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: '#fff',
+    backgroundColor: '#ffffff',
     borderBottomWidth: 1,
-    borderBottomColor: '#e1e8ed',
+    borderBottomColor: '#e2e8f0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
   backButton: {
     padding: 8,
+    borderRadius: 20,
+    backgroundColor: '#f1f5f9',
+  },
+  headerCenter: {
+    flex: 1,
+    alignItems: 'center',
+    marginHorizontal: 16,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1a1a1a',
-    flex: 1,
-    textAlign: 'center',
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1f2937',
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: '#6b7280',
+    marginTop: 2,
   },
   saveButton: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  saveButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  tabContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e1e8ed',
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: 16,
-    alignItems: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
-  },
-  activeTab: {
-    borderBottomColor: '#007AFF',
-  },
-  tabText: {
-    fontSize: 16,
-    color: '#6b7280',
-    fontWeight: '500',
-  },
-  activeTabText: {
-    color: '#007AFF',
-    fontWeight: '600',
-  },
-  previewContainer: {
-    flex: 1,
+    backgroundColor: '#3b82f6',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 20,
+    shadowColor: '#3b82f6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  previewTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1a1a1a',
-    marginBottom: 20,
+  previewSection: {
+    alignItems: 'center',
+    paddingVertical: 32,
+    paddingHorizontal: 20,
+    backgroundColor: '#ffffff',
   },
-  previewDescription: {
+  avatarContainer: {
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarFrame: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f8fafc',
+    borderRadius: 1000,
+    padding: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  previewText: {
     fontSize: 16,
     color: '#6b7280',
+    marginTop: 16,
     textAlign: 'center',
-    marginTop: 20,
-    paddingHorizontal: 20,
+  },
+  customizerContainer: {
+    flex: 1,
   },
 });
 

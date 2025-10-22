@@ -64,7 +64,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     backgroundColor: '#f8f9fa',
-    borderRadius: 20,
+    borderRadius: 1000, // Makes it perfectly circular
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,

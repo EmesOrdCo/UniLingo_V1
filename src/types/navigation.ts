@@ -49,6 +49,12 @@ export type RootStackParamList = {
   AudioRecap: undefined;
   Settings: undefined;
   AudioPlayer: { lesson: SimpleAudioLesson; userId: string };
+  AvatarEditor: undefined;
+  AvatarSubcategory: { 
+    category: 'skin' | 'hair' | 'facialHair' | 'eyes' | 'eyebrows' | 'mouth' | 'clothing' | 'accessories';
+    categoryName: string;
+    categoryIcon: string;
+  };
 };
 
 // Export screen props types for use in components

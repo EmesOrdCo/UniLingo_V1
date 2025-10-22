@@ -3,11 +3,10 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../contexts/AuthContext';
-import { useProfilePicture } from '../contexts/ProfilePictureContext';
 import { useRefresh } from '../contexts/RefreshContext';
 import { HolisticProgressService } from '../lib/holisticProgressService';
 import StreakDetailsModal from './StreakDetailsModal';
-import ProfileAvatar from './ProfileAvatar';
+import Avatar from './avatar/Avatar';
 import { useTranslation } from '../lib/i18n';
 
 interface ConsistentHeaderProps {
@@ -31,7 +30,6 @@ export default function ConsistentHeader({
 }: ConsistentHeaderProps) {
   const navigation = useNavigation();
   const { user, profile } = useAuth();
-  const { refreshTrigger: profileRefreshTrigger } = useProfilePicture();
   const { refreshTrigger } = useRefresh();
   const { t } = useTranslation();
   const [currentStreak, setCurrentStreak] = useState(streakCount);
@@ -104,7 +102,7 @@ export default function ConsistentHeader({
           style={styles.profileButton}
           onPress={() => navigation.navigate('Profile' as never)}
         >
-          <ProfileAvatar size={32} color={darkMode ? "#F59E0B" : "#6366f1"} refreshTrigger={profileRefreshTrigger} />
+          <Avatar size={32} />
         </TouchableOpacity>
       </View>
       

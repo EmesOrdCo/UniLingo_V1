@@ -1,32 +1,34 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, Image, Linking } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, Image, Linking, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import * as ImagePicker from 'expo-image-picker';
+import { useDispatch } from 'react-redux';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../contexts/AuthContext';
-import { useProfilePicture } from '../contexts/ProfilePictureContext';
 import { HolisticProgressService } from '../lib/holisticProgressService';
-import { ProfilePictureService } from '../lib/profilePictureService';
 import { useTranslation } from '../lib/i18n';
+import { LinearGradient } from 'expo-linear-gradient';
 import ShareInvitationModal from '../components/ShareInvitationModal';
-import ProfileAvatar from '../components/ProfileAvatar';
 import ContactSupportModal from '../components/ContactSupportModal';
 import SubscriptionStatus from '../components/SubscriptionStatus';
 import AIUsageBar from '../components/AIUsageBar';
+import Avatar from '../components/avatar/Avatar';
+import { loadAvatarOptions } from '../store/slices/avatarSlice';
 // Character system removed - will implement custom 2D system
+
+const { width } = Dimensions.get('window');
 
 export default function ProfilePage() {
   const { t } = useTranslation();
   const navigation = useNavigation();
+  const dispatch = useDispatch();
   const { user, profile, signOut } = useAuth();
-  const { triggerRefresh, refreshTrigger } = useProfilePicture();
   const [currentStreak, setCurrentStreak] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
   const [showShareInvitation, setShowShareInvitation] = useState(false);
   const [showContactSupport, setShowContactSupport] = useState(false);
   const [isDarkTheme, setIsDarkTheme] = useState(false);
-  const [profileImage, setProfileImage] = useState<string | null>(null);
   // Character system state removed
 
   useEffect(() => {
@@ -41,93 +43,23 @@ export default function ProfilePage() {
       }
     };
 
-    const loadProfilePicture = async () => {
-      if (!user?.id) return;
-      
+
+    const loadAvatarOptionsFromStorage = async () => {
       try {
-        const savedImageUri = await ProfilePictureService.loadProfilePicture(user.id);
-        if (savedImageUri) {
-          setProfileImage(savedImageUri);
+        const savedOptions = await AsyncStorage.getItem('avatar-options');
+        if (savedOptions) {
+          dispatch(loadAvatarOptions(JSON.parse(savedOptions)));
         }
       } catch (error) {
-        console.error('Error loading profile picture:', error);
+        console.error('Error loading avatar options:', error);
       }
     };
 
     fetchStreak();
-    loadProfilePicture();
-  }, [user?.id]);
+    loadAvatarOptionsFromStorage();
+  }, [user?.id, dispatch]);
 
-  const pickImage = async () => {
-    try {
-      // Request permission
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      
-      if (status !== 'granted') {
-        Alert.alert(
-          t('profile.picture.permissionRequired'),
-          t('profile.picture.permissionMessage'),
-          [{ text: 'OK' }]
-        );
-        return;
-      }
 
-      // Launch image picker
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: 'images',
-        allowsEditing: true,
-        aspect: [1, 1], // Square aspect ratio for profile picture
-        quality: 0.8,
-      });
-
-      if (!result.canceled && result.assets && result.assets[0]) {
-        const imageUri = result.assets[0].uri;
-        setProfileImage(imageUri);
-        
-        // Save to persistent storage
-        try {
-          if (!user?.id) {
-            Alert.alert(t('profile.picture.error'), t('profile.picture.notAuthenticated'));
-            return;
-          }
-          await ProfilePictureService.saveProfilePicture(imageUri, user.id);
-          triggerRefresh(); // Use global refresh trigger
-          Alert.alert(t('profile.picture.success'), t('profile.picture.updated'));
-        } catch (error) {
-          console.error('Error saving profile picture:', error);
-          Alert.alert(t('profile.picture.error'), t('profile.picture.failedSave'));
-        }
-      }
-    } catch (error) {
-      // Don't log cancellation errors - they're normal user actions
-      Alert.alert(t('profile.picture.error'), t('profile.picture.failedPick'));
-    }
-  };
-
-  const removeProfilePicture = async () => {
-    Alert.alert(
-      t('profile.picture.removeTitle'),
-      t('profile.picture.removeMessage'),
-      [
-        { text: t('profile.signOut.cancel'), style: 'cancel' },
-        {
-          text: 'Remove',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await ProfilePictureService.removeProfilePicture(user?.id || '');
-              setProfileImage(null);
-              triggerRefresh(); // Use global refresh trigger
-              Alert.alert(t('profile.picture.success'), t('profile.picture.removeSuccess'));
-            } catch (error) {
-              console.error('Error removing profile picture:', error);
-              Alert.alert(t('profile.picture.error'), t('profile.picture.removeFailed'));
-            }
-          },
-        },
-      ]
-    );
-  };
 
   const handleSignOut = async () => {
     Alert.alert(
@@ -176,30 +108,6 @@ export default function ProfilePage() {
       },
     },
     {
-      id: 'profile-picture',
-      title: t('profile.menu.changeProfilePicture'),
-      icon: 'camera-outline',
-      onPress: () => {
-        pickImage();
-      },
-    },
-    {
-      id: 'avatar-customizer',
-      title: t('profile.menu.customizeAvatar'),
-      icon: 'person-outline',
-      onPress: () => {
-        navigation.navigate('AvatarEditor' as never);
-      },
-    },
-    ...(profileImage ? [{
-      id: 'remove-profile-picture',
-      title: t('profile.menu.removeProfilePicture'),
-      icon: 'trash-outline',
-      onPress: () => {
-        removeProfilePicture();
-      },
-    }] : []),
-    {
       id: 'invite',
       title: t('profile.menu.inviteFriends'),
       icon: 'person-add-outline',
@@ -243,15 +151,37 @@ export default function ProfilePage() {
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* User Info Section */}
         <View style={styles.userInfoSection}>
-                  <TouchableOpacity style={styles.userAvatarContainer} onPress={pickImage}>
-          <ProfileAvatar 
-            size={80} 
-            color="#6366f1" 
-            onPress={pickImage}
-            showCameraIcon={true}
-            refreshTrigger={refreshTrigger}
-          />
-        </TouchableOpacity>
+          {/* Avatar Character */}
+          <View style={styles.characterAvatarContainer}>
+            <View style={styles.avatarWrapper}>
+              <Avatar size={200} />
+            </View>
+            <View style={styles.characterEditBadge}>
+              <Ionicons name="sparkles" size={20} color="#fff" />
+            </View>
+          </View>
+          
+          {/* Shop Button */}
+          <View style={styles.shopButtonContainer}>
+            <View style={styles.shopBacklightEffect} />
+            <TouchableOpacity 
+              style={styles.shopButton}
+              onPress={() => navigation.navigate('AvatarEditor' as never)}
+              activeOpacity={0.9}
+            >
+              <LinearGradient
+                colors={['#6366F1', '#8B5CF6', '#A855F7']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.shopButtonGradient}
+              >
+                <View style={styles.shopButtonContent}>
+                  <Text style={styles.shopButtonTitle}>SHOP</Text>
+                </View>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+          
           <Text style={styles.userName}>{profile?.name || user?.email?.split('@')[0] || t('profile.user')}</Text>
           <Text style={styles.userEmail}>{user?.email || t('profile.noEmail')}</Text>
         </View>
@@ -420,6 +350,100 @@ const styles = StyleSheet.create({
     paddingVertical: 32,
     paddingHorizontal: 20,
   },
+  characterAvatarContainer: {
+    position: 'relative',
+    marginTop: 20,
+    marginBottom: 16,
+    alignItems: 'center',
+  },
+  avatarWrapper: {
+    position: 'relative',
+    borderRadius: 100,
+    overflow: 'hidden',
+    backgroundColor: '#f8fafc',
+    padding: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  shopButtonContainer: {
+    alignItems: 'center',
+    paddingVertical: 8,
+    position: 'relative',
+  },
+  shopBacklightEffect: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#8B5CF6',
+    opacity: 0.15,
+    borderRadius: 24,
+    transform: [{ scale: 0.95 }],
+  },
+  shopButton: {
+    width: 200,
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#8B5CF6',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  shopButtonGradient: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 16,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  shopButtonContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+    zIndex: 2,
+  },
+  shopButtonLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  shopButtonText: {
+    flex: 1,
+  },
+  shopButtonTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    textAlign: 'center',
+  },
+  shopButtonSubtitle: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.9)',
+  },
+  characterEditBadge: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    backgroundColor: '#3b82f6',
+    borderRadius: 16,
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 3,
+    borderColor: '#fff',
+    shadowColor: '#3b82f6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
   userAvatar: {
     width: 80,
     height: 80,
@@ -428,23 +452,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
-  },
-  userAvatarContainer: {
-    position: 'relative',
-    marginBottom: 16,
-  },
-  cameraIconContainer: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    backgroundColor: '#6366f1',
-    borderRadius: 12,
-    width: 24,
-    height: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: '#ffffff',
   },
   userName: {
     fontSize: 28,

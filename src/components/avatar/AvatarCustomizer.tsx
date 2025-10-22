@@ -1,216 +1,162 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
-import { useDispatch, useSelector } from 'react-redux';
-import { selectAvatarOptions, updateAvatarOption, resetAvatar } from '../../store/slices/avatarSlice';
-import {
-  SKIN_COLORS,
-  HAIR_COLORS,
-  TOP_TYPES,
-  FACIAL_HAIR_TYPES,
-  CLOTHE_TYPES,
-  CLOTHE_COLORS,
-  EYE_TYPES,
-  EYEBROW_TYPES,
-  MOUTH_TYPES,
-  ACCESSORIES_TYPES
-} from './constants';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  ScrollView, 
+  TouchableOpacity, 
+  Dimensions
+} from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+
+const { width } = Dimensions.get('window');
+
+type CustomizationCategory = 'skin' | 'hair' | 'facialHair' | 'eyes' | 'eyebrows' | 'mouth' | 'clothing' | 'accessories';
+
+interface CategoryConfig {
+  id: CustomizationCategory;
+  name: string;
+  icon: string;
+  color: string;
+}
 
 const AvatarCustomizer: React.FC = () => {
-  const dispatch = useDispatch();
-  const options = useSelector(selectAvatarOptions);
+  const navigation = useNavigation();
 
-  const handleOptionChange = (option: keyof typeof options, value: string) => {
-    dispatch(updateAvatarOption({ option, value }));
-  };
+  const categories: CategoryConfig[] = [
+    {
+      id: 'skin',
+      name: 'Skin',
+      icon: '🎨',
+      color: '#FFE5B4'
+    },
+    {
+      id: 'hair',
+      name: 'Hair',
+      icon: '💇‍♀️',
+      color: '#D2691E'
+    },
+    {
+      id: 'facialHair',
+      name: 'Beard',
+      icon: '🧔',
+      color: '#8B4513'
+    },
+    {
+      id: 'eyes',
+      name: 'Eyes',
+      icon: '👁️',
+      color: '#87CEEB'
+    },
+    {
+      id: 'eyebrows',
+      name: 'Brows',
+      icon: '🤨',
+      color: '#8B4513'
+    },
+    {
+      id: 'mouth',
+      name: 'Mouth',
+      icon: '👄',
+      color: '#FFB6C1'
+    },
+    {
+      id: 'clothing',
+      name: 'Style',
+      icon: '👔',
+      color: '#4169E1'
+    },
+    {
+      id: 'accessories',
+      name: 'Accessories',
+      icon: '👓',
+      color: '#C0C0C0'
+    }
+  ];
 
-  const handleReset = () => {
-    Alert.alert(
-      'Reset Avatar',
-      'Are you sure you want to reset your avatar to default settings?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Reset', style: 'destructive', onPress: () => dispatch(resetAvatar()) }
-      ]
-    );
-  };
-
-  const renderColorOptions = (
-    optionType: keyof typeof options,
-    options: Array<{ value: string; label: string }>,
-    currentValue: string
-  ) => (
-    <View style={styles.colorGroup}>
-      {options.map(option => (
-        <TouchableOpacity
-          key={option.value}
-          style={[
-            styles.colorOption,
-            { backgroundColor: `#${option.value}` },
-            currentValue === option.value && styles.selectedColorOption
-          ]}
-          onPress={() => handleOptionChange(optionType, option.value)}
-        />
-      ))}
-    </View>
-  );
-
-  const renderSelectOptions = (
-    optionType: keyof typeof options,
-    options: Array<{ value: string; label: string }>,
-    currentValue: string
-  ) => (
-    <View style={styles.selectGroup}>
-      {options.map(option => (
-        <TouchableOpacity
-          key={option.value}
-          style={[
-            styles.selectOption,
-            currentValue === option.value && styles.selectedSelectOption
-          ]}
-          onPress={() => handleOptionChange(optionType, option.value)}
-        >
-          <Text style={[
-            styles.selectOptionText,
-            currentValue === option.value && styles.selectedSelectOptionText
-          ]}>
-            {option.label}
-          </Text>
-        </TouchableOpacity>
-      ))}
-    </View>
-  );
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Skin Color</Text>
-        {renderColorOptions('skinColor', SKIN_COLORS, options.skinColor)}
+    <View style={styles.container}>
+      {/* Category Grid */}
+      <View style={styles.categoryGrid}>
+        {categories.map((category) => (
+          <TouchableOpacity
+            key={category.id}
+            style={styles.categoryButton}
+            onPress={() => {
+              navigation.navigate('AvatarSubcategory' as never, {
+                category: category.id,
+                categoryName: category.name,
+                categoryIcon: category.icon
+              } as never);
+            }}
+          >
+            <View style={[
+              styles.categoryIconContainer,
+              { backgroundColor: category.color }
+            ]}>
+              <Text style={styles.categoryButtonIcon}>{category.icon}</Text>
+            </View>
+            <Text style={styles.categoryButtonText}>
+              {category.name}
+            </Text>
+          </TouchableOpacity>
+        ))}
       </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Hair Style</Text>
-        {renderSelectOptions('topType', TOP_TYPES, options.topType)}
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Hair Color</Text>
-        {renderColorOptions('hairColor', HAIR_COLORS, options.hairColor)}
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Facial Hair</Text>
-        {renderSelectOptions('facialHairType', FACIAL_HAIR_TYPES, options.facialHairType)}
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Facial Hair Color</Text>
-        {renderColorOptions('facialHairColor', HAIR_COLORS, options.facialHairColor)}
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Eyes</Text>
-        {renderSelectOptions('eyeType', EYE_TYPES, options.eyeType)}
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Eyebrows</Text>
-        {renderSelectOptions('eyebrowType', EYEBROW_TYPES, options.eyebrowType)}
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Mouth</Text>
-        {renderSelectOptions('mouthType', MOUTH_TYPES, options.mouthType)}
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Clothing</Text>
-        {renderSelectOptions('clotheType', CLOTHE_TYPES, options.clotheType)}
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Clothing Color</Text>
-        {renderColorOptions('clotheColor', CLOTHE_COLORS, options.clotheColor)}
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Accessories</Text>
-        {renderSelectOptions('accessoriesType', ACCESSORIES_TYPES, options.accessoriesType)}
-      </View>
-
-      <TouchableOpacity style={styles.resetButton} onPress={handleReset}>
-        <Text style={styles.resetButtonText}>Reset Avatar</Text>
-      </TouchableOpacity>
-    </ScrollView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
+    backgroundColor: '#f8fafc',
   },
-  section: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1a1a1a',
-    marginBottom: 12,
-  },
-  colorGroup: {
+  categoryGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    paddingHorizontal: 4,
+    paddingVertical: 16,
+    justifyContent: 'space-between',
+    backgroundColor: '#ffffff',
   },
-  colorOption: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  categoryButton: {
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 16,
+    borderRadius: 16,
+    backgroundColor: '#ffffff',
     borderWidth: 2,
-    borderColor: 'transparent',
+    borderColor: '#e2e8f0',
+    width: (width - 16) / 2, // 2 columns with minimal padding
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  selectedColorOption: {
-    borderColor: '#007AFF',
-    borderWidth: 3,
+  categoryIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
   },
-  selectGroup: {
-    gap: 8,
-  },
-  selectOption: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    backgroundColor: '#f8f9fa',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#e1e8ed',
-  },
-  selectedSelectOption: {
-    backgroundColor: '#007AFF',
-    borderColor: '#007AFF',
-  },
-  selectOptionText: {
+  categoryButtonIcon: {
     fontSize: 16,
+  },
+  categoryButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
     color: '#374151',
     textAlign: 'center',
-  },
-  selectedSelectOptionText: {
-    color: '#fff',
-    fontWeight: '600',
-  },
-  resetButton: {
-    backgroundColor: '#dc3545',
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 12,
-    alignItems: 'center',
-    marginTop: 24,
-    marginBottom: 32,
-  },
-  resetButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
   },
 });
 
