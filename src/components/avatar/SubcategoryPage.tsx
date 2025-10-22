@@ -1,17 +1,24 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
   ScrollView, 
   TouchableOpacity, 
-  Dimensions
+  Dimensions,
+  Alert,
+  ActivityIndicator,
+  BackHandler
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux';
 import { selectAvatarOptions, updateAvatarOption } from '../../store/slices/avatarSlice';
+import { useAuth } from '../../contexts/AuthContext';
+import { AvatarUnlockService, AvatarItem } from '../../lib/avatarUnlockService';
+import { XPService } from '../../lib/xpService';
+import { LinearGradient } from 'expo-linear-gradient';
 import Avatar from './Avatar';
 import * as AvatarConstants from './constants';
 
@@ -28,53 +35,334 @@ interface SubcategoryPageProps {
 const SubcategoryPage: React.FC<SubcategoryPageProps> = ({ category, categoryName, categoryIcon }) => {
   const navigation = useNavigation();
   const dispatch = useDispatch();
+  const { user } = useAuth();
   const options = useSelector(selectAvatarOptions);
+  
+  const [availableItems, setAvailableItems] = useState<AvatarItem[]>([]);
+  const [unlockedItems, setUnlockedItems] = useState<Set<string>>(new Set());
+  const [availableXP, setAvailableXP] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [unlocking, setUnlocking] = useState<string | null>(null);
+  const [previewMode, setPreviewMode] = useState(false);
+  const [originalValue, setOriginalValue] = useState<string>('');
+
+  useEffect(() => {
+    loadData();
+    // Store original value when component mounts
+    const optionKey = getOptionKeyForCategory(category);
+    if (optionKey) {
+      setOriginalValue(options[optionKey]);
+    }
+  }, [user?.id, category]);
+
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', handleBackPress);
+    return () => backHandler.remove();
+  }, [previewMode, originalValue]);
+
+  // Cleanup effect to restore original value if component unmounts in preview mode
+  useEffect(() => {
+    return () => {
+      if (previewMode) {
+        const optionKey = getOptionKeyForCategory(category);
+        if (optionKey) {
+          dispatch(updateAvatarOption({ option: optionKey, value: originalValue }));
+        }
+      }
+    };
+  }, [previewMode, originalValue, category]);
+
+  const loadData = async () => {
+    if (!user?.id) return;
+    
+    try {
+      setLoading(true);
+      
+      // Load items for this category
+      const items = await AvatarUnlockService.getItemsByCategory(category, user.id);
+      setAvailableItems(items);
+      
+      // Load user's unlocked items
+      const unlocked = await AvatarUnlockService.getUserUnlockedItems(user.id);
+      const unlockedSet = new Set(unlocked.map(item => item.item_value));
+      setUnlockedItems(unlockedSet);
+      
+      // Load user's available XP
+      const xp = await XPService.getAvailableXP(user.id);
+      setAvailableXP(xp);
+      
+    } catch (error) {
+      console.error('Error loading avatar data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleOptionChange = (optionKey: keyof import('../../store/slices/avatarSlice').AvatarOptions, value: string) => {
+    const item = availableItems.find(item => item.item_value === value);
+    const isUnlocked = isItemUnlocked(value, item?.xp_cost || 0);
+    
+    if (item && item.xp_cost > 0 && !isUnlocked) {
+      // Allow preview but show unlock option
+      Alert.alert(
+        'Item Locked',
+        `This item costs ${item.xp_cost} XP to unlock. You have ${availableXP} XP available.`,
+        [
+          { text: 'Preview Only', style: 'cancel', onPress: () => {
+            // Allow preview by updating the avatar temporarily
+            dispatch(updateAvatarOption({ option: optionKey, value }));
+            setPreviewMode(true);
+          }},
+          { text: 'Unlock & Use', onPress: () => handleUnlock(item) }
+        ]
+      );
+      return;
+    }
+    
+    // If unlocked or free, allow selection and exit preview mode
     dispatch(updateAvatarOption({ option: optionKey, value }));
+    setPreviewMode(false);
+  };
+
+  const handleUnlock = async (item: AvatarItem) => {
+    if (!user?.id) return;
+    
+    try {
+      setUnlocking(item.id);
+      
+      const result = await AvatarUnlockService.unlockItem(user.id, item.id);
+      
+      if (result.success) {
+        // Add to unlocked items
+        setUnlockedItems(prev => new Set([...prev, item.item_value]));
+        
+        // Update available XP
+        const newXP = await XPService.getAvailableXP(user.id);
+        setAvailableXP(newXP);
+        
+        // Auto-select the unlocked item and exit preview mode
+        const optionKey = getOptionKeyForCategory(category);
+        if (optionKey) {
+          dispatch(updateAvatarOption({ option: optionKey, value: item.item_value }));
+        }
+        setPreviewMode(false);
+        
+        Alert.alert('Success!', `${AvatarUnlockService.getItemLabel(category, item.item_value)} unlocked!`);
+      } else {
+        Alert.alert('Unlock Failed', result.message || 'Failed to unlock item');
+      }
+    } catch (error) {
+      console.error('Error unlocking item:', error);
+      Alert.alert('Error', 'Failed to unlock item. Please try again.');
+    } finally {
+      setUnlocking(null);
+    }
+  };
+
+  const getOptionKeyForCategory = (cat: CustomizationCategory): keyof import('../../store/slices/avatarSlice').AvatarOptions | null => {
+    switch (cat) {
+      case 'skin': return 'skinColor';
+      case 'hair': return 'topType';
+      case 'facialHair': return 'facialHairType';
+      case 'eyes': return 'eyeType';
+      case 'eyebrows': return 'eyebrowType';
+      case 'mouth': return 'mouthType';
+      case 'clothing': return 'clotheType';
+      case 'accessories': return 'accessoriesType';
+      default: return null;
+    }
+  };
+
+  const isItemUnlocked = (itemValue: string, itemCost: number): boolean => {
+    return itemCost === 0 || unlockedItems.has(itemValue);
+  };
+
+  // Rarity Color System
+  const getRarityColor = (rarity: string) => {
+    switch (rarity) {
+      case 'free':
+        return '#10b981'; // Green - Free items
+      case 'common':
+        return '#6b7280'; // Gray - Common items
+      case 'rare':
+        return '#3b82f6'; // Blue - Rare items
+      case 'epic':
+        return '#8b5cf6'; // Purple - Epic items
+      default:
+        return '#6b7280';
+    }
+  };
+
+  const getRarityGradient = (rarity: string) => {
+    switch (rarity) {
+      case 'free':
+        return ['#10b981', '#059669'];
+      case 'common':
+        return ['#6b7280', '#4b5563'];
+      case 'rare':
+        return ['#3b82f6', '#2563eb'];
+      case 'epic':
+        return ['#8b5cf6', '#7c3aed'];
+      default:
+        return ['#6b7280', '#4b5563'];
+    }
+  };
+
+  const getRarityIcon = (rarity: string) => {
+    switch (rarity) {
+      case 'free':
+        return 'checkmark-circle';
+      case 'common':
+        return 'ellipse';
+      case 'rare':
+        return 'diamond';
+      case 'epic':
+        return 'star';
+      default:
+        return 'ellipse';
+    }
+  };
+
+  const handleBackPress = () => {
+    if (previewMode) {
+      Alert.alert(
+        'Preview Mode Active',
+        'You are currently previewing a locked item. You must select an unlocked item or revert to your original selection before leaving.',
+        [
+          { text: 'Stay', style: 'cancel' },
+          { text: 'Revert to Original', onPress: () => {
+            const optionKey = getOptionKeyForCategory(category);
+            if (optionKey) {
+              dispatch(updateAvatarOption({ option: optionKey, value: originalValue }));
+            }
+            setPreviewMode(false);
+            navigation.goBack();
+          }}
+        ]
+      );
+      return true; // Always prevent back action in preview mode
+    }
+    return false; // Allow default back action
   };
 
   const renderColorPalette = (colors: Array<{ value: string; label: string }>, currentValue: string, optionKey: keyof import('../../store/slices/avatarSlice').AvatarOptions) => (
     <View style={styles.colorPalette}>
-      {colors.map((color) => (
-        <TouchableOpacity
-          key={color.value}
-          style={[
-            styles.colorSwatch,
-            { backgroundColor: `#${color.value}` },
-            currentValue === color.value && styles.selectedColorSwatch
-          ]}
-          onPress={() => handleOptionChange(optionKey, color.value)}
-        >
-          {currentValue === color.value && (
-            <View style={styles.checkmark}>
-              <Text style={styles.checkmarkText}>✓</Text>
-            </View>
-          )}
-        </TouchableOpacity>
-      ))}
+      {colors.map((color) => {
+        const item = availableItems.find(item => item.item_value === color.value);
+        const isUnlocked = isItemUnlocked(color.value, item?.xp_cost || 0);
+        const isUnlocking = unlocking === item?.id;
+        
+        return (
+          <TouchableOpacity
+            key={color.value}
+            style={[
+              styles.colorSwatch,
+              { backgroundColor: `#${color.value}` },
+              currentValue === color.value && styles.selectedColorSwatch,
+              !isUnlocked && styles.lockedSwatch
+            ]}
+            onPress={() => handleOptionChange(optionKey, color.value)}
+            disabled={isUnlocking}
+          >
+            {currentValue === color.value && (
+              <View style={styles.checkmark}>
+                <Text style={styles.checkmarkText}>✓</Text>
+              </View>
+            )}
+            
+            {/* Rarity Badge for Unlocked Items */}
+            {isUnlocked && item?.rarity && item.rarity !== 'free' && (
+              <LinearGradient
+                colors={getRarityGradient(item.rarity)}
+                style={styles.rarityBadge}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              >
+                <Ionicons name={getRarityIcon(item.rarity)} size={8} color="#ffffff" />
+              </LinearGradient>
+            )}
+            
+            {!isUnlocked && (
+              <LinearGradient
+                colors={getRarityGradient(item?.rarity || 'common')}
+                style={styles.lockOverlay}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              >
+                {isUnlocking ? (
+                  <ActivityIndicator size="small" color="#ffffff" />
+                ) : (
+                  <>
+                    <Ionicons name={getRarityIcon(item?.rarity || 'common')} size={10} color="#ffffff" />
+                    <Text style={styles.xpCost}>{item?.xp_cost}</Text>
+                  </>
+                )}
+              </LinearGradient>
+            )}
+          </TouchableOpacity>
+        );
+      })}
     </View>
   );
 
   const renderStyleGrid = (styleOptions: Array<{ value: string; label: string }>, currentValue: string, optionKey: keyof import('../../store/slices/avatarSlice').AvatarOptions) => (
     <View style={styles.styleGrid}>
-      {styleOptions.map((option) => (
-        <TouchableOpacity
-          key={option.value}
-          style={[
-            styles.styleOption,
-            currentValue === option.value && styles.selectedStyleOption
-          ]}
-          onPress={() => handleOptionChange(optionKey, option.value)}
-        >
-          <Text style={[
-            styles.styleOptionText,
-            currentValue === option.value && styles.selectedStyleOptionText
-          ]}>
-            {option.label}
-          </Text>
-        </TouchableOpacity>
-      ))}
+      {styleOptions.map((option) => {
+        const item = availableItems.find(item => item.item_value === option.value);
+        const isUnlocked = isItemUnlocked(option.value, item?.xp_cost || 0);
+        const isUnlocking = unlocking === item?.id;
+        
+        return (
+          <TouchableOpacity
+            key={option.value}
+            style={[
+              styles.styleOption,
+              currentValue === option.value && styles.selectedStyleOption,
+              !isUnlocked && styles.lockedStyleOption
+            ]}
+            onPress={() => handleOptionChange(optionKey, option.value)}
+            disabled={isUnlocking}
+          >
+            <Text style={[
+              styles.styleOptionText,
+              currentValue === option.value && styles.selectedStyleOptionText,
+              !isUnlocked && styles.lockedStyleOptionText
+            ]}>
+              {option.label}
+            </Text>
+            
+            {/* Rarity Badge for Unlocked Items */}
+            {isUnlocked && item?.rarity && item.rarity !== 'free' && (
+              <LinearGradient
+                colors={getRarityGradient(item.rarity)}
+                style={styles.styleRarityBadge}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              >
+                <Ionicons name={getRarityIcon(item.rarity)} size={8} color="#ffffff" />
+              </LinearGradient>
+            )}
+            
+            {!isUnlocked && (
+              <LinearGradient
+                colors={getRarityGradient(item?.rarity || 'common')}
+                style={styles.styleLockOverlay}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              >
+                {isUnlocking ? (
+                  <ActivityIndicator size="small" color="#ffffff" />
+                ) : (
+                  <>
+                    <Ionicons name={getRarityIcon(item?.rarity || 'common')} size={10} color="#ffffff" />
+                    <Text style={styles.styleXpCost}>{item?.xp_cost}</Text>
+                  </>
+                )}
+              </LinearGradient>
+            )}
+          </TouchableOpacity>
+        );
+      })}
     </View>
   );
 
@@ -180,17 +468,70 @@ const SubcategoryPage: React.FC<SubcategoryPageProps> = ({ category, categoryNam
         <View style={styles.headerSpacer} />
       </View>
 
+      {/* XP Display */}
+      <View style={styles.xpDisplay}>
+        <LinearGradient
+          colors={['#6366F1', '#8B5CF6', '#A855F7']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.xpGradientContainer}
+        >
+          <View style={styles.xpContent}>
+            <View style={styles.xpIconContainer}>
+              <Ionicons name="star" size={18} color="#FFFFFF" />
+            </View>
+            <View style={styles.xpTextContainer}>
+              <Text style={styles.xpAmount}>{availableXP}</Text>
+              <Text style={styles.xpLabel}>XP Available</Text>
+            </View>
+            <View style={styles.xpSparkleContainer}>
+              <Text style={styles.xpSparkle}>✨</Text>
+            </View>
+          </View>
+        </LinearGradient>
+      </View>
+
       {/* Avatar Preview */}
       <View style={styles.previewSection}>
         <View style={styles.avatarContainer}>
           <Avatar size={Math.min(width * 0.35, 160)} />
+          {previewMode && (
+            <View style={styles.previewModeIndicator}>
+              <Ionicons name="eye" size={16} color="#ffffff" />
+              <Text style={styles.previewModeText}>Preview</Text>
+            </View>
+          )}
         </View>
-        <Text style={styles.previewText}>Live Preview</Text>
+        <Text style={styles.previewText}>
+          {previewMode ? 'Preview Mode - Select unlocked item to continue' : 'Live Preview'}
+        </Text>
+        {previewMode && (
+          <TouchableOpacity 
+            style={styles.revertButton}
+            onPress={() => {
+              const optionKey = getOptionKeyForCategory(category);
+              if (optionKey) {
+                dispatch(updateAvatarOption({ option: optionKey, value: originalValue }));
+              }
+              setPreviewMode(false);
+            }}
+          >
+            <Ionicons name="arrow-undo" size={16} color="#ffffff" />
+            <Text style={styles.revertButtonText}>Revert to Original</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Customization Options */}
       <ScrollView style={styles.contentArea} showsVerticalScrollIndicator={false}>
-        {renderCategoryContent()}
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#3b82f6" />
+            <Text style={styles.loadingText}>Loading customization options...</Text>
+          </View>
+        ) : (
+          renderCategoryContent()
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -262,6 +603,54 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     marginTop: 12,
     fontWeight: '500',
+    textAlign: 'center',
+  },
+  previewModeIndicator: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: '#f59e0b',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  previewModeText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#ffffff',
+    marginLeft: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  revertButton: {
+    backgroundColor: '#ef4444',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 12,
+    shadowColor: '#ef4444',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  revertButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#ffffff',
+    marginLeft: 6,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   contentArea: {
     flex: 1,
@@ -352,6 +741,186 @@ const styles = StyleSheet.create({
   },
   selectedStyleOptionText: {
     color: '#ffffff',
+  },
+  // XP Display Styles
+  xpDisplay: {
+    backgroundColor: '#ffffff',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
+  },
+  xpGradientContainer: {
+    borderRadius: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    shadowColor: '#6366F1',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  xpContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  xpIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  xpTextContainer: {
+    flex: 1,
+    alignItems: 'center',
+    marginHorizontal: 16,
+  },
+  xpAmount: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  xpLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.9)',
+    textAlign: 'center',
+    marginTop: 2,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  xpSparkleContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  xpSparkle: {
+    fontSize: 18,
+  },
+  // Rarity Badge Styles
+  rarityBadge: {
+    position: 'absolute',
+    top: -4,
+    left: -4,
+    borderRadius: 10,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#ffffff',
+  },
+  styleRarityBadge: {
+    position: 'absolute',
+    top: -4,
+    left: -4,
+    borderRadius: 10,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#ffffff',
+  },
+  // Lock and Unlock Styles - Elegant Design
+  lockedSwatch: {
+    opacity: 0.7,
+    borderColor: '#d1d5db',
+    borderWidth: 2,
+  },
+  lockOverlay: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    borderRadius: 12,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+    borderWidth: 2,
+    borderColor: '#ffffff',
+  },
+  xpCost: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#ffffff',
+    marginTop: 1,
+  },
+  lockedStyleOption: {
+    opacity: 0.7,
+    borderColor: '#d1d5db',
+    borderWidth: 2,
+    backgroundColor: '#f8fafc',
+  },
+  lockedStyleOptionText: {
+    opacity: 0.7,
+    color: '#6b7280',
+  },
+  styleLockOverlay: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    borderRadius: 12,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+    borderWidth: 2,
+    borderColor: '#ffffff',
+  },
+  styleXpCost: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#ffffff',
+    marginTop: 1,
+  },
+  // Loading Styles
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#6b7280',
+    marginTop: 16,
+    textAlign: 'center',
   },
 });
 
