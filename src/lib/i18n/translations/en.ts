@@ -678,6 +678,7 @@ export const en: Record<string, string> = {
   'profile.noEmail': 'No email',
   'profile.menu.settings': 'Settings',
   'profile.menu.changeProfilePicture': 'Change profile picture',
+  'profile.menu.customizeAvatar': 'Customize Avatar',
   'profile.menu.removeProfilePicture': 'Remove profile picture',
   'profile.menu.inviteFriends': 'Invite friends',
   'profile.menu.faq': 'FAQs',

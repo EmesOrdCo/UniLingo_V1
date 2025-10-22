@@ -183,6 +183,14 @@ export default function ProfilePage() {
         pickImage();
       },
     },
+    {
+      id: 'avatar-customizer',
+      title: t('profile.menu.customizeAvatar'),
+      icon: 'person-outline',
+      onPress: () => {
+        navigation.navigate('AvatarEditor' as never);
+      },
+    },
     ...(profileImage ? [{
       id: 'remove-profile-picture',
       title: t('profile.menu.removeProfilePicture'),

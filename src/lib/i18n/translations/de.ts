@@ -638,6 +638,7 @@ export const de: Record<string, string> = {
   'profile.noEmail': 'Keine E-Mail',
   'profile.menu.settings': 'Einstellungen',
   'profile.menu.changeProfilePicture': 'Profilbild ändern',
+  'profile.menu.customizeAvatar': 'Avatar anpassen',
   'profile.menu.removeProfilePicture': 'Profilbild entfernen',
   'profile.menu.inviteFriends': 'Freunde einladen',
   'profile.menu.faq': 'Häufige Fragen',
