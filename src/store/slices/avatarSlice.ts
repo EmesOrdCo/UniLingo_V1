@@ -58,15 +58,17 @@ export const avatarSlice = createSlice({
   reducers: {
     updateAvatarOption: (
       state,
-      action: PayloadAction<{ option: keyof AvatarOptions; value: string }>
+      action: PayloadAction<{ option: keyof AvatarOptions; value: string; persist?: boolean }>
     ) => {
-      const { option, value } = action.payload;
+      const { option, value, persist = true } = action.payload;
       state.options[option] = value;
       
-      // Save options to AsyncStorage
-      AsyncStorage.setItem('avatar-options', JSON.stringify(state.options)).catch(
-        (error) => console.error('Error saving avatar options:', error)
-      );
+      // Only save to AsyncStorage if persist is true (default behavior)
+      if (persist) {
+        AsyncStorage.setItem('avatar-options', JSON.stringify(state.options)).catch(
+          (error) => console.error('Error saving avatar options:', error)
+        );
+      }
     },
     resetAvatar: (state) => {
       // Reset to default state

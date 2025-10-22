@@ -66,7 +66,7 @@ const SubcategoryPage: React.FC<SubcategoryPageProps> = ({ category, categoryNam
       if (previewMode) {
         const optionKey = getOptionKeyForCategory(category);
         if (optionKey) {
-          dispatch(updateAvatarOption({ option: optionKey, value: originalValue }));
+          dispatch(updateAvatarOption({ option: optionKey, value: originalValue, persist: true }));
         }
       }
     };
@@ -109,8 +109,8 @@ const SubcategoryPage: React.FC<SubcategoryPageProps> = ({ category, categoryNam
         `This item costs ${item.xp_cost} XP to unlock. You have ${availableXP} XP available.`,
         [
           { text: 'Preview Only', style: 'cancel', onPress: () => {
-            // Allow preview by updating the avatar temporarily
-            dispatch(updateAvatarOption({ option: optionKey, value }));
+            // Allow preview by updating the avatar temporarily WITHOUT persisting
+            dispatch(updateAvatarOption({ option: optionKey, value, persist: false }));
             setPreviewMode(true);
           }},
           { text: 'Unlock & Use', onPress: () => handleUnlock(item) }
@@ -120,7 +120,7 @@ const SubcategoryPage: React.FC<SubcategoryPageProps> = ({ category, categoryNam
     }
     
     // If unlocked or free, allow selection and exit preview mode
-    dispatch(updateAvatarOption({ option: optionKey, value }));
+    dispatch(updateAvatarOption({ option: optionKey, value, persist: true }));
     setPreviewMode(false);
   };
 
@@ -143,7 +143,7 @@ const SubcategoryPage: React.FC<SubcategoryPageProps> = ({ category, categoryNam
         // Auto-select the unlocked item and exit preview mode
         const optionKey = getOptionKeyForCategory(category);
         if (optionKey) {
-          dispatch(updateAvatarOption({ option: optionKey, value: item.item_value }));
+          dispatch(updateAvatarOption({ option: optionKey, value: item.item_value, persist: true }));
         }
         setPreviewMode(false);
         
@@ -233,7 +233,7 @@ const SubcategoryPage: React.FC<SubcategoryPageProps> = ({ category, categoryNam
           { text: 'Revert to Original', onPress: () => {
             const optionKey = getOptionKeyForCategory(category);
             if (optionKey) {
-              dispatch(updateAvatarOption({ option: optionKey, value: originalValue }));
+              dispatch(updateAvatarOption({ option: optionKey, value: originalValue, persist: true }));
             }
             setPreviewMode(false);
             navigation.goBack();
@@ -505,21 +505,6 @@ const SubcategoryPage: React.FC<SubcategoryPageProps> = ({ category, categoryNam
         <Text style={styles.previewText}>
           {previewMode ? 'Preview Mode - Select unlocked item to continue' : 'Live Preview'}
         </Text>
-        {previewMode && (
-          <TouchableOpacity 
-            style={styles.revertButton}
-            onPress={() => {
-              const optionKey = getOptionKeyForCategory(category);
-              if (optionKey) {
-                dispatch(updateAvatarOption({ option: optionKey, value: originalValue }));
-              }
-              setPreviewMode(false);
-            }}
-          >
-            <Ionicons name="arrow-undo" size={16} color="#ffffff" />
-            <Text style={styles.revertButtonText}>Revert to Original</Text>
-          </TouchableOpacity>
-        )}
       </View>
 
       {/* Customization Options */}
@@ -626,29 +611,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#ffffff',
     marginLeft: 4,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  revertButton: {
-    backgroundColor: '#ef4444',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 12,
-    shadowColor: '#ef4444',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  revertButtonText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#ffffff',
-    marginLeft: 6,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },

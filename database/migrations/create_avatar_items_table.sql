@@ -291,7 +291,7 @@ RETURNS TABLE (
 ) AS $$
 DECLARE
   v_item avatar_items%ROWTYPE;
-  v_available_xp INTEGER;
+  v_user_xp INTEGER;
   v_already_unlocked BOOLEAN;
 BEGIN
   -- Get the item details
@@ -320,20 +320,20 @@ BEGIN
   END IF;
   
   -- Get user's available XP
-  SELECT available_xp INTO v_available_xp 
+  SELECT available_xp INTO v_user_xp 
   FROM user_learning_stats 
   WHERE user_id = p_user_id;
   
-  IF v_available_xp IS NULL THEN
-    v_available_xp := 0;
+  IF v_user_xp IS NULL THEN
+    v_user_xp := 0;
   END IF;
   
   -- Check if user has enough XP
-  IF v_available_xp >= v_item.xp_cost THEN
-    RETURN QUERY SELECT true, v_available_xp, v_item.xp_cost, 'Can unlock'::TEXT;
+  IF v_user_xp >= v_item.xp_cost THEN
+    RETURN QUERY SELECT true, v_user_xp, v_item.xp_cost, 'Can unlock'::TEXT;
   ELSE
-    RETURN QUERY SELECT false, v_available_xp, v_item.xp_cost, 
-      FORMAT('Need %s XP (You have %s XP)', v_item.xp_cost, v_available_xp)::TEXT;
+    RETURN QUERY SELECT false, v_user_xp, v_item.xp_cost, 
+      FORMAT('Need %s XP (You have %s XP)', v_item.xp_cost, v_user_xp)::TEXT;
   END IF;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -347,7 +347,7 @@ RETURNS TABLE (
 DECLARE
   v_item avatar_items%ROWTYPE;
   v_can_unlock RECORD;
-  v_available_xp INTEGER;
+  v_rows_affected INTEGER;
 BEGIN
   -- Get the item details
   SELECT * INTO v_item FROM avatar_items WHERE id = p_item_id AND is_active = true;
@@ -369,14 +369,15 @@ BEGIN
   IF v_item.xp_cost > 0 THEN
     -- Spend XP using the existing XPService logic
     UPDATE user_learning_stats 
-    SET available_xp = available_xp - v_item.xp_cost,
+    SET available_xp = user_learning_stats.available_xp - v_item.xp_cost,
+    
         updated_at = NOW()
     WHERE user_id = p_user_id 
-    AND available_xp >= v_item.xp_cost;
+    AND user_learning_stats.available_xp >= v_item.xp_cost;
     
     -- Check if XP was actually spent
-    GET DIAGNOSTICS v_available_xp = ROW_COUNT;
-    IF v_available_xp = 0 THEN
+    GET DIAGNOSTICS v_rows_affected = ROW_COUNT;
+    IF v_rows_affected = 0 THEN
       RETURN QUERY SELECT false, 'Failed to spend XP'::TEXT;
       RETURN;
     END IF;
