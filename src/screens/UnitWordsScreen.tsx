@@ -20,12 +20,15 @@ import { getVocabularySpeechLanguage, getNativeLanguageSpeechCode, getTargetLang
 import * as Speech from 'expo-speech';
 import { useTranslation } from '../lib/i18n';
 import { GeneralLessonProgressService } from '../lib/generalLessonProgressService';
+import AnimatedAvatar from '../components/avatar/AnimatedAvatar';
+import { useAvatarAnimation } from '../hooks/useAvatarAnimation';
 
 export default function UnitWordsScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const { user, profile } = useAuth();
   const { t } = useTranslation();
+  const { currentAnimation, triggerCelebration, triggerDisappointed } = useAvatarAnimation();
   
   const { unitTitle, subjectName, cefrLevel } = (route.params as any) || { unitTitle: 'Saying Hello', subjectName: 'Asking About Location', cefrLevel: 'A1' };
   
@@ -215,6 +218,13 @@ export default function UnitWordsScreen() {
     const correct = selectedAnswer === question.correctAnswer;
     setIsCorrect(correct);
     setShowResult(true);
+    
+    // Trigger avatar animation based on answer
+    if (correct) {
+      triggerCelebration();
+    } else {
+      triggerDisappointed();
+    }
     
     // Haptic feedback based on answer
     if (correct) {
@@ -521,12 +531,17 @@ export default function UnitWordsScreen() {
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
         {/* Question */}
         <View style={styles.questionSection}>
-          <Text style={styles.questionLabel}>
-            {question.type === 'en-to-fr' ? t('lessons.exercises.translateThis') : t('lessons.exercises.whichOfThese')}
-          </Text>
-          <Text style={styles.questionText}>
-            {question.type === 'en-to-fr' ? question.question : `" ${question.question} " ?`}
-          </Text>
+          <View style={styles.questionHeader}>
+            <AnimatedAvatar size={80} style={styles.questionAvatar} animationType={currentAnimation} showCircle={false} />
+            <View style={styles.questionTextContainer}>
+              <Text style={styles.questionLabel}>
+                {question.type === 'en-to-fr' ? t('lessons.exercises.translateThis') : t('lessons.exercises.whichOfThese')}
+              </Text>
+              <Text style={styles.questionText}>
+                {question.type === 'en-to-fr' ? question.question : `" ${question.question} " ?`}
+              </Text>
+            </View>
+          </View>
         </View>
 
         {/* Answer Options */}
@@ -748,6 +763,19 @@ const styles = StyleSheet.create({
   },
   questionSection: {
     marginBottom: 24,
+    paddingHorizontal: 20,
+  },
+  questionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+  },
+  questionAvatar: {
+    marginRight: 8,
+  },
+  questionTextContainer: {
+    flex: 1,
     alignItems: 'center',
   },
   questionLabel: {

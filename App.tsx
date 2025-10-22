@@ -73,6 +73,8 @@ import AudioPlayerScreen from './src/screens/AudioPlayerScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import AvatarEditorScreen from './src/screens/AvatarEditorScreen';
 import AvatarSubcategoryScreen from './src/screens/AvatarSubcategoryScreen';
+import AvatarAnimationTestScreen from './src/screens/AvatarAnimationTestScreen';
+import SimpleAnimationTest from './src/components/SimpleAnimationTest';
 
 const Stack = createStackNavigator();
 
@@ -129,6 +131,8 @@ function MainNavigator() {
       <Stack.Screen name="Settings" component={SettingsScreen} />
       <Stack.Screen name="AvatarEditor" component={AvatarEditorScreen} />
       <Stack.Screen name="AvatarSubcategory" component={AvatarSubcategoryScreen} />
+      <Stack.Screen name="AvatarAnimationTest" component={AvatarAnimationTestScreen} />
+      <Stack.Screen name="SimpleAnimationTest" component={SimpleAnimationTest} />
     </Stack.Navigator>
   );
 }

@@ -6,6 +6,8 @@ import * as Haptics from 'expo-haptics';
 import { useTranslation } from '../../lib/i18n';
 import { useAuth } from '../../contexts/AuthContext';
 import { VocabularyInterpretationService, InterpretedVocabulary } from '../../lib/vocabularyInterpretationService';
+import AnimatedAvatar from '../avatar/AnimatedAvatar';
+import { useAvatarAnimation } from '../../hooks/useAvatarAnimation';
 
 interface LessonSentenceScrambleProps {
   vocabulary: any[];
@@ -32,6 +34,7 @@ export default function LessonSentenceScramble({ vocabulary, onComplete, onClose
   const [isCorrect, setIsCorrect] = useState(false);
   const [gameComplete, setGameComplete] = useState(false);
   const { profile } = useAuth();
+  const { currentAnimation, triggerCelebration, triggerDisappointed } = useAvatarAnimation();
 
   // Get user's language pair
   const languagePair = {
@@ -116,6 +119,13 @@ export default function LessonSentenceScramble({ vocabulary, onComplete, onClose
     
     const correctAnswer = userSentence === correctSentence;
     setIsCorrect(correctAnswer);
+    
+    // Trigger avatar animation based on answer
+    if (correctAnswer) {
+      triggerCelebration();
+    } else {
+      triggerDisappointed();
+    }
     
     // Haptic feedback based on answer
     if (correctAnswer) {
@@ -287,9 +297,12 @@ export default function LessonSentenceScramble({ vocabulary, onComplete, onClose
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.questionContainer}>
-          <Text style={styles.instructionText}>
-            {t('lessons.sentenceScramble.instructions')}
-          </Text>
+          <View style={styles.questionHeader}>
+            <AnimatedAvatar size={80} style={styles.questionAvatar} animationType={currentAnimation} showCircle={false} />
+            <Text style={styles.instructionText}>
+              {t('lessons.sentenceScramble.instructions')}
+            </Text>
+          </View>
 
           {/* Selected Words */}
           <View style={styles.selectedWordsContainer}>
@@ -426,12 +439,22 @@ const styles = StyleSheet.create({
   questionContainer: {
     padding: 20,
   },
+  questionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+    marginBottom: 24,
+  },
+  questionAvatar: {
+    marginRight: 8,
+  },
   instructionText: {
     fontSize: 18,
     fontWeight: '600',
     color: '#1e293b',
-    marginBottom: 24,
     textAlign: 'center',
+    flex: 1,
   },
   selectedWordsContainer: {
     marginBottom: 24,

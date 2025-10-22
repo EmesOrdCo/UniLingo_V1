@@ -7,6 +7,8 @@ import { useTranslation } from '../../lib/i18n';
 import { useAuth } from '../../contexts/AuthContext';
 import { VocabularyInterpretationService, InterpretedVocabulary } from '../../lib/vocabularyInterpretationService';
 import LeaveConfirmationModal from './LeaveConfirmationModal';
+import AnimatedAvatar from '../avatar/AnimatedAvatar';
+import { useAvatarAnimation } from '../../hooks/useAvatarAnimation';
 
 interface LessonFlashcardQuizProps {
   vocabulary: any[];
@@ -35,6 +37,7 @@ export default function LessonFlashcardQuiz({ vocabulary, onComplete, onClose, o
   const [reviewFilter, setReviewFilter] = useState<'all' | 'correct' | 'incorrect'>('all');
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   const { profile } = useAuth();
+  const { currentAnimation, triggerCelebration, triggerDisappointed } = useAvatarAnimation();
 
   // Get user's language pair - memoized to prevent unnecessary re-renders
   const languagePair = useMemo(() => ({
@@ -148,6 +151,13 @@ export default function LessonFlashcardQuiz({ vocabulary, onComplete, onClose, o
     setShowResult(true);
     
     const isCorrect = answer === questions[currentQuestion].correctAnswer;
+    
+    // Trigger avatar animation based on answer
+    if (isCorrect) {
+      triggerCelebration();
+    } else {
+      triggerDisappointed();
+    }
     
     // Haptic feedback based on answer
     if (isCorrect) {
@@ -383,7 +393,10 @@ export default function LessonFlashcardQuiz({ vocabulary, onComplete, onClose, o
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.questionContainer}>
-          <Text style={styles.questionText}>{question.question}</Text>
+          <View style={styles.questionHeader}>
+            <AnimatedAvatar size={80} style={styles.questionAvatar} animationType={currentAnimation} showCircle={false} />
+            <Text style={styles.questionText}>{question.question}</Text>
+          </View>
           
           <View style={styles.optionsContainer}>
             {question.options.map((option, index) => (
@@ -509,13 +522,23 @@ const styles = StyleSheet.create({
   questionContainer: {
     padding: 20,
   },
+  questionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+    marginBottom: 24,
+  },
+  questionAvatar: {
+    marginRight: 8,
+  },
   questionText: {
     fontSize: 20,
     fontWeight: '600',
     color: '#1e293b',
-    marginBottom: 24,
     textAlign: 'center',
     lineHeight: 28,
+    flex: 1,
   },
   optionsContainer: {
     gap: 12,

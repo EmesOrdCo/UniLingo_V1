@@ -19,6 +19,8 @@ import { UnitDataAdapter, UnitVocabularyItem, UnitSentence } from '../lib/unitDa
 import { logger } from '../lib/logger';
 import { useTranslation } from '../lib/i18n';
 import { GeneralLessonProgressService } from '../lib/generalLessonProgressService';
+import AnimatedAvatar from '../components/avatar/AnimatedAvatar';
+import { useAvatarAnimation } from '../hooks/useAvatarAnimation';
 
 // TODO: Move to database or configuration file
 // Hardcoded vocabulary for "Saying Hello" - should be loaded from database
@@ -55,6 +57,7 @@ export default function UnitSpeakScreen() {
   const route = useRoute();
   const { user, profile } = useAuth();
   const { t } = useTranslation();
+  const { currentAnimation, triggerCelebration, triggerDisappointed } = useAvatarAnimation();
   
   const { unitTitle, subjectName, cefrLevel } = (route.params as any) || { 
     unitTitle: 'Saying Hello', 
@@ -196,6 +199,13 @@ export default function UnitSpeakScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } else {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    }
+    
+    // Trigger avatar animation based on pronunciation result
+    if (passed) {
+      triggerCelebration();
+    } else {
+      triggerDisappointed();
     }
     
     if (passed) {
@@ -413,9 +423,14 @@ export default function UnitSpeakScreen() {
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
         {/* Question Type Indicator */}
-        <Text style={styles.questionTypeLabel}>
-          {currentQuestion.type === 'word' ? t('lessons.speak.sayTheWordInstruction') : t('lessons.speak.sayTheSentenceInstruction')}
-        </Text>
+        <View style={styles.questionSection}>
+          <View style={styles.questionHeader}>
+            <AnimatedAvatar size={80} style={styles.questionAvatar} animationType={currentAnimation} showCircle={false} />
+            <Text style={styles.questionTypeLabel}>
+              {currentQuestion.type === 'word' ? t('lessons.speak.sayTheWordInstruction') : t('lessons.speak.sayTheSentenceInstruction')}
+            </Text>
+          </View>
+        </View>
 
         {/* Pronunciation Check Component */}
         {currentQuestion && (
@@ -525,14 +540,26 @@ const styles = StyleSheet.create({
   contentContainer: {
     padding: 20,
   },
+  questionSection: {
+    marginBottom: 24,
+  },
+  questionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+  },
+  questionAvatar: {
+    marginRight: 8,
+  },
   questionTypeLabel: {
     fontSize: 14,
     fontWeight: '600',
     color: '#6b7280',
     textAlign: 'center',
-    marginBottom: 24,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
+    flex: 1,
   },
   translationCard: {
     backgroundColor: '#ffffff',

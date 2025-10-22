@@ -4,6 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useTranslation } from '../../lib/i18n';
+import AnimatedAvatar from '../avatar/AnimatedAvatar';
+import { useAvatarAnimation } from '../../hooks/useAvatarAnimation';
 
 interface LessonWordScrambleProps {
   vocabulary: any[];
@@ -29,6 +31,7 @@ export default function LessonWordScramble({ vocabulary, onComplete, onClose, on
   const [showResult, setShowResult] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
   const [gameComplete, setGameComplete] = useState(false);
+  const { currentAnimation, triggerCelebration, triggerDisappointed } = useAvatarAnimation();
 
   useEffect(() => {
     generateQuestions();
@@ -99,6 +102,13 @@ export default function LessonWordScramble({ vocabulary, onComplete, onClose, on
     
     const correctAnswer = userInput === correct;
     setIsCorrect(correctAnswer);
+    
+    // Trigger avatar animation based on answer
+    if (correctAnswer) {
+      triggerCelebration();
+    } else {
+      triggerDisappointed();
+    }
     
     // Haptic feedback based on answer
     if (correctAnswer) {
@@ -288,9 +298,12 @@ export default function LessonWordScramble({ vocabulary, onComplete, onClose, on
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.questionContainer}>
-          <Text style={styles.instructionText}>
-            {t('lessons.wordScramble.instructions')}
-          </Text>
+          <View style={styles.questionHeader}>
+            <AnimatedAvatar size={80} style={styles.questionAvatar} animationType={currentAnimation} showCircle={false} />
+            <Text style={styles.instructionText}>
+              {t('lessons.wordScramble.instructions')}
+            </Text>
+          </View>
 
           {/* Scrambled Word Display */}
           <View style={styles.scrambledWordContainer}>
@@ -433,12 +446,22 @@ const styles = StyleSheet.create({
   questionContainer: {
     padding: 20,
   },
+  questionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+    marginBottom: 24,
+  },
+  questionAvatar: {
+    marginRight: 8,
+  },
   instructionText: {
     fontSize: 18,
     fontWeight: '600',
     color: '#1e293b',
-    marginBottom: 24,
     textAlign: 'center',
+    flex: 1,
   },
   scrambledWordContainer: {
     marginBottom: 24,

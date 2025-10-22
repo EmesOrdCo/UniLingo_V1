@@ -24,6 +24,8 @@ import { UnitDataAdapter, UnitConversationExchange } from '../lib/unitDataAdapte
 import { logger } from '../lib/logger';
 import { useTranslation } from '../lib/i18n';
 import { GeneralLessonProgressService } from '../lib/generalLessonProgressService';
+import AnimatedAvatar from '../components/avatar/AnimatedAvatar';
+import { useAvatarAnimation } from '../hooks/useAvatarAnimation';
 import { getAppropriateSpeechLanguage, getTargetLanguageSpeechCode, getNativeLanguageSpeechCode } from '../lib/languageService';
 import { VoiceService } from '../lib/voiceService';
 import * as Speech from 'expo-speech';
@@ -93,6 +95,7 @@ export default function UnitRoleplayScreen() {
   const { user, profile } = useAuth();
   const { t } = useTranslation();
   const scrollViewRef = useRef<ScrollView>(null);
+  const { currentAnimation, triggerCelebration, triggerDisappointed } = useAvatarAnimation();
   
   const { unitTitle, subjectName, cefrLevel } = (route.params as any) || { 
     unitTitle: 'Saying Hello', 
@@ -353,6 +356,13 @@ export default function UnitRoleplayScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } else {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    }
+    
+    // Trigger avatar animation based on pronunciation result
+    if (passed) {
+      triggerCelebration();
+    } else {
+      triggerDisappointed();
     }
     
     if (passed) {
@@ -1131,7 +1141,12 @@ export default function UnitRoleplayScreen() {
       {/* Pinned Bottom Section: Current Question + Answer Interface */}
       {currentExchangeIndex < getTotalExchanges() && (
         <View style={styles.bottomPinnedSection}>
-          <Text style={styles.questionLabel}>{t('lessons.roleplay.sayThisPhrase')}</Text>
+          <View style={styles.questionSection}>
+            <View style={styles.questionHeader}>
+              <AnimatedAvatar size={80} style={styles.questionAvatar} animationType={currentAnimation} showCircle={false} />
+              <Text style={styles.questionLabel}>{t('lessons.roleplay.sayThisPhrase')}</Text>
+            </View>
+          </View>
           
           {/* Current Question Bubble - Target language */}
           <Text style={styles.currentPrompt}>{currentExchange.userMessage.french}</Text>
@@ -1546,13 +1561,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingBottom: 12,
   },
+  questionSection: {
+    marginBottom: 8,
+  },
+  questionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+  },
+  questionAvatar: {
+    marginRight: 8,
+  },
   questionLabel: {
     fontSize: 12,
     fontWeight: '700',
     color: '#9ca3af',
     textAlign: 'center',
     letterSpacing: 0.8,
-    marginBottom: 8,
+    flex: 1,
   },
   currentPrompt: {
     fontSize: 18,

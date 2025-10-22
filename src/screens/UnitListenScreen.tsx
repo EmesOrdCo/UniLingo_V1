@@ -19,12 +19,15 @@ import { logger } from '../lib/logger';
 import { getVocabularySpeechLanguage, getSpeechLanguageCode } from '../lib/languageService';
 import { useTranslation } from '../lib/i18n';
 import { GeneralLessonProgressService } from '../lib/generalLessonProgressService';
+import AnimatedAvatar from '../components/avatar/AnimatedAvatar';
+import { useAvatarAnimation } from '../hooks/useAvatarAnimation';
 
 export default function UnitListenScreen() {
   const navigation = useNavigation();
   const route = useRoute();
   const { user, profile } = useAuth();
   const { t } = useTranslation();
+  const { currentAnimation, triggerCelebration, triggerDisappointed } = useAvatarAnimation();
   
   const { unitTitle, subjectName, cefrLevel } = (route.params as any) || { 
     unitTitle: 'Saying Hello', 
@@ -261,6 +264,13 @@ export default function UnitListenScreen() {
       setIsCorrect(correct);
       setShowResult(true);
       
+      // Trigger avatar animation based on answer
+      if (correct) {
+        triggerCelebration();
+      } else {
+        triggerDisappointed();
+      }
+      
       // Haptic feedback based on answer
       if (correct) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -280,6 +290,13 @@ export default function UnitListenScreen() {
       const correct = selectedAnswer === question.correctAnswer;
       setIsCorrect(correct);
       setShowResult(true);
+      
+      // Trigger avatar animation based on answer
+      if (correct) {
+        triggerCelebration();
+      } else {
+        triggerDisappointed();
+      }
       
       // Haptic feedback based on answer
       if (correct) {
@@ -509,15 +526,22 @@ export default function UnitListenScreen() {
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer}>
         {/* Question Text */}
-        {question.type === 'word-choice' && (
-          <Text style={styles.questionText}>{t('lessons.listen.tapCorrectAnswer')}</Text>
-        )}
-        {question.type === 'sentence-choice' && (
-          <Text style={styles.questionText}>{t('lessons.listen.tapCorrectAnswer')}</Text>
-        )}
-        {question.type === 'scramble' && (
-          <Text style={styles.questionText}>{t('lessons.listen.tapWhatYouHear')}</Text>
-        )}
+        <View style={styles.questionSection}>
+          <View style={styles.questionHeader}>
+            <AnimatedAvatar size={80} style={styles.questionAvatar} animationType={currentAnimation} showCircle={false} />
+            <View style={styles.questionTextContainer}>
+              {question.type === 'word-choice' && (
+                <Text style={styles.questionText}>{t('lessons.listen.tapCorrectAnswer')}</Text>
+              )}
+              {question.type === 'sentence-choice' && (
+                <Text style={styles.questionText}>{t('lessons.listen.tapCorrectAnswer')}</Text>
+              )}
+              {question.type === 'scramble' && (
+                <Text style={styles.questionText}>{t('lessons.listen.tapWhatYouHear')}</Text>
+              )}
+            </View>
+          </View>
+        </View>
 
         {/* Audio Play Button */}
         <View style={styles.audioSection}>
@@ -732,12 +756,26 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 20,
   },
+  questionSection: {
+    marginBottom: 24,
+  },
+  questionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+  },
+  questionAvatar: {
+    marginRight: 8,
+  },
+  questionTextContainer: {
+    flex: 1,
+  },
   questionText: {
     fontSize: 20,
     fontWeight: '600',
     color: '#000000',
     textAlign: 'center',
-    marginBottom: 32,
   },
   audioSection: {
     alignItems: 'center',

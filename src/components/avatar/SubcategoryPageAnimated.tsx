@@ -19,7 +19,6 @@ import { useAuth } from '../../contexts/AuthContext';
 import { AvatarUnlockService, AvatarItem } from '../../lib/avatarUnlockService';
 import { XPService } from '../../lib/xpService';
 import { LinearGradient } from 'expo-linear-gradient';
-import Avatar from './Avatar';
 import AnimatedAvatar from './AnimatedAvatar';
 import { useAvatarAnimation } from '../../hooks/useAvatarAnimation';
 import * as AvatarConstants from './constants';
@@ -49,7 +48,7 @@ const SubcategoryPage: React.FC<SubcategoryPageProps> = ({ category, categoryNam
   const [originalValue, setOriginalValue] = useState<string>('');
   
   // Animation controls
-  const { currentAnimation, triggerEquip, triggerCelebration, triggerDisappointed } = useAvatarAnimation();
+  const { currentAnimation, triggerEquip, triggerCelebration, triggerBlink } = useAvatarAnimation();
 
   useEffect(() => {
     loadData();
@@ -524,21 +523,15 @@ const SubcategoryPage: React.FC<SubcategoryPageProps> = ({ category, categoryNam
         <View style={styles.testControls}>
           <TouchableOpacity 
             style={styles.testButton} 
-            onPress={() => {
-              console.log('🎉 Test button pressed');
-              triggerCelebration();
-            }}
+            onPress={triggerCelebration}
           >
-            <Text style={styles.testButtonText}>🎉 Correct Answer</Text>
+            <Text style={styles.testButtonText}>🎉 Test Celebrate</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={styles.testButton} 
-            onPress={() => {
-              console.log('😞 Test button pressed');
-              triggerDisappointed();
-            }}
+            onPress={triggerBlink}
           >
-            <Text style={styles.testButtonText}>😞 Wrong Answer</Text>
+            <Text style={styles.testButtonText}>👁️ Test Blink</Text>
           </TouchableOpacity>
         </View>
       </View>

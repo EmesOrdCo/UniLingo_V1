@@ -13,6 +13,8 @@ import * as Haptics from 'expo-haptics';
 import { useTranslation } from '../../lib/i18n';
 import PronunciationCheck from '../PronunciationCheck';
 import LeaveConfirmationModal from './LeaveConfirmationModal';
+import AnimatedAvatar from '../avatar/AnimatedAvatar';
+import { useAvatarAnimation } from '../../hooks/useAvatarAnimation';
 
 interface LessonSpeakProps {
   vocabulary: any[];
@@ -36,6 +38,7 @@ export default function LessonSpeak({
   const [currentWordPassed, setCurrentWordPassed] = useState(false);
   const [gameComplete, setGameComplete] = useState(false);
   const [showLeaveModal, setShowLeaveModal] = useState(false);
+  const { currentAnimation, triggerCelebration, triggerDisappointed } = useAvatarAnimation();
 
   useEffect(() => {
     if (onProgressUpdate) {
@@ -73,6 +76,13 @@ export default function LessonSpeak({
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } else {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    }
+    
+    // Trigger avatar animation based on pronunciation result
+    if (binaryScore === 1) {
+      triggerCelebration();
+    } else {
+      triggerDisappointed();
     }
     
     setScores(prev => [...prev, binaryScore]);
@@ -232,13 +242,18 @@ export default function LessonSpeak({
 
         {/* Pronunciation Assessment */}
         <View style={styles.pronunciationContainer}>
-          <PronunciationCheck
-            key={`pronunciation-${currentIndex}`}
-            word={currentWord}
-            onResult={handlePronunciationResult}
-            disabled={currentWordPassed}
-            maxRecordingDuration={5000}
-          />
+          <View style={styles.questionHeader}>
+            <AnimatedAvatar size={80} style={styles.questionAvatar} animationType={currentAnimation} showCircle={false} />
+            <View style={styles.pronunciationContent}>
+              <PronunciationCheck
+                key={`pronunciation-${currentIndex}`}
+                word={currentWord}
+                onResult={handlePronunciationResult}
+                disabled={currentWordPassed}
+                maxRecordingDuration={5000}
+              />
+            </View>
+          </View>
         </View>
 
         {/* Next Button */}
@@ -334,6 +349,19 @@ const styles = StyleSheet.create({
   pronunciationContainer: {
     paddingHorizontal: 20,
     paddingBottom: 20,
+  },
+  questionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+    marginBottom: 20,
+  },
+  questionAvatar: {
+    marginRight: 8,
+  },
+  pronunciationContent: {
+    flex: 1,
   },
   nextButtonContainer: {
     paddingHorizontal: 20,

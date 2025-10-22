@@ -77,15 +77,17 @@ const SubjectBox: React.FC<SubjectBoxProps> = ({ subject, onPress, isExpanded = 
     >
       <View style={styles.subjectContent}>
         <View style={styles.subjectMainInfo}>
-          <Text style={styles.unitNumber}>{t('subjectBoxes.unitNumber')}</Text>
-          <Text style={styles.subjectTitle}>{String(subject.name || 'Unknown Subject')}</Text>
-          <View style={styles.subjectMetaRow}>
-            <Text style={styles.subjectMeta}>
-              {String(subject.cefrLevel || 'A1.1')} • {t('subjectBoxes.topicGroup')}
-            </Text>
-            <TouchableOpacity style={styles.downloadIcon}>
-              <Ionicons name="download-outline" size={20} color="#9ca3af" />
-            </TouchableOpacity>
+          <View style={styles.subjectTextContainer}>
+            <Text style={styles.unitNumber}>{t('subjectBoxes.unitNumber')}</Text>
+            <Text style={styles.subjectTitle}>{String(subject.name || 'Unknown Subject')}</Text>
+            <View style={styles.subjectMetaRow}>
+              <Text style={styles.subjectMeta}>
+                {String(subject.cefrLevel || 'A1.1')} • {t('subjectBoxes.topicGroup')}
+              </Text>
+              <TouchableOpacity style={styles.downloadIcon}>
+                <Ionicons name="download-outline" size={20} color="#9ca3af" />
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
         <View style={styles.expandIcon}>

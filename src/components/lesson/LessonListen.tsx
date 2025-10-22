@@ -16,6 +16,8 @@ import { VoiceService } from '../../lib/voiceService';
 import { AWSPollyService } from '../../lib/awsPollyService';
 import { VocabularyInterpretationService } from '../../lib/vocabularyInterpretationService';
 import LeaveConfirmationModal from './LeaveConfirmationModal';
+import AnimatedAvatar from '../avatar/AnimatedAvatar';
+import { useAvatarAnimation } from '../../hooks/useAvatarAnimation';
 
 interface LessonListenProps {
   vocabulary: any[];
@@ -53,6 +55,7 @@ export default function LessonListen({
   const [isPlaying, setIsPlaying] = useState(false);
   const [gameComplete, setGameComplete] = useState(false);
   const [showLeaveModal, setShowLeaveModal] = useState(false);
+  const { currentAnimation, triggerCelebration, triggerDisappointed } = useAvatarAnimation();
 
   // Get user's language pair - memoized to prevent unnecessary re-renders
   const languagePair = React.useMemo(() => ({
@@ -170,6 +173,13 @@ export default function LessonListen({
     setIsCorrect(correct);
     setShowResult(true);
     
+    // Trigger avatar animation based on answer
+    if (correct) {
+      triggerCelebration();
+    } else {
+      triggerDisappointed();
+    }
+    
     // Haptic feedback based on answer
     if (correct) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -190,6 +200,13 @@ export default function LessonListen({
     const correct = userAnswer === correctAnswer;
     setIsCorrect(correct);
     setShowResult(true);
+    
+    // Trigger avatar animation based on answer
+    if (correct) {
+      triggerCelebration();
+    } else {
+      triggerDisappointed();
+    }
     
     // Haptic feedback based on answer
     if (correct) {
@@ -428,9 +445,14 @@ export default function LessonListen({
 
         {/* Audio Player Card */}
         <View style={styles.audioCard}>
-          <Text style={styles.instructionText}>
-            {currentRound === 1 ? t('lessons.listen.instructions') : t('lessons.listen.typeInstructions')}
-          </Text>
+          <View style={styles.questionHeader}>
+            <AnimatedAvatar size={80} style={styles.questionAvatar} animationType={currentAnimation} showCircle={false} />
+            <View style={styles.instructionContainer}>
+              <Text style={styles.instructionText}>
+                {currentRound === 1 ? t('lessons.listen.instructions') : t('lessons.listen.typeInstructions')}
+              </Text>
+            </View>
+          </View>
           
           <TouchableOpacity 
             style={[styles.playButton, isPlaying && styles.playButtonActive]}
@@ -639,11 +661,23 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
   },
+  questionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+    marginBottom: 12,
+  },
+  questionAvatar: {
+    marginRight: 8,
+  },
+  instructionContainer: {
+    flex: 1,
+  },
   instructionText: {
     fontSize: 16,
     color: '#6b7280',
     textAlign: 'center',
-    marginBottom: 12,
   },
   playButton: {
     alignItems: 'center',

@@ -6,6 +6,8 @@ import * as Haptics from 'expo-haptics';
 import { useAuth } from '../../contexts/AuthContext';
 import { VocabularyInterpretationService, InterpretedVocabulary } from '../../lib/vocabularyInterpretationService';
 import LeaveConfirmationModal from './LeaveConfirmationModal';
+import AnimatedAvatar from '../avatar/AnimatedAvatar';
+import { useAvatarAnimation } from '../../hooks/useAvatarAnimation';
 import { useTranslation } from '../../lib/i18n';
 
 interface LessonFillInTheBlankProps {
@@ -40,6 +42,7 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
   const [showHint, setShowHint] = useState(false);
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   const { profile } = useAuth();
+  const { currentAnimation, triggerCelebration, triggerDisappointed } = useAvatarAnimation();
 
   // Get user's language pair - memoized to prevent unnecessary re-renders
   const languagePair = useMemo(() => ({
@@ -121,6 +124,13 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
     setSelectedOption(option);
     setIsCorrect(isAnswerCorrect);
     
+    // Trigger avatar animation based on answer
+    if (isAnswerCorrect) {
+      triggerCelebration();
+    } else {
+      triggerDisappointed();
+    }
+    
     // Haptic feedback based on answer
     if (isAnswerCorrect) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -147,6 +157,13 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
                            correctAnswer.includes(userAnswerLower);
     
     setIsCorrect(isAnswerCorrect);
+    
+    // Trigger avatar animation based on answer
+    if (isAnswerCorrect) {
+      triggerCelebration();
+    } else {
+      triggerDisappointed();
+    }
     
     // Haptic feedback based on answer
     if (isAnswerCorrect) {
@@ -459,11 +476,14 @@ export default function LessonFillInTheBlank({ vocabulary, onComplete, onClose, 
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         <View style={styles.questionContainer}>
-          <View style={styles.sentenceContainer}>
-          <Text style={styles.sentenceText}>
-            {createSentenceWithBlank(currentQuestion?.sentence || '', currentQuestion?.blankWord || '')}
-          </Text>
-        </View>
+          <View style={styles.questionHeader}>
+            <AnimatedAvatar size={80} style={styles.questionAvatar} animationType={currentAnimation} showCircle={false} />
+            <View style={styles.sentenceContainer}>
+              <Text style={styles.sentenceText}>
+                {createSentenceWithBlank(currentQuestion?.sentence || '', currentQuestion?.blankWord || '')}
+              </Text>
+            </View>
+          </View>
 
         <View style={styles.hintToggleContainer}>
           <TouchableOpacity 
@@ -648,6 +668,16 @@ const styles = StyleSheet.create({
   questionContainer: {
     padding: 12,
   },
+  questionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+    marginBottom: 16,
+  },
+  questionAvatar: {
+    marginRight: 8,
+  },
   questionNumber: {
     fontSize: 18,
     fontWeight: '600',
@@ -665,6 +695,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 4,
+    flex: 1,
   },
   sentenceText: {
     fontSize: 18,

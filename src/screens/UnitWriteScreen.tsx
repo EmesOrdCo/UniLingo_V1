@@ -23,6 +23,8 @@ import { UnitDataAdapter, UnitWriteExercise, UnitConversationExchange } from '..
 import { logger } from '../lib/logger';
 import { useTranslation } from '../lib/i18n';
 import { GeneralLessonProgressService } from '../lib/generalLessonProgressService';
+import AnimatedAvatar from '../components/avatar/AnimatedAvatar';
+import { useAvatarAnimation } from '../hooks/useAvatarAnimation';
 import { getAppropriateSpeechLanguage, getTargetLanguageSpeechCode, getNativeLanguageSpeechCode } from '../lib/languageService';
 import { VoiceService } from '../lib/voiceService';
 import * as Speech from 'expo-speech';
@@ -101,6 +103,7 @@ export default function UnitWriteScreen() {
   const { user, profile } = useAuth();
   const { t } = useTranslation();
   const scrollViewRef = useRef<ScrollView>(null);
+  const { currentAnimation, triggerCelebration, triggerDisappointed } = useAvatarAnimation();
   
   const { unitTitle, subjectName, cefrLevel } = (route.params as any) || { 
     unitTitle: 'Saying Hello', 
@@ -863,6 +866,13 @@ export default function UnitWriteScreen() {
 
     setIsCorrect(correct);
     setShowResult(true);
+
+    // Trigger avatar animation based on answer
+    if (correct) {
+      triggerCelebration();
+    } else {
+      triggerDisappointed();
+    }
 
     // Haptic feedback based on answer
     if (correct) {
@@ -1692,9 +1702,14 @@ export default function UnitWriteScreen() {
       {/* Pinned Bottom Section: Current Question + Answer Interface */}
       {currentExchangeIndex < getTotalExchanges() && (
         <View style={styles.bottomPinnedSection}>
-          <Text style={styles.questionLabel}>
-            {currentExchange.type === 'choice' ? t('lessons.write.tapCorrectAnswer') : t('lessons.write.correctOrdering')}
-          </Text>
+          <View style={styles.questionSection}>
+            <View style={styles.questionHeader}>
+              <AnimatedAvatar size={80} style={styles.questionAvatar} animationType={currentAnimation} showCircle={false} />
+              <Text style={styles.questionLabel}>
+                {currentExchange.type === 'choice' ? t('lessons.write.tapCorrectAnswer') : t('lessons.write.correctOrdering')}
+              </Text>
+            </View>
+          </View>
 
           {/* Answer Interface */}
           {currentExchange.type === 'choice' ? (
@@ -2569,13 +2584,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 20,
   },
+  questionSection: {
+    marginBottom: 12,
+  },
+  questionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+  },
+  questionAvatar: {
+    marginRight: 8,
+  },
   questionLabel: {
     fontSize: 12,
     fontWeight: '700',
     color: '#9ca3af',
     textAlign: 'center',
     letterSpacing: 0.8,
-    marginBottom: 12,
+    flex: 1,
   },
   currentPrompt: {
     fontSize: 20,
