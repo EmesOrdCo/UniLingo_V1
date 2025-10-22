@@ -3,8 +3,6 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, Image, Lin
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { useDispatch } from 'react-redux';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../contexts/AuthContext';
 import { HolisticProgressService } from '../lib/holisticProgressService';
 import { useTranslation } from '../lib/i18n';
@@ -14,7 +12,6 @@ import ContactSupportModal from '../components/ContactSupportModal';
 import SubscriptionStatus from '../components/SubscriptionStatus';
 import AIUsageBar from '../components/AIUsageBar';
 import Avatar from '../components/avatar/Avatar';
-import { loadAvatarOptions } from '../store/slices/avatarSlice';
 // Character system removed - will implement custom 2D system
 
 const { width } = Dimensions.get('window');
@@ -22,7 +19,6 @@ const { width } = Dimensions.get('window');
 export default function ProfilePage() {
   const { t } = useTranslation();
   const navigation = useNavigation();
-  const dispatch = useDispatch();
   const { user, profile, signOut } = useAuth();
   const [currentStreak, setCurrentStreak] = useState(0);
   const [showSettings, setShowSettings] = useState(false);
@@ -44,20 +40,8 @@ export default function ProfilePage() {
     };
 
 
-    const loadAvatarOptionsFromStorage = async () => {
-      try {
-        const savedOptions = await AsyncStorage.getItem('avatar-options');
-        if (savedOptions) {
-          dispatch(loadAvatarOptions(JSON.parse(savedOptions)));
-        }
-      } catch (error) {
-        console.error('Error loading avatar options:', error);
-      }
-    };
-
     fetchStreak();
-    loadAvatarOptionsFromStorage();
-  }, [user?.id, dispatch]);
+  }, [user?.id]);
 
 
 

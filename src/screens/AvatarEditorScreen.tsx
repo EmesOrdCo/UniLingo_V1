@@ -11,13 +11,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { useDispatch } from 'react-redux';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../contexts/AuthContext';
 import { useTranslation } from '../lib/i18n';
 import Avatar from '../components/avatar/Avatar';
 import AvatarCustomizer from '../components/avatar/AvatarCustomizer';
-import { loadAvatarOptions } from '../store/slices/avatarSlice';
 
 const { width, height } = Dimensions.get('window');
 
@@ -28,25 +25,8 @@ const { width, height } = Dimensions.get('window');
 const AvatarEditorScreen: React.FC = () => {
   const { t } = useTranslation();
   const navigation = useNavigation();
-  const dispatch = useDispatch();
   const { user } = useAuth();
   const [avatarScale] = useState(new Animated.Value(1));
-
-  // Load saved avatar options when component mounts
-  useEffect(() => {
-    const loadSavedOptions = async () => {
-      try {
-        const savedOptions = await AsyncStorage.getItem('avatar-options');
-        if (savedOptions) {
-          dispatch(loadAvatarOptions(JSON.parse(savedOptions)));
-        }
-      } catch (error) {
-        console.error('Error loading avatar options:', error);
-      }
-    };
-
-    loadSavedOptions();
-  }, [dispatch]);
 
   const handleSave = () => {
     // Animate avatar on save

@@ -22,6 +22,9 @@ import SubscriptionGate from './src/components/SubscriptionGate';
 import { setupGlobalErrorHandling } from './src/lib/errorHandler';
 import BreakReminderModal from './src/components/BreakReminderModal';
 import { useSessionTimer } from './src/hooks/useSessionTimer';
+import { useDispatch } from 'react-redux';
+import { loadAvatarOptions } from './src/store/slices/avatarSlice';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Import screens
 import HomeScreen from './src/screens/HomeScreen';
@@ -150,6 +153,35 @@ function AuthStack() {
   );
 }
 
+// Component to load avatar options on app startup
+function AvatarOptionsLoader() {
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    const loadAvatarOptionsFromStorage = async () => {
+      try {
+        const savedOptions = await AsyncStorage.getItem('avatar-options');
+        if (savedOptions) {
+          dispatch(loadAvatarOptions(JSON.parse(savedOptions)));
+          if (__DEV__) {
+            console.log('🎨 Avatar options loaded on app startup');
+          }
+        } else {
+          if (__DEV__) {
+            console.log('🎨 No saved avatar options found, using defaults');
+          }
+        }
+      } catch (error) {
+        console.error('❌ Error loading avatar options on startup:', error);
+      }
+    };
+
+    loadAvatarOptionsFromStorage();
+  }, [dispatch]);
+
+  return null; // This component doesn't render anything
+}
+
 export default function App() {
   // Setup global error handling for React Native
   useEffect(() => {
@@ -232,6 +264,7 @@ export default function App() {
                   <SelectedUnitProvider>
                     <NavigationContainer>
                       <ErrorBoundary>
+                        <AvatarOptionsLoader />
                         <AppNavigator />
                         <StatusBar style="auto" />
                       </ErrorBoundary>
