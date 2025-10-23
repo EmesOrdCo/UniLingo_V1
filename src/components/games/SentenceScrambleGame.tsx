@@ -291,7 +291,7 @@ const SentenceScrambleGame: React.FC<SentenceScrambleGameProps> = ({ gameData, o
           ]}>
             <Ionicons 
               name={isCorrect ? "checkmark" : "close"} 
-              size={32} 
+              size={24} 
               color="#ffffff" 
             />
           </View>
@@ -343,12 +343,12 @@ const styles = StyleSheet.create({
   },
   avatarContainer: {
     alignItems: 'center',
-    marginTop: 16,
-    marginBottom: 8,
+    marginTop: 12,
+    marginBottom: 6,
   },
   questionContainer: {
-    margin: 20,
-    padding: 20,
+    margin: 16,
+    padding: 16,
     backgroundColor: '#ffffff',
     borderRadius: 16,
     shadowColor: '#000',
@@ -365,22 +365,22 @@ const styles = StyleSheet.create({
     lineHeight: 26,
   },
   selectedWordsContainer: {
-    marginHorizontal: 20,
-    marginBottom: 24,
+    marginHorizontal: 16,
+    marginBottom: 18,
   },
   selectedWordsLabel: {
-    fontSize: 16,
+    fontSize: 15,
     color: '#64748b',
-    marginBottom: 12,
+    marginBottom: 8,
     fontWeight: '500',
   },
   selectedWords: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
-    minHeight: 50,
+    gap: 6,
+    minHeight: 45,
     backgroundColor: '#f8fafc',
-    padding: 16,
+    padding: 12,
     borderRadius: 12,
     borderWidth: 2,
     borderColor: '#e2e8f0',
@@ -389,11 +389,11 @@ const styles = StyleSheet.create({
   selectedWord: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
     backgroundColor: '#6466E9',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
   },
   selectedWordText: {
     fontSize: 14,
@@ -401,25 +401,25 @@ const styles = StyleSheet.create({
     color: '#ffffff',
   },
   scrambledWordsContainer: {
-    marginHorizontal: 20,
-    marginBottom: 24,
+    marginHorizontal: 16,
+    marginBottom: 18,
   },
   scrambledWordsLabel: {
-    fontSize: 16,
+    fontSize: 15,
     color: '#64748b',
-    marginBottom: 12,
+    marginBottom: 8,
     fontWeight: '500',
   },
   scrambledWords: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: 6,
   },
   scrambledWord: {
     backgroundColor: '#ffffff',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 16,
     borderWidth: 2,
     borderColor: '#e2e8f0',
     shadowColor: '#000',
@@ -458,25 +458,25 @@ const styles = StyleSheet.create({
     color: '#ffffff',
   },
   resultContainer: {
-    marginHorizontal: 20,
-    marginBottom: 24,
-    padding: 24,
+    marginHorizontal: 16,
+    marginBottom: 16,
+    padding: 12,
     backgroundColor: '#ffffff',
-    borderRadius: 16,
+    borderRadius: 12,
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowRadius: 4,
+    elevation: 1,
   },
   resultIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
+    marginBottom: 8,
   },
   resultIconCorrect: {
     backgroundColor: '#10b981',
@@ -485,9 +485,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#ef4444',
   },
   resultText: {
-    fontSize: 24,
-    fontWeight: '700',
-    marginBottom: 12,
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 8,
   },
   resultTextCorrect: {
     color: '#10b981',
@@ -496,9 +496,10 @@ const styles = StyleSheet.create({
     color: '#ef4444',
   },
   correctAnswerText: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#64748b',
     textAlign: 'center',
+    lineHeight: 18,
   },
   completionContainer: {
     flex: 1,
@@ -553,8 +554,8 @@ const styles = StyleSheet.create({
   },
   actionButtons: {
     flexDirection: 'row',
-    gap: 12,
-    marginTop: 24,
+    gap: 10,
+    marginTop: 18,
   },
   resetButton: {
     flex: 1,
