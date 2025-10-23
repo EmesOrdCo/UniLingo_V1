@@ -1663,6 +1663,14 @@ export const de: Record<string, string> = {
   'audioRecap.deleteConfirmation': 'Bist du sicher, dass du diese Audio-Lektion löschen möchtest?',
   'audioRecap.deleteSuccess': 'Audio-Lektion erfolgreich gelöscht',
   'audioRecap.deleteError': 'Fehler beim Löschen der Audio-Lektion',
+  
+  // Lesson deletion translations
+  'lessons.deleteLesson': 'Lektion löschen',
+  'lessons.deleteConfirmation': 'Bist du sicher, dass du "{{lessonTitle}}" löschen möchtest? Dies wird die Lektion und alle zugehörigen Daten dauerhaft entfernen. Diese Aktion kann nicht rückgängig gemacht werden.',
+  'lessons.deleteSuccess': 'Lektion erfolgreich gelöscht',
+  'lessons.deleteError': 'Fehler beim Löschen der Lektion',
+  'lessons.cancel': 'Abbrechen',
+  
   'audioRecap.fixDurations': 'Audio-Dauern korrigieren',
   'audioRecap.fixDurationsConfirmation': 'Dies überprüft und korrigiert die Dauer aller deiner Audio-Lektionen. Fortfahren?',
   'audioRecap.fixDurationsButton': 'Dauern korrigieren',

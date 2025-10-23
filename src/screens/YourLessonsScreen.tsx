@@ -114,15 +114,15 @@ export default function YourLessonsScreen() {
     if (!user) return;
     
     Alert.alert(
-      'Delete Lesson',
-      `Are you sure you want to delete "${lessonTitle}"? This will permanently remove the lesson and all associated data. This action cannot be undone.`,
+      t('lessons.deleteLesson'),
+      t('lessons.deleteConfirmation', { lessonTitle }),
       [
         {
-          text: 'Cancel',
+          text: t('lessons.cancel'),
           style: 'cancel',
         },
         {
-          text: 'Delete',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -163,10 +163,10 @@ export default function YourLessonsScreen() {
               // Remove from local state
               setLessons(prev => prev.filter(lesson => lesson.id !== lessonId));
               
-              Alert.alert('Success', 'Lesson deleted successfully');
+              Alert.alert(t('audioRecap.success'), t('lessons.deleteSuccess'));
             } catch (error) {
               console.error('Error deleting lesson:', error);
-              Alert.alert('Error', 'Failed to delete lesson. Please try again.');
+              Alert.alert(t('audioRecap.error'), t('lessons.deleteError'));
             }
           },
         },

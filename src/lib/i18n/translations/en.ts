@@ -1708,6 +1708,14 @@ export const en: Record<string, string> = {
   'audioRecap.deleteConfirmation': 'Are you sure you want to delete this audio lesson?',
   'audioRecap.deleteSuccess': 'Audio lesson deleted successfully',
   'audioRecap.deleteError': 'Failed to delete audio lesson',
+  
+  // Lesson deletion translations
+  'lessons.deleteLesson': 'Delete Lesson',
+  'lessons.deleteConfirmation': 'Are you sure you want to delete "{{lessonTitle}}"? This will permanently remove the lesson and all associated data. This action cannot be undone.',
+  'lessons.deleteSuccess': 'Lesson deleted successfully',
+  'lessons.deleteError': 'Failed to delete lesson',
+  'lessons.cancel': 'Cancel',
+  
   'audioRecap.fixDurations': 'Fix Audio Durations',
   'audioRecap.fixDurationsConfirmation': 'This will check and fix the duration for all your audio lessons. Continue?',
   'audioRecap.fixDurationsButton': 'Fix Durations',
