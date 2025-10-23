@@ -78,8 +78,8 @@ const SubjectBox: React.FC<SubjectBoxProps> = ({ subject, onPress, isExpanded = 
     >
       <View style={styles.subjectContent}>
         <View style={styles.subjectMainInfo}>
-          <View style={styles.subjectTextContainer}>
-            <Text style={styles.unitNumber}>Unit {index + 1}</Text>
+          <View style={styles.subjectInfo}>
+            <Text style={styles.unitNumber}>{t('dashboard.unit')} {index + 1}</Text>
             <Text style={styles.subjectTitle}>{String(subject.name || 'Unknown Subject')}</Text>
             <View style={styles.subjectMetaRow}>
               <Text style={styles.subjectMeta}>
