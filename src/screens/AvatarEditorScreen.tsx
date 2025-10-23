@@ -44,9 +44,9 @@ const AvatarEditorScreen: React.FC = () => {
     ]).start();
 
     Alert.alert(
-      '✨ Avatar Saved!',
-      'Your personalized avatar has been saved successfully!',
-      [{ text: 'Awesome!', style: 'default' }]
+      t('avatar.save.success.title'),
+      t('avatar.save.success.message'),
+      [{ text: t('avatar.save.success.button'), style: 'default' }]
     );
   };
 
@@ -62,8 +62,8 @@ const AvatarEditorScreen: React.FC = () => {
         </TouchableOpacity>
         
         <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Customize Avatar</Text>
-          <Text style={styles.headerSubtitle}>Tap categories to customize</Text>
+          <Text style={styles.headerTitle}>{t('avatar.customize.title')}</Text>
+          <Text style={styles.headerSubtitle}>{t('avatar.customize.subtitle')}</Text>
         </View>
         
         <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
@@ -79,7 +79,7 @@ const AvatarEditorScreen: React.FC = () => {
           </Animated.View>
         </View>
         
-        <Text style={styles.previewText}>Tap any category below to customize</Text>
+        <Text style={styles.previewText}>{t('avatar.customize.instruction')}</Text>
       </View>
 
       {/* Customizer */}

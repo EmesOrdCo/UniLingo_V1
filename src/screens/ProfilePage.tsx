@@ -160,7 +160,7 @@ export default function ProfilePage() {
                 style={styles.shopButtonGradient}
               >
                 <View style={styles.shopButtonContent}>
-                  <Text style={styles.shopButtonTitle}>SHOP</Text>
+                  <Text style={styles.shopButtonTitle}>{t('profile.shop.button')}</Text>
                 </View>
               </LinearGradient>
             </TouchableOpacity>

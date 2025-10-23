@@ -10,6 +10,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../contexts/AuthContext';
 import { AvatarUnlockService } from '../../lib/avatarUnlockService';
+import { useTranslation } from '../../lib/i18n';
 
 const { width } = Dimensions.get('window');
 
@@ -25,6 +26,7 @@ interface CategoryConfig {
 const AvatarCustomizer: React.FC = () => {
   const navigation = useNavigation();
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [unlockProgress, setUnlockProgress] = useState<{[key: string]: {total: number; unlocked: number; percentage: number}}>({});
 
   useEffect(() => {
@@ -45,49 +47,49 @@ const AvatarCustomizer: React.FC = () => {
   const categories: CategoryConfig[] = [
     {
       id: 'skin',
-      name: 'Skin',
+      name: t('avatar.category.skin'),
       icon: '🎨',
       color: '#FFE5B4'
     },
     {
       id: 'hair',
-      name: 'Hair',
+      name: t('avatar.category.hair'),
       icon: '💇‍♀️',
       color: '#D2691E'
     },
     {
       id: 'facialHair',
-      name: 'Beard',
+      name: t('avatar.category.beard'),
       icon: '🧔',
       color: '#8B4513'
     },
     {
       id: 'eyes',
-      name: 'Eyes',
+      name: t('avatar.category.eyes'),
       icon: '👁️',
       color: '#87CEEB'
     },
     {
       id: 'eyebrows',
-      name: 'Brows',
+      name: t('avatar.category.brows'),
       icon: '🤨',
       color: '#8B4513'
     },
     {
       id: 'mouth',
-      name: 'Mouth',
+      name: t('avatar.category.mouth'),
       icon: '👄',
       color: '#FFB6C1'
     },
     {
       id: 'clothing',
-      name: 'Style',
+      name: t('avatar.category.style'),
       icon: '👔',
       color: '#4169E1'
     },
     {
       id: 'accessories',
-      name: 'Accessories',
+      name: t('avatar.category.accessories'),
       icon: '👓',
       color: '#C0C0C0'
     }

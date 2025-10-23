@@ -18,10 +18,9 @@ import { selectAvatarOptions, updateAvatarOption } from '../../store/slices/avat
 import { useAuth } from '../../contexts/AuthContext';
 import { AvatarUnlockService, AvatarItem } from '../../lib/avatarUnlockService';
 import { XPService } from '../../lib/xpService';
+import { useTranslation } from '../../lib/i18n';
 import { LinearGradient } from 'expo-linear-gradient';
 import Avatar from './Avatar';
-import AnimatedAvatar from './AnimatedAvatar';
-import { useAvatarAnimation } from '../../hooks/useAvatarAnimation';
 import * as AvatarConstants from './constants';
 
 const { width } = Dimensions.get('window');
@@ -38,6 +37,7 @@ const SubcategoryPage: React.FC<SubcategoryPageProps> = ({ category, categoryNam
   const navigation = useNavigation();
   const dispatch = useDispatch();
   const { user } = useAuth();
+  const { t } = useTranslation();
   const options = useSelector(selectAvatarOptions);
   
   const [availableItems, setAvailableItems] = useState<AvatarItem[]>([]);
@@ -47,9 +47,60 @@ const SubcategoryPage: React.FC<SubcategoryPageProps> = ({ category, categoryNam
   const [unlocking, setUnlocking] = useState<string | null>(null);
   const [previewMode, setPreviewMode] = useState(false);
   const [originalValue, setOriginalValue] = useState<string>('');
-  
-  // Animation controls
-  const { currentAnimation, triggerEquip, triggerCelebration, triggerDisappointed } = useAvatarAnimation();
+
+  // Get translation keys for category
+  const getCategoryTranslations = (cat: CustomizationCategory) => {
+    const translations: Record<CustomizationCategory, { title: string; subtitle: string }> = {
+      skin: { title: t('avatar.skin.title'), subtitle: t('avatar.skin.subtitle') },
+      hair: { title: t('avatar.hairstyle.title'), subtitle: t('avatar.hairstyle.subtitle') },
+      facialHair: { title: t('avatar.facialHair.title'), subtitle: t('avatar.facialHair.subtitle') },
+      eyes: { title: t('avatar.eyes.title'), subtitle: t('avatar.eyes.subtitle') },
+      eyebrows: { title: t('avatar.eyebrows.title'), subtitle: t('avatar.eyebrows.subtitle') },
+      mouth: { title: t('avatar.mouth.title'), subtitle: t('avatar.mouth.subtitle') },
+      clothing: { title: t('avatar.clothing.title'), subtitle: t('avatar.clothing.subtitle') },
+      accessories: { title: t('avatar.accessories.title'), subtitle: t('avatar.accessories.subtitle') },
+    };
+    return translations[cat];
+  };
+
+  // Helper function to get translated item label
+  const getTranslatedItemLabel = (category: string, itemValue: string): string => {
+    let translationKey = '';
+    
+    switch (category) {
+      case 'skinColor':
+        translationKey = `avatar.skin.${itemValue}`;
+        break;
+      case 'hairColor':
+        translationKey = `avatar.hairColor.${itemValue}`;
+        break;
+      case 'hair':
+        translationKey = `avatar.hair.${itemValue}`;
+        break;
+      case 'facialHair':
+        translationKey = `avatar.facialHair.${itemValue}`;
+        break;
+      case 'eyes':
+        translationKey = `avatar.eyes.${itemValue}`;
+        break;
+      case 'eyebrows':
+        translationKey = `avatar.eyebrows.${itemValue}`;
+        break;
+      case 'mouth':
+        translationKey = `avatar.mouth.${itemValue}`;
+        break;
+      case 'clothing':
+        translationKey = `avatar.clothing.${itemValue}`;
+        break;
+      case 'accessories':
+        translationKey = `avatar.accessories.${itemValue}`;
+        break;
+      default:
+        return AvatarUnlockService.getItemLabel(category, itemValue);
+    }
+    
+    return t(translationKey) || AvatarUnlockService.getItemLabel(category, itemValue);
+  };
 
   useEffect(() => {
     loadData();
@@ -110,15 +161,15 @@ const SubcategoryPage: React.FC<SubcategoryPageProps> = ({ category, categoryNam
     if (item && item.xp_cost > 0 && !isUnlocked) {
       // Allow preview but show unlock option
       Alert.alert(
-        'Item Locked',
-        `This item costs ${item.xp_cost} XP to unlock. You have ${availableXP} XP available.`,
+        t('avatar.item.locked.title'),
+        t('avatar.item.locked.message', { cost: item.xp_cost, available: availableXP }),
         [
-          { text: 'Preview Only', style: 'cancel', onPress: () => {
+          { text: t('avatar.item.locked.previewButton'), style: 'cancel', onPress: () => {
             // Allow preview by updating the avatar temporarily WITHOUT persisting
             dispatch(updateAvatarOption({ option: optionKey, value, persist: false }));
             setPreviewMode(true);
           }},
-          { text: 'Unlock & Use', onPress: () => handleUnlock(item) }
+          { text: t('avatar.item.locked.unlockButton'), onPress: () => handleUnlock(item) }
         ]
       );
       return;
@@ -152,16 +203,13 @@ const SubcategoryPage: React.FC<SubcategoryPageProps> = ({ category, categoryNam
         }
         setPreviewMode(false);
         
-        // Trigger equip animation for successful unlock
-        triggerEquip();
-        
-        Alert.alert('Success!', `${AvatarUnlockService.getItemLabel(category, item.item_value)} unlocked!`);
+        Alert.alert(t('avatar.unlock.success'), t('avatar.unlock.successMessage', { itemName: getTranslatedItemLabel(category, item.item_value) }), [{ text: t('avatar.unlock.okButton') }]);
       } else {
-        Alert.alert('Unlock Failed', result.message || 'Failed to unlock item');
+        Alert.alert(t('avatar.unlock.failed'), result.message || t('avatar.unlock.failedMessage'), [{ text: t('avatar.unlock.okButton') }]);
       }
     } catch (error) {
       console.error('Error unlocking item:', error);
-      Alert.alert('Error', 'Failed to unlock item. Please try again.');
+      Alert.alert(t('avatar.unlock.error'), t('avatar.unlock.errorMessage'), [{ text: t('avatar.unlock.okButton') }]);
     } finally {
       setUnlocking(null);
     }
@@ -234,11 +282,11 @@ const SubcategoryPage: React.FC<SubcategoryPageProps> = ({ category, categoryNam
   const handleBackPress = () => {
     if (previewMode) {
       Alert.alert(
-        'Preview Mode Active',
-        'You are currently previewing a locked item. You must select an unlocked item or revert to your original selection before leaving.',
+        t('avatar.preview.title'),
+        t('avatar.preview.message'),
         [
-          { text: 'Stay', style: 'cancel' },
-          { text: 'Revert to Original', onPress: () => {
+          { text: t('avatar.preview.stayButton'), style: 'cancel' },
+          { text: t('avatar.preview.revertButton'), onPress: () => {
             const optionKey = getOptionKeyForCategory(category);
             if (optionKey) {
               dispatch(updateAvatarOption({ option: optionKey, value: originalValue, persist: true }));
@@ -253,91 +301,161 @@ const SubcategoryPage: React.FC<SubcategoryPageProps> = ({ category, categoryNam
     return false; // Allow default back action
   };
 
-  const renderColorPalette = (colors: Array<{ value: string; label: string }>, currentValue: string, optionKey: keyof import('../../store/slices/avatarSlice').AvatarOptions) => (
-    <View style={styles.colorPalette}>
-      {colors.map((color) => {
-        const item = availableItems.find(item => item.item_value === color.value);
-        const isUnlocked = isItemUnlocked(color.value, item?.xp_cost || 0);
-        const isUnlocking = unlocking === item?.id;
-        
-        return (
-          <TouchableOpacity
-            key={color.value}
-            style={[
-              styles.colorSwatch,
-              { backgroundColor: `#${color.value}` },
-              currentValue === color.value && styles.selectedColorSwatch,
-              !isUnlocked && styles.lockedSwatch
-            ]}
-            onPress={() => handleOptionChange(optionKey, color.value)}
-            disabled={isUnlocking}
-          >
-            {currentValue === color.value && (
-              <View style={styles.checkmark}>
-                <Text style={styles.checkmarkText}>✓</Text>
-              </View>
-            )}
-            
-            {/* Rarity Badge for Unlocked Items */}
-            {isUnlocked && item?.rarity && item.rarity !== 'free' && (
-              <LinearGradient
-                colors={getRarityGradient(item.rarity)}
-                style={styles.rarityBadge}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-              >
-                <Ionicons name={getRarityIcon(item.rarity)} size={8} color="#ffffff" />
-              </LinearGradient>
-            )}
-            
-            {!isUnlocked && (
-              <LinearGradient
-                colors={getRarityGradient(item?.rarity || 'common')}
-                style={styles.lockOverlay}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-              >
-                {isUnlocking ? (
-                  <ActivityIndicator size="small" color="#ffffff" />
-                ) : (
-                  <>
-                    <Ionicons name={getRarityIcon(item?.rarity || 'common')} size={10} color="#ffffff" />
-                    <Text style={styles.xpCost}>{item?.xp_cost}</Text>
-                  </>
-                )}
-              </LinearGradient>
-            )}
-          </TouchableOpacity>
-        );
-      })}
-    </View>
-  );
+  const renderColorPalette = (colors: Array<{ value: string; label: string }>, currentValue: string, optionKey: keyof import('../../store/slices/avatarSlice').AvatarOptions) => {
+    // Helper function to get translated label for color options
+    const getTranslatedColorLabel = (color: { value: string; label: string }) => {
+      let translationKey = '';
+      
+      switch (optionKey) {
+        case 'skinColor':
+          translationKey = `avatar.skin.${color.value}`;
+          break;
+        case 'hairColor':
+        case 'facialHairColor':
+          translationKey = `avatar.hairColor.${color.value}`;
+          break;
+        case 'clotheColor':
+          translationKey = `avatar.clothingColor.${color.value}`;
+          break;
+        default:
+          return color.label;
+      }
+      
+      return t(translationKey) || color.label;
+    };
 
-  const renderStyleGrid = (styleOptions: Array<{ value: string; label: string }>, currentValue: string, optionKey: keyof import('../../store/slices/avatarSlice').AvatarOptions) => (
-    <View style={styles.styleGrid}>
-      {styleOptions.map((option) => {
-        const item = availableItems.find(item => item.item_value === option.value);
-        const isUnlocked = isItemUnlocked(option.value, item?.xp_cost || 0);
-        const isUnlocking = unlocking === item?.id;
-        
-        return (
-          <TouchableOpacity
-            key={option.value}
-            style={[
-              styles.styleOption,
-              currentValue === option.value && styles.selectedStyleOption,
-              !isUnlocked && styles.lockedStyleOption
-            ]}
-            onPress={() => handleOptionChange(optionKey, option.value)}
-            disabled={isUnlocking}
-          >
-            <Text style={[
-              styles.styleOptionText,
-              currentValue === option.value && styles.selectedStyleOptionText,
-              !isUnlocked && styles.lockedStyleOptionText
-            ]}>
-              {option.label}
-            </Text>
+    return (
+      <View style={styles.colorPalette}>
+        {colors.map((color) => {
+          const item = availableItems.find(item => item.item_value === color.value);
+          const isUnlocked = isItemUnlocked(color.value, item?.xp_cost || 0);
+          const isUnlocking = unlocking === item?.id;
+          
+          return (
+            <TouchableOpacity
+              key={color.value}
+              style={[
+                styles.colorSwatch,
+                { backgroundColor: `#${color.value}` },
+                currentValue === color.value && styles.selectedColorSwatch,
+                !isUnlocked && styles.lockedSwatch
+              ]}
+              onPress={() => handleOptionChange(optionKey, color.value)}
+              disabled={isUnlocking}
+            >
+              {currentValue === color.value && (
+                <View style={styles.checkmark}>
+                  <Text style={styles.checkmarkText}>✓</Text>
+                </View>
+              )}
+              
+              {/* Rarity Badge for Unlocked Items */}
+              {isUnlocked && item?.rarity && item.rarity !== 'free' && (
+                <LinearGradient
+                  colors={getRarityGradient(item.rarity)}
+                  style={styles.rarityBadge}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                >
+                  <Ionicons name={getRarityIcon(item.rarity)} size={8} color="#ffffff" />
+                </LinearGradient>
+              )}
+              
+              {!isUnlocked && (
+                <LinearGradient
+                  colors={getRarityGradient(item?.rarity || 'common')}
+                  style={styles.lockOverlay}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                >
+                  {isUnlocking ? (
+                    <ActivityIndicator size="small" color="#ffffff" />
+                  ) : (
+                    <>
+                      <Ionicons name={getRarityIcon(item?.rarity || 'common')} size={10} color="#ffffff" />
+                      <Text style={styles.xpCost}>{item?.xp_cost}</Text>
+                    </>
+                  )}
+                </LinearGradient>
+              )}
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    );
+  };
+
+  const renderStyleGrid = (styleOptions: Array<{ value: string; label: string }>, currentValue: string, optionKey: keyof import('../../store/slices/avatarSlice').AvatarOptions) => {
+    // Helper function to get translated label for all avatar options
+    const getTranslatedLabel = (option: { value: string; label: string }) => {
+      let translationKey = '';
+      
+      switch (optionKey) {
+        case 'topType':
+          translationKey = `avatar.hair.${option.value}`;
+          break;
+        case 'skinColor':
+          translationKey = `avatar.skin.${option.value}`;
+          break;
+        case 'hairColor':
+          translationKey = `avatar.hairColor.${option.value}`;
+          break;
+        case 'facialHairType':
+          translationKey = `avatar.facialHair.${option.value}`;
+          break;
+        case 'facialHairColor':
+          translationKey = `avatar.hairColor.${option.value}`;
+          break;
+        case 'eyeType':
+          translationKey = `avatar.eyes.${option.value}`;
+          break;
+        case 'eyebrowType':
+          translationKey = `avatar.eyebrows.${option.value}`;
+          break;
+        case 'mouthType':
+          translationKey = `avatar.mouth.${option.value}`;
+          break;
+        case 'clotheType':
+          translationKey = `avatar.clothing.${option.value}`;
+          break;
+        case 'clotheColor':
+          translationKey = `avatar.clothingColor.${option.value}`;
+          break;
+        case 'accessoriesType':
+          translationKey = `avatar.accessories.${option.value}`;
+          break;
+        default:
+          return option.label;
+      }
+      
+      return t(translationKey) || option.label;
+    };
+
+    return (
+      <View style={styles.styleGrid}>
+        {styleOptions.map((option) => {
+          const item = availableItems.find(item => item.item_value === option.value);
+          const isUnlocked = isItemUnlocked(option.value, item?.xp_cost || 0);
+          const isUnlocking = unlocking === item?.id;
+          
+          return (
+            <TouchableOpacity
+              key={option.value}
+              style={[
+                styles.styleOption,
+                currentValue === option.value && styles.selectedStyleOption,
+                !isUnlocked && styles.lockedStyleOption
+              ]}
+              onPress={() => handleOptionChange(optionKey, option.value)}
+              disabled={isUnlocking}
+            >
+              <Text style={[
+                styles.styleOptionText,
+                currentValue === option.value && styles.selectedStyleOptionText,
+                !isUnlocked && styles.lockedStyleOptionText
+              ]}>
+                {getTranslatedLabel(option)}
+              </Text>
             
             {/* Rarity Badge for Unlocked Items */}
             {isUnlocked && item?.rarity && item.rarity !== 'free' && (
@@ -372,83 +490,84 @@ const SubcategoryPage: React.FC<SubcategoryPageProps> = ({ category, categoryNam
         );
       })}
     </View>
-  );
+    );
+  };
 
   const renderCategoryContent = () => {
     switch (category) {
       case 'skin':
         return (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Choose Your Skin Tone</Text>
-            <Text style={styles.sectionSubtitle}>Select a skin color that represents you</Text>
+            <Text style={styles.sectionTitle}>{getCategoryTranslations('skin').title}</Text>
+            <Text style={styles.sectionSubtitle}>{getCategoryTranslations('skin').subtitle}</Text>
             {renderColorPalette(AvatarConstants.SKIN_COLORS, options.skinColor, 'skinColor')}
           </View>
         );
       case 'hair':
         return (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Hair Color</Text>
-            <Text style={styles.sectionSubtitle}>Choose your hair color</Text>
+            <Text style={styles.sectionTitle}>{t('avatar.hairColor.title')}</Text>
+            <Text style={styles.sectionSubtitle}>{t('avatar.hairColor.subtitle')}</Text>
             {renderColorPalette(AvatarConstants.HAIR_COLORS, options.hairColor, 'hairColor')}
             
-            <Text style={styles.sectionTitle}>Hairstyle</Text>
-            <Text style={styles.sectionSubtitle}>Pick a hairstyle that suits you</Text>
+            <Text style={styles.sectionTitle}>{getCategoryTranslations('hair').title}</Text>
+            <Text style={styles.sectionSubtitle}>{getCategoryTranslations('hair').subtitle}</Text>
             {renderStyleGrid(AvatarConstants.TOP_TYPES, options.topType, 'topType')}
           </View>
         );
       case 'facialHair':
         return (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Facial Hair Style</Text>
-            <Text style={styles.sectionSubtitle}>Add some facial hair if you like</Text>
+            <Text style={styles.sectionTitle}>{getCategoryTranslations('facialHair').title}</Text>
+            <Text style={styles.sectionSubtitle}>{getCategoryTranslations('facialHair').subtitle}</Text>
             {renderStyleGrid(AvatarConstants.FACIAL_HAIR_TYPES, options.facialHairType, 'facialHairType')}
             
-            <Text style={styles.sectionTitle}>Facial Hair Color</Text>
-            <Text style={styles.sectionSubtitle}>Choose the color of your facial hair</Text>
+            <Text style={styles.sectionTitle}>{t('avatar.facialHairColor.title')}</Text>
+            <Text style={styles.sectionSubtitle}>{t('avatar.facialHairColor.subtitle')}</Text>
             {renderColorPalette(AvatarConstants.HAIR_COLORS, options.facialHairColor, 'facialHairColor')}
           </View>
         );
       case 'eyes':
         return (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Eye Expression</Text>
-            <Text style={styles.sectionSubtitle}>Choose how your eyes look</Text>
+            <Text style={styles.sectionTitle}>{getCategoryTranslations('eyes').title}</Text>
+            <Text style={styles.sectionSubtitle}>{getCategoryTranslations('eyes').subtitle}</Text>
             {renderStyleGrid(AvatarConstants.EYE_TYPES, options.eyeType, 'eyeType')}
           </View>
         );
       case 'eyebrows':
         return (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Eyebrow Style</Text>
-            <Text style={styles.sectionSubtitle}>Shape your eyebrows</Text>
+            <Text style={styles.sectionTitle}>{getCategoryTranslations('eyebrows').title}</Text>
+            <Text style={styles.sectionSubtitle}>{getCategoryTranslations('eyebrows').subtitle}</Text>
             {renderStyleGrid(AvatarConstants.EYEBROW_TYPES, options.eyebrowType, 'eyebrowType')}
           </View>
         );
       case 'mouth':
         return (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Mouth Expression</Text>
-            <Text style={styles.sectionSubtitle}>Choose your expression</Text>
+            <Text style={styles.sectionTitle}>{getCategoryTranslations('mouth').title}</Text>
+            <Text style={styles.sectionSubtitle}>{getCategoryTranslations('mouth').subtitle}</Text>
             {renderStyleGrid(AvatarConstants.MOUTH_TYPES, options.mouthType, 'mouthType')}
           </View>
         );
       case 'clothing':
         return (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Outfit Style</Text>
-            <Text style={styles.sectionSubtitle}>Dress up your avatar</Text>
+            <Text style={styles.sectionTitle}>{getCategoryTranslations('clothing').title}</Text>
+            <Text style={styles.sectionSubtitle}>{getCategoryTranslations('clothing').subtitle}</Text>
             {renderStyleGrid(AvatarConstants.CLOTHE_TYPES, options.clotheType, 'clotheType')}
             
-            <Text style={styles.sectionTitle}>Outfit Color</Text>
-            <Text style={styles.sectionSubtitle}>Choose the color of your outfit</Text>
+            <Text style={styles.sectionTitle}>{t('avatar.clothingColor.title')}</Text>
+            <Text style={styles.sectionSubtitle}>{t('avatar.clothingColor.subtitle')}</Text>
             {renderColorPalette(AvatarConstants.CLOTHE_COLORS, options.clotheColor, 'clotheColor')}
           </View>
         );
       case 'accessories':
         return (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Accessories</Text>
-            <Text style={styles.sectionSubtitle}>Add some cool accessories</Text>
+            <Text style={styles.sectionTitle}>{getCategoryTranslations('accessories').title}</Text>
+            <Text style={styles.sectionSubtitle}>{getCategoryTranslations('accessories').subtitle}</Text>
             {renderStyleGrid(AvatarConstants.ACCESSORIES_TYPES, options.accessoriesType, 'accessoriesType')}
           </View>
         );
@@ -490,7 +609,7 @@ const SubcategoryPage: React.FC<SubcategoryPageProps> = ({ category, categoryNam
             </View>
             <View style={styles.xpTextContainer}>
               <Text style={styles.xpAmount}>{availableXP}</Text>
-              <Text style={styles.xpLabel}>XP Available</Text>
+              <Text style={styles.xpLabel}>{t('avatar.shop.xpAvailable')}</Text>
             </View>
             <View style={styles.xpSparkleContainer}>
               <Text style={styles.xpSparkle}>✨</Text>
@@ -499,48 +618,22 @@ const SubcategoryPage: React.FC<SubcategoryPageProps> = ({ category, categoryNam
         </LinearGradient>
       </View>
 
-      {/* Animated Avatar Preview */}
+      {/* Avatar Preview */}
       <View style={styles.previewSection}>
         <View style={styles.avatarContainer}>
-          <AnimatedAvatar 
+          <Avatar 
             size={Math.min(width * 0.35, 160)} 
-            animationType={currentAnimation}
-            onAnimationComplete={() => {
-              console.log('Avatar animation completed');
-            }}
           />
           {previewMode && (
             <View style={styles.previewModeIndicator}>
               <Ionicons name="eye" size={16} color="#ffffff" />
-              <Text style={styles.previewModeText}>Preview</Text>
+              <Text style={styles.previewModeText}>{t('avatar.shop.preview')}</Text>
             </View>
           )}
         </View>
         <Text style={styles.previewText}>
-          {previewMode ? 'Preview Mode - Select unlocked item to continue' : 'Live Preview'}
+          {previewMode ? t('avatar.shop.previewMode') : t('avatar.shop.livePreview')}
         </Text>
-        
-        {/* Animation Test Controls (Temporary) */}
-        <View style={styles.testControls}>
-          <TouchableOpacity 
-            style={styles.testButton} 
-            onPress={() => {
-              console.log('🎉 Test button pressed');
-              triggerCelebration();
-            }}
-          >
-            <Text style={styles.testButtonText}>🎉 Correct Answer</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.testButton} 
-            onPress={() => {
-              console.log('😞 Test button pressed');
-              triggerDisappointed();
-            }}
-          >
-            <Text style={styles.testButtonText}>😞 Wrong Answer</Text>
-          </TouchableOpacity>
-        </View>
       </View>
 
       {/* Customization Options */}
@@ -548,7 +641,7 @@ const SubcategoryPage: React.FC<SubcategoryPageProps> = ({ category, categoryNam
         {loading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#3b82f6" />
-            <Text style={styles.loadingText}>Loading customization options...</Text>
+            <Text style={styles.loadingText}>{t('avatar.shop.loading')}</Text>
           </View>
         ) : (
           renderCategoryContent()
@@ -649,23 +742,6 @@ const styles = StyleSheet.create({
     marginLeft: 4,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-  },
-  // Test Controls (Temporary)
-  testControls: {
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 15,
-  },
-  testButton: {
-    backgroundColor: '#3b82f6',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-  },
-  testButtonText: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '600',
   },
   contentArea: {
     flex: 1,

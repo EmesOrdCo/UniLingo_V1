@@ -1,5 +1,13 @@
 // Avatar options as provided by the avataaars library
 
+import { useTranslation } from '../../lib/i18n';
+
+// Helper function to get translated hair style labels
+export const getHairStyleLabel = (value: string, t: (key: string) => string): string => {
+  const translationKey = `avatar.hair.${value.toLowerCase()}`;
+  return t(translationKey) || value;
+};
+
 // Skin colors with user-friendly names
 export const SKIN_COLORS = [
   { value: 'f2d3b1', label: 'Light' },
