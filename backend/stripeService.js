@@ -60,6 +60,9 @@ class StripeService {
       });
 
       console.log('✅ Payment intent created:', paymentIntent.id);
+      console.log('💳 Payment methods available:', paymentIntent.payment_method_types);
+      console.log('💳 Automatic payment methods:', paymentIntent.automatic_payment_methods);
+      
       return {
         clientSecret: paymentIntent.client_secret,
         paymentIntentId: paymentIntent.id,
