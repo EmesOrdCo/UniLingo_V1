@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -33,8 +33,27 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   onPurchaseSuccess,
 }) => {
   const { t } = useTranslation();
-  const { initPaymentSheet, presentPaymentSheet } = useStripe();
+  const { initPaymentSheet, presentPaymentSheet, isApplePaySupported } = useStripe();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [applePaySupported, setApplePaySupported] = useState(false);
+
+  // Check Apple Pay support when modal opens
+  useEffect(() => {
+    if (visible) {
+      checkApplePaySupport();
+    }
+  }, [visible]);
+
+  const checkApplePaySupport = async () => {
+    try {
+      const supported = await isApplePaySupported();
+      console.log('🍎 Apple Pay supported:', supported);
+      setApplePaySupported(supported);
+    } catch (error) {
+      console.error('❌ Error checking Apple Pay support:', error);
+      setApplePaySupported(false);
+    }
+  };
 
   const handlePurchase = async () => {
     try {
@@ -66,6 +85,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
       });
 
       console.log('💳 Payment sheet initialized successfully');
+      console.log('🍎 Apple Pay supported on device:', applePaySupported);
 
       if (initError) {
         console.error('❌ Payment sheet initialization error:', initError);

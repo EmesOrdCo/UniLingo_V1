@@ -33,6 +33,9 @@ export default {
             CFBundleURLSchemes: ["unilingo"]
           }
         ]
+      },
+      entitlements: {
+        "com.apple.developer.in-app-payments": ["merchant.com.unilingo.app"]
       }
     },
     android: {
