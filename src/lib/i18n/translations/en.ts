@@ -1716,6 +1716,12 @@ export const en: Record<string, string> = {
   'lessons.deleteError': 'Failed to delete lesson',
   'lessons.cancel': 'Cancel',
   
+  // Flashcard deletion translations
+  'flashcards.deleteFlashcard': 'Delete Flashcard',
+  'flashcards.deleteConfirmation': 'Are you sure you want to delete this flashcard? This action cannot be undone.',
+  'flashcards.deleteSuccess': 'Flashcard deleted successfully',
+  'flashcards.deleteError': 'Failed to delete flashcard',
+  
   'audioRecap.fixDurations': 'Fix Audio Durations',
   'audioRecap.fixDurationsConfirmation': 'This will check and fix the duration for all your audio lessons. Continue?',
   'audioRecap.fixDurationsButton': 'Fix Durations',

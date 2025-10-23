@@ -1671,6 +1671,12 @@ export const de: Record<string, string> = {
   'lessons.deleteError': 'Fehler beim Löschen der Lektion',
   'lessons.cancel': 'Abbrechen',
   
+  // Flashcard deletion translations
+  'flashcards.deleteFlashcard': 'Karteikarte löschen',
+  'flashcards.deleteConfirmation': 'Bist du sicher, dass du diese Karteikarte löschen möchtest? Diese Aktion kann nicht rückgängig gemacht werden.',
+  'flashcards.deleteSuccess': 'Karteikarte erfolgreich gelöscht',
+  'flashcards.deleteError': 'Fehler beim Löschen der Karteikarte',
+  
   'audioRecap.fixDurations': 'Audio-Dauern korrigieren',
   'audioRecap.fixDurationsConfirmation': 'Dies überprüft und korrigiert die Dauer aller deiner Audio-Lektionen. Fortfahren?',
   'audioRecap.fixDurationsButton': 'Dauern korrigieren',

@@ -772,15 +772,15 @@ export default function FlashcardsScreen() {
     if (!user) return;
     
     Alert.alert(
-      'Delete Flashcard',
-      'Are you sure you want to delete this flashcard? This action cannot be undone.',
+      t('flashcards.deleteFlashcard'),
+      t('flashcards.deleteConfirmation'),
       [
         {
-          text: 'Cancel',
+          text: t('lessons.cancel'),
           style: 'cancel',
         },
         {
-          text: 'Delete',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: async () => {
             try {
@@ -797,10 +797,10 @@ export default function FlashcardsScreen() {
               // Remove from local state
               setBrowseFlashcards(prev => prev.filter(card => card.id !== cardId));
               
-              Alert.alert('Success', 'Flashcard deleted successfully');
+              Alert.alert(t('audioRecap.success'), t('flashcards.deleteSuccess'));
             } catch (error) {
               console.error('Error deleting flashcard:', error);
-              Alert.alert('Error', 'Failed to delete flashcard');
+              Alert.alert(t('audioRecap.error'), t('flashcards.deleteError'));
             }
           },
         },
