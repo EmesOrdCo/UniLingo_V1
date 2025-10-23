@@ -25,6 +25,8 @@ import { useSessionTimer } from './src/hooks/useSessionTimer';
 import { useDispatch } from 'react-redux';
 import { loadAvatarOptions } from './src/store/slices/avatarSlice';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { StripeProvider } from '@stripe/stripe-react-native';
+import { ENV } from './src/lib/envConfig';
 
 // Import screens
 import HomeScreen from './src/screens/HomeScreen';
@@ -258,29 +260,31 @@ export default function App() {
   }, []);
 
   return (
-    <Provider store={store}>
-      <SafeAreaProvider>
-        <I18nProvider>
-          <AuthProvider>
-            <SubscriptionProvider>
-              <ProfilePictureProvider>
-                <RefreshProvider>
-                  <SelectedUnitProvider>
-                    <NavigationContainer>
-                      <ErrorBoundary>
-                        <AvatarOptionsLoader />
-                        <AppNavigator />
-                        <StatusBar style="auto" />
-                      </ErrorBoundary>
-                    </NavigationContainer>
-                  </SelectedUnitProvider>
-                </RefreshProvider>
-              </ProfilePictureProvider>
-            </SubscriptionProvider>
-          </AuthProvider>
-        </I18nProvider>
-      </SafeAreaProvider>
-    </Provider>
+    <StripeProvider publishableKey={ENV.STRIPE_PUBLISHABLE_KEY || ''}>
+      <Provider store={store}>
+        <SafeAreaProvider>
+          <I18nProvider>
+            <AuthProvider>
+              <SubscriptionProvider>
+                <ProfilePictureProvider>
+                  <RefreshProvider>
+                    <SelectedUnitProvider>
+                      <NavigationContainer>
+                        <ErrorBoundary>
+                          <AvatarOptionsLoader />
+                          <AppNavigator />
+                          <StatusBar style="auto" />
+                        </ErrorBoundary>
+                      </NavigationContainer>
+                    </SelectedUnitProvider>
+                  </RefreshProvider>
+                </ProfilePictureProvider>
+              </SubscriptionProvider>
+            </AuthProvider>
+          </I18nProvider>
+        </SafeAreaProvider>
+      </Provider>
+    </StripeProvider>
   );
 }
 

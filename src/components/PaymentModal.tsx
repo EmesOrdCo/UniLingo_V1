@@ -9,6 +9,7 @@ import {
   Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useStripe } from '@stripe/stripe-react-native';
 import { stripeService } from '../lib/stripeService';
 import { useTranslation } from '../lib/i18n';
 
@@ -32,6 +33,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
   onPurchaseSuccess,
 }) => {
   const { t } = useTranslation();
+  const { initPaymentSheet, presentPaymentSheet } = useStripe();
   const [isProcessing, setIsProcessing] = useState(false);
 
   const handlePurchase = async () => {
@@ -40,35 +42,62 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
       
       console.log('💳 Starting purchase for:', item);
       
-      const result = await stripeService.processPayment(item.id, item.price_gbp);
+      // Create payment intent
+      const paymentIntent = await stripeService.createPaymentIntent(item.id, item.price_gbp);
       
-      if (result.success) {
+      // Initialize payment sheet
+      const { error: initError } = await initPaymentSheet({
+        merchantDisplayName: 'UniLingo',
+        paymentIntentClientSecret: paymentIntent.clientSecret,
+        allowsDelayedPaymentMethods: true,
+      });
+
+      if (initError) {
+        console.error('❌ Payment sheet initialization error:', initError);
         Alert.alert(
-          'Purchase Successful! 🎉',
-          `You've successfully purchased the ${item.item_value}! It's now available in your avatar customization.`,
-          [
-            {
-              text: 'OK',
-              onPress: () => {
-                onPurchaseSuccess();
-                onClose();
-              },
-            },
-          ]
+          t('payment.error.title'),
+          initError.message || t('payment.error.message'),
+          [{ text: t('common.ok') }]
         );
-      } else {
-        Alert.alert(
-          'Purchase Failed',
-          result.error || 'Something went wrong. Please try again.',
-          [{ text: 'OK' }]
-        );
+        return;
       }
+
+      // Present payment sheet
+      const { error: presentError } = await presentPaymentSheet();
+
+      if (presentError) {
+        console.error('❌ Payment sheet presentation error:', presentError);
+        if (presentError.code !== 'Canceled') {
+          Alert.alert(
+            t('payment.failed.title'),
+            presentError.message || t('payment.failed.message'),
+            [{ text: t('common.ok') }]
+          );
+        }
+        return;
+      }
+
+      // Payment succeeded
+      Alert.alert(
+        t('payment.success.title'),
+        t('payment.success.message', { itemName: item.item_value }),
+        [
+          {
+            text: t('common.ok'),
+            onPress: () => {
+              onPurchaseSuccess();
+              onClose();
+            },
+          },
+        ]
+      );
+      
     } catch (error) {
       console.error('❌ Purchase error:', error);
       Alert.alert(
-        'Purchase Error',
-        'An unexpected error occurred. Please try again.',
-        [{ text: 'OK' }]
+        t('payment.error.title'),
+        t('payment.error.message'),
+        [{ text: t('common.ok') }]
       );
     } finally {
       setIsProcessing(false);
@@ -115,7 +144,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
       <View style={styles.overlay}>
         <View style={styles.modal}>
           <View style={styles.header}>
-            <Text style={styles.title}>Purchase Avatar Item</Text>
+            <Text style={styles.title}>{t('payment.title')}</Text>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
               <Ionicons name="close" size={24} color="#6B7280" />
             </TouchableOpacity>
@@ -137,24 +166,24 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
             <Text style={styles.itemCategory}>{item.category}</Text>
             
             <View style={styles.priceContainer}>
-              <Text style={styles.priceLabel}>Price:</Text>
+              <Text style={styles.priceLabel}>{t('payment.price')}</Text>
               <Text style={styles.price}>£{item.price_gbp.toFixed(2)}</Text>
             </View>
           </View>
 
           <View style={styles.features}>
-            <Text style={styles.featuresTitle}>What you get:</Text>
+            <Text style={styles.featuresTitle}>{t('payment.features.title')}</Text>
             <View style={styles.featureItem}>
               <Ionicons name="checkmark-circle" size={20} color="#10B981" />
-              <Text style={styles.featureText}>Permanent access to this avatar item</Text>
+              <Text style={styles.featureText}>{t('payment.features.permanent')}</Text>
             </View>
             <View style={styles.featureItem}>
               <Ionicons name="checkmark-circle" size={20} color="#10B981" />
-              <Text style={styles.featureText}>Use across all your avatars</Text>
+              <Text style={styles.featureText}>{t('payment.features.allAvatars')}</Text>
             </View>
             <View style={styles.featureItem}>
               <Ionicons name="checkmark-circle" size={20} color="#10B981" />
-              <Text style={styles.featureText}>No recurring charges</Text>
+              <Text style={styles.featureText}>{t('payment.features.noRecurring')}</Text>
             </View>
           </View>
 
@@ -164,7 +193,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               onPress={onClose}
               disabled={isProcessing}
             >
-              <Text style={styles.cancelButtonText}>Cancel</Text>
+              <Text style={styles.cancelButtonText}>{t('payment.button.cancel')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -177,14 +206,14 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               ) : (
                 <>
                   <Ionicons name="card" size={20} color="white" />
-                  <Text style={styles.purchaseButtonText}>Purchase £{item.price_gbp.toFixed(2)}</Text>
+                  <Text style={styles.purchaseButtonText}>{t('payment.button.purchase')} £{item.price_gbp.toFixed(2)}</Text>
                 </>
               )}
             </TouchableOpacity>
           </View>
 
           <Text style={styles.disclaimer}>
-            Payment is processed securely through Stripe. Your payment information is never stored on our servers.
+            {t('payment.disclaimer')}
           </Text>
         </View>
       </View>
