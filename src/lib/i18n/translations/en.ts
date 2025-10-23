@@ -415,6 +415,20 @@ export const en: Record<string, string> = {
   'progress.bestStreak': 'Best Streak',
   'progress.analyzingJourney': 'Analyzing your learning journey',
 
+  // Streak Details Modal
+  'streakDetails.title': '🔥 Streak Details',
+  'streakDetails.loading': 'Loading streak information...',
+  'streakDetails.dailyStudyStreak': 'Daily Study Streak',
+  'streakDetails.current': 'Current',
+  'streakDetails.best': 'Best',
+  'streakDetails.messages.unstoppable': 'Unstoppable! You\'re a learning machine!',
+  'streakDetails.messages.incredible': 'Incredible dedication! You\'re building amazing habits!',
+  'streakDetails.messages.fantastic': 'Fantastic! You\'re on fire!',
+  'streakDetails.messages.greatJob': 'Great job! You\'re building momentum!',
+  'streakDetails.messages.goodStart': 'Good start! Keep going!',
+  'streakDetails.messages.gettingStarted': 'You\'re getting started!',
+  'streakDetails.messages.readyToBegin': 'Ready to begin your learning journey!',
+
   // Arcade Page
   'arcade.title': 'Arcade',
   'arcade.availableXP': 'Available XP',

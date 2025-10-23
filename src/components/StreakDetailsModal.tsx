@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Modal, ScrollView } from 'rea
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { HolisticProgressService } from '../lib/holisticProgressService';
+import { useTranslation } from '../lib/i18n/context';
 
 interface StreakDetailsModalProps {
   visible: boolean;
@@ -15,6 +16,7 @@ interface StreakInfo {
 
 export default function StreakDetailsModal({ visible, onClose }: StreakDetailsModalProps) {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const [streakInfo, setStreakInfo] = useState<StreakInfo>({});
   const [loading, setLoading] = useState(true);
 
@@ -50,13 +52,13 @@ export default function StreakDetailsModal({ visible, onClose }: StreakDetailsMo
   };
 
   const getStreakMessage = (streak: number) => {
-    if (streak >= 30) return 'Unstoppable! You\'re a learning machine!';
-    if (streak >= 21) return 'Incredible dedication! You\'re building amazing habits!';
-    if (streak >= 14) return 'Fantastic! You\'re on fire!';
-    if (streak >= 7) return 'Great job! You\'re building momentum!';
-    if (streak >= 3) return 'Good start! Keep going!';
-    if (streak >= 1) return 'You\'re getting started!';
-    return 'Ready to begin your learning journey!';
+    if (streak >= 30) return t('streakDetails.messages.unstoppable');
+    if (streak >= 21) return t('streakDetails.messages.incredible');
+    if (streak >= 14) return t('streakDetails.messages.fantastic');
+    if (streak >= 7) return t('streakDetails.messages.greatJob');
+    if (streak >= 3) return t('streakDetails.messages.goodStart');
+    if (streak >= 1) return t('streakDetails.messages.gettingStarted');
+    return t('streakDetails.messages.readyToBegin');
   };
 
   return (
@@ -69,7 +71,7 @@ export default function StreakDetailsModal({ visible, onClose }: StreakDetailsMo
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>🔥 Streak Details</Text>
+            <Text style={styles.modalTitle}>{t('streakDetails.title')}</Text>
             <TouchableOpacity style={styles.closeButton} onPress={onClose}>
               <Ionicons name="close" size={24} color="#64748b" />
             </TouchableOpacity>
@@ -78,7 +80,7 @@ export default function StreakDetailsModal({ visible, onClose }: StreakDetailsMo
           <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
             {loading ? (
               <View style={styles.loadingContainer}>
-                <Text style={styles.loadingText}>Loading streak information...</Text>
+                <Text style={styles.loadingText}>{t('streakDetails.loading')}</Text>
               </View>
             ) : (
               <>
@@ -86,20 +88,20 @@ export default function StreakDetailsModal({ visible, onClose }: StreakDetailsMo
                 <View style={styles.streakCard}>
                   <View style={styles.streakHeader}>
                     <Ionicons name="calendar" size={24} color="#6366f1" />
-                    <Text style={styles.streakTitle}>Daily Study Streak</Text>
+                    <Text style={styles.streakTitle}>{t('streakDetails.dailyStudyStreak')}</Text>
                   </View>
                   <View style={styles.streakStats}>
                     <View style={styles.streakStat}>
                       <Text style={styles.streakNumber}>
                         {streakInfo.daily_study?.current_streak || 0}
                       </Text>
-                      <Text style={styles.streakLabel}>Current</Text>
+                      <Text style={styles.streakLabel}>{t('streakDetails.current')}</Text>
                     </View>
                     <View style={styles.streakStat}>
                       <Text style={styles.streakNumber}>
                         {streakInfo.daily_study?.longest_streak || 0}
                       </Text>
-                      <Text style={styles.streakLabel}>Best</Text>
+                      <Text style={styles.streakLabel}>{t('streakDetails.best')}</Text>
                     </View>
                   </View>
                   <Text style={styles.streakMessage}>

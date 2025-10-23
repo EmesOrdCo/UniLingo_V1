@@ -418,6 +418,20 @@ export const de: Record<string, string> = {
   'progress.bestStreak': 'Beste Serie',
   'progress.analyzingJourney': 'Analysiere Ihre Lernreise',
 
+  // Streak Details Modal
+  'streakDetails.title': '🔥 Streak-Details',
+  'streakDetails.loading': 'Lade Streak-Informationen...',
+  'streakDetails.dailyStudyStreak': 'Tägliche Lernserie',
+  'streakDetails.current': 'Aktuell',
+  'streakDetails.best': 'Beste',
+  'streakDetails.messages.unstoppable': 'Unaufhaltsam! Du bist eine Lernmaschine!',
+  'streakDetails.messages.incredible': 'Unglaubliche Hingabe! Du baust großartige Gewohnheiten auf!',
+  'streakDetails.messages.fantastic': 'Fantastisch! Du bist auf dem Vormarsch!',
+  'streakDetails.messages.greatJob': 'Großartige Arbeit! Du baust Schwung auf!',
+  'streakDetails.messages.goodStart': 'Guter Start! Weiter so!',
+  'streakDetails.messages.gettingStarted': 'Du fängst an!',
+  'streakDetails.messages.readyToBegin': 'Bereit, deine Lernreise zu beginnen!',
+
   // Arcade Page
   'arcade.title': 'Arkade',
   'arcade.availableXP': 'Verfügbare XP',
