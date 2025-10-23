@@ -50,6 +50,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         merchantDisplayName: 'UniLingo',
         paymentIntentClientSecret: paymentIntent.clientSecret,
         allowsDelayedPaymentMethods: true,
+        returnURL: 'unilingo://stripe-redirect',
         applePay: {
           merchantCountryCode: 'GB',
         },
@@ -57,13 +58,16 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
           merchantCountryCode: 'GB',
           testEnvironment: __DEV__,
         },
+        defaultBillingDetails: {
+          name: 'UniLingo User',
+        },
       });
 
       if (initError) {
         console.error('❌ Payment sheet initialization error:', initError);
         Alert.alert(
           t('payment.error.title'),
-          initError.message || t('payment.error.message'),
+          `Payment setup failed: ${initError.message || t('payment.error.message')}`,
           [{ text: t('common.ok') }]
         );
         return;

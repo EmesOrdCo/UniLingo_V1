@@ -942,11 +942,34 @@ export const en: Record<string, string> = {
   'avatar.item.locked.previewButton': 'Preview Only',
   'avatar.item.locked.unlockButton': 'Unlock & Use',
 
+  // Payment Modal
+  'payment.title': 'Purchase Avatar Item',
+  'payment.price': 'Price:',
+  'payment.features.title': 'What you get:',
+  'payment.features.permanent': 'Permanent access to this avatar item',
+  'payment.features.allAvatars': 'Use across all your avatars',
+  'payment.features.noRecurring': 'No recurring charges',
+  'payment.button.cancel': 'Cancel',
+  'payment.button.purchase': 'Purchase',
+  'payment.disclaimer': 'Payment is processed securely through Stripe. Your payment information is never stored on our servers.',
+  'payment.success.title': 'Purchase Successful! 🎉',
+  'payment.success.message': 'You\'ve successfully purchased the {{itemName}}! It\'s now available in your avatar customization.',
+  'payment.failed.title': 'Purchase Failed',
+  'payment.failed.message': 'Something went wrong. Please try again.',
+  'payment.error.title': 'Purchase Error',
+  'payment.error.message': 'An unexpected error occurred. Please try again.',
+
   // Avatar Preview Mode Alert
   'avatar.preview.title': 'Preview Mode Active',
   'avatar.preview.message': 'You are currently previewing a locked item. You must select an unlocked item or revert to your original selection before leaving.',
   'avatar.preview.stayButton': 'Stay',
   'avatar.preview.revertButton': 'Revert to Original',
+
+  // Profile Menu
+  'profile.menu.settings': 'Settings',
+  'profile.menu.inviteFriends': 'Invite Friends',
+  'profile.menu.faq': 'FAQ',
+  'profile.menu.contactSupport': 'Contact Support',
 
   // Profile Settings Modal
   'profile.settings.title': 'Settings',

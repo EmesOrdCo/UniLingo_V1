@@ -260,7 +260,11 @@ export default function App() {
   }, []);
 
   return (
-    <StripeProvider publishableKey={ENV.STRIPE_PUBLISHABLE_KEY || ''}>
+    <StripeProvider 
+      publishableKey={ENV.STRIPE_PUBLISHABLE_KEY || ''}
+      merchantIdentifier="merchant.com.unilingo.app"
+      urlScheme="unilingo"
+    >
       <Provider store={store}>
         <SafeAreaProvider>
           <I18nProvider>

@@ -1,0 +1,21 @@
+# Frontend Environment Variables
+# Copy this file to .env and fill in your actual values
+
+# Supabase Configuration (REQUIRED)
+EXPO_PUBLIC_SUPABASE_URL=your_supabase_project_url
+EXPO_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+
+# OpenAI Configuration (REQUIRED for AI features)
+EXPO_PUBLIC_OPENAI_API_KEY=your_openai_api_key
+
+# Backend Configuration (REQUIRED)
+EXPO_PUBLIC_BACKEND_URL=https://your-backend-url.com
+
+# Stripe Configuration (REQUIRED for payments)
+# SAFE TO EXPOSE - This is a publishable key designed for frontend use
+EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_publishable_key_here
+
+# Security Note:
+# - EXPO_PUBLIC_* variables are safe to expose in frontend code
+# - Never put secret keys (sk_*) in frontend environment variables
+# - Secret keys must stay on your backend server only
