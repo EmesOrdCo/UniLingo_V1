@@ -3,10 +3,12 @@ import { View, StyleSheet } from 'react-native';
 import AnimatedAvatar from './AnimatedAvatar';
 import FallbackAvatar from './FallbackAvatar';
 
+// Force TypeScript refresh - updated
+
 interface SmartAvatarProps {
   size?: number;
   style?: any;
-  animationType?: 'idle' | 'blink' | 'celebrate' | 'equip' | 'none';
+  animationType?: 'idle' | 'blink' | 'celebrate' | 'equip' | 'disappointed' | 'none';
   onAnimationComplete?: () => void;
   enableAnimations?: boolean;
   fallbackOnError?: boolean;

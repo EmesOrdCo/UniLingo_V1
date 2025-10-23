@@ -31,6 +31,7 @@ const GravityGame: React.FC<GravityGameProps> = ({ gameData, onClose, onGameComp
   const meteorSpawnInterval = useRef<NodeJS.Timeout | null>(null);
   const meteorMoveInterval = useRef<NodeJS.Timeout | null>(null);
   const gameStartTime = useRef<number>(Date.now());
+  
 
   // Animated values for background elements
   const starTwinkle1 = useRef(new Animated.Value(0)).current;
@@ -280,7 +281,6 @@ const GravityGame: React.FC<GravityGameProps> = ({ gameData, onClose, onGameComp
           
           // Haptic feedback for destroying meteor
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          
           setScore(score + 1);
           
           // Increase difficulty every 8 meteors destroyed (less frequent)
@@ -902,6 +902,7 @@ const GravityGame: React.FC<GravityGameProps> = ({ gameData, onClose, onGameComp
           <Text style={styles.waveText}>{t('gravityGame.wave', { count: currentWave })}</Text>
         </View>
       </View>
+
 
       {/* Game Area - Empty container for layout stability */}
       <View style={styles.gameArea}>

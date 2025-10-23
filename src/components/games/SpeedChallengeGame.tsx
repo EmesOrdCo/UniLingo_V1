@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, TextInput, Alert } from 'reac
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useTranslation } from '../../lib/i18n';
+import SmartAvatar from '../avatar/SmartAvatar';
 
 interface SpeedChallengeGameProps {
   gameData: any;
@@ -29,6 +30,9 @@ const SpeedChallengeGame: React.FC<SpeedChallengeGameProps> = ({ gameData, onClo
   const finalElapsedTimeRef = useRef<number>(0);
   const finalTotalAnsweredRef = useRef<number>(0);
   const completionCalledRef = useRef<boolean>(false);
+  
+  // Avatar animation state
+  const [avatarAnimation, setAvatarAnimation] = useState<'idle' | 'celebrate' | 'disappointed'>('idle');
 
   useEffect(() => {
     gameStartTimeRef.current = Date.now();
@@ -75,8 +79,10 @@ const SpeedChallengeGame: React.FC<SpeedChallengeGameProps> = ({ gameData, onClo
     if (correctAnswer) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setScore(score + 1);
+      setAvatarAnimation('celebrate');
     } else {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      setAvatarAnimation('disappointed');
     }
     
     setTotalAnswered(totalAnswered + 1); // Increment total answered
@@ -92,6 +98,7 @@ const SpeedChallengeGame: React.FC<SpeedChallengeGameProps> = ({ gameData, onClo
       setCurrentQuestionIndex(nextIndex);
       setUserAnswer('');
       setShowResult(false);
+      setAvatarAnimation('idle'); // Reset avatar animation for next loaded question
     }, 1500);
   };
 
@@ -215,6 +222,20 @@ const SpeedChallengeGame: React.FC<SpeedChallengeGameProps> = ({ gameData, onClo
         />
       </View>
 
+      {/* Avatar */}
+      <View style={styles.avatarContainer}>
+        <SmartAvatar 
+          size={70}
+          animationType={avatarAnimation}
+          onAnimationComplete={() => {
+            // Keep avatar in idle state after animation completes
+            if (avatarAnimation !== 'idle') {
+              setAvatarAnimation('idle');
+            }
+          }}
+        />
+      </View>
+
       {/* Question */}
       <View style={styles.questionContainer}>
         <Text style={styles.questionText}>
@@ -333,6 +354,11 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: '#6466E9',
     borderRadius: 3,
+  },
+  avatarContainer: {
+    alignItems: 'center',
+    marginTop: 16,
+    marginBottom: 8,
   },
   questionContainer: {
     margin: 20,

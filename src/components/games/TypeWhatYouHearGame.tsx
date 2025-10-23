@@ -6,6 +6,7 @@ import * as Haptics from 'expo-haptics';
 import GameCompletionTracker from '../../lib/gameCompletionTracker';
 import { useTranslation } from '../../lib/i18n';
 import { getSpeechLanguageCode } from '../../lib/languageService';
+import SmartAvatar from '../avatar/SmartAvatar';
 
 interface TypeWhatYouHearGameProps {
   gameData: any;
@@ -33,6 +34,9 @@ const TypeWhatYouHearGame: React.FC<TypeWhatYouHearGameProps> = ({ gameData, onC
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const completionCalledRef = useRef<boolean>(false);
   const gameCompleteProcessedRef = useRef<boolean>(false);
+  
+  // Avatar animation state
+  const [avatarAnimation, setAvatarAnimation] = useState<'idle' | 'celebrate' | 'disappointed'>('idle');
 
   // Removed automatic completion call - now handled by user action buttons
 
@@ -116,8 +120,10 @@ const TypeWhatYouHearGame: React.FC<TypeWhatYouHearGameProps> = ({ gameData, onC
     if (correctAnswer) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setScore(score + 1);
+      setAvatarAnimation('celebrate');
     } else {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      setAvatarAnimation('disappointed');
     }
     
     setShowResult(true);
@@ -135,6 +141,7 @@ const TypeWhatYouHearGame: React.FC<TypeWhatYouHearGameProps> = ({ gameData, onC
         setCurrentQuestionIndex(currentQuestionIndex + 1);
         setUserAnswer('');
         setShowResult(false);
+        setAvatarAnimation('idle'); // Reset avatar animation for next question
       } else {
         // Capture final score before completing game
         finalScoreRef.current = score + (correctAnswer ? 1 : 0);
@@ -257,6 +264,20 @@ const TypeWhatYouHearGame: React.FC<TypeWhatYouHearGameProps> = ({ gameData, onC
         </Text>
       </View>
 
+      {/* Avatar */}
+      <View style={styles.avatarContainer}>
+        <SmartAvatar 
+          size={80}
+          animationType={avatarAnimation}
+          onAnimationComplete={() => {
+            // Keep avatar in idle state after animation completes
+            if (avatarAnimation !== 'idle') {
+              setAvatarAnimation('idle');
+            }
+          }}
+        />
+      </View>
+
       {/* Question */}
       <View style={styles.questionContainer}>
         <Text style={styles.questionText}>
@@ -374,6 +395,11 @@ const styles = StyleSheet.create({
     color: '#64748b',
     textAlign: 'center',
     fontWeight: '500',
+  },
+  avatarContainer: {
+    alignItems: 'center',
+    marginTop: 16,
+    marginBottom: 8,
   },
   questionContainer: {
     margin: 20,

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Text } from 'react-native';
 import { useSelector } from 'react-redux';
-import { selectAvatarOptions } from '../store/slices/avatarSlice';
+import { selectAvatarOptions } from '../../store/slices/avatarSlice';
 import { createAvatar } from '@dicebear/core';
 import { avataaars } from '@dicebear/collection';
 import { SvgXml } from 'react-native-svg';

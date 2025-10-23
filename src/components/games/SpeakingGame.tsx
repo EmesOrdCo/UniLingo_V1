@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useTranslation } from '../../lib/i18n';
 import PronunciationCheck from '../PronunciationCheck';
+import SmartAvatar from '../avatar/SmartAvatar';
 
 interface SpeakingGameProps {
   gameData: any;
@@ -37,6 +38,9 @@ const SpeakingGame: React.FC<SpeakingGameProps> = ({
   // Use ref to capture final score and prevent multiple calls
   const finalScoreRef = useRef<number>(0);
   const completionCalledRef = useRef<boolean>(false);
+  
+  // Avatar animation state
+  const [avatarAnimation, setAvatarAnimation] = useState<'idle' | 'celebrate' | 'disappointed'>('idle');
 
   useEffect(() => {
     if (gameData.questions && gameData.questions.length > 0) {
@@ -64,6 +68,7 @@ const SpeakingGame: React.FC<SpeakingGameProps> = ({
     if (passed) {
       // Haptic feedback for passing pronunciation
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setAvatarAnimation('celebrate');
       
       setCurrentWordPassed(true);
       setTotalScore(prev => prev + score);
@@ -82,6 +87,7 @@ const SpeakingGame: React.FC<SpeakingGameProps> = ({
     } else {
       // Haptic feedback for failing pronunciation
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      setAvatarAnimation('disappointed');
       
       // Failed attempt - show result and wait for user to click Next Question
       setCurrentWordPassed(true); // Allow user to proceed
@@ -118,6 +124,7 @@ const SpeakingGame: React.FC<SpeakingGameProps> = ({
       setCurrentWordIndex(nextIndex);
       setCurrentWord(gameData.questions[nextIndex].correctAnswer);
       setCurrentWordPassed(false);
+      setAvatarAnimation('idle'); // Reset avatar animation for next question
       
       // Reset pronunciation result to show fresh question
       // This will be handled by the PronunciationCheck component's internal state
@@ -225,6 +232,20 @@ const SpeakingGame: React.FC<SpeakingGameProps> = ({
         </View>
       </View>
 
+      {/* Avatar */}
+      <View style={styles.avatarContainer}>
+        <SmartAvatar 
+          size={80}
+          animationType={avatarAnimation}
+          onAnimationComplete={() => {
+            // Keep avatar in idle state after animation completes
+            if (avatarAnimation !== 'idle') {
+              setAvatarAnimation('idle');
+            }
+          }}
+        />
+      </View>
+
 
 
       {/* Pronunciation Check Component */}
@@ -264,6 +285,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderBottomWidth: 1,
     borderBottomColor: '#e2e8f0',
+  },
+  avatarContainer: {
+    alignItems: 'center',
+    marginTop: 16,
+    marginBottom: 8,
   },
   progressInfo: {
     flex: 1,

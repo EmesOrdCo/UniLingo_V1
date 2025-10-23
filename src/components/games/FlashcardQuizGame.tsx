@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-nati
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useTranslation } from '../../lib/i18n';
+import SmartAvatar from '../avatar/SmartAvatar';
 
 interface FlashcardQuizGameProps {
   gameData: any;
@@ -32,6 +33,9 @@ const FlashcardQuizGame: React.FC<FlashcardQuizGameProps> = ({
   
   // Use ref to prevent multiple completion calls
   const completionCalledRef = useRef<boolean>(false);
+  
+  // Avatar animation state
+  const [avatarAnimation, setAvatarAnimation] = useState<'idle' | 'celebrate' | 'disappointed'>('idle');
   
   // Get language mode from gameData
   const languageMode = gameData?.languageMode || 'question';
@@ -114,8 +118,10 @@ const FlashcardQuizGame: React.FC<FlashcardQuizGameProps> = ({
     // Haptic feedback based on answer
     if (isCorrect) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setAvatarAnimation('celebrate');
     } else {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      setAvatarAnimation('disappointed');
     }
     
     setTimeout(() => {
@@ -131,6 +137,7 @@ const FlashcardQuizGame: React.FC<FlashcardQuizGameProps> = ({
         setCurrentQuestion(currentQuestion + 1);
         setSelectedAnswer(null);
         setShowResult(false);
+        setAvatarAnimation('idle'); // Reset avatar animation for next question
       } else {
         setShowReview(true);
       }
@@ -221,6 +228,20 @@ const FlashcardQuizGame: React.FC<FlashcardQuizGameProps> = ({
         <View style={[styles.progressFill, { width: `${((currentQuestion + 1) / gameData.questions.length) * 100}%` }]} />
       </View>
       
+      {/* Avatar */}
+      <View style={styles.avatarContainer}>
+        <SmartAvatar 
+          size={80}
+          animationType={avatarAnimation}
+          onAnimationComplete={() => {
+            // Keep avatar in idle state after animation completes
+            if (avatarAnimation !== 'idle') {
+              setAvatarAnimation('idle');
+            }
+          }}
+        />
+      </View>
+      
       {/* Question Counter */}
       <View style={styles.questionCounter}>
         <Text style={styles.questionCounterText}>
@@ -307,9 +328,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#6466E9',
     borderRadius: 2,
   },
-  questionCounter: {
+  avatarContainer: {
     alignItems: 'center',
     marginTop: 16,
+    marginBottom: 8,
+  },
+  questionCounter: {
+    alignItems: 'center',
+    marginTop: 8,
   },
   questionCounterText: {
     fontSize: 14,

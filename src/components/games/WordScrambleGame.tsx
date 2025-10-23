@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, TextInput, Alert } from 'reac
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useTranslation } from '../../lib/i18n';
+import SmartAvatar from '../avatar/SmartAvatar';
 
 interface WordScrambleGameProps {
   gameData: any;
@@ -24,6 +25,9 @@ const WordScrambleGame: React.FC<WordScrambleGameProps> = ({ gameData, onClose, 
   // Use ref to capture final score and prevent multiple calls
   const finalScoreRef = useRef<number>(0);
   const completionCalledRef = useRef<boolean>(false);
+  
+  // Avatar animation state
+  const [avatarAnimation, setAvatarAnimation] = useState<'idle' | 'celebrate' | 'disappointed'>('idle');
 
   useEffect(() => {
     if (gameData.questions && gameData.questions.length > 0) {
@@ -56,8 +60,10 @@ const WordScrambleGame: React.FC<WordScrambleGameProps> = ({ gameData, onClose, 
     if (correctAnswer) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setScore(score + 1);
+      setAvatarAnimation('celebrate');
     } else {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      setAvatarAnimation('disappointed');
     }
     
     setShowResult(true);
@@ -68,6 +74,7 @@ const WordScrambleGame: React.FC<WordScrambleGameProps> = ({ gameData, onClose, 
       
       if (currentQuestionIndex < gameData.questions.length - 1) {
         setCurrentQuestionIndex(currentQuestionIndex + 1);
+        setAvatarAnimation('idle'); // Reset avatar animation for next question
       } else {
         // Capture final score before completing game
         finalScoreRef.current = score + (correctAnswer ? 1 : 0);
@@ -92,6 +99,7 @@ const WordScrambleGame: React.FC<WordScrambleGameProps> = ({ gameData, onClose, 
     setUserAnswer('');
     setShowResult(false);
     setGameComplete(false);
+    setAvatarAnimation('idle'); // Reset avatar animation
     finalScoreRef.current = 0; // Reset the ref as well
     completionCalledRef.current = false; // Reset completion called flag
   };
@@ -179,6 +187,20 @@ const WordScrambleGame: React.FC<WordScrambleGameProps> = ({ gameData, onClose, 
         <Text style={styles.progressText}>
           {currentQuestionIndex + 1} of {gameData.questions.length}
         </Text>
+      </View>
+
+      {/* Avatar */}
+      <View style={styles.avatarContainer}>
+        <SmartAvatar 
+          size={80}
+          animationType={avatarAnimation}
+          onAnimationComplete={() => {
+            // Keep avatar in idle state after animation completes
+            if (avatarAnimation !== 'idle') {
+              setAvatarAnimation('idle');
+            }
+          }}
+        />
       </View>
 
       {/* Question */}
@@ -286,6 +308,11 @@ const styles = StyleSheet.create({
     color: '#64748b',
     textAlign: 'center',
     fontWeight: '500',
+  },
+  avatarContainer: {
+    alignItems: 'center',
+    marginTop: 16,
+    marginBottom: 8,
   },
   questionContainer: {
     margin: 20,

@@ -26,6 +26,7 @@ const HangmanGame: React.FC<HangmanGameProps> = ({ gameData, onClose, onGameComp
   // Use ref to capture final score and prevent multiple calls
   const finalScoreRef = useRef<number>(0);
   const completionCalledRef = useRef<boolean>(false);
+  
 
   // Removed automatic completion call - now handled by user action buttons
 
@@ -106,6 +107,25 @@ const HangmanGame: React.FC<HangmanGameProps> = ({ gameData, onClose, onGameComp
     return currentWord.split('').map(letter => 
       guessedLetters.includes(letter) ? letter : '_'
     ).join(' ');
+  };
+
+  // Calculate dynamic font size based on word length to prevent wrapping
+  const getDynamicFontSize = () => {
+    const wordLength = currentWord.length;
+    const baseFontSize = 32;
+    
+    // Use a more conservative approach: reduce font size for longer words
+    if (wordLength <= 6) {
+      return baseFontSize; // 32px for short words
+    } else if (wordLength <= 8) {
+      return 28; // 28px for medium words
+    } else if (wordLength <= 10) {
+      return 24; // 24px for longer words
+    } else if (wordLength <= 12) {
+      return 20; // 20px for very long words
+    } else {
+      return 18; // 18px for extremely long words (minimum readable size)
+    }
   };
 
   const getHangmanStage = () => {
@@ -214,6 +234,7 @@ const HangmanGame: React.FC<HangmanGameProps> = ({ gameData, onClose, onGameComp
           {currentQuestionIndex + 1} of {gameData.questions.length}
         </Text>
       </View>
+
 
       {/* Hangman Drawing */}
       <View style={styles.hangmanContainer}>
@@ -390,7 +411,7 @@ const HangmanGame: React.FC<HangmanGameProps> = ({ gameData, onClose, onGameComp
       {/* Word Display */}
       <View style={styles.wordContainer}>
         <Text style={styles.wordLabel}>{t('hangman.word')}</Text>
-        <Text style={styles.wordDisplay}>{getDisplayWord()}</Text>
+        <Text style={[styles.wordDisplay, { fontSize: getDynamicFontSize() }]}>{getDisplayWord()}</Text>
       </View>
 
 
@@ -475,8 +496,8 @@ const styles = StyleSheet.create({
   },
   hangmanContainer: {
     alignItems: 'center',
-    marginTop: 30,
-    marginBottom: 40,
+    marginTop: 20,
+    marginBottom: 25,
     paddingHorizontal: 20,
   },
   chalkboardFrame: {
@@ -492,12 +513,12 @@ const styles = StyleSheet.create({
     borderColor: '#654321',
   },
   chalkboard: {
-    width: 320,
-    height: 240,
+    width: 300,
+    height: 220,
     position: 'relative',
     backgroundColor: '#1a1a1a',
     borderRadius: 16,
-    padding: 24,
+    padding: 20,
     borderWidth: 3,
     borderColor: '#2d2d2d',
     // Chalkboard texture effect
@@ -646,26 +667,26 @@ const styles = StyleSheet.create({
   },
   wordContainer: {
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 15,
     marginHorizontal: 20,
     paddingHorizontal: 16,
   },
   wordLabel: {
-    fontSize: 16,
+    fontSize: 15,
     color: '#64748b',
-    marginBottom: 8,
+    marginBottom: 6,
     fontWeight: '500',
   },
   wordDisplay: {
-    fontSize: 32,
     fontWeight: '700',
     color: '#1e293b',
-    letterSpacing: 4,
+    letterSpacing: 3,
     textAlign: 'center',
     minWidth: '100%',
     paddingHorizontal: 8,
-    minHeight: 50, // Fixed height to prevent layout shifts
-    lineHeight: 50, // Consistent line height
+    minHeight: 40, // Reduced height to prevent layout shifts
+    lineHeight: 40, // Consistent line height
+    flexWrap: 'nowrap', // Prevent text wrapping
   },
   questionContainer: {
     marginHorizontal: 20,
@@ -689,7 +710,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginHorizontal: 20,
-    marginBottom: 20,
+    marginBottom: 15,
   },
   statusText: {
     fontSize: 14,
@@ -705,14 +726,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
-    gap: 8,
+    gap: 6,
     paddingHorizontal: 20,
-    marginBottom: 20,
+    marginBottom: 15,
   },
   letterButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: '#ffffff',
     borderWidth: 2,
     borderColor: '#e2e8f0',

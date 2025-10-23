@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Alert, Animated } from 'react
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useTranslation } from '../../lib/i18n';
+import SmartAvatar from '../avatar/SmartAvatar';
 
 interface MemoryMatchGameProps {
   gameData: any;
@@ -22,6 +23,9 @@ const MemoryMatchGame: React.FC<MemoryMatchGameProps> = ({ gameData, onClose, on
 
   // Use ref to prevent multiple completion calls
   const completionCalledRef = useRef<boolean>(false);
+  
+  // Avatar animation state
+  const [avatarAnimation, setAvatarAnimation] = useState<'idle' | 'celebrate' | 'disappointed'>('idle');
 
   // Animated values for floating background elements
   const animatedValue1 = useRef(new Animated.Value(0)).current;
@@ -151,10 +155,16 @@ const MemoryMatchGame: React.FC<MemoryMatchGameProps> = ({ gameData, onClose, on
     if (firstCard && secondCard && firstCard.originalCardId === secondCard.originalCardId) {
       // Match found - haptic success feedback
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setAvatarAnimation('celebrate');
       
       // Match found - cards belong to the same original flashcard
       setMatchedPairs([...matchedPairs, firstId, secondId]);
       setFlippedCards([]);
+      
+      // Reset avatar animation after a short delay
+      setTimeout(() => {
+        setAvatarAnimation('idle');
+      }, 1000);
       
       // Check if game is complete
       if (matchedPairs.length + 2 === cards.length) {
@@ -163,6 +173,12 @@ const MemoryMatchGame: React.FC<MemoryMatchGameProps> = ({ gameData, onClose, on
     } else {
       // No match - haptic error feedback
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      setAvatarAnimation('disappointed');
+      
+      // Reset avatar animation after a short delay
+      setTimeout(() => {
+        setAvatarAnimation('idle');
+      }, 1000);
       
       // No match, flip cards back after delay
       setTimeout(() => {
@@ -176,6 +192,7 @@ const MemoryMatchGame: React.FC<MemoryMatchGameProps> = ({ gameData, onClose, on
     setMatchedPairs([]);
     setMoves(0);
     setIsGameComplete(false);
+    setAvatarAnimation('idle'); // Reset avatar animation
     initializeGame();
   };
 
@@ -639,6 +656,20 @@ const MemoryMatchGame: React.FC<MemoryMatchGameProps> = ({ gameData, onClose, on
         <View style={styles.gridPattern} />
       </View>
       
+      {/* Avatar */}
+      <View style={styles.avatarContainer}>
+        <SmartAvatar 
+          size={70}
+          animationType={avatarAnimation}
+          onAnimationComplete={() => {
+            // Keep avatar in idle state after animation completes
+            if (avatarAnimation !== 'idle') {
+              setAvatarAnimation('idle');
+            }
+          }}
+        />
+      </View>
+
       {/* Floating Stats */}
       <View style={styles.floatingStatsContainer}>
         <View style={styles.statBox}>
@@ -1319,10 +1350,19 @@ const styles = StyleSheet.create({
     shadowRadius: 1,
     elevation: 0,
   },
+  // Avatar container
+  avatarContainer: {
+    position: 'absolute',
+    top: 20,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 15,
+  },
   // Floating stats boxes
   floatingStatsContainer: {
     position: 'absolute',
-    top: 20,
+    top: 100,
     left: 0,
     right: 0,
     flexDirection: 'row',
