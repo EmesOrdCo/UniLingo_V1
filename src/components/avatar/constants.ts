@@ -165,8 +165,8 @@ export const MOUTH_TYPES = [
 
 // Accessories types
 export const ACCESSORIES_TYPES = [
-  { value: 'Blank', label: 'None' },
   { value: 'eyepatch', label: 'Eyepatch' },
+  { value: 'Blank', label: 'None' },
   { value: 'kurt', label: 'Kurt' },
   { value: 'prescription01', label: 'Prescription (Type 1)' },
   { value: 'prescription02', label: 'Prescription (Type 2)' },

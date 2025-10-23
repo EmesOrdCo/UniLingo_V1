@@ -686,6 +686,9 @@ export const de: Record<string, string> = {
   'profile.user': 'Benutzer',
   'profile.noEmail': 'Keine E-Mail',
   'profile.menu.settings': 'Einstellungen',
+  'profile.menu.inviteFriends': 'Freunde einladen',
+  'profile.menu.faq': 'FAQ',
+  'profile.menu.contactSupport': 'Support kontaktieren',
   'profile.menu.changeProfilePicture': 'Profilbild ändern',
   'profile.menu.customizeAvatar': 'Avatar anpassen',
   
@@ -904,6 +907,27 @@ export const de: Record<string, string> = {
   'avatar.item.locked.message': 'Dieser Artikel kostet {{cost}} XP zum Freischalten. Du hast {{available}} XP verfügbar.',
   'avatar.item.locked.previewButton': 'Nur Vorschau',
   'avatar.item.locked.unlockButton': 'Freischalten & Verwenden',
+
+  // Avatar Item Paid Alert
+  'avatar.item.paid.message': 'Dieser Premium-Artikel kostet £{{price}} zum Kaufen.',
+  'avatar.item.paid.purchaseButton': 'Kaufen & Verwenden',
+
+  // Payment Modal
+  'payment.title': 'Avatar-Artikel kaufen',
+  'payment.price': 'Preis:',
+  'payment.features.title': 'Was du bekommst:',
+  'payment.features.permanent': 'Dauerhafter Zugang zu diesem Avatar-Artikel',
+  'payment.features.allAvatars': 'Verwende es bei allen deinen Avataren',
+  'payment.features.noRecurring': 'Keine wiederkehrenden Gebühren',
+  'payment.button.cancel': 'Abbrechen',
+  'payment.button.purchase': 'Kaufen',
+  'payment.disclaimer': 'Die Zahlung wird sicher über Stripe verarbeitet. Deine Zahlungsinformationen werden nie auf unseren Servern gespeichert.',
+  'payment.success.title': 'Kauf erfolgreich! 🎉',
+  'payment.success.message': 'Du hast {{itemName}} erfolgreich gekauft! Es ist jetzt in deiner Avatar-Anpassung verfügbar.',
+  'payment.failed.title': 'Kauf fehlgeschlagen',
+  'payment.failed.message': 'Etwas ist schiefgelaufen. Bitte versuche es erneut.',
+  'payment.error.title': 'Kauf-Fehler',
+  'payment.error.message': 'Ein unerwarteter Fehler ist aufgetreten. Bitte versuche es erneut.',
 
   // Avatar Preview Mode Alert
   'avatar.preview.title': 'Vorschaumodus aktiv',

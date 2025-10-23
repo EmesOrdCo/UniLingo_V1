@@ -193,9 +193,23 @@ const SubcategoryPage: React.FC<SubcategoryPageProps> = ({ category, categoryNam
     const isUnlocked = isItemUnlocked(value, item?.xp_cost || 0);
     
     // Check if this is a paid item
-    if (item && item.price_gbp && item.price_gbp > 0) {
-      setSelectedPaidItem(item);
-      setShowPaymentModal(true);
+    if (item && item.price_gbp && item.price_gbp > 0 && !isUnlocked) {
+      // Allow preview but show purchase option
+      Alert.alert(
+        t('avatar.item.locked.title'),
+        t('avatar.item.paid.message', { price: item.price_gbp }),
+        [
+          { text: t('avatar.item.locked.previewButton'), style: 'cancel', onPress: () => {
+            // Allow preview by updating the avatar temporarily WITHOUT persisting
+            dispatch(updateAvatarOption({ option: optionKey, value, persist: false }));
+            setPreviewMode(true);
+          }},
+          { text: t('avatar.item.paid.purchaseButton'), onPress: () => {
+            setSelectedPaidItem(item);
+            setShowPaymentModal(true);
+          }}
+        ]
+      );
       return;
     }
     

@@ -942,6 +942,10 @@ export const en: Record<string, string> = {
   'avatar.item.locked.previewButton': 'Preview Only',
   'avatar.item.locked.unlockButton': 'Unlock & Use',
 
+  // Avatar Item Paid Alert
+  'avatar.item.paid.message': 'This premium item costs £{{price}} to purchase.',
+  'avatar.item.paid.purchaseButton': 'Purchase & Use',
+
   // Payment Modal
   'payment.title': 'Purchase Avatar Item',
   'payment.price': 'Price:',

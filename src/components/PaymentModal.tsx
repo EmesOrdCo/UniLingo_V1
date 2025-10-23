@@ -183,7 +183,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               </View>
             </View>
             
-            <Text style={styles.itemCategory}>{item.category}</Text>
+            <Text style={styles.itemCategory}>{t(`avatar.${item.category}.title`)}</Text>
             
             <View style={styles.priceContainer}>
               <Text style={styles.priceLabel}>{t('payment.price')}</Text>
