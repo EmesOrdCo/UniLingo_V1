@@ -77,14 +77,19 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
       const { error: presentError } = await presentPaymentSheet();
 
       if (presentError) {
-        console.error('❌ Payment sheet presentation error:', presentError);
-        if (presentError.code !== 'Canceled') {
-          Alert.alert(
-            t('payment.failed.title'),
-            presentError.message || t('payment.failed.message'),
-            [{ text: t('common.ok') }]
-          );
+        // Handle user cancellation gracefully - don't show error for canceled payments
+        if (presentError.code === 'Canceled') {
+          console.log('ℹ️ Payment canceled by user - no action needed');
+          return; // Just close the modal, no error shown
         }
+        
+        // Only show error for actual payment failures
+        console.error('❌ Payment sheet presentation error:', presentError);
+        Alert.alert(
+          t('payment.failed.title'),
+          presentError.message || t('payment.failed.message'),
+          [{ text: t('common.ok') }]
+        );
         return;
       }
 
