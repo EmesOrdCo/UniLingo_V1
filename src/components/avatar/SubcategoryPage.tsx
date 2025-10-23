@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   View, 
   Text, 
@@ -8,7 +8,8 @@ import {
   Dimensions,
   Alert,
   ActivityIndicator,
-  BackHandler
+  BackHandler,
+  Animated
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -51,6 +52,35 @@ const SubcategoryPage: React.FC<SubcategoryPageProps> = ({ category, categoryNam
   const [originalValue, setOriginalValue] = useState<string>('');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedPaidItem, setSelectedPaidItem] = useState<AvatarItem | null>(null);
+  
+  // Animated sheen effect for premium items
+  const sheenAnimation = useRef(new Animated.Value(-1)).current;
+
+  // Setup sheen animation for premium items
+  useEffect(() => {
+    const startSheenAnimation = () => {
+      Animated.sequence([
+        Animated.timing(sheenAnimation, {
+          toValue: 1,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+        Animated.delay(3500), // Wait 3.5 seconds before next sheen
+      ]).start(() => {
+        sheenAnimation.setValue(-1);
+        startSheenAnimation();
+      });
+    };
+
+    const timer = setTimeout(() => {
+      startSheenAnimation();
+    }, 2000); // Initial delay of 2 seconds
+
+    return () => {
+      clearTimeout(timer);
+      sheenAnimation.setValue(-1);
+    };
+  }, []);
 
   // Get translation keys for category
   const getCategoryTranslations = (cat: CustomizationCategory) => {
@@ -488,58 +518,121 @@ const SubcategoryPage: React.FC<SubcategoryPageProps> = ({ category, categoryNam
           const isUnlocked = isItemUnlocked(option.value, item?.xp_cost || 0);
           const isUnlocking = unlocking === item?.id;
           
+          // Check if this is a paid item (eyepatch)
+          const isPaidItem = item?.price_gbp && item.price_gbp > 0;
+          
           return (
-            <TouchableOpacity
-              key={option.value}
-              style={[
-                styles.styleOption,
-                currentValue === option.value && styles.selectedStyleOption,
-                !isUnlocked && styles.lockedStyleOption
-              ]}
-              onPress={() => handleOptionChange(optionKey, option.value)}
-              disabled={isUnlocking}
-            >
-              <Text style={[
-                styles.styleOptionText,
-                currentValue === option.value && styles.selectedStyleOptionText,
-                !isUnlocked && styles.lockedStyleOptionText
-              ]}>
-                {getTranslatedLabel(option)}
-              </Text>
-            
-            {/* Rarity Badge for Unlocked Items */}
-            {isUnlocked && item?.rarity && item.rarity !== 'free' && (
-              <LinearGradient
-                colors={getRarityGradient(item.rarity)}
-                style={styles.styleRarityBadge}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-              >
-                <Ionicons name={getRarityIcon(item.rarity)} size={8} color="#ffffff" />
-              </LinearGradient>
-            )}
-            
-            {!isUnlocked && (
-              <LinearGradient
-                colors={getRarityGradient(item?.price_gbp ? 'legendary' : item?.rarity || 'common')}
-                style={styles.styleLockOverlay}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-              >
-                {isUnlocking ? (
-                  <ActivityIndicator size="small" color="#ffffff" />
-                ) : (
-                  <>
-                    <Ionicons name={getRarityIcon(item?.price_gbp ? 'legendary' : item?.rarity || 'common')} size={10} color="#ffffff" />
-                    <Text style={styles.styleXpCost}>
-                      {item?.price_gbp ? `£${item.price_gbp}` : item?.xp_cost}
-                    </Text>
-                  </>
-                )}
-              </LinearGradient>
-            )}
-          </TouchableOpacity>
-        );
+            <View key={option.value} style={styles.itemContainer}>
+              {/* Premium styling for paid items */}
+              {isPaidItem && !isUnlocked ? (
+                <View style={styles.premiumItemContainer}>
+                  <View style={styles.premiumBacklightEffect} />
+                  <TouchableOpacity
+                    style={[
+                      styles.premiumStyleOption,
+                      currentValue === option.value && styles.selectedPremiumStyleOption
+                    ]}
+                    onPress={() => handleOptionChange(optionKey, option.value)}
+                    disabled={isUnlocking}
+                    activeOpacity={0.9}
+                  >
+                    <LinearGradient
+                      colors={['#FFD700', '#FFA500', '#FF8C00']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.premiumStyleOptionGradient}
+                    >
+                      {/* Animated Sheen Effect */}
+                      <Animated.View
+                        style={[
+                          styles.sheenEffect,
+                          {
+                            transform: [
+                              {
+                                translateX: sheenAnimation.interpolate({
+                                  inputRange: [-1, 1],
+                                  outputRange: [-width, width * 1.5],
+                                }),
+                              },
+                            ],
+                          },
+                        ]}
+                      >
+                        <LinearGradient
+                          colors={['transparent', 'rgba(255, 255, 255, 0.4)', 'transparent']}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 0 }}
+                          style={styles.sheenGradient}
+                        />
+                      </Animated.View>
+
+                      <View style={styles.premiumContent}>
+                        <Text style={styles.premiumStyleOptionText}>
+                          {getTranslatedLabel(option)}
+                        </Text>
+                        
+                        {/* Premium price badge */}
+                        <View style={styles.premiumPriceBadge}>
+                          <Text style={styles.premiumPriceText}>£{item.price_gbp}</Text>
+                        </View>
+                      </View>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                /* Regular styling for non-paid items */
+                <TouchableOpacity
+                  style={[
+                    styles.styleOption,
+                    currentValue === option.value && styles.selectedStyleOption,
+                    !isUnlocked && styles.lockedStyleOption
+                  ]}
+                  onPress={() => handleOptionChange(optionKey, option.value)}
+                  disabled={isUnlocking}
+                >
+                  <Text style={[
+                    styles.styleOptionText,
+                    currentValue === option.value && styles.selectedStyleOptionText,
+                    !isUnlocked && styles.lockedStyleOptionText
+                  ]}>
+                    {getTranslatedLabel(option)}
+                  </Text>
+                
+                  {/* Rarity Badge for Unlocked Items */}
+                  {isUnlocked && item?.rarity && item.rarity !== 'free' && (
+                    <LinearGradient
+                      colors={getRarityGradient(item.rarity)}
+                      style={styles.styleRarityBadge}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                    >
+                      <Ionicons name={getRarityIcon(item.rarity)} size={8} color="#ffffff" />
+                    </LinearGradient>
+                  )}
+                  
+                  {!isUnlocked && (
+                    <LinearGradient
+                      colors={getRarityGradient(item?.rarity || 'common')}
+                      style={styles.styleLockOverlay}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                    >
+                      {isUnlocking ? (
+                        <ActivityIndicator size="small" color="#ffffff" />
+                      ) : (
+                        <>
+                          <Ionicons name={getRarityIcon(item?.rarity || 'common')} size={10} color="#ffffff" />
+                          <Text style={styles.styleXpCost}>
+                            {item?.xp_cost}
+                          </Text>
+                        </>
+                      )}
+                    </LinearGradient>
+                  )}
+                </TouchableOpacity>
+              )}
+            </View>
+          );
       })}
     </View>
     );
@@ -1083,6 +1176,95 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     marginTop: 16,
     textAlign: 'center',
+  },
+  
+  // Premium Item Styles (Eyepatch)
+  itemContainer: {
+    position: 'relative',
+  },
+  premiumItemContainer: {
+    position: 'relative',
+  },
+  premiumBacklightEffect: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#FFD700',
+    opacity: 0.2,
+    borderRadius: 16,
+    transform: [{ scale: 0.95 }],
+  },
+  premiumStyleOption: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#FFD700',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  selectedPremiumStyleOption: {
+    shadowColor: '#FFA500',
+    shadowOpacity: 0.6,
+    shadowRadius: 20,
+    elevation: 12,
+  },
+  premiumStyleOptionGradient: {
+    padding: 16,
+    borderRadius: 16,
+    overflow: 'hidden',
+    position: 'relative',
+    minHeight: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sheenEffect: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: width * 0.3,
+    zIndex: 1,
+  },
+  sheenGradient: {
+    flex: 1,
+    transform: [{ skewX: '-20deg' }],
+  },
+  premiumContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    position: 'relative',
+    zIndex: 2,
+    width: '100%',
+  },
+  premiumStyleOptionText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+    flex: 1,
+  },
+  premiumPriceBadge: {
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  premiumPriceText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
 });
 
