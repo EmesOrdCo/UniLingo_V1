@@ -40,6 +40,17 @@ export default function ProgressPageScreen() {
   const [availableXP, setAvailableXP] = useState<number>(0);
   const [error, setError] = useState<string | null>(null);
 
+  // Helper function to calculate dynamic font size based on text length
+  const getDynamicFontSize = (text: string, baseFontSize: number = 20): number => {
+    if (!text || text === 'None') return baseFontSize;
+    
+    const length = text.length;
+    if (length <= 15) return baseFontSize; // 20px for short text
+    if (length <= 25) return baseFontSize - 2; // 18px for medium text
+    if (length <= 35) return baseFontSize - 4; // 16px for long text
+    return baseFontSize - 6; // 14px for very long text
+  };
+
   // Animated sheen effect
   const sheenAnimation = useRef(new Animated.Value(-1)).current;
 
@@ -560,14 +571,14 @@ export default function ProgressPageScreen() {
               <View style={[styles.flashcardStatIcon, styles.bestTopicIcon]}>
                 <Ionicons name="medal" size={28} color="#ffffff" />
               </View>
-              <Text style={styles.flashcardStatNumber}>{progressData?.flashcardStats?.bestTopic || 'None'}</Text>
+              <Text style={[styles.flashcardStatNumber, { fontSize: getDynamicFontSize(progressData?.flashcardStats?.bestTopic || 'None') }]}>{progressData?.flashcardStats?.bestTopic || 'None'}</Text>
               <Text style={styles.flashcardStatLabel}>{t('progress.bestTopic')}</Text>
             </View>
             <View style={styles.flashcardStatCard}>
               <View style={[styles.flashcardStatIcon, styles.needsWorkIcon]}>
                 <Ionicons name="bulb-outline" size={28} color="#ffffff" />
               </View>
-              <Text style={styles.flashcardStatNumber}>{progressData?.flashcardStats?.weakestTopic || 'None'}</Text>
+              <Text style={[styles.flashcardStatNumber, { fontSize: getDynamicFontSize(progressData?.flashcardStats?.weakestTopic || 'None') }]}>{progressData?.flashcardStats?.weakestTopic || 'None'}</Text>
               <Text style={styles.flashcardStatLabel}>{t('progress.weakestTopic')}</Text>
             </View>
           </View>
