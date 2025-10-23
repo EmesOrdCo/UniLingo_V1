@@ -1657,7 +1657,7 @@ const styles = StyleSheet.create({
     width: 380,
     alignSelf: 'center',
     gap: 10,
-    paddingTop: 120,
+    paddingTop: 160,
   },
   card16Cards: {
     width: 85,
@@ -1672,7 +1672,7 @@ const styles = StyleSheet.create({
     width: 380,
     alignSelf: 'center',
     gap: 8,
-    paddingTop: 120,
+    paddingTop: 160,
   },
   card20Cards: {
     width: 75,
