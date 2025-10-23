@@ -44,6 +44,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
       
       // Create payment intent
       const paymentIntent = await stripeService.createPaymentIntent(item.id, item.price_gbp);
+      console.log('💳 Payment intent created:', paymentIntent);
       
       // Initialize payment sheet
       const { error: initError } = await initPaymentSheet({
@@ -53,6 +54,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         returnURL: 'unilingo://stripe-redirect',
         applePay: {
           merchantCountryCode: 'GB',
+          merchantId: 'merchant.com.unilingo.app',
         },
         googlePay: {
           merchantCountryCode: 'GB',
@@ -62,6 +64,8 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
           name: 'UniLingo User',
         },
       });
+
+      console.log('💳 Payment sheet initialized successfully');
 
       if (initError) {
         console.error('❌ Payment sheet initialization error:', initError);
