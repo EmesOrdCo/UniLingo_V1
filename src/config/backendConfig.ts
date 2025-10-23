@@ -1,9 +1,31 @@
 // Backend configuration
-// This will be updated dynamically when the backend starts
+// Dynamic configuration that works for all users everywhere
+
+// Function to determine the correct backend URL
+function getBackendBaseUrl(): string {
+  // Check if we're in production (Railway deployment)
+  if (process.env.NODE_ENV === 'production' || process.env.RAILWAY_STATIC_URL) {
+    // Use Railway URL if available
+    const railwayUrl = process.env.RAILWAY_STATIC_URL;
+    if (railwayUrl) {
+      return railwayUrl;
+    }
+  }
+  
+  // Check if we have a custom backend URL from environment
+  if (process.env.EXPO_PUBLIC_BACKEND_URL) {
+    return process.env.EXPO_PUBLIC_BACKEND_URL;
+  }
+  
+  // For development, use localhost (works for all users)
+  return 'http://localhost:3001';
+}
+
+const backendBaseUrl = getBackendBaseUrl();
 
 export const BACKEND_CONFIG = {
-  // Auto-detected IP: 10.24.47.56
-  BASE_URL: 'http://10.24.47.56:3001',
+  // Dynamically determined backend URL
+  BASE_URL: backendBaseUrl,
   ENDPOINTS: {
     HEALTH: '/health'
   }

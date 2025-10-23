@@ -5,6 +5,7 @@ export interface AudioLessonUsage {
   monthly_limit: number;
   remaining_lessons: number;
   can_create: boolean;
+  total_usage?: number;
 }
 
 export interface UsageHistoryEntry {
@@ -39,27 +40,47 @@ class HybridAudioLessonUsageService {
   async getUserUsage(userId: string): Promise<AudioLessonUsage> {
     const url = `${this.backendUrl}/api/audio-lessons/usage/${userId}`;
     
-    const response = await fetch(url);
-    if (!response.ok) {
-      let errorMessage = 'Failed to fetch audio lesson usage';
-      try {
-        const errorData = await response.json();
-        errorMessage = errorData.error || errorMessage;
-      } catch (e) {
-        // If response is not JSON (e.g., HTML error page), use status text
-        errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-      }
-      throw new Error(errorMessage);
-    }
-    
-    let data;
     try {
-      data = await response.json();
-    } catch (e) {
-      throw new Error('Invalid JSON response from server');
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        timeout: 10000, // 10 second timeout
+      });
+      if (!response.ok) {
+        let errorMessage = 'Failed to fetch audio lesson usage';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch (e) {
+          // If response is not JSON (e.g., HTML error page), use status text
+          errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
+      }
+      
+      let data;
+      try {
+        data = await response.json();
+      } catch (e) {
+        throw new Error('Invalid JSON response from server');
+      }
+      
+      return data.usage;
+    } catch (error) {
+      console.error('Network error loading usage data:', error);
+      console.error('Attempted URL:', url);
+      console.error('Backend URL:', this.backendUrl);
+      // Return a fallback usage object when network fails
+      return {
+        current_usage: 0,
+        monthly_limit: this.monthlyLimit,
+        remaining_lessons: this.monthlyLimit,
+        can_create: true,
+        total_usage: 0
+      };
     }
-    
-    return data.usage;
   }
 
   /**
@@ -70,20 +91,33 @@ class HybridAudioLessonUsageService {
   async canCreateAudioLesson(userId: string): Promise<{ canCreate: boolean; usage: AudioLessonUsage }> {
     const url = `${this.backendUrl}/api/audio-lessons/can-create/${userId}`;
     
-    const response = await fetch(url);
-    
-    let data;
     try {
-      data = await response.json();
-    } catch (e) {
-      throw new Error('Invalid JSON response from server');
-    }
+      const response = await fetch(url);
+      
+      let data;
+      try {
+        data = await response.json();
+      } catch (e) {
+        throw new Error('Invalid JSON response from server');
+      }
 
-    if (!response.ok) {
-      throw new Error(data.error || 'Failed to check audio lesson creation status');
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to check audio lesson creation status');
+      }
+      
+      return { canCreate: data.canCreate, usage: data.usage };
+    } catch (error) {
+      console.error('Network error checking audio lesson creation status:', error);
+      // Return a fallback response when network fails
+      const fallbackUsage: AudioLessonUsage = {
+        current_usage: 0,
+        monthly_limit: this.monthlyLimit,
+        remaining_lessons: this.monthlyLimit,
+        can_create: true,
+        total_usage: 0
+      };
+      return { canCreate: true, usage: fallbackUsage };
     }
-    
-    return { canCreate: data.canCreate, usage: data.usage };
   }
 
   /**

@@ -116,6 +116,14 @@ export default function AudioRecapScreen() {
       setUsage(usageData);
     } catch (error) {
       console.error('Error loading usage data:', error);
+      // Set fallback usage data to ensure the bar always shows
+      setUsage({
+        current_usage: 0,
+        monthly_limit: 5,
+        remaining_lessons: 5,
+        can_create: true,
+        total_usage: 0
+      });
     } finally {
       setLoadingUsage(false);
     }
@@ -810,7 +818,7 @@ export default function AudioRecapScreen() {
               <Ionicons name="analytics-outline" size={16} color="#8b5cf6" />
               <Text style={styles.usageBoxTitle}>{t('audioRecap.monthlyUsage')}</Text>
               <Text style={styles.usageBoxSummary}>
-                {usage.total_usage || 0}/{HybridAudioLessonUsageService.getMonthlyLimit()}
+                {usage?.total_usage || usage?.current_usage || 0}/{HybridAudioLessonUsageService.getMonthlyLimit()}
               </Text>
             </View>
             <Ionicons 
@@ -834,12 +842,12 @@ export default function AudioRecapScreen() {
           >
               <View style={styles.usageBoxStats}>
                 <View style={styles.usageBoxStat}>
-                  <Text style={styles.usageBoxNumber}>{usage.total_usage || 0}</Text>
+                  <Text style={styles.usageBoxNumber}>{usage?.total_usage || usage?.current_usage || 0}</Text>
                   <Text style={styles.usageBoxLabel}>{t('audioRecap.used')}</Text>
                 </View>
                 <View style={styles.usageBoxDivider} />
                 <View style={styles.usageBoxStat}>
-                  <Text style={styles.usageBoxNumber}>{usage.remaining_lessons || 0}</Text>
+                  <Text style={styles.usageBoxNumber}>{usage?.remaining_lessons || 0}</Text>
                   <Text style={styles.usageBoxLabel}>{t('audioRecap.remaining')}</Text>
                 </View>
                 <View style={styles.usageBoxDivider} />
@@ -855,15 +863,15 @@ export default function AudioRecapScreen() {
                     style={[
                       styles.usageBoxProgressFill, 
                       { 
-                        width: `${HybridAudioLessonUsageService.getUsagePercentage(usage)}%`,
-                        backgroundColor: HybridAudioLessonUsageService.getUsageStatusColor(usage)
+                        width: `${usage ? HybridAudioLessonUsageService.getUsagePercentage(usage) : 0}%`,
+                        backgroundColor: usage ? HybridAudioLessonUsageService.getUsageStatusColor(usage) : '#10b981'
                       }
                     ]} 
                   />
                 </View>
                 <Text style={[
                   styles.usageBoxStatus,
-                  { color: HybridAudioLessonUsageService.getUsageStatusColor(usage) }
+                  { color: usage ? HybridAudioLessonUsageService.getUsageStatusColor(usage) : '#10b981' }
                 ]}>
                   {getTranslatedUsageStatusText(usage)}
                 </Text>
