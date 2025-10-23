@@ -50,6 +50,13 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
         merchantDisplayName: 'UniLingo',
         paymentIntentClientSecret: paymentIntent.clientSecret,
         allowsDelayedPaymentMethods: true,
+        applePay: {
+          merchantCountryCode: 'GB',
+        },
+        googlePay: {
+          merchantCountryCode: 'GB',
+          testEnvironment: __DEV__,
+        },
       });
 
       if (initError) {

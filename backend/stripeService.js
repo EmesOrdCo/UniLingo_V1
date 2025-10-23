@@ -55,7 +55,9 @@ class StripeService {
         },
         automatic_payment_methods: {
           enabled: true,
+          allow_redirects: 'never', // Prefer Apple Pay over redirects
         },
+        payment_method_types: ['card', 'apple_pay', 'google_pay'],
       });
 
       console.log('✅ Payment intent created:', paymentIntent.id);
