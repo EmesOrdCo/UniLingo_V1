@@ -1,5 +1,5 @@
 const Stripe = require('stripe');
-// const supabase = require('./supabaseClient'); // Temporarily disabled to avoid hanging
+const { supabase } = require('./supabaseClient');
 
 class StripeService {
   constructor() {
