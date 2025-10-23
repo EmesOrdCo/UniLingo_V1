@@ -162,6 +162,13 @@ const SubcategoryPage: React.FC<SubcategoryPageProps> = ({ category, categoryNam
     const item = availableItems.find(item => item.item_value === value);
     const isUnlocked = isItemUnlocked(value, item?.xp_cost || 0);
     
+    // Check if this is a paid item
+    if (item && item.price_gbp && item.price_gbp > 0) {
+      setSelectedPaidItem(item);
+      setShowPaymentModal(true);
+      return;
+    }
+    
     if (item && item.xp_cost > 0 && !isUnlocked) {
       // Allow preview but show unlock option
       Alert.alert(
@@ -404,7 +411,7 @@ const SubcategoryPage: React.FC<SubcategoryPageProps> = ({ category, categoryNam
               
               {!isUnlocked && (
                 <LinearGradient
-                  colors={getRarityGradient(item?.rarity || 'common')}
+                  colors={getRarityGradient(item?.price_gbp ? 'legendary' : item?.rarity || 'common')}
                   style={styles.lockOverlay}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
@@ -413,8 +420,10 @@ const SubcategoryPage: React.FC<SubcategoryPageProps> = ({ category, categoryNam
                     <ActivityIndicator size="small" color="#ffffff" />
                   ) : (
                     <>
-                      <Ionicons name={getRarityIcon(item?.rarity || 'common')} size={10} color="#ffffff" />
-                      <Text style={styles.xpCost}>{item?.xp_cost}</Text>
+                      <Ionicons name={getRarityIcon(item?.price_gbp ? 'legendary' : item?.rarity || 'common')} size={10} color="#ffffff" />
+                      <Text style={styles.xpCost}>
+                        {item?.price_gbp ? `£${item.price_gbp}` : item?.xp_cost}
+                      </Text>
                     </>
                   )}
                 </LinearGradient>
@@ -512,7 +521,7 @@ const SubcategoryPage: React.FC<SubcategoryPageProps> = ({ category, categoryNam
             
             {!isUnlocked && (
               <LinearGradient
-                colors={getRarityGradient(item?.rarity || 'common')}
+                colors={getRarityGradient(item?.price_gbp ? 'legendary' : item?.rarity || 'common')}
                 style={styles.styleLockOverlay}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
@@ -521,8 +530,10 @@ const SubcategoryPage: React.FC<SubcategoryPageProps> = ({ category, categoryNam
                   <ActivityIndicator size="small" color="#ffffff" />
                 ) : (
                   <>
-                    <Ionicons name={getRarityIcon(item?.rarity || 'common')} size={10} color="#ffffff" />
-                    <Text style={styles.styleXpCost}>{item?.xp_cost}</Text>
+                    <Ionicons name={getRarityIcon(item?.price_gbp ? 'legendary' : item?.rarity || 'common')} size={10} color="#ffffff" />
+                    <Text style={styles.styleXpCost}>
+                      {item?.price_gbp ? `£${item.price_gbp}` : item?.xp_cost}
+                    </Text>
                   </>
                 )}
               </LinearGradient>
