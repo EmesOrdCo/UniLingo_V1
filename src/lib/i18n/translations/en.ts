@@ -1722,6 +1722,14 @@ export const en: Record<string, string> = {
   'flashcards.deleteSuccess': 'Flashcard deleted successfully',
   'flashcards.deleteError': 'Failed to delete flashcard',
   
+  // Lesson generation translations
+  'lessonGeneration.ready': 'Ready to create lesson',
+  'lessonGeneration.generating': 'Generating lesson with AI...',
+  'lessonGeneration.completed': 'Lesson created successfully!',
+  'lessonGeneration.timeComment': 'This may take some time',
+  'lessonGeneration.generatedCount': 'Generated {{count}} lesson{{count, plural, one {} other {s}}}',
+  'lessonGeneration.readyImages': 'Ready to select images',
+  
   'audioRecap.fixDurations': 'Fix Audio Durations',
   'audioRecap.fixDurationsConfirmation': 'This will check and fix the duration for all your audio lessons. Continue?',
   'audioRecap.fixDurationsButton': 'Fix Durations',

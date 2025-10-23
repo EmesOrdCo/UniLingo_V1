@@ -27,6 +27,8 @@ interface PronunciationCheckProps {
   translation?: string; // Translation to show instead of tips
   hideScoreRing?: boolean; // Hide the score circle, only show metrics
   hideWordDisplay?: boolean; // Hide the "Say this:" section entirely
+  leftButton?: React.ReactNode; // Left side button
+  rightButton?: React.ReactNode; // Right side button
 }
 
 const PronunciationCheck: React.FC<PronunciationCheckProps> = ({
@@ -40,6 +42,8 @@ const PronunciationCheck: React.FC<PronunciationCheckProps> = ({
   translation,
   hideScoreRing = false,
   hideWordDisplay = false,
+  leftButton,
+  rightButton,
 }) => {
   const { t } = useTranslation();
   const { profile } = useAuth();
@@ -362,6 +366,18 @@ const PronunciationCheck: React.FC<PronunciationCheckProps> = ({
 
   return (
     <View style={styles.container}>
+      {/* Top corner buttons */}
+      {(leftButton || rightButton) && (
+        <View style={styles.topButtonsContainer}>
+          <View style={styles.topLeftButtonContainer}>
+            {leftButton}
+          </View>
+          <View style={styles.topRightButtonContainer}>
+            {rightButton}
+          </View>
+        </View>
+      )}
+
       {/* Instruction */}
       <Text style={styles.instruction}>{t('lessons.speak.sayTheWord')}</Text>
       
@@ -758,8 +774,25 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#6b7280',
     textAlign: 'center',
+    marginTop: 8,
     marginBottom: 16,
     letterSpacing: 0.5,
+  },
+  topButtonsContainer: {
+    position: 'absolute',
+    top: 16,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    zIndex: 1,
+  },
+  topLeftButtonContainer: {
+    alignItems: 'flex-start',
+  },
+  topRightButtonContainer: {
+    alignItems: 'flex-end',
   },
 });
 

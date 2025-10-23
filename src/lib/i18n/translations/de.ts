@@ -1677,6 +1677,14 @@ export const de: Record<string, string> = {
   'flashcards.deleteSuccess': 'Karteikarte erfolgreich gelöscht',
   'flashcards.deleteError': 'Fehler beim Löschen der Karteikarte',
   
+  // Lesson generation translations
+  'lessonGeneration.ready': 'Bereit, Lektion zu erstellen',
+  'lessonGeneration.generating': 'Erstelle Lektion mit KI...',
+  'lessonGeneration.completed': 'Lektion erfolgreich erstellt!',
+  'lessonGeneration.timeComment': 'Dies kann einige Zeit dauern',
+  'lessonGeneration.generatedCount': '{{count}} Lektion{{count, plural, one {} other {en}}} erstellt',
+  'lessonGeneration.readyImages': 'Bereit, Bilder auszuwählen',
+  
   'audioRecap.fixDurations': 'Audio-Dauern korrigieren',
   'audioRecap.fixDurationsConfirmation': 'Dies überprüft und korrigiert die Dauer aller deiner Audio-Lektionen. Fortfahren?',
   'audioRecap.fixDurationsButton': 'Dauern korrigieren',

@@ -1152,7 +1152,7 @@ export default function UnitRoleplayScreen() {
             </View>
           </View>
 
-          {/* Answer Interface - Microphone / Pronunciation Check */}
+          {/* Answer Interface - Microphone / Pronunciation Check with side buttons */}
           {!showResult && (
             <PronunciationCheck
               key={`${currentExchangeIndex}-${attemptKey}`}
@@ -1162,6 +1162,28 @@ export default function UnitRoleplayScreen() {
               showAlerts={false}
               hideScoreRing={true}
               hideWordDisplay={true}
+              leftButton={
+                <TouchableOpacity 
+                  style={[styles.sideSpeakerButton, isPlayingAudio && styles.sideSpeakerButtonActive]}
+                  onPress={() => {
+                    // For user's response (target language), use target language speech
+                    handleNormalSpeedPlay(currentExchange.userMessage.french, getSpeechLanguageCode(profile?.target_language || 'en-GB'));
+                  }}
+                >
+                  <Ionicons name="volume-high" size={24} color="#ffffff" />
+                </TouchableOpacity>
+              }
+              rightButton={
+                <TouchableOpacity 
+                  style={[styles.sideClockButton, isPlayingAudio && styles.sideClockButtonActive]}
+                  onPress={() => {
+                    // For user's response (target language), use target language speech
+                    handleSlowSpeedPlay(currentExchange.userMessage.french, getSpeechLanguageCode(profile?.target_language || 'en-GB'));
+                  }}
+                >
+                  <Ionicons name="time-outline" size={24} color="#ffffff" />
+                </TouchableOpacity>
+              }
             />
           )}
 
@@ -1182,31 +1204,6 @@ export default function UnitRoleplayScreen() {
           {showResult && isCorrect && (
             <Text style={styles.feedbackCorrect}>✓ Correct!</Text>
           )}
-
-          {/* Bottom Action Buttons */}
-          <View style={styles.bottomActionBar}>
-            <TouchableOpacity 
-              style={[styles.roundSpeakerButton, isPlayingAudio && styles.roundSpeakerButtonActive]}
-              onPress={() => {
-                // For user's response (target language), use target language speech
-                handleNormalSpeedPlay(currentExchange.userMessage.french, getSpeechLanguageCode(profile?.target_language || 'en-GB'));
-              }}
-            >
-              <Ionicons name="volume-high" size={28} color="#ffffff" />
-            </TouchableOpacity>
-
-            <View style={styles.placeholderButton} />
-
-            <TouchableOpacity 
-              style={[styles.roundClockButton, isPlayingAudio && styles.roundClockButtonActive]}
-              onPress={() => {
-                // For user's response (target language), use target language speech
-                handleSlowSpeedPlay(currentExchange.userMessage.french, getSpeechLanguageCode(profile?.target_language || 'en-GB'));
-              }}
-            >
-              <Ionicons name="time-outline" size={28} color="#ffffff" />
-            </TouchableOpacity>
-          </View>
         </View>
       )}
     </SafeAreaView>
@@ -1597,50 +1594,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     fontStyle: 'italic',
   },
-  bottomActionBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-    marginTop: 8,
-  },
-  roundSpeakerButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#6366f1',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#6366f1',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  roundSpeakerButtonActive: {
-    backgroundColor: '#4f46e5',
-    transform: [{ scale: 1.1 }],
-  },
-  roundClockButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#6366f1',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#6366f1',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  roundClockButtonActive: {
-    backgroundColor: '#4f46e5',
-    transform: [{ scale: 1.1 }],
-  },
-  placeholderButton: {
-    flex: 1,
-  },
   checkButton: {
     flex: 1,
     backgroundColor: '#cbd5e1',
@@ -1932,6 +1885,41 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     marginTop: 16,
     textAlign: 'center',
+  },
+  // Styles for side-positioned buttons
+  sideSpeakerButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#6366f1',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#6366f1',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  sideSpeakerButtonActive: {
+    backgroundColor: '#4f46e5',
+    transform: [{ scale: 1.1 }],
+  },
+  sideClockButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#6366f1',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#6366f1',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  sideClockButtonActive: {
+    backgroundColor: '#4f46e5',
+    transform: [{ scale: 1.1 }],
   },
 });
 

@@ -36,7 +36,7 @@ export default function CreateLessonScreen() {
   const [progress, setProgress] = useState({
     stage: 'ready',
     progress: 0,
-    message: 'Ready to create lesson',
+    message: t('lessonGeneration.ready'),
   });
   
   const navigation = useNavigation();
@@ -53,7 +53,7 @@ export default function CreateLessonScreen() {
   const [imageProgress, setImageProgress] = useState<ImageUploadProgress>({
     stage: 'selecting',
     progress: 0,
-    message: 'Ready to select images',
+    message: t('lessonGeneration.readyImages'),
   });
 
   // Source name for lessons
@@ -178,7 +178,7 @@ export default function CreateLessonScreen() {
       setProgress({
         stage: 'processing',
         progress: 85,
-        message: 'Generating lesson with AI...',
+        message: t('lessonGeneration.generating'),
       });
 
       let createdLessons: any[] = [];
@@ -215,7 +215,7 @@ export default function CreateLessonScreen() {
         setProgress({
           stage: 'completed',
           progress: 100,
-          message: `Generated ${createdLessons.length} lesson${createdLessons.length > 1 ? 's' : ''}`,
+          message: t('lessonGeneration.generatedCount', { count: createdLessons.length }),
         });
       } catch (lessonError) {
         console.error('❌ Lesson creation failed:', lessonError);
@@ -225,7 +225,7 @@ export default function CreateLessonScreen() {
       setProgress({
         stage: 'complete',
         progress: 100,
-        message: 'Lesson created successfully!',
+        message: t('lessonGeneration.completed'),
       });
 
       // Trigger global refresh to update lesson counts everywhere
@@ -452,7 +452,7 @@ export default function CreateLessonScreen() {
       setProgress({
         stage: 'processing',
         progress: 85,
-        message: 'Generating lesson with AI...',
+        message: t('lessonGeneration.generating'),
       });
 
       let createdLessons: any[] = [];
@@ -488,7 +488,7 @@ export default function CreateLessonScreen() {
         setProgress({
           stage: 'completed',
           progress: 100,
-          message: `Generated ${createdLessons.length} lesson${createdLessons.length > 1 ? 's' : ''}`,
+          message: t('lessonGeneration.generatedCount', { count: createdLessons.length }),
         });
       } catch (lessonError) {
         console.error('❌ Lesson creation failed:', lessonError);
@@ -498,7 +498,7 @@ export default function CreateLessonScreen() {
       setProgress({
         stage: 'complete',
         progress: 100,
-        message: 'Lesson created successfully!',
+        message: t('lessonGeneration.completed'),
       });
 
       // Trigger global refresh to update lesson counts everywhere
@@ -701,6 +701,7 @@ export default function CreateLessonScreen() {
               <View style={[styles.progressFill, { width: `${progress.progress}%` }]} />
             </View>
             <Text style={styles.progressText}>{progress.message}</Text>
+            <Text style={styles.timeComment}>{t('lessonGeneration.timeComment')}</Text>
           </View>
         )}
 
@@ -750,7 +751,7 @@ export default function CreateLessonScreen() {
             setImageProgress({
               stage: 'selecting',
               progress: 0,
-              message: 'Ready to select images',
+              message: t('lessonGeneration.readyImages'),
             });
           }
         }}
@@ -1005,6 +1006,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#64748b',
     textAlign: 'center',
+  },
+  timeComment: {
+    fontSize: 12,
+    color: '#94a3b8',
+    textAlign: 'center',
+    marginTop: 4,
+    fontStyle: 'italic',
   },
   infoSection: {
     backgroundColor: '#f8fafc',
