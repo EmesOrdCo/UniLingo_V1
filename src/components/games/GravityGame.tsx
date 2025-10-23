@@ -15,6 +15,24 @@ const { width, height } = Dimensions.get('window');
 
 const GravityGame: React.FC<GravityGameProps> = ({ gameData, onClose, onGameComplete }) => {
   const { t } = useTranslation();
+  
+  // Function to calculate dynamic font size based on word length
+  const getDynamicMeteorFontSize = (word: string) => {
+    const wordLength = word.length;
+    const baseFontSize = 12;
+
+    if (wordLength <= 6) {
+      return baseFontSize; // 12px for short words
+    } else if (wordLength <= 8) {
+      return 10; // 10px for medium words
+    } else if (wordLength <= 10) {
+      return 9; // 9px for longer words
+    } else if (wordLength <= 12) {
+      return 8; // 8px for very long words
+    } else {
+      return 7; // 7px for extremely long words (minimum readable size)
+    }
+  };
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(5); // More lives for better gameplay
   const [gameOver, setGameOver] = useState(false);
@@ -346,7 +364,7 @@ const GravityGame: React.FC<GravityGameProps> = ({ gameData, onClose, onGameComp
         ]}
       >
         <Ionicons name="planet" size={30} color="#ef4444" />
-        <Text style={styles.meteorText}>{meteor.question}</Text>
+        <Text style={[styles.meteorText, { fontSize: getDynamicMeteorFontSize(meteor.question) }]}>{meteor.question}</Text>
       </View>
     ));
   }, [meteors]);
@@ -1422,7 +1440,6 @@ const styles = StyleSheet.create({
     pointerEvents: 'none', // Prevent meteors from blocking touch events
   },
   meteorText: {
-    fontSize: 12,
     fontWeight: '600',
     color: '#ffffff',
     textAlign: 'center',
@@ -1431,6 +1448,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     paddingVertical: 2,
     borderRadius: 4,
+    flexWrap: 'nowrap',
   },
   inputArea: {
     backgroundColor: 'rgba(10,10,10,0.95)',
