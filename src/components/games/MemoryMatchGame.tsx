@@ -66,7 +66,7 @@ const MemoryMatchGame: React.FC<MemoryMatchGameProps> = ({ gameData, onClose, on
     // Start all animations with different timings
     setTimeout(() => {
       createFloatingAnimation(animatedValue1, 3000, 0).start();
-    }, 100);
+    }, 300); // Increased to 300ms to be longer than GamesScreen's 200ms debounce
     
     setTimeout(() => {
       createFloatingAnimation(animatedValue2, 4000, 0).start();
@@ -186,8 +186,14 @@ const MemoryMatchGame: React.FC<MemoryMatchGameProps> = ({ gameData, onClose, on
       console.log('🎯 MemoryMatch calling onGameComplete with moves:', moves, 'time:', timeSpent);
       completionCalledRef.current = true;
       onGameComplete(moves, timeSpent);
+      
+      // Add delay to allow completion processing to finish
+      setTimeout(() => {
+        onPlayAgain();
+      }, 300); // Increased to 300ms to be longer than GamesScreen's 200ms debounce
+    } else {
+      onPlayAgain();
     }
-    onPlayAgain();
   };
 
   const handleReturnToMenu = () => {
@@ -197,8 +203,14 @@ const MemoryMatchGame: React.FC<MemoryMatchGameProps> = ({ gameData, onClose, on
       console.log('🎯 MemoryMatch calling onGameComplete with moves:', moves, 'time:', timeSpent);
       completionCalledRef.current = true;
       onGameComplete(moves, timeSpent);
+      
+      // Add delay to allow completion processing to finish
+      setTimeout(() => {
+        onClose();
+      }, 300); // Increased to 300ms to be longer than GamesScreen's 200ms debounce
+    } else {
+      onClose();
     }
-    onClose();
   };
 
   if (isGameComplete) {
@@ -634,14 +646,14 @@ const MemoryMatchGame: React.FC<MemoryMatchGameProps> = ({ gameData, onClose, on
             <Ionicons name="refresh" size={16} color="#6366f1" />
           </View>
             <Text style={styles.movesText}>{moves}</Text>
-            <Text style={styles.statLabel}>Moves</Text>
+            <Text style={styles.statLabel}>{t('memoryMatch.moves')}</Text>
           </View>
         <View style={styles.statBox}>
           <View style={styles.statIconWrapper}>
             <Ionicons name="checkmark-circle" size={16} color="#059669" />
           </View>
             <Text style={styles.pairsText}>{matchedPairs.length / 2}/{cards.length / 2}</Text>
-            <Text style={styles.statLabel}>Pairs</Text>
+            <Text style={styles.statLabel}>{t('memoryMatch.pairs')}</Text>
         </View>
       </View>
 

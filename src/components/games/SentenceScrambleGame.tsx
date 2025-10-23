@@ -120,8 +120,14 @@ const SentenceScrambleGame: React.FC<SentenceScrambleGameProps> = ({ gameData, o
       console.log('🎯 SentenceScramble calling onGameComplete with score:', finalScoreRef.current);
       completionCalledRef.current = true;
       onGameComplete(finalScoreRef.current);
+      
+      // Add delay to allow completion processing to finish
+      setTimeout(() => {
+        onPlayAgain();
+      }, 300); // Increased to 300ms to be longer than GamesScreen's 200ms debounce
+    } else {
+      onPlayAgain();
     }
-    onPlayAgain();
   };
 
   const handleReturnToMenu = () => {
@@ -130,8 +136,14 @@ const SentenceScrambleGame: React.FC<SentenceScrambleGameProps> = ({ gameData, o
       console.log('🎯 SentenceScramble calling onGameComplete with score:', finalScoreRef.current);
       completionCalledRef.current = true;
       onGameComplete(finalScoreRef.current);
+      
+      // Add delay to allow completion processing to finish
+      setTimeout(() => {
+        onClose();
+      }, 300); // Increased to 300ms to be longer than GamesScreen's 200ms debounce
+    } else {
+      onClose();
     }
-    onClose();
   };
 
   if (gameComplete) {
@@ -194,7 +206,7 @@ const SentenceScrambleGame: React.FC<SentenceScrambleGameProps> = ({ gameData, o
 
       {/* Selected Words (User's Answer) */}
       <View style={styles.selectedWordsContainer}>
-        <Text style={styles.selectedWordsLabel}>Your sentence:</Text>
+        <Text style={styles.selectedWordsLabel}>{t('sentenceScramble.yourSentence')}</Text>
         <View style={styles.selectedWords}>
           {selectedWords.map((word, index) => (
             <TouchableOpacity
@@ -214,7 +226,7 @@ const SentenceScrambleGame: React.FC<SentenceScrambleGameProps> = ({ gameData, o
 
       {/* Scrambled Words */}
       <View style={styles.scrambledWordsContainer}>
-        <Text style={styles.scrambledWordsLabel}>Available words:</Text>
+        <Text style={styles.scrambledWordsLabel}>{t('sentenceScramble.availableWords')}</Text>
         <View style={styles.scrambledWords}>
           {scrambledWords.map((word, index) => (
             <TouchableOpacity
@@ -236,7 +248,7 @@ const SentenceScrambleGame: React.FC<SentenceScrambleGameProps> = ({ gameData, o
           onPress={skipQuestion}
           disabled={showResult}
         >
-          <Text style={styles.skipButtonText}>Skip</Text>
+          <Text style={styles.skipButtonText}>{t('sentenceScramble.skip')}</Text>
         </TouchableOpacity>
         
         <TouchableOpacity 
@@ -244,7 +256,7 @@ const SentenceScrambleGame: React.FC<SentenceScrambleGameProps> = ({ gameData, o
           onPress={checkAnswer}
           disabled={selectedWords.length === 0 || showResult}
         >
-          <Text style={styles.submitButtonText}>Submit</Text>
+          <Text style={styles.submitButtonText}>{t('sentenceScramble.submit')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -270,7 +282,7 @@ const SentenceScrambleGame: React.FC<SentenceScrambleGameProps> = ({ gameData, o
           </Text>
           
           <Text style={styles.correctAnswerText}>
-            The correct sentence is: {currentQuestion.correctAnswer}
+            {t('sentenceScramble.correctSentenceIs', { sentence: currentQuestion.correctAnswer })}
           </Text>
         </View>
       )}

@@ -198,8 +198,10 @@ export class XPService {
         return null;
       }
 
-      // Log the activity
-      await this.logActivity(userId, activityType, score, maxScore, accuracyPercentage, xpCalculation.totalXP, activityName, durationSeconds);
+      // Log the activity (skip for games since ProgressTrackingService already logs them)
+      if (activityType !== 'game') {
+        await this.logActivity(userId, activityType, score, maxScore, accuracyPercentage, xpCalculation.totalXP, activityName, durationSeconds);
+      }
 
       // Update streak for any activity completion
       try {
@@ -396,7 +398,6 @@ export class XPService {
           score: score,
           max_score: maxScore,
           accuracy_percentage: accuracyPercentage,
-          experience_points: xpEarned,
           duration_seconds: durationSeconds || 0,
           completed_at: new Date().toISOString()
         });

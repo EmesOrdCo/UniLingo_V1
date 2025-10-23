@@ -43,7 +43,7 @@ const HangmanGame: React.FC<HangmanGameProps> = ({ gameData, onClose, onGameComp
         setCurrentWord(currentQuestion.correctAnswer.toLowerCase());
         setGuessedLetters([]);
         setWrongGuesses(0);
-      }, 100); // Small delay to allow current state to settle
+      }, 300); // Increased to 300ms to be longer than GamesScreen's 200ms debounce // Small delay to allow current state to settle
     }
   };
 
@@ -136,8 +136,14 @@ const HangmanGame: React.FC<HangmanGameProps> = ({ gameData, onClose, onGameComp
       console.log('🎯 Hangman calling onGameComplete with score:', finalScoreRef.current);
       completionCalledRef.current = true;
       onGameComplete(finalScoreRef.current);
+      
+      // Add delay to allow completion processing to finish
+      setTimeout(() => {
+        onPlayAgain();
+      }, 300); // Increased to 300ms to be longer than GamesScreen's 200ms debounce
+    } else {
+      onPlayAgain();
     }
-    onPlayAgain();
   };
 
   const handleReturnToMenu = () => {
@@ -146,8 +152,14 @@ const HangmanGame: React.FC<HangmanGameProps> = ({ gameData, onClose, onGameComp
       console.log('🎯 Hangman calling onGameComplete with score:', finalScoreRef.current);
       completionCalledRef.current = true;
       onGameComplete(finalScoreRef.current);
+      
+      // Add delay to allow completion processing to finish
+      setTimeout(() => {
+        onClose();
+      }, 300); // Increased to 300ms to be longer than GamesScreen's 200ms debounce
+    } else {
+      onClose();
     }
-    onClose();
   };
 
   if (gameComplete) {
@@ -377,7 +389,7 @@ const HangmanGame: React.FC<HangmanGameProps> = ({ gameData, onClose, onGameComp
 
       {/* Word Display */}
       <View style={styles.wordContainer}>
-        <Text style={styles.wordLabel}>Word:</Text>
+        <Text style={styles.wordLabel}>{t('hangman.word')}</Text>
         <Text style={styles.wordDisplay}>{getDisplayWord()}</Text>
       </View>
 

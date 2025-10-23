@@ -35,7 +35,7 @@ const MemoryMatchSetup: React.FC<MemoryMatchSetupProps> = ({
   const { user, profile } = useAuth();
   const { t } = useTranslation();
   const [cardCount, setCardCount] = useState<number>(12);
-  const [selectedTopic, setSelectedTopic] = useState<string>('All Topics');
+  const [selectedTopic, setSelectedTopic] = useState<string>(t('gameSetup.dropdown.allTopics'));
   const [selectedDifficulty, setSelectedDifficulty] = useState<'beginner' | 'intermediate' | 'expert' | 'all'>('all');
   const [topics, setTopics] = useState<string[]>([]);
   const [topicCardCounts, setTopicCardCounts] = useState<{ [topic: string]: number }>({});
@@ -56,10 +56,17 @@ const MemoryMatchSetup: React.FC<MemoryMatchSetupProps> = ({
     if (!user?.id) return;
     
     try {
+      // If "All Topics" is selected, use availableCards directly
+      if (selectedTopic === t('gameSetup.dropdown.allTopics')) {
+        console.log('🔍 All Topics selected, using availableCards:', availableCards);
+        setFilteredCardCount(availableCards);
+        return;
+      }
+      
       const filters: any = {};
       
       // Add topic filter if specific topic is selected
-      if (selectedTopic && selectedTopic !== '' && selectedTopic !== 'All Topics') {
+      if (selectedTopic && selectedTopic !== '' && selectedTopic !== t('gameSetup.dropdown.allTopics')) {
         filters.topic = selectedTopic;
       }
       
@@ -173,7 +180,7 @@ const MemoryMatchSetup: React.FC<MemoryMatchSetupProps> = ({
               <Ionicons name="information-circle" size={20} color="#6366f1" />
               <Text style={styles.infoText}>
                 {t('gameSetup.info.availableCards')} {getAvailableCardsCount()}
-                {selectedTopic && selectedTopic !== '' && selectedTopic !== 'All Topics' ? ` (${selectedTopic} ${t('gameSetup.info.topic')})` : ` ${t('gameSetup.info.allTopics')}`}
+                {selectedTopic && selectedTopic !== '' && selectedTopic !== t('gameSetup.dropdown.allTopics') ? ` (${selectedTopic} ${t('gameSetup.info.topic')})` : ` ${t('gameSetup.info.allTopics')}`}
                 {selectedDifficulty && selectedDifficulty !== 'all' ? `, ${selectedDifficulty} ${t('gameSetup.info.difficulty')}` : ''}
               </Text>
             </View>
@@ -208,11 +215,11 @@ const MemoryMatchSetup: React.FC<MemoryMatchSetupProps> = ({
               >
                 <Text style={[
                   styles.dropdownText,
-                  !selectedTopic && styles.dropdownPlaceholder
+                  selectedTopic === t('gameSetup.dropdown.allTopics') && styles.dropdownPlaceholder
                 ]}>
-                  {selectedTopic 
-                    ? `${selectedTopic} (${topicCardCounts[selectedTopic] || 0} ${t('gameSetup.info.cards')})`
-                    : `${t('gameSetup.dropdown.allTopics')} (${availableCards} ${t('gameSetup.info.cards')})`
+                  {selectedTopic === t('gameSetup.dropdown.allTopics')
+                    ? `${t('gameSetup.dropdown.allTopics')} (${availableCards} ${t('gameSetup.info.cards')})`
+                    : `${selectedTopic} (${topicCardCounts[selectedTopic] || 0} ${t('gameSetup.info.cards')})`
                   }
                 </Text>
                 <Ionicons 
@@ -230,16 +237,16 @@ const MemoryMatchSetup: React.FC<MemoryMatchSetupProps> = ({
                     <TouchableOpacity
                       style={[
                         styles.dropdownOption,
-                        !selectedTopic && styles.dropdownOptionSelected
+                        selectedTopic === t('gameSetup.dropdown.allTopics') && styles.dropdownOptionSelected
                       ]}
                       onPress={() => {
-                        setSelectedTopic('');
+                        setSelectedTopic(t('gameSetup.dropdown.allTopics'));
                         setShowTopicDropdown(false);
                       }}
                     >
                       <Text style={[
                         styles.dropdownOptionText,
-                        !selectedTopic && styles.dropdownOptionTextSelected
+                        selectedTopic === t('gameSetup.dropdown.allTopics') && styles.dropdownOptionTextSelected
                       ]}>
                         {t('gameSetup.dropdown.allTopics')} ({availableCards} {t('gameSetup.info.cards')})
                       </Text>

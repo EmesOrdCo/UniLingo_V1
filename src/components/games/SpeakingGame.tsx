@@ -135,8 +135,10 @@ const SpeakingGame: React.FC<SpeakingGameProps> = ({
       await onGameComplete(finalScoreRef.current, timeSpent, totalAnswered);
       // Wait a moment for database operations to complete
       await new Promise(resolve => setTimeout(resolve, 500));
+      onPlayAgain();
+    } else {
+      onPlayAgain();
     }
-    onPlayAgain();
   };
 
   const handleExit = async () => {
@@ -149,8 +151,10 @@ const SpeakingGame: React.FC<SpeakingGameProps> = ({
       await onGameComplete(finalScoreRef.current, timeSpent, totalAnswered);
       // Wait a moment for database operations to complete
       await new Promise(resolve => setTimeout(resolve, 500));
+      onClose();
+    } else {
+      onClose();
     }
-    onClose();
   };
 
   if (gameComplete) {

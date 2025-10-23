@@ -182,8 +182,14 @@ const TypeWhatYouHearGame: React.FC<TypeWhatYouHearGameProps> = ({ gameData, onC
       console.log('🎯 TypeWhatYouHear calling onGameComplete with score:', finalScoreRef.current);
       completionCalledRef.current = true;
       onGameComplete(finalScoreRef.current);
+      
+      // Add delay to allow completion processing to finish
+      setTimeout(() => {
+        onPlayAgain();
+      }, 300); // Increased to 300ms to be longer than GamesScreen's 200ms debounce
+    } else {
+      onPlayAgain();
     }
-    onPlayAgain();
   };
 
   const handleReturnToMenu = () => {
@@ -192,8 +198,14 @@ const TypeWhatYouHearGame: React.FC<TypeWhatYouHearGameProps> = ({ gameData, onC
       console.log('🎯 TypeWhatYouHear calling onGameComplete with score:', finalScoreRef.current);
       completionCalledRef.current = true;
       onGameComplete(finalScoreRef.current);
+      
+      // Add delay to allow completion processing to finish
+      setTimeout(() => {
+        onClose();
+      }, 300); // Increased to 300ms to be longer than GamesScreen's 200ms debounce
+    } else {
+      onClose();
     }
-    onClose();
   };
 
   if (gameComplete) {
@@ -272,7 +284,7 @@ const TypeWhatYouHearGame: React.FC<TypeWhatYouHearGameProps> = ({ gameData, onC
 
       {/* Answer Input */}
       <View style={styles.answerContainer}>
-        <Text style={styles.answerLabel}>Type what you heard:</Text>
+        <Text style={styles.answerLabel}>{t('typeWhatYouHear.typeWhatYouHeard')}</Text>
         <TextInput
           style={styles.answerInput}
           value={userAnswer}
@@ -292,7 +304,7 @@ const TypeWhatYouHearGame: React.FC<TypeWhatYouHearGameProps> = ({ gameData, onC
           onPress={skipQuestion}
           disabled={showResult}
         >
-          <Text style={styles.skipButtonText}>Skip</Text>
+          <Text style={styles.skipButtonText}>{t('typeWhatYouHear.skip')}</Text>
         </TouchableOpacity>
         
         <TouchableOpacity 
@@ -300,7 +312,7 @@ const TypeWhatYouHearGame: React.FC<TypeWhatYouHearGameProps> = ({ gameData, onC
           onPress={checkAnswer}
           disabled={!userAnswer.trim() || showResult}
         >
-          <Text style={styles.submitButtonText}>Submit</Text>
+          <Text style={styles.submitButtonText}>{t('typeWhatYouHear.submit')}</Text>
         </TouchableOpacity>
       </View>
 

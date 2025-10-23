@@ -35,7 +35,7 @@ const SpeakingGameSetup: React.FC<SpeakingGameSetupProps> = ({
   const { user, profile } = useAuth();
   const { t } = useTranslation();
   const [wordCount, setWordCount] = useState<number>(10);
-  const [selectedTopic, setSelectedTopic] = useState<string>('All Topics');
+  const [selectedTopic, setSelectedTopic] = useState<string>(t('gameSetup.dropdown.allTopics'));
   const [selectedDifficulty, setSelectedDifficulty] = useState<'beginner' | 'intermediate' | 'expert' | 'all'>('all');
   const [topics, setTopics] = useState<string[]>([]);
   const [topicCardCounts, setTopicCardCounts] = useState<{ [topic: string]: number }>({});
@@ -56,10 +56,17 @@ const SpeakingGameSetup: React.FC<SpeakingGameSetupProps> = ({
     if (!user?.id) return;
     
     try {
+      // If "All Topics" is selected, use availableCards directly
+      if (selectedTopic === t('gameSetup.dropdown.allTopics')) {
+        console.log('🔍 All Topics selected, using availableCards:', availableCards);
+        setFilteredCardCount(availableCards);
+        return;
+      }
+      
       const filters: any = {};
       
       // Add topic filter if specific topic is selected
-      if (selectedTopic && selectedTopic !== '' && selectedTopic !== 'All Topics') {
+      if (selectedTopic && selectedTopic !== '' && selectedTopic !== t('gameSetup.dropdown.allTopics')) {
         filters.topic = selectedTopic;
       }
       
@@ -210,9 +217,9 @@ const SpeakingGameSetup: React.FC<SpeakingGameSetupProps> = ({
               >
                 <Text style={[
                   styles.dropdownText,
-                  selectedTopic === 'All Topics' && styles.dropdownPlaceholder
+                  selectedTopic === t('gameSetup.dropdown.allTopics') && styles.dropdownPlaceholder
                 ]}>
-                  {selectedTopic === 'All Topics'
+                  {selectedTopic === t('gameSetup.dropdown.allTopics')
                     ? `${t('gameSetup.dropdown.allTopics')} (${availableCards} ${t('gameSetup.info.cards')})`
                     : `${selectedTopic} (${topicCardCounts[selectedTopic] || 0} ${t('gameSetup.info.cards')})`
                   }
@@ -232,16 +239,16 @@ const SpeakingGameSetup: React.FC<SpeakingGameSetupProps> = ({
                     <TouchableOpacity
                       style={[
                         styles.dropdownOption,
-                        selectedTopic === 'All Topics' && styles.dropdownOptionSelected
+                        selectedTopic === t('gameSetup.dropdown.allTopics') && styles.dropdownOptionSelected
                       ]}
                       onPress={() => {
-                        setSelectedTopic('All Topics');
+                        setSelectedTopic(t('gameSetup.dropdown.allTopics'));
                         setShowTopicDropdown(false);
                       }}
                     >
                       <Text style={[
                         styles.dropdownOptionText,
-                        selectedTopic === 'All Topics' && styles.dropdownOptionTextSelected
+                        selectedTopic === t('gameSetup.dropdown.allTopics') && styles.dropdownOptionTextSelected
                       ]}>
                         {t('gameSetup.dropdown.allTopics')} ({availableCards} {t('gameSetup.info.cards')})
                       </Text>

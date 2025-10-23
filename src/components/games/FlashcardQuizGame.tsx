@@ -41,9 +41,9 @@ const FlashcardQuizGame: React.FC<FlashcardQuizGameProps> = ({
     return (
       <View style={styles.gameContainer}>
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>Loading game data...</Text>
+          <Text style={styles.errorText}>{t('flashcardQuiz.loading')}</Text>
           <TouchableOpacity style={styles.errorButton} onPress={onClose}>
-            <Text style={styles.errorButtonText}>Close</Text>
+            <Text style={styles.errorButtonText}>{t('common.close')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -54,9 +54,9 @@ const FlashcardQuizGame: React.FC<FlashcardQuizGameProps> = ({
     return (
       <View style={styles.gameContainer}>
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>Game data is incomplete</Text>
+          <Text style={styles.errorText}>{t('flashcardQuiz.gameDataIncomplete')}</Text>
           <TouchableOpacity style={styles.errorButton} onPress={onClose}>
-            <Text style={styles.errorButtonText}>Close</Text>
+            <Text style={styles.errorButtonText}>{t('common.close')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -67,10 +67,10 @@ const FlashcardQuizGame: React.FC<FlashcardQuizGameProps> = ({
     return (
       <View style={styles.gameContainer}>
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>No flashcards available for the selected criteria</Text>
-          <Text style={styles.errorSubtext}>Try selecting a different topic or difficulty</Text>
+          <Text style={styles.errorText}>{t('flashcardQuiz.noFlashcardsAvailable')}</Text>
+          <Text style={styles.errorSubtext}>{t('flashcardQuiz.tryDifferentCriteria')}</Text>
           <TouchableOpacity style={styles.errorButton} onPress={onClose}>
-            <Text style={styles.errorButtonText}>Close</Text>
+            <Text style={styles.errorButtonText}>{t('common.close')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -86,9 +86,9 @@ const FlashcardQuizGame: React.FC<FlashcardQuizGameProps> = ({
     return (
       <View style={styles.gameContainer}>
         <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>Question data is corrupted</Text>
+          <Text style={styles.errorText}>{t('flashcardQuiz.questionDataCorrupted')}</Text>
           <TouchableOpacity style={styles.errorButton} onPress={onClose}>
-            <Text style={styles.errorButtonText}>Close</Text>
+            <Text style={styles.errorButtonText}>{t('common.close')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -159,9 +159,10 @@ const FlashcardQuizGame: React.FC<FlashcardQuizGameProps> = ({
       await onGameComplete(score);
       // Wait a moment for database operations to complete
       await new Promise(resolve => setTimeout(resolve, 500));
+      onPlayAgain();
+    } else {
+      onPlayAgain();
     }
-    // Close game and return to setup screen
-    onPlayAgain();
   };
 
   const handleReturnToMenu = async () => {
@@ -173,8 +174,10 @@ const FlashcardQuizGame: React.FC<FlashcardQuizGameProps> = ({
       await onGameComplete(score);
       // Wait a moment for database operations to complete
       await new Promise(resolve => setTimeout(resolve, 500));
+      onClose();
+    } else {
+      onClose();
     }
-    onClose();
   };
   
   // Review Screen
@@ -228,7 +231,7 @@ const FlashcardQuizGame: React.FC<FlashcardQuizGameProps> = ({
       {/* Question */}
       <View style={styles.questionContainer}>
         <Text style={styles.questionText}>
-          {question.question || 'Question not available'}
+          {question.question || t('flashcardQuiz.questionNotAvailable')}
         </Text>
       </View>
       
@@ -252,7 +255,7 @@ const FlashcardQuizGame: React.FC<FlashcardQuizGameProps> = ({
               showResult && option === question.correctAnswer && styles.answerButtonTextCorrect,
               showResult && selectedAnswer === option && option !== question.correctAnswer && styles.answerButtonTextIncorrect
             ]}>
-              {option || 'Option not available'}
+              {option || t('flashcardQuiz.optionNotAvailable')}
             </Text>
             
             {showResult && option === question.correctAnswer && (
@@ -273,12 +276,12 @@ const FlashcardQuizGame: React.FC<FlashcardQuizGameProps> = ({
             styles.resultText,
             selectedAnswer === question.correctAnswer ? styles.resultTextCorrect : styles.resultTextIncorrect
           ]}>
-            {selectedAnswer === question.correctAnswer ? 'Correct! 🎉' : 'Incorrect! 😔'}
+            {selectedAnswer === question.correctAnswer ? t('flashcardQuiz.correct') : t('flashcardQuiz.incorrect')}
           </Text>
           <Text style={styles.resultSubtext}>
             {selectedAnswer === question.correctAnswer 
-              ? 'Great job!' 
-              : `The correct answer is: ${question.correctAnswer || 'Not available'}`
+              ? t('flashcardQuiz.greatJob')
+              : t('flashcardQuiz.correctAnswerIs', { answer: question.correctAnswer || t('flashcardQuiz.notAvailable') })
             }
           </Text>
         </View>

@@ -168,6 +168,7 @@ export default function GamesScreen({ route }: { route?: any }) {
   const completedGameIdsRef = useRef<Set<string>>(new Set()); // Add guard for completion
   const lastCompletionTimeRef = useRef<number>(0);
   const completionDebounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const completionProcessingRef = useRef<boolean>(false); // Atomic completion lock
   
   // Setup modals
   const [showFlashcardQuizSetup, setShowFlashcardQuizSetup] = useState(false);
@@ -968,8 +969,8 @@ export default function GamesScreen({ route }: { route?: any }) {
       questionCount: options.questionCount
     });
     
-    // Filter by topic if specific topic is selected (handle both empty string and 'All Topics')
-    if (options.selectedTopic && options.selectedTopic !== '' && options.selectedTopic !== 'All Topics') {
+    // Filter by topic if specific topic is selected (handle both empty string and translated 'All Topics')
+    if (options.selectedTopic && options.selectedTopic !== '' && options.selectedTopic !== t('gameSetup.dropdown.allTopics')) {
       filteredFlashcards = filteredFlashcards.filter(card => card.topic === options.selectedTopic);
       console.log(`📊 After topic filter (${options.selectedTopic}):`, filteredFlashcards.length);
     }
@@ -993,7 +994,15 @@ export default function GamesScreen({ route }: { route?: any }) {
       return;
     }
     
-    const gameData = GameDataService.generateQuizQuestions(filteredFlashcards, options.questionCount, mappedLanguageMode);
+    const gameData = GameDataService.generateQuizQuestions(
+      filteredFlashcards, 
+      options.questionCount, 
+      mappedLanguageMode,
+      {
+        questionTranslation: t('flashcardQuiz.questionTranslation'),
+        questionTerm: t('flashcardQuiz.questionTerm')
+      }
+    );
     
     // Double-check that questions were generated
     if (!gameData.questions || gameData.questions.length === 0) {
@@ -1017,7 +1026,7 @@ export default function GamesScreen({ route }: { route?: any }) {
       
       // Filter flashcards by selected topic
       let filteredFlashcards = flashcards;
-      if (options.selectedTopic && options.selectedTopic !== 'All Topics') {
+      if (options.selectedTopic && options.selectedTopic !== t('gameSetup.dropdown.allTopics')) {
         filteredFlashcards = filteredFlashcards.filter(card => card.topic === options.selectedTopic);
       }
       
@@ -1060,7 +1069,7 @@ export default function GamesScreen({ route }: { route?: any }) {
       let filteredFlashcards = flashcards;
       
       // Filter by topic if specific topic is selected
-      if (options.selectedTopic && options.selectedTopic !== 'All Topics') {
+      if (options.selectedTopic && options.selectedTopic !== t('gameSetup.dropdown.allTopics')) {
         filteredFlashcards = filteredFlashcards.filter(card => card.topic === options.selectedTopic);
       }
       
@@ -1084,7 +1093,13 @@ export default function GamesScreen({ route }: { route?: any }) {
       }
       
       setCurrentGame('Word Scramble');
-      const gameData = GameDataService.generateScrambleQuestions(filteredFlashcards, options.wordCount);
+      const gameData = GameDataService.generateScrambleQuestions(
+        filteredFlashcards, 
+        options.wordCount,
+        {
+          unscrambleInstructions: t('lessons.wordScramble.instructions')
+        }
+      );
       setGameData(gameData);
       setShowGameModal(true);
       console.log('✅ Word Scramble game started successfully');
@@ -1104,7 +1119,7 @@ export default function GamesScreen({ route }: { route?: any }) {
       let filteredFlashcards = flashcards;
       
       // Filter by topic if specific topic is selected
-      if (options.selectedTopic && options.selectedTopic !== 'All Topics') {
+      if (options.selectedTopic && options.selectedTopic !== t('gameSetup.dropdown.allTopics')) {
         filteredFlashcards = filteredFlashcards.filter(card => card.topic === options.selectedTopic);
       }
       
@@ -1136,7 +1151,14 @@ export default function GamesScreen({ route }: { route?: any }) {
       else if (options.difficulty === 'expert') gameDifficulty = 'hard';
       else gameDifficulty = undefined;
       
-      const gameData = GameDataService.generateSentenceScrambleQuestions(filteredFlashcards, options.sentenceCount, gameDifficulty);
+      const gameData = GameDataService.generateSentenceScrambleQuestions(
+        filteredFlashcards, 
+        options.sentenceCount, 
+        gameDifficulty,
+        {
+          unscrambleSentence: t('sentenceScramble.unscrambleSentence')
+        }
+      );
       setGameData(gameData);
     setShowGameModal(true);
     console.log('✅ Sentence Scramble game started successfully');
@@ -1155,7 +1177,7 @@ export default function GamesScreen({ route }: { route?: any }) {
       let filteredFlashcards = flashcards;
       
       // Filter by topic if specific topic is selected
-      if (options.selectedTopic && options.selectedTopic !== 'All Topics') {
+      if (options.selectedTopic && options.selectedTopic !== t('gameSetup.dropdown.allTopics')) {
         filteredFlashcards = filteredFlashcards.filter(card => card.topic === options.selectedTopic);
       }
       
@@ -1205,7 +1227,7 @@ export default function GamesScreen({ route }: { route?: any }) {
       let filteredFlashcards = flashcards;
       
       // Filter by topic if specific topic is selected
-      if (options.selectedTopic && options.selectedTopic !== 'All Topics') {
+      if (options.selectedTopic && options.selectedTopic !== t('gameSetup.dropdown.allTopics')) {
         filteredFlashcards = filteredFlashcards.filter(card => card.topic === options.selectedTopic);
       }
       
@@ -1237,7 +1259,14 @@ export default function GamesScreen({ route }: { route?: any }) {
       else if (options.difficulty === 'expert') gameDifficulty = 'hard';
       else gameDifficulty = undefined;
       
-      const gameData = GameDataService.generateSpeedChallengeQuestions(filteredFlashcards, gameDifficulty, options.timeLimit);
+      const gameData = GameDataService.generateSpeedChallengeQuestions(
+        filteredFlashcards, 
+        gameDifficulty, 
+        options.timeLimit,
+        {
+          questionTranslation: t('flashcardQuiz.questionTranslation')
+        }
+      );
       setGameData(gameData);
       setShowGameModal(true);
     } catch (error) {
@@ -1253,6 +1282,7 @@ export default function GamesScreen({ route }: { route?: any }) {
       completedGameIdsRef.current.clear(); // Clear completion tracking
       GameCompletionTracker.getInstance().clear(); // Clear global completion tracking
       GlobalCompletionLock.getInstance().clear(); // Clear global completion lock
+    completionProcessingRef.current = false; // Reset atomic completion lock
       
       // Clear debounce timeout
       if (completionDebounceTimeoutRef.current) {
@@ -1265,7 +1295,7 @@ export default function GamesScreen({ route }: { route?: any }) {
       let filteredFlashcards = flashcards;
       
       // Filter by topic if specific topic is selected
-      if (options.selectedTopic && options.selectedTopic !== 'All Topics') {
+      if (options.selectedTopic && options.selectedTopic !== t('gameSetup.dropdown.allTopics')) {
         filteredFlashcards = filteredFlashcards.filter(card => card.topic === options.selectedTopic);
       }
       
@@ -1297,7 +1327,14 @@ export default function GamesScreen({ route }: { route?: any }) {
       else if (options.difficulty === 'expert') gameDifficulty = 'hard';
       else gameDifficulty = undefined;
       
-        const gameData = GameDataService.generateTypeWhatYouHearQuestions(filteredFlashcards, options.wordCount, gameDifficulty);
+        const gameData = GameDataService.generateTypeWhatYouHearQuestions(
+          filteredFlashcards, 
+          options.wordCount, 
+          gameDifficulty,
+          {
+            typeWhatYouHear: t('typeWhatYouHear.typeWhatYouHear')
+          }
+        );
       setGameData(gameData);
       setShowGameModal(true);
     } catch (error) {
@@ -1315,7 +1352,7 @@ export default function GamesScreen({ route }: { route?: any }) {
       let filteredFlashcards = flashcards;
       
       // Filter by topic if specific topic is selected
-      if (options.selectedTopic && options.selectedTopic !== 'All Topics') {
+      if (options.selectedTopic && options.selectedTopic !== t('gameSetup.dropdown.allTopics')) {
         filteredFlashcards = filteredFlashcards.filter(card => card.topic === options.selectedTopic);
       }
       
@@ -1365,7 +1402,7 @@ export default function GamesScreen({ route }: { route?: any }) {
       let filteredFlashcards = flashcards;
       
       // Filter by topic if specific topic is selected
-      if (options.selectedTopic && options.selectedTopic !== 'All Topics') {
+      if (options.selectedTopic && options.selectedTopic !== t('gameSetup.dropdown.allTopics')) {
         filteredFlashcards = filteredFlashcards.filter(card => card.topic === options.selectedTopic);
       }
       
@@ -1406,8 +1443,6 @@ export default function GamesScreen({ route }: { route?: any }) {
     try {
       console.log(`🎮 [${screenId}] [${completionId}] Game completed with finalScore:`, finalScore, 'timeSpent:', timeSpent, 'totalAnswered:', totalAnswered, 'currentGame:', currentGame, 'gameCompleted:', gameCompleted, 'timeSinceLastCompletion:', now - lastCompletionTimeRef.current);
       
-      
-      
       // TEMPORARILY DISABLED: Debounce all completions within 5 seconds
       // if (now - lastCompletionTimeRef.current < 5000) {
       //   console.log(`🚫 [${screenId}] [${completionId}] NUCLEAR GUARD: Completion within 5 seconds, REJECTING`);
@@ -1424,7 +1459,7 @@ export default function GamesScreen({ route }: { route?: any }) {
       completionDebounceTimeoutRef.current = setTimeout(() => {
         console.log(`⏰ [${screenId}] [${completionId}] Debounce timeout expired, processing completion`);
         processGameCompletion(finalScore, completionId, timeSpent, totalAnswered);
-      }, 100); // 100ms debounce
+      }, 200); // 200ms debounce to avoid race conditions with game delays
       
       // Update last completion time immediately
       lastCompletionTimeRef.current = now;
@@ -1440,22 +1475,32 @@ export default function GamesScreen({ route }: { route?: any }) {
       console.log(`🎯 [${screenId}] [${completionId}] ===== PROCESSING GAME COMPLETION STARTED =====`);
       console.log(`🎯 [${screenId}] [${completionId}] Processing game completion`);
       
+      // ATOMIC COMPLETION LOCK: Check and set atomically to prevent race conditions
+      if (completionProcessingRef.current) {
+        console.log(`🚫 [${screenId}] [${completionId}] ATOMIC LOCK: Completion already processing, REJECTING`);
+        return;
+      }
+      completionProcessingRef.current = true;
+      
       // Add a guard to prevent multiple calls - use a more robust check
       if (!currentGame || !gameData) {
         console.log(`⚠️ [${screenId}] [${completionId}] Guard: No currentGame or gameData, skipping`);
+        completionProcessingRef.current = false; // Reset atomic lock
         return;
       }
       
       // Check if already completed using a more immediate approach
       if (gameCompleted) {
         console.log(`⚠️ [${screenId}] [${completionId}] Guard: Already completed, skipping`);
+        completionProcessingRef.current = false; // Reset atomic lock
         return;
       }
 
-      // Create a unique completion key based on game data and timestamp
-      const completionKey = `${currentGame}-${gameData.id || 'unknown'}-${Date.now()}`;
+      // Create a unique completion key based on game data (without timestamp)
+      const completionKey = `${currentGame}-${gameData.id || 'unknown'}`;
       if (completedGameIdsRef.current.has(completionKey)) {
         console.log(`⚠️ [${screenId}] [${completionId}] Guard: Completion key already exists, skipping`);
+        completionProcessingRef.current = false; // Reset atomic lock
         return;
       }
       
@@ -1596,6 +1641,8 @@ export default function GamesScreen({ route }: { route?: any }) {
       
     } catch (error) {
       console.error('❌ Error tracking game progress:', error);
+      // Reset atomic completion lock on error
+      completionProcessingRef.current = false;
     }
 
     // Wait a moment to ensure database operations complete
@@ -1610,6 +1657,7 @@ export default function GamesScreen({ route }: { route?: any }) {
     completedGameIdsRef.current.clear(); // Clear completion tracking
     GameCompletionTracker.getInstance().clear(); // Clear global completion tracking
     GlobalCompletionLock.getInstance().clear(); // Clear global completion lock
+    completionProcessingRef.current = false; // Reset atomic completion lock
     
     // Clear debounce timeout
     if (completionDebounceTimeoutRef.current) {
@@ -1637,6 +1685,7 @@ export default function GamesScreen({ route }: { route?: any }) {
     completedGameIdsRef.current.clear(); // Clear completion tracking
     GameCompletionTracker.getInstance().clear(); // Clear global completion tracking
     GlobalCompletionLock.getInstance().clear(); // Clear global completion lock
+    completionProcessingRef.current = false; // Reset atomic completion lock
     
     // Clear debounce timeout
     if (completionDebounceTimeoutRef.current) {
@@ -1648,6 +1697,25 @@ export default function GamesScreen({ route }: { route?: any }) {
   };
 
   // Render game component based on current game
+  // Helper function to get translated game title
+  const getTranslatedGameTitle = (gameName: string | null): string => {
+    if (!gameName) return '';
+    
+    const gameTitleMap: { [key: string]: string } = {
+      'Flashcard Quiz': t('games.flashcardQuiz'),
+      'Memory Match': t('games.memoryMatch'),
+      'Word Scramble': t('games.wordScramble'),
+      'Hangman': t('games.hangman'),
+      'Speed Challenge': t('games.speedChallenge'),
+      'Planet Defense': t('games.gravityGame'),
+      'Listen & Type': t('games.typeWhatYouHear'),
+      'Sentence Scramble': t('games.sentenceScramble'),
+      'Speaking Game': t('games.speakingGame'),
+    };
+    
+    return gameTitleMap[gameName] || gameName;
+  };
+
   const renderGameComponent = () => {
     // console.log(`🎮 [${screenId}] renderGameComponent called for game: ${currentGame}`); // Debug logging disabled
     
@@ -2121,7 +2189,7 @@ export default function GamesScreen({ route }: { route?: any }) {
               <View style={styles.gameIconWrapper}>
                 <Ionicons name={getGameIcon(currentGame || '')} size={28} color="#6366f1" />
               </View>
-              <Text style={styles.gameModalTitle}>{currentGame}</Text>
+              <Text style={styles.gameModalTitle}>{getTranslatedGameTitle(currentGame)}</Text>
             </View>
             <View style={styles.placeholder} />
           </View>

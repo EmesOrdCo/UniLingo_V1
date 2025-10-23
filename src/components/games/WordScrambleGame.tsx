@@ -102,8 +102,14 @@ const WordScrambleGame: React.FC<WordScrambleGameProps> = ({ gameData, onClose, 
       console.log('🎯 WordScramble calling onGameComplete with score:', finalScoreRef.current);
       completionCalledRef.current = true;
       onGameComplete(finalScoreRef.current);
+      
+      // Add delay to allow completion processing to finish
+      setTimeout(() => {
+        onPlayAgain();
+      }, 300); // Increased to 300ms to be longer than GamesScreen's 200ms debounce
+    } else {
+      onPlayAgain();
     }
-    onPlayAgain();
   };
 
   const handleReturnToMenu = () => {
@@ -112,8 +118,14 @@ const WordScrambleGame: React.FC<WordScrambleGameProps> = ({ gameData, onClose, 
       console.log('🎯 WordScramble calling onGameComplete with score:', finalScoreRef.current);
       completionCalledRef.current = true;
       onGameComplete(finalScoreRef.current);
+      
+      // Add delay to allow completion processing to finish
+      setTimeout(() => {
+        onClose();
+      }, 300); // Increased to 300ms to be longer than GamesScreen's 200ms debounce
+    } else {
+      onClose();
     }
-    onClose();
   };
 
   // Handle game completion - removed automatic call, now handled by user action
@@ -172,19 +184,19 @@ const WordScrambleGame: React.FC<WordScrambleGameProps> = ({ gameData, onClose, 
       {/* Question */}
       <View style={styles.questionContainer}>
         <Text style={styles.questionText}>
-          {currentQuestion.question || 'Unscramble the word:'}
+          {currentQuestion.question || t('wordScramble.unscrambleWord')}
         </Text>
       </View>
 
       {/* Scrambled Word */}
       <View style={styles.scrambledContainer}>
-        <Text style={styles.scrambledLabel}>Scrambled Word:</Text>
+        <Text style={styles.scrambledLabel}>{t('wordScramble.scrambledWord')}</Text>
         <Text style={styles.scrambledWord}>{scrambledWord}</Text>
       </View>
 
       {/* Answer Input */}
       <View style={styles.answerContainer}>
-        <Text style={styles.answerLabel}>Your Answer:</Text>
+        <Text style={styles.answerLabel}>{t('wordScramble.yourAnswer')}</Text>
         <TextInput
           style={styles.answerInput}
           value={userAnswer}
@@ -204,7 +216,7 @@ const WordScrambleGame: React.FC<WordScrambleGameProps> = ({ gameData, onClose, 
           onPress={skipQuestion}
           disabled={showResult}
         >
-          <Text style={styles.skipButtonText}>Skip</Text>
+          <Text style={styles.skipButtonText}>{t('wordScramble.skip')}</Text>
         </TouchableOpacity>
         
         <TouchableOpacity 
@@ -212,7 +224,7 @@ const WordScrambleGame: React.FC<WordScrambleGameProps> = ({ gameData, onClose, 
           onPress={checkAnswer}
           disabled={!userAnswer.trim() || showResult}
         >
-          <Text style={styles.submitButtonText}>Submit</Text>
+          <Text style={styles.submitButtonText}>{t('wordScramble.submit')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -234,11 +246,11 @@ const WordScrambleGame: React.FC<WordScrambleGameProps> = ({ gameData, onClose, 
             styles.resultText,
             isCorrect ? styles.resultTextCorrect : styles.resultTextIncorrect
           ]}>
-            {isCorrect ? 'Correct! 🎉' : 'Incorrect! 😔'}
+            {isCorrect ? t('wordScramble.correct') : t('wordScramble.incorrect')}
           </Text>
           
           <Text style={styles.correctAnswerText}>
-            The correct answer is: {currentQuestion.correctAnswer}
+            {t('wordScramble.correctAnswerIs', { answer: currentQuestion.correctAnswer })}
           </Text>
         </View>
       )}

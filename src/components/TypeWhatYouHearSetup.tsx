@@ -35,7 +35,7 @@ const TypeWhatYouHearSetup: React.FC<TypeWhatYouHearSetupProps> = ({
   const { user, profile } = useAuth();
   const { t } = useTranslation();
   const [wordCount, setWordCount] = useState<number>(10);
-  const [selectedTopic, setSelectedTopic] = useState<string>('All Topics');
+  const [selectedTopic, setSelectedTopic] = useState<string>(t('gameSetup.dropdown.allTopics'));
   const [selectedDifficulty, setSelectedDifficulty] = useState<'beginner' | 'intermediate' | 'expert' | 'all'>('all');
   const [topics, setTopics] = useState<string[]>([]);
   const [topicCardCounts, setTopicCardCounts] = useState<{ [topic: string]: number }>({});
@@ -56,10 +56,17 @@ const TypeWhatYouHearSetup: React.FC<TypeWhatYouHearSetupProps> = ({
     if (!user?.id) return;
     
     try {
+      // If "All Topics" is selected, use availableCards directly
+      if (selectedTopic === t('gameSetup.dropdown.allTopics')) {
+        console.log('🔍 All Topics selected, using availableCards:', availableCards);
+        setFilteredCardCount(availableCards);
+        return;
+      }
+      
       const filters: any = {};
       
       // Add topic filter if specific topic is selected
-      if (selectedTopic && selectedTopic !== '' && selectedTopic !== 'All Topics') {
+      if (selectedTopic && selectedTopic !== '' && selectedTopic !== t('gameSetup.dropdown.allTopics')) {
         filters.topic = selectedTopic;
       }
       
@@ -214,11 +221,11 @@ const TypeWhatYouHearSetup: React.FC<TypeWhatYouHearSetupProps> = ({
               >
                 <Text style={[
                   styles.dropdownText,
-                  !selectedTopic && styles.dropdownPlaceholder
+                  selectedTopic === t('gameSetup.dropdown.allTopics') && styles.dropdownPlaceholder
                 ]}>
-                  {selectedTopic 
-                    ? `${selectedTopic} (${topicCardCounts[selectedTopic] || 0} ${t('gameSetup.info.cards')})`
-                    : `${t('gameSetup.dropdown.allTopics')} (${availableCards} ${t('gameSetup.info.cards')})`
+                  {selectedTopic === t('gameSetup.dropdown.allTopics')
+                    ? `${t('gameSetup.dropdown.allTopics')} (${availableCards} ${t('gameSetup.info.cards')})`
+                    : `${selectedTopic} (${topicCardCounts[selectedTopic] || 0} ${t('gameSetup.info.cards')})`
                   }
                 </Text>
                 <Ionicons 
@@ -236,16 +243,16 @@ const TypeWhatYouHearSetup: React.FC<TypeWhatYouHearSetupProps> = ({
                     <TouchableOpacity
                       style={[
                         styles.dropdownOption,
-                        !selectedTopic && styles.dropdownOptionSelected
+                        selectedTopic === t('gameSetup.dropdown.allTopics') && styles.dropdownOptionSelected
                       ]}
                       onPress={() => {
-                        setSelectedTopic('');
+                        setSelectedTopic(t('gameSetup.dropdown.allTopics'));
                         setShowTopicDropdown(false);
                       }}
                     >
                       <Text style={[
                         styles.dropdownOptionText,
-                        !selectedTopic && styles.dropdownOptionTextSelected
+                        selectedTopic === t('gameSetup.dropdown.allTopics') && styles.dropdownOptionTextSelected
                       ]}>
                         {t('gameSetup.dropdown.allTopics')} ({availableCards} {t('gameSetup.info.cards')})
                       </Text>

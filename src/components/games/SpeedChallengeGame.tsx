@@ -126,8 +126,14 @@ const SpeedChallengeGame: React.FC<SpeedChallengeGameProps> = ({ gameData, onClo
       console.log('🎯 SpeedChallenge calling onGameComplete with score:', finalScoreRef.current, 'time:', finalElapsedTimeRef.current, 'totalAnswered:', finalTotalAnsweredRef.current);
       completionCalledRef.current = true;
       onGameComplete(finalScoreRef.current, finalElapsedTimeRef.current, finalTotalAnsweredRef.current);
+      
+      // Add delay to allow completion processing to finish
+      setTimeout(() => {
+        onPlayAgain();
+      }, 300); // Increased to 300ms to be longer than GamesScreen's 200ms debounce
+    } else {
+      onPlayAgain();
     }
-    onPlayAgain();
   };
 
   const handleReturnToMenu = () => {
@@ -136,8 +142,14 @@ const SpeedChallengeGame: React.FC<SpeedChallengeGameProps> = ({ gameData, onClo
       console.log('🎯 SpeedChallenge calling onGameComplete with score:', finalScoreRef.current, 'time:', finalElapsedTimeRef.current, 'totalAnswered:', finalTotalAnsweredRef.current);
       completionCalledRef.current = true;
       onGameComplete(finalScoreRef.current, finalElapsedTimeRef.current, finalTotalAnsweredRef.current);
+      
+      // Add delay to allow completion processing to finish
+      setTimeout(() => {
+        onClose();
+      }, 300); // Increased to 300ms to be longer than GamesScreen's 200ms debounce
+    } else {
+      onClose();
     }
-    onClose();
   };
 
   if (gameComplete) {
@@ -189,7 +201,7 @@ const SpeedChallengeGame: React.FC<SpeedChallengeGameProps> = ({ gameData, onClo
           <Text style={styles.timeText}>{t('gameCompletion.stats.time')}: {elapsedTime}s / {timeLimit}s</Text>
         </View>
         <Text style={styles.questionCounter}>
-          Question {currentQuestionIndex + 1}
+          {t('speedChallenge.question', { number: currentQuestionIndex + 1 })}
         </Text>
       </View>
 
@@ -206,13 +218,13 @@ const SpeedChallengeGame: React.FC<SpeedChallengeGameProps> = ({ gameData, onClo
       {/* Question */}
       <View style={styles.questionContainer}>
         <Text style={styles.questionText}>
-          {currentQuestion.question || 'Answer quickly:'}
+          {currentQuestion.question || t('speedChallenge.answerQuickly')}
         </Text>
       </View>
 
       {/* Answer Input */}
       <View style={styles.answerContainer}>
-        <Text style={styles.answerLabel}>Your Answer:</Text>
+        <Text style={styles.answerLabel}>{t('speedChallenge.yourAnswer')}</Text>
         <TextInput
           style={styles.answerInput}
           value={userAnswer}
@@ -234,7 +246,7 @@ const SpeedChallengeGame: React.FC<SpeedChallengeGameProps> = ({ gameData, onClo
           onPress={skipQuestion}
           disabled={showResult}
         >
-          <Text style={styles.skipButtonText}>Skip</Text>
+          <Text style={styles.skipButtonText}>{t('speedChallenge.skip')}</Text>
         </TouchableOpacity>
         
         <TouchableOpacity 
@@ -242,7 +254,7 @@ const SpeedChallengeGame: React.FC<SpeedChallengeGameProps> = ({ gameData, onClo
           onPress={handleAnswerSubmit}
           disabled={!userAnswer.trim() || showResult}
         >
-          <Text style={styles.submitButtonText}>Submit</Text>
+          <Text style={styles.submitButtonText}>{t('speedChallenge.submit')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -264,11 +276,11 @@ const SpeedChallengeGame: React.FC<SpeedChallengeGameProps> = ({ gameData, onClo
             styles.resultText,
             isCorrect ? styles.resultTextCorrect : styles.resultTextIncorrect
           ]}>
-            {isCorrect ? 'Correct! 🎉' : 'Incorrect! 😔'}
+            {isCorrect ? t('speedChallenge.correct') : t('speedChallenge.incorrect')}
           </Text>
           
           <Text style={styles.correctAnswerText}>
-            The correct answer is: {currentQuestion.correctAnswer}
+            {t('speedChallenge.correctAnswerIs', { answer: currentQuestion.correctAnswer })}
           </Text>
         </View>
       )}

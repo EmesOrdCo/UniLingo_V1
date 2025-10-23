@@ -897,9 +897,9 @@ const GravityGame: React.FC<GravityGameProps> = ({ gameData, onClose, onGameComp
       {/* Game Header */}
       <View style={styles.gameHeader}>
         <View style={styles.headerInfo}>
-          <Text style={styles.scoreText}>Meteors Destroyed: {score}</Text>
-          <Text style={styles.livesText}>Lives: {lives}</Text>
-          <Text style={styles.waveText}>Wave: {currentWave}</Text>
+          <Text style={styles.scoreText}>{t('gravityGame.meteorsDestroyed', { count: score })}</Text>
+          <Text style={styles.livesText}>{t('gravityGame.lives', { count: lives })}</Text>
+          <Text style={styles.waveText}>{t('gravityGame.wave', { count: currentWave })}</Text>
         </View>
       </View>
 
@@ -913,7 +913,7 @@ const GravityGame: React.FC<GravityGameProps> = ({ gameData, onClose, onGameComp
       {/* Input Area - Completely separate from game area */}
       <View style={styles.inputArea}>
         <Text style={styles.instructionText}>
-          Type the correct answer to destroy meteors!
+          {t('gravityGame.instruction')}
         </Text>
         <TextInput
           style={styles.textInput}

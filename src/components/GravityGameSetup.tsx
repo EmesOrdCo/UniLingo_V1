@@ -34,7 +34,7 @@ const GravityGameSetup: React.FC<GravityGameSetupProps> = ({
 }) => {
   const { user, profile } = useAuth();
   const { t } = useTranslation();
-  const [selectedTopic, setSelectedTopic] = useState<string>('All Topics');
+  const [selectedTopic, setSelectedTopic] = useState<string>(t('gameSetup.dropdown.allTopics'));
   const [selectedDifficulty, setSelectedDifficulty] = useState<'beginner' | 'intermediate' | 'expert' | 'all'>('all');
   const [gravitySpeed, setGravitySpeed] = useState<number>(1.0);
   const [topics, setTopics] = useState<string[]>([]);
@@ -56,10 +56,17 @@ const GravityGameSetup: React.FC<GravityGameSetupProps> = ({
     if (!user?.id) return;
     
     try {
+      // If "All Topics" is selected, use availableCards directly
+      if (selectedTopic === t('gameSetup.dropdown.allTopics')) {
+        console.log('🔍 All Topics selected, using availableCards:', availableCards);
+        setFilteredCardCount(availableCards);
+        return;
+      }
+      
       const filters: any = {};
       
       // Add topic filter if specific topic is selected
-      if (selectedTopic && selectedTopic !== '' && selectedTopic !== 'All Topics') {
+      if (selectedTopic && selectedTopic !== '' && selectedTopic !== t('gameSetup.dropdown.allTopics')) {
         filters.topic = selectedTopic;
       }
       
@@ -205,11 +212,11 @@ const GravityGameSetup: React.FC<GravityGameSetupProps> = ({
               >
                 <Text style={[
                   styles.dropdownText,
-                  !selectedTopic && styles.dropdownPlaceholder
+                  selectedTopic === t('gameSetup.dropdown.allTopics') && styles.dropdownPlaceholder
                 ]}>
-                  {selectedTopic 
-                    ? `${selectedTopic} (${topicCardCounts[selectedTopic] || 0} ${t('gameSetup.info.cards')})`
-                    : `${t('gameSetup.dropdown.allTopics')} (${availableCards} ${t('gameSetup.info.cards')})`
+                  {selectedTopic === t('gameSetup.dropdown.allTopics')
+                    ? `${t('gameSetup.dropdown.allTopics')} (${availableCards} ${t('gameSetup.info.cards')})`
+                    : `${selectedTopic} (${topicCardCounts[selectedTopic] || 0} ${t('gameSetup.info.cards')})`
                   }
                 </Text>
                 <Ionicons 
@@ -227,16 +234,16 @@ const GravityGameSetup: React.FC<GravityGameSetupProps> = ({
                     <TouchableOpacity
                       style={[
                         styles.dropdownOption,
-                        !selectedTopic && styles.dropdownOptionSelected
+                        selectedTopic === t('gameSetup.dropdown.allTopics') && styles.dropdownOptionSelected
                       ]}
                       onPress={() => {
-                        setSelectedTopic('');
+                        setSelectedTopic(t('gameSetup.dropdown.allTopics'));
                         setShowTopicDropdown(false);
                       }}
                     >
                       <Text style={[
                         styles.dropdownOptionText,
-                        !selectedTopic && styles.dropdownOptionTextSelected
+                        selectedTopic === t('gameSetup.dropdown.allTopics') && styles.dropdownOptionTextSelected
                       ]}>
                         {t('gameSetup.dropdown.allTopics')} ({availableCards} {t('gameSetup.info.cards')})
                       </Text>

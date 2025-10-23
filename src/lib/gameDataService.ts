@@ -135,7 +135,15 @@ export class GameDataService {
   /**
    * Generate quiz questions for FlashcardQuizGame
    */
-  static generateQuizQuestions(flashcards: UserFlashcard[], count: number, languageMode: 'question' | 'answer' | 'mixed' = 'question'): GameData {
+  static generateQuizQuestions(
+    flashcards: UserFlashcard[], 
+    count: number, 
+    languageMode: 'question' | 'answer' | 'mixed' = 'question',
+    translations?: {
+      questionTranslation: string;
+      questionTerm: string;
+    }
+  ): GameData {
     // Validate input
     if (!flashcards || flashcards.length === 0) {
       console.warn('GameDataService.generateQuizQuestions: No flashcards provided');
@@ -161,8 +169,8 @@ export class GameDataService {
         : languageMode;
       
       const question = actualMode === 'question' 
-        ? `What is the translation of "${card.front}"?`
-        : `What is the term for "${card.back}"?`;
+        ? (translations?.questionTranslation || `What is the translation of "${card.front}"?`).replace('{{term}}', card.front)
+        : (translations?.questionTerm || `What is the term for "${card.back}"?`).replace('{{term}}', card.back);
       
       const correctAnswer = actualMode === 'question' ? card.back : card.front;
       
@@ -191,7 +199,13 @@ export class GameDataService {
   /**
    * Generate scramble questions for WordScrambleGame
    */
-  static generateScrambleQuestions(flashcards: UserFlashcard[], count: number): GameData {
+  static generateScrambleQuestions(
+    flashcards: UserFlashcard[], 
+    count: number,
+    translations?: {
+      unscrambleInstructions: string;
+    }
+  ): GameData {
     const questions: GameQuestion[] = [];
     const shuffledCards = this.shuffleArray(flashcards).slice(0, count);
     
@@ -199,7 +213,7 @@ export class GameDataService {
       const wordToScramble = card.front;
       
       questions.push({
-        question: 'Unscramble the word below:',
+        question: translations?.unscrambleInstructions || 'Unscramble the word below:',
         correctAnswer: wordToScramble,
         type: 'scramble'
       });
@@ -279,7 +293,14 @@ export class GameDataService {
   /**
    * Generate speed challenge questions for SpeedChallengeGame
    */
-  static generateSpeedChallengeQuestions(flashcards: UserFlashcard[], difficulty: 'easy' | 'medium' | 'hard' = 'medium', timeLimit: number): GameData {
+  static generateSpeedChallengeQuestions(
+    flashcards: UserFlashcard[], 
+    difficulty: 'easy' | 'medium' | 'hard' = 'medium', 
+    timeLimit: number,
+    translations?: {
+      questionTranslation: string;
+    }
+  ): GameData {
     // For speed challenge, we don't limit the number of questions
     // The game will randomly select from the available flashcards pool
     // and can repeat questions if needed
@@ -296,7 +317,7 @@ export class GameDataService {
     for (let i = 0; i < questionCount; i++) {
       const card = shuffledCards[i % shuffledCards.length]; // Cycle through cards, allowing repeats
       questions.push({
-        question: `What is the translation of "${card.front}"?`,
+        question: (translations?.questionTranslation || `What is the translation of "${card.front}"?`).replace('{{term}}', card.front),
         correctAnswer: card.back,
         type: 'speed_challenge'
       });
@@ -308,13 +329,20 @@ export class GameDataService {
   /**
    * Generate type what you hear questions for TypeWhatYouHearGame
    */
-  static generateTypeWhatYouHearQuestions(flashcards: UserFlashcard[], count: number, difficulty: 'easy' | 'medium' | 'hard' = 'medium'): GameData {
+  static generateTypeWhatYouHearQuestions(
+    flashcards: UserFlashcard[], 
+    count: number, 
+    difficulty: 'easy' | 'medium' | 'hard' = 'medium',
+    translations?: {
+      typeWhatYouHear: string;
+    }
+  ): GameData {
     const questions: GameQuestion[] = [];
     const shuffledCards = this.shuffleArray(flashcards).slice(0, count);
     
     for (const card of shuffledCards) {
       questions.push({
-        question: 'Type what you hear:',
+        question: translations?.typeWhatYouHear || 'Type what you hear:',
         correctAnswer: card.front,
         type: 'audio_recognition'
       });
@@ -326,7 +354,14 @@ export class GameDataService {
   /**
    * Generate sentence scramble questions for SentenceScrambleGame
    */
-  static generateSentenceScrambleQuestions(flashcards: UserFlashcard[], count: number, difficulty: 'easy' | 'medium' | 'hard' = 'medium'): GameData {
+  static generateSentenceScrambleQuestions(
+    flashcards: UserFlashcard[], 
+    count: number, 
+    difficulty: 'easy' | 'medium' | 'hard' = 'medium',
+    translations?: {
+      unscrambleSentence: string;
+    }
+  ): GameData {
     const questions: GameQuestion[] = [];
     const shuffledCards = this.shuffleArray(flashcards).slice(0, count);
     
@@ -335,7 +370,7 @@ export class GameDataService {
       const sentence = card.example || `${card.front} means ${card.back}`;
       
       questions.push({
-        question: 'Unscramble the sentence below:',
+        question: translations?.unscrambleSentence || 'Unscramble the sentence below:',
         correctAnswer: sentence,
         type: 'sentence_scramble'
       });
