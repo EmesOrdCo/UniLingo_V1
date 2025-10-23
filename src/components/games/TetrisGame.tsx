@@ -103,6 +103,8 @@ const TetrisGame: React.FC<TetrisGameProps> = ({ onClose, onGameComplete, onRest
   const gameLoop = useRef<NodeJS.Timeout | null>(null);
   const finalScoreRef = useRef<number>(0);
   const completionCalledRef = useRef<boolean>(false);
+  const hardDropActiveRef = useRef<boolean>(false);
+  const originalDropSpeedRef = useRef<number>(INITIAL_DROP_SPEED);
 
   // Animated values
   const bgFloat1 = useRef(new Animated.Value(0)).current;
@@ -212,6 +214,12 @@ const TetrisGame: React.FC<TetrisGameProps> = ({ onClose, onGameComplete, onRest
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
 
+    // Restore original drop speed if hard drop was active
+    if (hardDropActiveRef.current) {
+      setDropSpeed(originalDropSpeedRef.current);
+      hardDropActiveRef.current = false;
+    }
+
     // Spawn next piece
     const newPiece = createNewPiece(nextPiece);
     if (checkCollision(newPiece)) {
@@ -263,26 +271,15 @@ const TetrisGame: React.FC<TetrisGameProps> = ({ onClose, onGameComplete, onRest
     }
   }, [currentPiece, gameOver, isPaused, checkCollision]);
 
-  // Hard drop
+  // Hard drop - accelerate piece down smoothly until it locks
   const hardDrop = useCallback(() => {
-    if (!currentPiece || gameOver || isPaused) return;
+    if (!currentPiece || gameOver || isPaused || hardDropActiveRef.current) return;
 
-    let dropDistance = 0;
-    while (!checkCollision(currentPiece, { row: dropDistance + 1, col: 0 })) {
-      dropDistance++;
-    }
-
-    setCurrentPiece({
-      ...currentPiece,
-      position: {
-        ...currentPiece.position,
-        row: currentPiece.position.row + dropDistance,
-      },
-    });
-
-    // Lock immediately after hard drop
-    setTimeout(() => lockPiece(), 50);
-  }, [currentPiece, gameOver, isPaused, checkCollision, lockPiece]);
+    // Store original drop speed and activate hard drop
+    originalDropSpeedRef.current = dropSpeed;
+    hardDropActiveRef.current = true;
+    setDropSpeed(50); // Very fast drop speed
+  }, [currentPiece, gameOver, isPaused, dropSpeed]);
 
   // Game loop
   useEffect(() => {
@@ -301,7 +298,12 @@ const TetrisGame: React.FC<TetrisGameProps> = ({ onClose, onGameComplete, onRest
     const newLevel = Math.floor(lines / 10) + 1;
     if (newLevel !== level) {
       setLevel(newLevel);
-      setDropSpeed(Math.max(100, INITIAL_DROP_SPEED - (newLevel - 1) * 100));
+      const newDropSpeed = Math.max(100, INITIAL_DROP_SPEED - (newLevel - 1) * 100);
+      setDropSpeed(newDropSpeed);
+      // Update the original drop speed ref for hard drop restoration
+      if (!hardDropActiveRef.current) {
+        originalDropSpeedRef.current = newDropSpeed;
+      }
     }
   }, [lines, level]);
 
@@ -542,9 +544,7 @@ const TetrisGame: React.FC<TetrisGameProps> = ({ onClose, onGameComplete, onRest
           <TouchableOpacity style={styles.controlButton} onPress={() => movePiece('RIGHT')}>
             <Ionicons name="arrow-forward" size={24} color="#FFFFFF" />
           </TouchableOpacity>
-        </View>
-        <View style={styles.controlRow}>
-          <TouchableOpacity style={styles.downButton} onPress={() => movePiece('DOWN')}>
+          <TouchableOpacity style={styles.downButton} onPress={hardDrop}>
             <Ionicons name="arrow-down" size={24} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
@@ -766,7 +766,7 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#EF4444',
     alignItems: 'center',
     justifyContent: 'center',
   },
