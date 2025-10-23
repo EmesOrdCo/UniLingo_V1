@@ -1633,6 +1633,8 @@ export const de: Record<string, string> = {
   'games.createYourOwn': 'Eigene Karteikarten erstellen',
   'games.makeAIFlashcards': 'KI-Karteikarten erstellen',
   'games.cannotStartGame': 'Spiel kann nicht gestartet werden',
+  'games.noFlashcardsForCriteria': 'Keine Karteikarten für die ausgewählte Themen- und Schwierigkeitskombination verfügbar. Bitte versuchen Sie andere Kriterien.',
+  'games.failedToGenerateQuestions': 'Fehler beim Generieren der Fragen. Bitte versuchen Sie es erneut.',
   'games.invalidFlashcardData': 'Ungültige Karteikartendaten',
   'games.noFlashcardsModal.title': 'Keine Karteikarten verfügbar',
   'games.noFlashcardsModal.message': 'Spiele benötigen Karteikarten zum Funktionieren. Bitte erstellen Sie zuerst einige Karteikarten, indem Sie zum Karteikarten-Bereich gehen und Vokabelwörter hinzufügen.',

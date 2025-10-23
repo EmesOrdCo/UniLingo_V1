@@ -48,7 +48,35 @@ const TypeWhatYouHearGame: React.FC<TypeWhatYouHearGameProps> = ({ gameData, onC
     };
   }, []);
 
-  const currentQuestion = gameData.questions[currentQuestionIndex];
+  const currentQuestion = gameData?.questions?.[currentQuestionIndex];
+
+  // Defensive checks for gameData
+  if (!gameData || !gameData.questions || gameData.questions.length === 0) {
+    return (
+      <View style={styles.gameContainer}>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>No questions available</Text>
+          <TouchableOpacity style={styles.errorButton} onPress={onClose}>
+            <Text style={styles.errorButtonText}>Close</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
+  // Additional safety check for question
+  if (!currentQuestion) {
+    return (
+      <View style={styles.gameContainer}>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>Question not found</Text>
+          <TouchableOpacity style={styles.errorButton} onPress={onClose}>
+            <Text style={styles.errorButtonText}>Close</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
 
   const playAudio = async () => {
     if (!currentQuestion?.correctAnswer) return;
@@ -76,7 +104,7 @@ const TypeWhatYouHearGame: React.FC<TypeWhatYouHearGameProps> = ({ gameData, onC
   };
 
   const checkAnswer = () => {
-    if (!userAnswer.trim()) return;
+    if (!userAnswer.trim() || !currentQuestion?.correctAnswer) return;
     
     const correct = currentQuestion.correctAnswer.toLowerCase().trim();
     const userInput = userAnswer.toLowerCase().trim();
@@ -556,6 +584,30 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#64748b',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  errorText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#ef4444',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  errorButton: {
+    backgroundColor: '#ef4444',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  errorButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#ffffff',
   },
 });
 

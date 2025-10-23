@@ -34,7 +34,7 @@ const GravityGameSetup: React.FC<GravityGameSetupProps> = ({
 }) => {
   const { user, profile } = useAuth();
   const { t } = useTranslation();
-  const [selectedTopic, setSelectedTopic] = useState<string>('');
+  const [selectedTopic, setSelectedTopic] = useState<string>('All Topics');
   const [selectedDifficulty, setSelectedDifficulty] = useState<'beginner' | 'intermediate' | 'expert' | 'all'>('all');
   const [gravitySpeed, setGravitySpeed] = useState<number>(1.0);
   const [topics, setTopics] = useState<string[]>([]);
@@ -59,7 +59,7 @@ const GravityGameSetup: React.FC<GravityGameSetupProps> = ({
       const filters: any = {};
       
       // Add topic filter if specific topic is selected
-      if (selectedTopic && selectedTopic !== '') {
+      if (selectedTopic && selectedTopic !== '' && selectedTopic !== 'All Topics') {
         filters.topic = selectedTopic;
       }
       

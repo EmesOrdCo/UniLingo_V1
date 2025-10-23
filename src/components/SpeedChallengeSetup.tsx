@@ -35,7 +35,7 @@ const SpeedChallengeSetup: React.FC<SpeedChallengeSetupProps> = ({
   const { user, profile } = useAuth();
   const { t } = useTranslation();
   const [timeLimit, setTimeLimit] = useState<number>(60);
-  const [selectedTopic, setSelectedTopic] = useState<string>('');
+  const [selectedTopic, setSelectedTopic] = useState<string>('All Topics');
   const [selectedDifficulty, setSelectedDifficulty] = useState<'beginner' | 'intermediate' | 'expert' | 'all'>('all');
   const [topics, setTopics] = useState<string[]>([]);
   const [topicCardCounts, setTopicCardCounts] = useState<{ [topic: string]: number }>({});
@@ -59,7 +59,7 @@ const SpeedChallengeSetup: React.FC<SpeedChallengeSetupProps> = ({
       const filters: any = {};
       
       // Add topic filter if specific topic is selected
-      if (selectedTopic && selectedTopic !== '') {
+      if (selectedTopic && selectedTopic !== '' && selectedTopic !== 'All Topics') {
         filters.topic = selectedTopic;
       }
       

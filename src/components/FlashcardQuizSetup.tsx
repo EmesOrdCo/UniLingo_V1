@@ -37,7 +37,7 @@ const FlashcardQuizSetup: React.FC<FlashcardQuizSetupProps> = ({
   const { t } = useTranslation();
   const [questionCount, setQuestionCount] = useState<number>(10);
   const [languageMode, setLanguageMode] = useState<'native-to-target' | 'target-to-native' | 'mixed'>('mixed');
-  const [selectedTopic, setSelectedTopic] = useState<string>('');
+  const [selectedTopic, setSelectedTopic] = useState<string>('All Topics');
   const [selectedDifficulty, setSelectedDifficulty] = useState<'beginner' | 'intermediate' | 'expert' | 'all'>('all');
   const [topics, setTopics] = useState<string[]>([]);
   const [topicCardCounts, setTopicCardCounts] = useState<{ [topic: string]: number }>({});
@@ -65,7 +65,7 @@ const FlashcardQuizSetup: React.FC<FlashcardQuizSetupProps> = ({
       const filters: any = {};
       
       // Add topic filter if specific topic is selected
-      if (selectedTopic && selectedTopic !== '') {
+      if (selectedTopic && selectedTopic !== '' && selectedTopic !== 'All Topics') {
         filters.topic = selectedTopic;
       }
       
@@ -205,7 +205,7 @@ const FlashcardQuizSetup: React.FC<FlashcardQuizSetupProps> = ({
               <Ionicons name="information-circle" size={20} color="#6366f1" />
               <Text style={styles.infoText}>
                 {t('gameSetup.info.availableCards')} {currentAvailableCards}
-                {selectedTopic && selectedTopic !== '' ? ` (${selectedTopic} ${t('gameSetup.info.topic')})` : ` ${t('gameSetup.info.allTopics')}`}
+                {selectedTopic && selectedTopic !== '' && selectedTopic !== 'All Topics' ? ` (${selectedTopic} ${t('gameSetup.info.topic')})` : ` ${t('gameSetup.info.allTopics')}`}
                 {selectedDifficulty && selectedDifficulty !== 'all' ? `, ${selectedDifficulty} ${t('gameSetup.info.difficulty')}` : ''}
               </Text>
             </View>
@@ -240,11 +240,11 @@ const FlashcardQuizSetup: React.FC<FlashcardQuizSetupProps> = ({
               >
                 <Text style={[
                   styles.dropdownText,
-                  !selectedTopic && styles.dropdownPlaceholder
+                  selectedTopic === 'All Topics' && styles.dropdownPlaceholder
                 ]}>
-                  {selectedTopic 
-                    ? `${selectedTopic} (${topicCardCounts[selectedTopic] || 0} ${t('gameSetup.info.cards')})`
-                    : `${t('gameSetup.dropdown.allTopics')} (${availableCards} ${t('gameSetup.info.cards')})`
+                  {selectedTopic === 'All Topics'
+                    ? `${t('gameSetup.dropdown.allTopics')} (${availableCards} ${t('gameSetup.info.cards')})`
+                    : `${selectedTopic} (${topicCardCounts[selectedTopic] || 0} ${t('gameSetup.info.cards')})`
                   }
                 </Text>
                 <Ionicons 
@@ -262,16 +262,16 @@ const FlashcardQuizSetup: React.FC<FlashcardQuizSetupProps> = ({
                     <TouchableOpacity
                       style={[
                         styles.dropdownOption,
-                        !selectedTopic && styles.dropdownOptionSelected
+                        selectedTopic === 'All Topics' && styles.dropdownOptionSelected
                       ]}
                       onPress={() => {
-                        setSelectedTopic('');
+                        setSelectedTopic('All Topics');
                         setShowTopicDropdown(false);
                       }}
                     >
                       <Text style={[
                         styles.dropdownOptionText,
-                        !selectedTopic && styles.dropdownOptionTextSelected
+                        selectedTopic === 'All Topics' && styles.dropdownOptionTextSelected
                       ]}>
                         {t('gameSetup.dropdown.allTopics')} ({availableCards} {t('gameSetup.info.cards')})
                       </Text>

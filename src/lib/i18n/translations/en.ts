@@ -1678,6 +1678,8 @@ export const en: Record<string, string> = {
   'games.createYourOwn': 'Create Your Own Flashcards',
   'games.makeAIFlashcards': 'Make AI Flashcards',
   'games.cannotStartGame': 'Cannot Start Game',
+  'games.noFlashcardsForCriteria': 'No flashcards available for the selected topic and difficulty combination. Please try different criteria.',
+  'games.failedToGenerateQuestions': 'Failed to generate questions. Please try again.',
   'games.invalidFlashcardData': 'Invalid flashcard data',
   'games.noFlashcardsModal.title': 'No Flashcards Available',
   'games.noFlashcardsModal.message': 'Games require flashcards to work. Please create some flashcards first by going to the Flashcards section and adding vocabulary words.',

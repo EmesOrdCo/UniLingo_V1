@@ -136,10 +136,25 @@ export class GameDataService {
    * Generate quiz questions for FlashcardQuizGame
    */
   static generateQuizQuestions(flashcards: UserFlashcard[], count: number, languageMode: 'question' | 'answer' | 'mixed' = 'question'): GameData {
+    // Validate input
+    if (!flashcards || flashcards.length === 0) {
+      console.warn('GameDataService.generateQuizQuestions: No flashcards provided');
+      return {
+        questions: [],
+        languageMode
+      };
+    }
+
     const questions: GameQuestion[] = [];
     const shuffledCards = this.shuffleArray(flashcards).slice(0, count);
     
     for (const card of shuffledCards) {
+      // Validate card data
+      if (!card.front || !card.back) {
+        console.warn('GameDataService.generateQuizQuestions: Invalid card data:', card);
+        continue;
+      }
+
       // For mixed mode, randomly choose question direction for each card
       const actualMode = languageMode === 'mixed' 
         ? (Math.random() < 0.5 ? 'question' : 'answer')
@@ -164,6 +179,8 @@ export class GameDataService {
         type: 'translation'
       });
     }
+    
+    console.log(`GameDataService.generateQuizQuestions: Generated ${questions.length} questions from ${flashcards.length} flashcards`);
     
     return {
       questions,

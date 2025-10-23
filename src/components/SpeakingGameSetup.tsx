@@ -35,7 +35,7 @@ const SpeakingGameSetup: React.FC<SpeakingGameSetupProps> = ({
   const { user, profile } = useAuth();
   const { t } = useTranslation();
   const [wordCount, setWordCount] = useState<number>(10);
-  const [selectedTopic, setSelectedTopic] = useState<string>('');
+  const [selectedTopic, setSelectedTopic] = useState<string>('All Topics');
   const [selectedDifficulty, setSelectedDifficulty] = useState<'beginner' | 'intermediate' | 'expert' | 'all'>('all');
   const [topics, setTopics] = useState<string[]>([]);
   const [topicCardCounts, setTopicCardCounts] = useState<{ [topic: string]: number }>({});
@@ -59,7 +59,7 @@ const SpeakingGameSetup: React.FC<SpeakingGameSetupProps> = ({
       const filters: any = {};
       
       // Add topic filter if specific topic is selected
-      if (selectedTopic && selectedTopic !== '') {
+      if (selectedTopic && selectedTopic !== '' && selectedTopic !== 'All Topics') {
         filters.topic = selectedTopic;
       }
       
@@ -210,11 +210,11 @@ const SpeakingGameSetup: React.FC<SpeakingGameSetupProps> = ({
               >
                 <Text style={[
                   styles.dropdownText,
-                  !selectedTopic && styles.dropdownPlaceholder
+                  selectedTopic === 'All Topics' && styles.dropdownPlaceholder
                 ]}>
-                  {selectedTopic 
-                    ? `${selectedTopic} (${topicCardCounts[selectedTopic] || 0} ${t('gameSetup.info.cards')})`
-                    : `${t('gameSetup.dropdown.allTopics')} (${availableCards} ${t('gameSetup.info.cards')})`
+                  {selectedTopic === 'All Topics'
+                    ? `${t('gameSetup.dropdown.allTopics')} (${availableCards} ${t('gameSetup.info.cards')})`
+                    : `${selectedTopic} (${topicCardCounts[selectedTopic] || 0} ${t('gameSetup.info.cards')})`
                   }
                 </Text>
                 <Ionicons 
@@ -232,16 +232,16 @@ const SpeakingGameSetup: React.FC<SpeakingGameSetupProps> = ({
                     <TouchableOpacity
                       style={[
                         styles.dropdownOption,
-                        !selectedTopic && styles.dropdownOptionSelected
+                        selectedTopic === 'All Topics' && styles.dropdownOptionSelected
                       ]}
                       onPress={() => {
-                        setSelectedTopic('');
+                        setSelectedTopic('All Topics');
                         setShowTopicDropdown(false);
                       }}
                     >
                       <Text style={[
                         styles.dropdownOptionText,
-                        !selectedTopic && styles.dropdownOptionTextSelected
+                        selectedTopic === 'All Topics' && styles.dropdownOptionTextSelected
                       ]}>
                         {t('gameSetup.dropdown.allTopics')} ({availableCards} {t('gameSetup.info.cards')})
                       </Text>

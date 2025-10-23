@@ -34,13 +34,73 @@ const FlashcardQuizGame: React.FC<FlashcardQuizGameProps> = ({
   const completionCalledRef = useRef<boolean>(false);
   
   // Get language mode from gameData
-  const languageMode = gameData.languageMode || 'question';
+  const languageMode = gameData?.languageMode || 'question';
   
-  // Removed automatic completion call - now handled by user action buttons
+  // More intelligent defensive checks for gameData
+  if (!gameData) {
+    return (
+      <View style={styles.gameContainer}>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>Loading game data...</Text>
+          <TouchableOpacity style={styles.errorButton} onPress={onClose}>
+            <Text style={styles.errorButtonText}>Close</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
+  if (!gameData.questions) {
+    return (
+      <View style={styles.gameContainer}>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>Game data is incomplete</Text>
+          <TouchableOpacity style={styles.errorButton} onPress={onClose}>
+            <Text style={styles.errorButtonText}>Close</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
+  if (gameData.questions.length === 0) {
+    return (
+      <View style={styles.gameContainer}>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>No flashcards available for the selected criteria</Text>
+          <Text style={styles.errorSubtext}>Try selecting a different topic or difficulty</Text>
+          <TouchableOpacity style={styles.errorButton} onPress={onClose}>
+            <Text style={styles.errorButtonText}>Close</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
   
-  const question = gameData.questions[currentQuestion];
+  // Ensure currentQuestion is within bounds
+  const safeCurrentQuestion = Math.min(currentQuestion, gameData.questions.length - 1);
+  const question = gameData.questions[safeCurrentQuestion];
+  
+  // Additional safety check for question
+  if (!question) {
+    return (
+      <View style={styles.gameContainer}>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>Question data is corrupted</Text>
+          <TouchableOpacity style={styles.errorButton} onPress={onClose}>
+            <Text style={styles.errorButtonText}>Close</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
   
   const handleAnswerSelect = (answer: string) => {
+    if (!question || !question.correctAnswer) {
+      console.error('Invalid question data:', question);
+      return;
+    }
+    
     const newUserAnswers = [...userAnswers];
     newUserAnswers[currentQuestion] = answer;
     setUserAnswers(newUserAnswers);
@@ -168,13 +228,13 @@ const FlashcardQuizGame: React.FC<FlashcardQuizGameProps> = ({
       {/* Question */}
       <View style={styles.questionContainer}>
         <Text style={styles.questionText}>
-          {question.question}
+          {question.question || 'Question not available'}
         </Text>
       </View>
       
       {/* Answer Options */}
       <View style={styles.answersContainer}>
-        {question.options.map((option: string, index: number) => (
+        {(question.options || []).map((option: string, index: number) => (
           <TouchableOpacity
             key={index}
             style={[
@@ -192,7 +252,7 @@ const FlashcardQuizGame: React.FC<FlashcardQuizGameProps> = ({
               showResult && option === question.correctAnswer && styles.answerButtonTextCorrect,
               showResult && selectedAnswer === option && option !== question.correctAnswer && styles.answerButtonTextIncorrect
             ]}>
-              {option}
+              {option || 'Option not available'}
             </Text>
             
             {showResult && option === question.correctAnswer && (
@@ -218,7 +278,7 @@ const FlashcardQuizGame: React.FC<FlashcardQuizGameProps> = ({
           <Text style={styles.resultSubtext}>
             {selectedAnswer === question.correctAnswer 
               ? 'Great job!' 
-              : `The correct answer is: ${question.correctAnswer}`
+              : `The correct answer is: ${question.correctAnswer || 'Not available'}`
             }
           </Text>
         </View>
@@ -557,6 +617,36 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#64748b',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  errorText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#ef4444',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  errorSubtext: {
+    fontSize: 14,
+    color: '#6b7280',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  errorButton: {
+    backgroundColor: '#ef4444',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  errorButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#ffffff',
   },
 });
 

@@ -1142,17 +1142,15 @@ export default function UnitRoleplayScreen() {
       {currentExchangeIndex < getTotalExchanges() && (
         <View style={styles.bottomPinnedSection}>
           <View style={styles.questionSection}>
-            <View style={styles.questionHeader}>
+            <View style={styles.questionContent}>
               <AnimatedAvatar size={80} style={styles.questionAvatar} animationType={currentAnimation} showCircle={false} />
-              <Text style={styles.questionLabel}>{t('lessons.roleplay.sayThisPhrase')}</Text>
+              <View style={styles.questionTextContainer}>
+                <Text style={styles.questionLabel}>{t('lessons.roleplay.sayThisPhrase')}</Text>
+                <Text style={styles.currentPrompt}>{currentExchange.userMessage.french}</Text>
+                <Text style={styles.currentPromptTranslation}>{currentExchange.userMessage.english}</Text>
+              </View>
             </View>
           </View>
-          
-          {/* Current Question Bubble - Target language */}
-          <Text style={styles.currentPrompt}>{currentExchange.userMessage.french}</Text>
-          
-          {/* Native language translation - small print */}
-          <Text style={styles.currentPromptTranslation}>{currentExchange.userMessage.english}</Text>
 
           {/* Answer Interface - Microphone / Pronunciation Check */}
           {!showResult && (
@@ -1564,35 +1562,38 @@ const styles = StyleSheet.create({
   questionSection: {
     marginBottom: 8,
   },
-  questionHeader: {
+  questionContent: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: 'flex-start',
     gap: 16,
   },
   questionAvatar: {
     marginRight: 8,
   },
+  questionTextContainer: {
+    flex: 1,
+    justifyContent: 'center',
+  },
   questionLabel: {
     fontSize: 12,
     fontWeight: '700',
     color: '#9ca3af',
-    textAlign: 'center',
+    textAlign: 'left',
     letterSpacing: 0.8,
-    flex: 1,
+    marginBottom: 8,
   },
   currentPrompt: {
     fontSize: 18,
     fontWeight: '700',
     color: '#000000',
-    textAlign: 'center',
-    marginBottom: 8,
+    textAlign: 'left',
+    marginBottom: 4,
   },
   currentPromptTranslation: {
     fontSize: 14,
     fontWeight: '400',
     color: '#666666',
-    textAlign: 'center',
+    textAlign: 'left',
     marginBottom: 12,
     fontStyle: 'italic',
   },

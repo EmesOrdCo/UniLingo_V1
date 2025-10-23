@@ -961,17 +961,50 @@ export default function GamesScreen({ route }: { route?: any }) {
     // Filter flashcards by topic and difficulty
     let filteredFlashcards = flashcards;
     
-    // Filter by topic if specific topic is selected
-    if (options.selectedTopic && options.selectedTopic !== 'All Topics') {
+    console.log('🔍 Debug filtering:', {
+      totalFlashcards: flashcards.length,
+      selectedTopic: options.selectedTopic,
+      selectedDifficulty: options.difficulty,
+      questionCount: options.questionCount
+    });
+    
+    // Filter by topic if specific topic is selected (handle both empty string and 'All Topics')
+    if (options.selectedTopic && options.selectedTopic !== '' && options.selectedTopic !== 'All Topics') {
       filteredFlashcards = filteredFlashcards.filter(card => card.topic === options.selectedTopic);
+      console.log(`📊 After topic filter (${options.selectedTopic}):`, filteredFlashcards.length);
     }
     
     // Filter by difficulty if specific difficulty is selected
     if (options.difficulty && options.difficulty !== 'all') {
       filteredFlashcards = filteredFlashcards.filter(card => card.difficulty === options.difficulty);
+      console.log(`📊 After difficulty filter (${options.difficulty}):`, filteredFlashcards.length);
+    }
+    
+    console.log('📊 Final filtered flashcards count:', filteredFlashcards.length);
+    
+    // Validate that we have flashcards after filtering
+    if (!filteredFlashcards || filteredFlashcards.length === 0) {
+      console.error('❌ No flashcards available after filtering');
+      Alert.alert(
+        t('games.cannotStartGame'),
+        t('games.noFlashcardsForCriteria'),
+        [{ text: t('common.ok') }]
+      );
+      return;
     }
     
     const gameData = GameDataService.generateQuizQuestions(filteredFlashcards, options.questionCount, mappedLanguageMode);
+    
+    // Double-check that questions were generated
+    if (!gameData.questions || gameData.questions.length === 0) {
+      Alert.alert(
+        t('games.cannotStartGame'),
+        t('games.failedToGenerateQuestions'),
+        [{ text: t('common.ok') }]
+      );
+      return;
+    }
+    
     setGameData(gameData);
     setFilteredFlashcards(filteredFlashcards); // Store the filtered flashcards
     setShowGameModal(true);
