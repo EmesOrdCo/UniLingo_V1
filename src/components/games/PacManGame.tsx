@@ -650,11 +650,7 @@ const PacManGame: React.FC<PacManGameProps> = ({ onClose, onGameComplete, onRest
               styles.ghostBody,
               { backgroundColor: ghost.state === 'scared' ? '#2563EB' : ghost.state === 'eaten' ? '#1F2937' : ghost.color }
             ]}>
-              {ghost.state === 'scared' ? (
-                <View style={styles.scaredGhostFace}>
-                  <View style={styles.scaredMouth} />
-                </View>
-              ) : ghost.state !== 'eaten' && (
+              {ghost.state !== 'eaten' && (
                 <View style={styles.ghostFace}>
                   {/* Left eye */}
                   <View style={styles.ghostEyeContainer}>
@@ -990,20 +986,6 @@ const styles = StyleSheet.create({
     height: CELL_SIZE * 0.11,
     borderRadius: 100,
     backgroundColor: '#000000',
-  },
-  scaredGhostFace: {
-    alignItems: 'center',
-    gap: 2,
-  },
-  scaredMouth: {
-    width: CELL_SIZE * 0.4,
-    height: CELL_SIZE * 0.15,
-    borderRadius: CELL_SIZE * 0.075,
-    backgroundColor: '#FFFFFF',
-  },
-  scaredFace: {
-    fontSize: 14,
-    marginTop: -2,
   },
   controls: {
     paddingVertical: 10,
