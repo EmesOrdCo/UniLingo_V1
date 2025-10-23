@@ -1174,7 +1174,6 @@ export const de: Record<string, string> = {
   'dashboard.alerts.failedToStartLesson': 'Lektion konnte nicht gestartet werden:',
 
   // Subject Boxes
-  'subjectBoxes.unitNumber': 'Einheit 1',
   'subjectBoxes.topicGroup': 'Themengruppe',
   'subjectBoxes.loadingSubjects': 'Lade Fächer...',
   'subjectBoxes.lessonTypes.words': 'Wörter',

@@ -21,9 +21,10 @@ interface SubjectBoxProps {
   onPress: (subject: SubjectData) => void;
   isExpanded?: boolean;
   progress?: GeneralLessonProgress | null;
+  index: number;
 }
 
-const SubjectBox: React.FC<SubjectBoxProps> = ({ subject, onPress, isExpanded = false, progress }) => {
+const SubjectBox: React.FC<SubjectBoxProps> = ({ subject, onPress, isExpanded = false, progress, index }) => {
   const { t } = useTranslation();
   const getSubjectIcon = (subjectName: string) => {
     const name = subjectName.toLowerCase();
@@ -78,7 +79,7 @@ const SubjectBox: React.FC<SubjectBoxProps> = ({ subject, onPress, isExpanded = 
       <View style={styles.subjectContent}>
         <View style={styles.subjectMainInfo}>
           <View style={styles.subjectTextContainer}>
-            <Text style={styles.unitNumber}>{t('subjectBoxes.unitNumber')}</Text>
+            <Text style={styles.unitNumber}>Unit {index + 1}</Text>
             <Text style={styles.subjectTitle}>{String(subject.name || 'Unknown Subject')}</Text>
             <View style={styles.subjectMetaRow}>
               <Text style={styles.subjectMeta}>
@@ -304,6 +305,7 @@ export default function SubjectBoxes({ onSubjectSelect, maxSubjects = 6, selecte
                 onPress={handleSubjectPress}
                 isExpanded={expandedSubject === subject.name}
                 progress={progress}
+                index={index}
               />
             
             {/* Expanded Lessons (like original system) */}

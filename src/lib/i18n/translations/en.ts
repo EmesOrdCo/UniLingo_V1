@@ -1220,7 +1220,6 @@ export const en: Record<string, string> = {
   'dashboard.filters.showing': 'Showing',
 
   // Subject Boxes
-  'subjectBoxes.unitNumber': 'Unit 1',
   'subjectBoxes.topicGroup': 'Topic Group',
   'subjectBoxes.loadingSubjects': 'Loading subjects...',
   'subjectBoxes.lessonTypes.words': 'Words',
