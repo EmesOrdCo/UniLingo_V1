@@ -16,6 +16,8 @@ const getEnvironmentVariable = (key: string): string | undefined => {
         return extra.openaiApiKey;
       case 'EXPO_PUBLIC_BACKEND_URL':
         return extra.backendUrl;
+      case 'EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY':
+        return extra.stripePublishableKey;
       default:
         break;
     }
@@ -31,6 +33,7 @@ export const ENV = {
   SUPABASE_ANON_KEY: getEnvironmentVariable('EXPO_PUBLIC_SUPABASE_ANON_KEY'),
   OPENAI_API_KEY: getEnvironmentVariable('EXPO_PUBLIC_OPENAI_API_KEY'),
   BACKEND_URL: getEnvironmentVariable('EXPO_PUBLIC_BACKEND_URL'),
+  STRIPE_PUBLISHABLE_KEY: getEnvironmentVariable('EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY'),
 };
 
 // Debug logging
@@ -39,6 +42,7 @@ console.log('🔧 Environment Configuration:', {
   SUPABASE_ANON_KEY: ENV.SUPABASE_ANON_KEY ? 'Configured' : 'Not configured',
   OPENAI_API_KEY: ENV.OPENAI_API_KEY ? `Configured (${ENV.OPENAI_API_KEY.length} chars)` : 'Not configured',
   BACKEND_URL: ENV.BACKEND_URL ? 'Configured' : 'Not configured',
+  STRIPE_PUBLISHABLE_KEY: ENV.STRIPE_PUBLISHABLE_KEY ? 'Configured' : 'Not configured',
   Platform: Platform.OS,
   IsDev: __DEV__,
 });

@@ -24,6 +24,7 @@ const profileController = require('./profileController');
 const sdk = require('microsoft-cognitiveservices-speech-sdk');
 const userTrackingService = require('./userTrackingService');
 const userRateLimitService = require('./userRateLimitService');
+const stripeRoutes = require('./stripeEndpoints');
 
 // Initialize circuit breakers for monitoring (Issue #6)
 const openaiCircuitBreaker = new CircuitBreaker('openai');
@@ -2220,6 +2221,11 @@ app.get('/health', (req, res) => {
 // Setup Simple Audio Routes
 // ============================================
 setupSimpleAudioRoutes(app, { aiLimiter, generalLimiter });
+
+// ============================================
+// Setup Stripe Payment Routes
+// ============================================
+app.use('/api/stripe', stripeRoutes);
 
 // ============================================
 // AWS Polly TTS Endpoint

@@ -10,6 +10,8 @@ export interface AvatarItem {
   rarity: 'free' | 'common' | 'rare' | 'epic' | 'legendary';
   is_active: boolean;
   created_at: string;
+  price_gbp?: number;
+  is_paid_item?: boolean;
 }
 
 export interface UserAvatarUnlock {

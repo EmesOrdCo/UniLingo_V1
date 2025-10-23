@@ -59,6 +59,7 @@ export default {
       supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
       openaiApiKey: process.env.EXPO_PUBLIC_OPENAI_API_KEY,
       backendUrl: process.env.EXPO_PUBLIC_BACKEND_URL,
+      stripePublishableKey: process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY,
     }
   }
 };

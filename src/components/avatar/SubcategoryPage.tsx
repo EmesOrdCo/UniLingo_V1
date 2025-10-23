@@ -22,6 +22,8 @@ import { useTranslation } from '../../lib/i18n';
 import { LinearGradient } from 'expo-linear-gradient';
 import Avatar from './Avatar';
 import * as AvatarConstants from './constants';
+import { PaymentModal } from '../PaymentModal';
+import { stripeService } from '../../lib/stripeService';
 
 const { width } = Dimensions.get('window');
 
@@ -47,6 +49,8 @@ const SubcategoryPage: React.FC<SubcategoryPageProps> = ({ category, categoryNam
   const [unlocking, setUnlocking] = useState<string | null>(null);
   const [previewMode, setPreviewMode] = useState(false);
   const [originalValue, setOriginalValue] = useState<string>('');
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedPaidItem, setSelectedPaidItem] = useState<AvatarItem | null>(null);
 
   // Get translation keys for category
   const getCategoryTranslations = (cat: CustomizationCategory) => {
@@ -183,6 +187,13 @@ const SubcategoryPage: React.FC<SubcategoryPageProps> = ({ category, categoryNam
   const handleUnlock = async (item: AvatarItem) => {
     if (!user?.id) return;
     
+    // Check if this is a paid item
+    if (item.price_gbp && item.price_gbp > 0) {
+      setSelectedPaidItem(item);
+      setShowPaymentModal(true);
+      return;
+    }
+    
     try {
       setUnlocking(item.id);
       
@@ -233,6 +244,30 @@ const SubcategoryPage: React.FC<SubcategoryPageProps> = ({ category, categoryNam
     return itemCost === 0 || unlockedItems.has(itemValue);
   };
 
+  // Payment success handler
+  const handlePaymentSuccess = async () => {
+    if (!selectedPaidItem || !user?.id) return;
+    
+    try {
+      // Refresh unlocked items
+      const unlocked = await AvatarUnlockService.getUserUnlockedItems(user.id);
+      const unlockedSet = new Set(unlocked.map(item => item.item_value));
+      setUnlockedItems(unlockedSet);
+      
+      // Auto-select the purchased item
+      const optionKey = getOptionKeyForCategory(category);
+      if (optionKey) {
+        dispatch(updateAvatarOption({ option: optionKey, value: selectedPaidItem.item_value, persist: true }));
+      }
+      setPreviewMode(false);
+      
+      // Refresh the data
+      await loadData();
+    } catch (error) {
+      console.error('Error refreshing after purchase:', error);
+    }
+  };
+
   // Rarity Color System
   const getRarityColor = (rarity: string) => {
     switch (rarity) {
@@ -244,6 +279,8 @@ const SubcategoryPage: React.FC<SubcategoryPageProps> = ({ category, categoryNam
         return '#3b82f6'; // Blue - Rare items
       case 'epic':
         return '#8b5cf6'; // Purple - Epic items
+      case 'legendary':
+        return '#FFD700'; // Gold - Legendary items
       default:
         return '#6b7280';
     }
@@ -259,6 +296,8 @@ const SubcategoryPage: React.FC<SubcategoryPageProps> = ({ category, categoryNam
         return ['#3b82f6', '#2563eb'];
       case 'epic':
         return ['#8b5cf6', '#7c3aed'];
+      case 'legendary':
+        return ['#FFD700', '#FFA500'];
       default:
         return ['#6b7280', '#4b5563'];
     }
@@ -273,6 +312,8 @@ const SubcategoryPage: React.FC<SubcategoryPageProps> = ({ category, categoryNam
       case 'rare':
         return 'diamond';
       case 'epic':
+        return 'star';
+      case 'legendary':
         return 'star';
       default:
         return 'ellipse';
@@ -647,6 +688,25 @@ const SubcategoryPage: React.FC<SubcategoryPageProps> = ({ category, categoryNam
           renderCategoryContent()
         )}
       </ScrollView>
+
+      {/* Payment Modal */}
+      {selectedPaidItem && (
+        <PaymentModal
+          visible={showPaymentModal}
+          onClose={() => {
+            setShowPaymentModal(false);
+            setSelectedPaidItem(null);
+          }}
+          item={{
+            id: selectedPaidItem.id,
+            category: selectedPaidItem.category,
+            item_value: selectedPaidItem.item_value,
+            price_gbp: selectedPaidItem.price_gbp || 0,
+            rarity: selectedPaidItem.rarity,
+          }}
+          onPurchaseSuccess={handlePaymentSuccess}
+        />
+      )}
     </SafeAreaView>
   );
 };
