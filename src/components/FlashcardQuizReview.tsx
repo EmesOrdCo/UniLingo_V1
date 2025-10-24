@@ -8,6 +8,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 
 interface FlashcardQuizReviewProps {
   visible: boolean;
@@ -34,6 +35,7 @@ const FlashcardQuizReview: React.FC<FlashcardQuizReviewProps> = ({
   onPlayAgain,
   gameResults,
 }) => {
+  const { t } = useTranslation();
   const { score, totalQuestions, correctAnswers, timeSpent, accuracy, questions } = gameResults;
 
   const formatTime = (seconds: number) => {
@@ -68,7 +70,7 @@ const FlashcardQuizReview: React.FC<FlashcardQuizReviewProps> = ({
           <TouchableOpacity onPress={onClose} style={styles.closeButton}>
             <Ionicons name="close" size={24} color="#64748b" />
           </TouchableOpacity>
-          <Text style={styles.title}>Quiz Results</Text>
+          <Text style={styles.title}>{t('lessonQuiz.results')}</Text>
           <View style={styles.placeholder} />
         </View>
 
@@ -88,12 +90,12 @@ const FlashcardQuizReview: React.FC<FlashcardQuizReviewProps> = ({
               <View style={styles.statItem}>
                 <Ionicons name="checkmark-circle" size={24} color="#10b981" />
                 <Text style={styles.statValue}>{correctAnswers}</Text>
-                <Text style={styles.statLabel}>Correct</Text>
+                <Text style={styles.statLabel}>{t('lessons.common.correct')}</Text>
               </View>
               <View style={styles.statItem}>
                 <Ionicons name="close-circle" size={24} color="#ef4444" />
                 <Text style={styles.statValue}>{totalQuestions - correctAnswers}</Text>
-                <Text style={styles.statLabel}>Incorrect</Text>
+                <Text style={styles.statLabel}>{t('lessons.common.incorrect')}</Text>
               </View>
               <View style={styles.statItem}>
                 <Ionicons name="time" size={24} color="#6366f1" />
@@ -129,7 +131,7 @@ const FlashcardQuizReview: React.FC<FlashcardQuizReviewProps> = ({
                       styles.statusText,
                       { color: question.isCorrect ? '#16a34a' : '#dc2626' }
                     ]}>
-                      {question.isCorrect ? 'Correct' : 'Incorrect'}
+                      {question.isCorrect ? t('lessons.common.correct') : t('lessons.common.incorrect')}
                     </Text>
                   </View>
                 </View>
@@ -138,12 +140,12 @@ const FlashcardQuizReview: React.FC<FlashcardQuizReviewProps> = ({
                   <Text style={styles.questionText}>{question.question}</Text>
                   <View style={styles.answerSection}>
                     <View style={styles.correctAnswer}>
-                      <Text style={styles.answerLabel}>Correct Answer:</Text>
+                      <Text style={styles.answerLabel}>{t('lessonQuiz.correctAnswer')}</Text>
                       <Text style={styles.answerText}>{question.correctAnswer}</Text>
                     </View>
                     {!question.isCorrect && (
                       <View style={styles.userAnswer}>
-                        <Text style={styles.answerLabel}>Your Answer:</Text>
+                        <Text style={styles.answerLabel}>{t('lessonQuiz.yourAnswer')}</Text>
                         <Text style={styles.answerText}>{question.userAnswer}</Text>
                       </View>
                     )}

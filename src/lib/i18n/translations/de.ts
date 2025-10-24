@@ -292,6 +292,11 @@ export const de: Record<string, string> = {
   
   // Lesson Flashcard Quiz
   'lessonQuiz.whatIsTranslation': 'Was ist die {{targetLanguage}} Übersetzung von "{{term}}"?',
+  'lessonQuiz.complete': 'Quiz abgeschlossen!',
+  'lessonQuiz.results': 'Quiz-Ergebnisse',
+  'lessonQuiz.scoreOutOf': '{{correct}} von {{total}} richtig',
+  'lessonQuiz.yourAnswer': 'Ihre Antwort:',
+  'lessonQuiz.correctAnswer': 'Richtige Antwort:',
   
   // Language Names
   'languages.english': 'Englisch',

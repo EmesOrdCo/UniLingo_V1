@@ -240,15 +240,15 @@ export default function LessonFlashcardQuiz({ vocabulary, onComplete, onClose, o
           >
             <Ionicons name="close" size={24} color="#64748b" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Quiz Complete!</Text>
+          <Text style={styles.headerTitle}>{t('lessonQuiz.complete')}</Text>
           <View style={styles.placeholder} />
         </View>
 
         <ScrollView style={styles.reviewContent} showsVerticalScrollIndicator={false}>
           <View style={styles.reviewHeader}>
-            <Text style={styles.reviewTitle}>🎉 Quiz Results</Text>
+            <Text style={styles.reviewTitle}>🎉 {t('lessonQuiz.results')}</Text>
             <Text style={styles.reviewSubtitle}>
-              {finalScore} out of {questions.length} correct
+              {t('lessonQuiz.scoreOutOf', { correct: finalScore, total: questions.length })}
             </Text>
             
             <View style={styles.scoreCircle}>
@@ -303,14 +303,14 @@ export default function LessonFlashcardQuiz({ vocabulary, onComplete, onClose, o
                   </View>
                   
                   <View style={styles.reviewAnswers}>
-                    <Text style={styles.reviewAnswerLabel}>Your answer:</Text>
+                    <Text style={styles.reviewAnswerLabel}>{t('lessonQuiz.yourAnswer')}</Text>
                     <Text style={[styles.reviewAnswer, !isCorrect && styles.incorrectAnswer]}>
                       {userAnswer}
                     </Text>
                     
                     {!isCorrect && (
                       <>
-                        <Text style={styles.reviewAnswerLabel}>Correct answer:</Text>
+                        <Text style={styles.reviewAnswerLabel}>{t('lessonQuiz.correctAnswer')}</Text>
                         <Text style={[styles.reviewAnswer, styles.correctAnswer]}>
                           {question.correctAnswer}
                         </Text>
@@ -435,7 +435,7 @@ export default function LessonFlashcardQuiz({ vocabulary, onComplete, onClose, o
                 {selectedAnswer === question.correctAnswer ? '✅ Correct!' : '❌ Incorrect'}
               </Text>
               <Text style={styles.correctAnswerText}>
-                Correct answer: {question.correctAnswer}
+                {t('lessonQuiz.correctAnswer')} {question.correctAnswer}
               </Text>
             </View>
           )}
