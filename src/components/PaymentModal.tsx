@@ -129,7 +129,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
       case 'legendary':
         return '#FFD700';
       case 'epic':
-        return '#9D4EDD';
+        return '#FFD700'; // Changed from '#9D4EDD' to '#FFD700' for golden legendary look
       case 'rare':
         return '#3B82F6';
       case 'common':
@@ -144,7 +144,7 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
       case 'legendary':
         return 'star';
       case 'epic':
-        return 'diamond';
+        return 'star'; // Changed from 'diamond' to 'star' for golden legendary look
       case 'rare':
         return 'sparkles';
       case 'common':
