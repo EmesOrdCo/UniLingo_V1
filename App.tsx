@@ -77,6 +77,7 @@ import AvatarEditorScreen from './src/screens/AvatarEditorScreen';
 import AvatarSubcategoryScreen from './src/screens/AvatarSubcategoryScreen';
 import AvatarAnimationTestScreen from './src/screens/AvatarAnimationTestScreen';
 import SimpleAnimationTest from './src/components/SimpleAnimationTest';
+import LevelSelectionScreen from './src/screens/LevelSelectionScreen';
 
 const Stack = createStackNavigator();
 
@@ -135,6 +136,7 @@ function MainNavigator() {
       <Stack.Screen name="AvatarSubcategory" component={AvatarSubcategoryScreen} />
       <Stack.Screen name="AvatarAnimationTest" component={AvatarAnimationTestScreen} />
       <Stack.Screen name="SimpleAnimationTest" component={SimpleAnimationTest} />
+      <Stack.Screen name="LevelSelection" component={LevelSelectionScreen} />
     </Stack.Navigator>
   );
 }

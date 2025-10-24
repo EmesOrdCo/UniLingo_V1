@@ -1212,6 +1212,7 @@ export const en: Record<string, string> = {
   'dashboard.alerts.completeProfile': 'Please complete your profile setup first.',
   'dashboard.alerts.unknownLessonType': 'Unknown lesson type. Please try again.',
   'dashboard.alerts.failedToStartLesson': 'Failed to start lesson:',
+  'dashboard.changeLevel': 'Change Level',
 
   // Two-Level CEFR Filter
   'dashboard.filters.mainLevel': 'Level',
@@ -1645,6 +1646,17 @@ export const en: Record<string, string> = {
   // Dashboard Fallback Terms
   'dashboard.fallback.foundation': 'Foundation',
   'dashboard.fallback.basicConcepts': 'Basic Concepts',
+
+  // Level Selection Screen
+  'levelSelection.title': 'Select Your Level',
+  'levelSelection.mainLevel': 'Main Level',
+  'levelSelection.mainLevelDescription': 'Choose your current proficiency level',
+  'levelSelection.subLevel': 'Sub-Level',
+  'levelSelection.subLevelDescription': 'Select a specific sub-level or choose all sub-levels',
+  'levelSelection.allSubLevels': 'All Sub-Levels',
+  'levelSelection.allSubLevelsDescription': 'Include all sub-levels for this main level',
+  'levelSelection.selectedLevel': 'Selected Level',
+  'levelSelection.confirm': 'Confirm Selection',
   
   // Subject Names
   'subjects.medicine': 'Medicine',

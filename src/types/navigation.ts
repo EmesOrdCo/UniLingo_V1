@@ -55,6 +55,7 @@ export type RootStackParamList = {
     categoryName: string;
     categoryIcon: string;
   };
+  LevelSelection: { onLevelSelected?: (level: string, subLevel: string | null) => void };
 };
 
 // Export screen props types for use in components

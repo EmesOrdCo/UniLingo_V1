@@ -1172,6 +1172,7 @@ export const de: Record<string, string> = {
   'dashboard.alerts.completeProfile': 'Bitte vervollständigen Sie zuerst Ihr Profil.',
   'dashboard.alerts.unknownLessonType': 'Unbekannter Lektionstyp. Bitte versuchen Sie es erneut.',
   'dashboard.alerts.failedToStartLesson': 'Lektion konnte nicht gestartet werden:',
+  'dashboard.changeLevel': 'Level ändern',
 
   // Subject Boxes
   'subjectBoxes.topicGroup': 'Themengruppe',
@@ -1600,6 +1601,17 @@ export const de: Record<string, string> = {
   // Dashboard Fallback Terms
   'dashboard.fallback.foundation': 'Grundlagen',
   'dashboard.fallback.basicConcepts': 'Grundkonzepte',
+
+  // Level Selection Screen
+  'levelSelection.title': 'Wählen Sie Ihr Level',
+  'levelSelection.mainLevel': 'Hauptlevel',
+  'levelSelection.mainLevelDescription': 'Wählen Sie Ihr aktuelles Sprachniveau',
+  'levelSelection.subLevel': 'Unterlevel',
+  'levelSelection.subLevelDescription': 'Wählen Sie ein spezifisches Unterlevel oder alle Unterlevel',
+  'levelSelection.allSubLevels': 'Alle Unterlevel',
+  'levelSelection.allSubLevelsDescription': 'Alle Unterlevel für dieses Hauptlevel einbeziehen',
+  'levelSelection.selectedLevel': 'Ausgewähltes Level',
+  'levelSelection.confirm': 'Auswahl bestätigen',
   
   // Subject Names
   'subjects.medicine': 'Medizin',

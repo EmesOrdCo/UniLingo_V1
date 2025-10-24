@@ -30,7 +30,6 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
   const [cefrProgress, setCefrProgress] = useState<CefrLevelProgress | null>(null);
   const [loadingCefrProgress, setLoadingCefrProgress] = useState(false);
   const [availableSubLevels, setAvailableSubLevels] = useState<string[]>([]);
-  const [cefrDropdownVisible, setCefrDropdownVisible] = useState(false);
   const { t } = useTranslation();
 
   const CEFR_LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
@@ -328,6 +327,21 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
     return descriptions[level] || t('dashboard.descriptions.default');
   };
 
+  const handleLevelSelection = (level: string, subLevel: string | null) => {
+    setSelectedCefrLevel(level);
+    setSelectedSubLevel(subLevel);
+    // Reload CEFR progress with new level
+    if (user?.id) {
+      loadCefrProgress(level);
+    }
+  };
+
+  const navigateToLevelSelection = () => {
+    (navigation as any).navigate('LevelSelection', {
+      onLevelSelected: handleLevelSelection
+    });
+  };
+
   return (
     <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
       {/* Loading Overlay */}
@@ -352,121 +366,18 @@ export default function DashboardContent({ progressData, loadingProgress }: Dash
                 </Text>
               </View>
               
-              {/* Integrated CEFR Level Selector */}
+              {/* Level Selection Button */}
               <TouchableOpacity 
-                style={styles.cefrSelectorButton}
-                onPress={() => {
-                  // Light haptic feedback for dropdown toggle
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  setCefrDropdownVisible(!cefrDropdownVisible);
-                }}
+                style={styles.levelSelectionButton}
+                onPress={navigateToLevelSelection}
                 activeOpacity={0.7}
               >
-                <Text style={styles.cefrSelectorButtonText}>
-                  {selectedCefrLevel}{selectedSubLevel ? ` • ${selectedSubLevel}` : ''}
+                <Ionicons name="settings-outline" size={20} color="#6366f1" />
+                <Text style={styles.levelSelectionButtonText}>
+                  {t('dashboard.changeLevel')}
                 </Text>
-                <Ionicons 
-                  name={cefrDropdownVisible ? "chevron-up" : "chevron-down"} 
-                  size={20} 
-                  color="#6366f1" 
-                />
               </TouchableOpacity>
             </View>
-
-            {/* Integrated CEFR Dropdown Menu */}
-            {cefrDropdownVisible && (
-              <View style={styles.cefrDropdownContainer}>
-                {/* Main Level Selection */}
-                <View style={styles.dropdownSection}>
-                  <Text style={styles.dropdownSectionTitle}>{t('dashboard.filters.mainLevel')}</Text>
-                  <ScrollView style={styles.dropdownMenu} nestedScrollEnabled horizontal showsHorizontalScrollIndicator={false}>
-                    {CEFR_LEVELS.map((level) => (
-                      <TouchableOpacity
-                        key={level}
-                        style={[
-                          styles.cefrDropdownItem,
-                          selectedCefrLevel === level && styles.cefrDropdownItemSelected
-                        ]}
-                        onPress={() => {
-                          // Light haptic feedback for level selection
-                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                          setSelectedCefrLevel(level);
-                          setSelectedSubLevel(null); // Reset sub-level when main level changes
-                        }}
-                      >
-                        <Text style={[
-                          styles.cefrDropdownItemText,
-                          selectedCefrLevel === level && styles.cefrDropdownItemTextSelected
-                        ]}>
-                          {level}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                </View>
-
-                {/* Sub-Level Selection */}
-                {selectedCefrLevel && availableSubLevels.filter(level => level.startsWith(selectedCefrLevel + '.')).length > 0 && (
-                  <View style={styles.dropdownSection}>
-                    <Text style={styles.dropdownSectionTitle}>{t('dashboard.filters.subLevel')}</Text>
-                    <ScrollView style={styles.dropdownMenu} nestedScrollEnabled horizontal showsHorizontalScrollIndicator={false}>
-                      {/* All Sub-Levels Option */}
-                      <TouchableOpacity
-                        style={[
-                          styles.cefrDropdownItem,
-                          !selectedSubLevel && styles.cefrDropdownItemSelected
-                        ]}
-                        onPress={() => {
-                          // Light haptic feedback for sub-level selection
-                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                          setSelectedSubLevel(null);
-                          setCefrDropdownVisible(false);
-                        }}
-                      >
-                        <Text style={[
-                          styles.cefrDropdownItemText,
-                          !selectedSubLevel && styles.cefrDropdownItemTextSelected
-                        ]}>
-                          {t('dashboard.filters.allSubLevels')}
-                        </Text>
-                      </TouchableOpacity>
-                      
-                      {/* Individual Sub-Levels */}
-                      {availableSubLevels
-                        .filter(level => level.startsWith(selectedCefrLevel + '.'))
-                        .sort((a, b) => {
-                          // Extract the numeric part after the dot (e.g., "1" from "A1.1")
-                          const aNum = parseInt(a.split('.')[1] || '0');
-                          const bNum = parseInt(b.split('.')[1] || '0');
-                          return aNum - bNum;
-                        })
-                        .map((level) => (
-                        <TouchableOpacity
-                          key={level}
-                          style={[
-                            styles.cefrDropdownItem,
-                            selectedSubLevel === level && styles.cefrDropdownItemSelected
-                          ]}
-                          onPress={() => {
-                            // Light haptic feedback for sub-level selection
-                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                            setSelectedSubLevel(level);
-                            setCefrDropdownVisible(false);
-                          }}
-                        >
-                          <Text style={[
-                            styles.cefrDropdownItemText,
-                            selectedSubLevel === level && styles.cefrDropdownItemTextSelected
-                          ]}>
-                            {level}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </ScrollView>
-                  </View>
-                )}
-              </View>
-            )}
             
             <Text style={styles.courseDescription}>{getCefrLevelDescription(selectedCefrLevel)}</Text>
             
@@ -595,53 +506,20 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  cefrDropdownContainer: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
-    marginTop: 16,
-    padding: 16,
-  },
-  dropdownSection: {
-    marginBottom: 16,
-  },
-  dropdownSectionTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
-    marginBottom: 8,
-  },
-  cefrDropdownMenu: {
-    maxHeight: 60,
-  },
-  cefrDropdownItem: {
-    backgroundColor: '#f8fafc',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    marginRight: 8,
-    minWidth: 60,
+  levelSelectionButton: {
+    flexDirection: 'row',
     alignItems: 'center',
-  },
-  cefrDropdownItemSelected: {
-    backgroundColor: '#f0f9ff',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderWidth: 2,
     borderColor: '#6366f1',
+    borderRadius: 12,
+    backgroundColor: '#ffffff',
+    gap: 8,
   },
-  cefrDropdownItemText: {
-    fontSize: 14,
-    color: '#374151',
-    fontWeight: '500',
-  },
-  cefrDropdownItemTextSelected: {
+  levelSelectionButtonText: {
     color: '#6366f1',
+    fontSize: 14,
     fontWeight: '600',
   },
   unitsSection: {
