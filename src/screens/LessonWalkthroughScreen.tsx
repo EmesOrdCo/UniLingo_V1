@@ -524,6 +524,7 @@ export default function LessonWalkthroughScreen() {
     if (!user) return;
 
     console.log(`✅ Exercise complete: ${exerciseType}, score: ${score}/${maxScore}`);
+    console.log(`🔍 Current completed exercises before update:`, Array.from(completedExercises));
 
     // Update exercise scores
     setExerciseScores(prev => ({
@@ -535,7 +536,8 @@ export default function LessonWalkthroughScreen() {
     const newCompletedSet = new Set([...completedExercises, exerciseType]);
     setCompletedExercises(newCompletedSet);
     
-    console.log('🔓 Completed exercises:', Array.from(newCompletedSet));
+    console.log('🔓 Completed exercises after update:', Array.from(newCompletedSet));
+    console.log(`🔓 Exercise ${exerciseType} marked as completed. Next exercise should unlock.`);
 
     // Save completed exercises to database
     const completedExercisesArray = Array.from(newCompletedSet);
@@ -879,7 +881,14 @@ export default function LessonWalkthroughScreen() {
                   styles.flowExercise,
                   (!completedExercises.has('flashcard-quiz') && !lessonProgress?.completed_at) && styles.flowExerciseLocked
                 ]}
-                onPress={() => completedExercises.has('flashcard-quiz') || lessonProgress?.completed_at ? navigateToExercise('fill-in-blank') : null}
+                onPress={() => {
+                  console.log(`🔓 Fill-in-blank unlock check:`, {
+                    hasFlashcardQuiz: completedExercises.has('flashcard-quiz'),
+                    completedExercises: Array.from(completedExercises),
+                    lessonCompleted: lessonProgress?.completed_at
+                  });
+                  return completedExercises.has('flashcard-quiz') || lessonProgress?.completed_at ? navigateToExercise('fill-in-blank') : null;
+                }}
                 activeOpacity={completedExercises.has('flashcard-quiz') || lessonProgress?.completed_at ? 0.7 : 1}
                 disabled={!completedExercises.has('flashcard-quiz') && !lessonProgress?.completed_at}
               >
