@@ -244,37 +244,6 @@ export default function ProfilePage() {
                 </TouchableOpacity>
               </View>
 
-              {/* Development Section */}
-              {__DEV__ && (
-                <View style={styles.settingsSection}>
-                  <Text style={styles.sectionHeader}>Development</Text>
-                  
-                  <TouchableOpacity 
-                    style={styles.settingItem} 
-                    onPress={() => navigation.navigate('AvatarAnimationTest' as never)}
-                  >
-                    <View style={styles.settingLeft}>
-                      <Ionicons name="play-circle-outline" size={24} color="#3b82f6" />
-                      <Text style={styles.settingTitle}>Test Avatar Animations</Text>
-                    </View>
-                    <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
-                  </TouchableOpacity>
-                  
-                  <TouchableOpacity 
-                    style={styles.settingItem} 
-                    onPress={() => navigation.navigate('SimpleAnimationTest' as never)}
-                  >
-                    <View style={styles.settingLeft}>
-                      <Ionicons name="flask-outline" size={24} color="#f59e0b" />
-                      <Text style={styles.settingTitle}>Simple Animation Test</Text>
-                    </View>
-                    <Ionicons name="chevron-forward" size={20} color="#9ca3af" />
-                  </TouchableOpacity>
-                </View>
-              )}
-
-
-
               {/* About Section */}
               <View style={styles.settingsSection}>
                 <Text style={styles.sectionHeader}>{t('profile.settings.about')}</Text>
