@@ -225,13 +225,27 @@ export default function FlashcardReviewModal({
                         style={styles.cancelButton}
                         onPress={handleCancelEdit}
                       >
-                        <Text style={styles.cancelButtonText}>Cancel</Text>
+                        <Text 
+                          style={styles.cancelButtonText}
+                          numberOfLines={1}
+                          adjustsFontSizeToFit
+                          minimumFontScale={0.7}
+                        >
+                          Cancel
+                        </Text>
                       </TouchableOpacity>
                       <TouchableOpacity 
                         style={styles.editSaveButton}
                         onPress={handleSaveEdit}
                       >
-                        <Text style={styles.editSaveButtonText}>Save</Text>
+                        <Text 
+                          style={styles.editSaveButtonText}
+                          numberOfLines={1}
+                          adjustsFontSizeToFit
+                          minimumFontScale={0.7}
+                        >
+                          Save
+                        </Text>
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -296,7 +310,14 @@ export default function FlashcardReviewModal({
                 onPress={onEditTopics}
               >
                 <Ionicons name="create-outline" size={20} color="#8b5cf6" />
-                <Text style={styles.editTopicsButtonText}>{t('aiFlashcards.editTopics')}</Text>
+                <Text 
+                  style={styles.editTopicsButtonText}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.7}
+                >
+                  {t('aiFlashcards.editTopics')}
+                </Text>
               </TouchableOpacity>
             )}
             
@@ -308,7 +329,14 @@ export default function FlashcardReviewModal({
               }}
             >
               <Ionicons name="save-outline" size={20} color="#ffffff" />
-              <Text style={styles.saveButtonText}>{t('aiFlashcards.saveAll', { count: flashcards.length })}</Text>
+              <Text 
+                style={styles.saveButtonText}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.7}
+              >
+                {t('aiFlashcards.saveAll', { count: flashcards.length })}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>

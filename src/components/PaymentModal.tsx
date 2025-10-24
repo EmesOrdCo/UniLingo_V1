@@ -213,7 +213,14 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               onPress={onClose}
               disabled={isProcessing}
             >
-              <Text style={styles.cancelButtonText}>{t('payment.button.cancel')}</Text>
+              <Text 
+                style={styles.cancelButtonText}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.7}
+              >
+                {t('payment.button.cancel')}
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -226,7 +233,14 @@ export const PaymentModal: React.FC<PaymentModalProps> = ({
               ) : (
                 <>
                   <Ionicons name="card" size={20} color="white" />
-                  <Text style={styles.purchaseButtonText}>{t('payment.button.purchase')} £{item.price_gbp.toFixed(2)}</Text>
+                  <Text 
+                    style={styles.purchaseButtonText}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.7}
+                  >
+                    {t('payment.button.purchase')} £{item.price_gbp.toFixed(2)}
+                  </Text>
                 </>
               )}
             </TouchableOpacity>

@@ -177,7 +177,14 @@ export default function ImagePreviewModal({
               disabled={isProcessing}
             >
               <Ionicons name="camera" size={20} color="#6366f1" />
-              <Text style={styles.secondaryButtonText}>Retake</Text>
+              <Text 
+                style={styles.secondaryButtonText}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.7}
+              >
+                Retake
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -186,7 +193,14 @@ export default function ImagePreviewModal({
               disabled={isProcessing || images.length >= 10}
             >
               <Ionicons name="add" size={20} color="#6366f1" />
-              <Text style={styles.secondaryButtonText}>Add More</Text>
+              <Text 
+                style={styles.secondaryButtonText}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.7}
+              >
+                Add More
+              </Text>
             </TouchableOpacity>
           </View>
 
@@ -205,7 +219,12 @@ export default function ImagePreviewModal({
                 size={20} 
                 color="#ffffff" 
               />
-              <Text style={styles.primaryButtonText}>
+              <Text 
+                style={styles.primaryButtonText}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.7}
+              >
                 {isProcessing ? 'Processing...' : 'Process Images'}
               </Text>
             </TouchableOpacity>
