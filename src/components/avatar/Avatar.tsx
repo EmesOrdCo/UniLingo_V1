@@ -44,12 +44,14 @@ export const Avatar: React.FC<AvatarProps> = ({ size = 200, style }) => {
   return (
     <View style={[styles.container, { width: size, height: size }, style]}>
       <View style={styles.avatarFrame}>
-        <SvgXml 
-          xml={svgString} 
-          width={size * 0.8} 
-          height={size * 0.8}
-          style={styles.avatarSvg}
-        />
+        <View style={styles.avatarMask}>
+          <SvgXml 
+            xml={svgString} 
+            width={size * 0.8} 
+            height={size * 0.8}
+            style={styles.avatarSvg}
+          />
+        </View>
       </View>
     </View>
   );
@@ -77,9 +79,18 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+    overflow: 'hidden', // Ensure content is clipped to the circular shape
+  },
+  avatarMask: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 1000, // Circular mask
+    overflow: 'hidden', // Clip the SVG content to the circular shape
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   avatarSvg: {
-    borderRadius: 10,
+    // Remove borderRadius from SVG since it's now handled by the mask
   },
 });
 
