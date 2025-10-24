@@ -168,6 +168,15 @@ export default function DailyChallengeBox({ refreshTrigger }: DailyChallengeBoxP
     try {
       // Navigate to Games screen with launchGame parameter to directly start the game
       const gameMapping: { [key: string]: string } = {
+        'flashcard_quiz': 'Flashcard Quiz',
+        'memory_match': 'Memory Match',
+        'word_scramble': 'Word Scramble',
+        'hangman': 'Hangman',
+        'speed_challenge': 'Speed Challenge',
+        'gravity_game': 'Planet Defense',
+        'type_what_you_hear': 'Listen & Type',
+        'sentence_scramble': 'Sentence Scramble',
+        // Legacy mappings for backward compatibility
         'Flashcard Quiz': 'Flashcard Quiz',
         'Memory Match': 'Memory Match',
         'Word Scramble': 'Word Scramble',
@@ -220,6 +229,7 @@ export default function DailyChallengeBox({ refreshTrigger }: DailyChallengeBoxP
   // Get default game options for instant play
   const getDefaultGameOptions = (gameType: string) => {
     switch (gameType) {
+      case 'flashcard_quiz':
       case 'Flashcard Quiz':
         return {
           questionCount: 10,
@@ -227,30 +237,35 @@ export default function DailyChallengeBox({ refreshTrigger }: DailyChallengeBoxP
           selectedTopic: 'All Topics',
           difficulty: 'all'
         };
+      case 'gravity_game':
       case 'Planet Defense':
         return {
           difficulty: 'all',
           gravitySpeed: 1.0,
           selectedTopic: 'All Topics'
         };
+      case 'hangman':
       case 'Hangman':
         return {
           wordCount: 10,
           difficulty: 'all',
           selectedTopic: 'All Topics'
         };
+      case 'memory_match':
       case 'Memory Match':
         return {
           cardCount: 12, // 12 cards = 6 pairs
           difficulty: 'all',
           selectedTopic: 'All Topics'
         };
+      case 'sentence_scramble':
       case 'Sentence Scramble':
         return {
           sentenceCount: 10,
           difficulty: 'all',
           selectedTopic: 'All Topics'
         };
+      case 'speed_challenge':
       case 'Speed Challenge':
         return {
           questionCount: 15,
@@ -258,12 +273,14 @@ export default function DailyChallengeBox({ refreshTrigger }: DailyChallengeBoxP
           difficulty: 'all',
           selectedTopic: 'All Topics'
         };
-      case t('games.typeWhatYouHear'):
+      case 'type_what_you_hear':
+      case 'Listen & Type':
         return {
           wordCount: 10,
           difficulty: 'all',
           selectedTopic: 'All Topics'
         };
+      case 'word_scramble':
       case 'Word Scramble':
         return {
           wordCount: 10,

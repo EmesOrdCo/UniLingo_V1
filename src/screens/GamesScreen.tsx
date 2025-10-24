@@ -377,7 +377,21 @@ export default function GamesScreen({ route }: { route?: any }) {
       
       // Auto-launch the game with default settings
       setTimeout(() => {
-        switch (launchGame) {
+        // Map game IDs to display names for backward compatibility
+        const gameIdToDisplayName: { [key: string]: string } = {
+          'flashcard_quiz': 'Flashcard Quiz',
+          'memory_match': 'Memory Match',
+          'word_scramble': 'Word Scramble',
+          'hangman': 'Hangman',
+          'speed_challenge': 'Speed Challenge',
+          'gravity_game': 'Planet Defense',
+          'type_what_you_hear': 'Listen & Type',
+          'sentence_scramble': 'Sentence Scramble',
+        };
+        
+        const gameDisplayName = gameIdToDisplayName[launchGame] || launchGame;
+        
+        switch (gameDisplayName) {
           case 'Flashcard Quiz':
             console.log('🎯 Launching Flashcard Quiz with options:', gameOptions);
             handleFlashcardQuizSetupComplete(gameOptions);
@@ -415,7 +429,7 @@ export default function GamesScreen({ route }: { route?: any }) {
             handleSpeakingGameSetupComplete(gameOptions);
             break;
           default:
-            console.warn('Unknown game type for auto-launch:', launchGame);
+            console.warn('Unknown game type for auto-launch:', launchGame, '->', gameDisplayName);
         }
         
         // Clear the launch parameters to prevent re-triggering on subsequent visits
