@@ -432,7 +432,7 @@ export default function LessonFlashcardQuiz({ vocabulary, onComplete, onClose, o
           {showResult && (
             <View style={styles.resultContainer}>
               <Text style={styles.resultText}>
-                {selectedAnswer === question.correctAnswer ? '✅ Correct!' : '❌ Incorrect'}
+                {selectedAnswer === question.correctAnswer ? t('lessonQuiz.correctFeedback') : t('lessonQuiz.incorrectFeedback')}
               </Text>
               <Text style={styles.correctAnswerText}>
                 {t('lessonQuiz.correctAnswer')} {question.correctAnswer}

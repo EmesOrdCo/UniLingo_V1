@@ -297,6 +297,8 @@ export const de: Record<string, string> = {
   'lessonQuiz.scoreOutOf': '{{correct}} von {{total}} richtig',
   'lessonQuiz.yourAnswer': 'Ihre Antwort:',
   'lessonQuiz.correctAnswer': 'Richtige Antwort:',
+  'lessonQuiz.correctFeedback': '✅ Richtig!',
+  'lessonQuiz.incorrectFeedback': '❌ Falsch',
   
   // Language Names
   'languages.english': 'Englisch',
